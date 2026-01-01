@@ -23,11 +23,13 @@ set(SOURCES
     src/main.cpp
     src/mainwindow.cpp
     src/ui/preferencesdialog.cpp
+    src/services/c64urestclient.cpp
 )
 
 set(HEADERS
     src/mainwindow.h
     src/ui/preferencesdialog.h
+    src/services/c64urestclient.h
 )
 
 set(RESOURCES
