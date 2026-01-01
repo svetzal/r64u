@@ -22,9 +22,13 @@ Available for:
 - **Run PRG files** (load and execute programs)
 - **Run CRT files** (cartridge images)
 - **Mount disk images** (D64/D71/D81/G64) to Drive A or B
+- **Eject mounted disks** from Drive A or B
 - **Upload/download files** between your computer and the device
+- **Transfer queue** with progress tracking for multiple file transfers
 - **Create folders** on the device
 - **Reset** the C64 machine
+- **Test connection** to verify device connectivity before saving preferences
+- **Secure password storage** using macOS Keychain (Windows Credential Manager coming soon)
 
 ## Screenshots
 
@@ -41,8 +45,9 @@ Available for:
 1. Download and run r64u
 2. Go to **File > Preferences** (or click Preferences in the toolbar)
 3. Enter your device's IP address or hostname
-4. Click **Connect**
-5. Browse, play, and enjoy!
+4. Click **Test Connection** to verify connectivity
+5. Click **OK** to save (password is stored securely in your system keychain)
+6. Click **Connect** and enjoy!
 
 ## Building from Source
 
@@ -63,8 +68,9 @@ Features planned for future releases:
 - Device discovery (mDNS/Bonjour)
 - Disk image content browsing (view D64 contents without mounting)
 - SID metadata display (title, author from HVSC)
-- Transfer queue with progress for multiple files
 - Drag and drop support
+- Windows Credential Manager integration for secure password storage
+- Linux Secret Service integration for secure password storage
 
 ## License
 
