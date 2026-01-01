@@ -24,12 +24,14 @@ set(SOURCES
     src/mainwindow.cpp
     src/ui/preferencesdialog.cpp
     src/services/c64urestclient.cpp
+    src/services/c64uftpclient.cpp
 )
 
 set(HEADERS
     src/mainwindow.h
     src/ui/preferencesdialog.h
     src/services/c64urestclient.h
+    src/services/c64uftpclient.h
 )
 
 set(RESOURCES
