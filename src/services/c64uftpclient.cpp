@@ -311,7 +311,10 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
             QString dataHost;
             quint16 dataPort;
             if (parsePassiveResponse(text, dataHost, dataPort)) {
-                dataSocket_->connectToHost(dataHost, dataPort);
+                // Use the control socket's peer address instead of the IP from PASV
+                // Many FTP servers return internal IPs that aren't reachable
+                QString actualHost = controlSocket_->peerAddress().toString();
+                dataSocket_->connectToHost(actualHost, dataPort);
             } else {
                 emit error("Failed to parse passive mode response");
                 processNextCommand();
