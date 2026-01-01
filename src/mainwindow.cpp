@@ -829,14 +829,9 @@ void MainWindow::onRemoteDoubleClicked(const QModelIndex &index)
 {
     if (!index.isValid()) return;
 
-    if (remoteFileModel_->isDirectory(index)) {
-        // Expand/collapse directory
-        if (remoteTreeView_->isExpanded(index)) {
-            remoteTreeView_->collapse(index);
-        } else {
-            remoteTreeView_->expand(index);
-        }
-    } else {
+    // For directories, let the tree view handle expand/collapse automatically
+    // We only need to handle double-click actions for files
+    if (!remoteFileModel_->isDirectory(index)) {
         // Execute default action based on file type
         RemoteFileModel::FileType type = remoteFileModel_->fileType(index);
 

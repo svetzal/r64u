@@ -1,6 +1,7 @@
 #include "remotefilemodel.h"
 #include <QStyle>
 #include <QApplication>
+#include <QDebug>
 
 RemoteFileModel::RemoteFileModel(QObject *parent)
     : QAbstractItemModel(parent)
@@ -326,14 +327,21 @@ QString RemoteFileModel::fileTypeString(FileType type)
 
 void RemoteFileModel::onDirectoryListed(const QString &path, const QList<FtpEntry> &entries)
 {
+    qDebug() << "Model: onDirectoryListed path:" << path << "entries:" << entries.size();
+    qDebug() << "Model: pendingFetches_ keys:" << pendingFetches_.keys();
+
     TreeNode *node = pendingFetches_.take(path);
     if (!node) {
         // Might be for root
         if (path == rootPath_ || path.isEmpty()) {
+            qDebug() << "Model: Using root node for path:" << path;
             node = rootNode_;
         } else {
+            qDebug() << "Model: No node found for path:" << path << "- ignoring!";
             return;
         }
+    } else {
+        qDebug() << "Model: Found pending node:" << node->name << "fullPath:" << node->fullPath;
     }
 
     node->fetching = false;
@@ -406,8 +414,11 @@ RemoteFileModel::TreeNode* RemoteFileModel::findNodeByPath(const QString &path) 
 void RemoteFileModel::populateNode(TreeNode *node, const QList<FtpEntry> &entries)
 {
     QModelIndex parentIndex = indexFromNode(node);
+    qDebug() << "Model: populateNode for" << node->name << "parentIndex valid:" << parentIndex.isValid()
+             << "entries:" << entries.count() << "existing children:" << node->children.count();
 
     if (!entries.isEmpty()) {
+        qDebug() << "Model: beginInsertRows parentIndex:" << parentIndex << "rows 0 to" << entries.count() - 1;
         beginInsertRows(parentIndex, 0, entries.count() - 1);
 
         for (const FtpEntry &entry : entries) {
@@ -432,8 +443,10 @@ void RemoteFileModel::populateNode(TreeNode *node, const QList<FtpEntry> &entrie
             }
 
             node->children.append(child);
+            qDebug() << "Model: Added child:" << child->name << "isDir:" << child->isDirectory;
         }
 
         endInsertRows();
+        qDebug() << "Model: endInsertRows, node now has" << node->children.count() << "children";
     }
 }

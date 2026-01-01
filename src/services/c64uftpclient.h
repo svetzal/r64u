@@ -90,6 +90,7 @@ private slots:
     void onDataConnected();
     void onDataReadyRead();
     void onDataDisconnected();
+    void onDataError(QAbstractSocket::SocketError error);
 
 private:
     enum class Command {
@@ -150,6 +151,10 @@ private:
     QFile *transferFile_ = nullptr;
     qint64 transferSize_ = 0;
     bool downloading_ = false;
+
+    // For LIST command - wait for data socket to close before processing
+    bool listPending226_ = false;
+    QString listPendingPath_;
 };
 
 #endif // C64UFTPCLIENT_H

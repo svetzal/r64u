@@ -2,6 +2,7 @@
 
 #include <QRegularExpression>
 #include <QFileInfo>
+#include <QDebug>
 
 C64UFtpClient::C64UFtpClient(QObject *parent)
     : QObject(parent)
@@ -23,6 +24,8 @@ C64UFtpClient::C64UFtpClient(QObject *parent)
             this, &C64UFtpClient::onDataReadyRead);
     connect(dataSocket_, &QTcpSocket::disconnected,
             this, &C64UFtpClient::onDataDisconnected);
+    connect(dataSocket_, &QTcpSocket::errorOccurred,
+            this, &C64UFtpClient::onDataError);
 }
 
 C64UFtpClient::~C64UFtpClient()
@@ -56,9 +59,11 @@ void C64UFtpClient::setState(State state)
 void C64UFtpClient::connectToHost()
 {
     if (state_ != State::Disconnected) {
+        qDebug() << "FTP: connectToHost called but state is" << static_cast<int>(state_);
         return;
     }
 
+    qDebug() << "FTP: Connecting to" << host_ << ":" << port_;
     setState(State::Connecting);
     controlSocket_->connectToHost(host_, port_);
 }
@@ -87,7 +92,14 @@ void C64UFtpClient::disconnect()
 void C64UFtpClient::sendCommand(const QString &command)
 {
     if (controlSocket_->state() != QAbstractSocket::ConnectedState) {
+        qDebug() << "FTP: Cannot send command, socket not connected";
         return;
+    }
+    // Don't log password
+    if (command.startsWith("PASS ")) {
+        qDebug() << "FTP: >>" << "PASS ****";
+    } else {
+        qDebug() << "FTP: >>" << command;
     }
     controlSocket_->write((command + "\r\n").toUtf8());
 }
@@ -172,18 +184,20 @@ void C64UFtpClient::processNextCommand()
 
 void C64UFtpClient::onControlConnected()
 {
+    qDebug() << "FTP: Control socket connected to" << controlSocket_->peerAddress().toString();
     setState(State::Connected);
 }
 
 void C64UFtpClient::onControlDisconnected()
 {
+    qDebug() << "FTP: Control socket disconnected";
     setState(State::Disconnected);
     emit disconnected();
 }
 
 void C64UFtpClient::onControlError(QAbstractSocket::SocketError socketError)
 {
-    Q_UNUSED(socketError)
+    qDebug() << "FTP: Control socket error:" << socketError << controlSocket_->errorString();
     emit error(controlSocket_->errorString());
     setState(State::Disconnected);
 }
@@ -216,6 +230,8 @@ void C64UFtpClient::onControlReadyRead()
 
 void C64UFtpClient::handleResponse(int code, const QString &text)
 {
+    qDebug() << "FTP: <<" << code << text << "(state:" << static_cast<int>(state_) << ")";
+
     // 1xx: Positive Preliminary
     // 2xx: Positive Completion
     // 3xx: Positive Intermediate
@@ -314,7 +330,12 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                 // Use the control socket's peer address instead of the IP from PASV
                 // Many FTP servers return internal IPs that aren't reachable
                 QString actualHost = controlSocket_->peerAddress().toString();
+                qDebug() << "FTP: PASV response host:" << dataHost << "port:" << dataPort;
+                qDebug() << "FTP: Using actual host:" << actualHost << "port:" << dataPort;
                 dataSocket_->connectToHost(actualHost, dataPort);
+                // Send the next command (LIST/RETR/STOR) immediately
+                // The server expects the command before sending data
+                processNextCommand();
             } else {
                 emit error("Failed to parse passive mode response");
                 processNextCommand();
@@ -327,14 +348,28 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
 
     case Command::List:
         if (code == 150 || code == 125) {
-            // Transfer starting, data will come on data socket
-            dataBuffer_.clear();
+            // Transfer starting - don't clear buffer here as data may have already arrived
+            // (C64U server sometimes sends data before 150 response)
             downloading_ = true;
+            qDebug() << "FTP: 150 received, dataBuffer_ size:" << dataBuffer_.size();
         } else if (code == 226) {
-            // Transfer complete
-            QList<FtpEntry> entries = parseDirectoryListing(dataBuffer_);
-            emit directoryListed(currentArg_.isEmpty() ? currentDir_ : currentArg_, entries);
-            processNextCommand();
+            // Transfer complete on server side, but data may still be in flight
+            QString path = currentArg_.isEmpty() ? currentDir_ : currentArg_;
+            if (dataSocket_->state() == QAbstractSocket::UnconnectedState) {
+                // Data socket already closed, process immediately
+                qDebug() << "FTP: 226 received, data socket already closed, processing";
+                qDebug() << "FTP: LIST complete, total data:" << dataBuffer_.size() << "bytes";
+                QList<FtpEntry> entries = parseDirectoryListing(dataBuffer_);
+                qDebug() << "FTP: Parsed" << entries.size() << "entries";
+                emit directoryListed(path, entries);
+                processNextCommand();
+            } else {
+                // Wait for data socket to close before processing
+                qDebug() << "FTP: 226 received, waiting for data socket to finish";
+                listPending226_ = true;
+                listPendingPath_ = path;
+                // Don't process next command yet - wait for data socket
+            }
         } else if (code >= 400) {
             emit error("List failed: " + text);
             processNextCommand();
@@ -444,6 +479,7 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
 
 void C64UFtpClient::onDataConnected()
 {
+    qDebug() << "FTP: Data socket connected to" << dataSocket_->peerAddress().toString() << ":" << dataSocket_->peerPort();
     // Data connection established, now send the actual command
     // The command was already sent, waiting for data
 }
@@ -451,6 +487,7 @@ void C64UFtpClient::onDataConnected()
 void C64UFtpClient::onDataReadyRead()
 {
     QByteArray data = dataSocket_->readAll();
+    qDebug() << "FTP: Data received:" << data.size() << "bytes";
 
     if (currentCommand_ == Command::List) {
         dataBuffer_.append(data);
@@ -462,7 +499,39 @@ void C64UFtpClient::onDataReadyRead()
 
 void C64UFtpClient::onDataDisconnected()
 {
+    qDebug() << "FTP: Data socket disconnected, bytes available:" << dataSocket_->bytesAvailable();
+    // Read any remaining data before disconnect completes
+    if (dataSocket_->bytesAvailable() > 0) {
+        onDataReadyRead();
+    }
     downloading_ = false;
+
+    // If we received 226 and were waiting for data socket to close, process now
+    if (listPending226_) {
+        qDebug() << "FTP: Processing pending LIST, total data:" << dataBuffer_.size() << "bytes";
+        qDebug() << "FTP: Data buffer contents:" << dataBuffer_;
+        QList<FtpEntry> entries = parseDirectoryListing(dataBuffer_);
+        qDebug() << "FTP: Parsed" << entries.size() << "entries";
+        emit directoryListed(listPendingPath_, entries);
+        listPending226_ = false;
+        listPendingPath_.clear();
+        processNextCommand();
+    }
+}
+
+void C64UFtpClient::onDataError(QAbstractSocket::SocketError socketError)
+{
+    // RemoteHostClosedError is normal - server closes after sending data
+    // But we need to read any remaining data in the buffer first
+    if (socketError == QAbstractSocket::RemoteHostClosedError) {
+        qDebug() << "FTP: Data socket closed by server, reading remaining data...";
+        if (dataSocket_->bytesAvailable() > 0) {
+            onDataReadyRead();  // Read any remaining buffered data
+        }
+        return;
+    }
+    qDebug() << "FTP: Data socket error:" << socketError << dataSocket_->errorString();
+    emit error("Data connection failed: " + dataSocket_->errorString());
 }
 
 bool C64UFtpClient::parsePassiveResponse(const QString &text, QString &host, quint16 &port)
@@ -533,6 +602,7 @@ void C64UFtpClient::list(const QString &path)
         emit error("Not logged in");
         return;
     }
+    dataBuffer_.clear();  // Clear buffer at start of list operation
     queueCommand(Command::Type, "A");  // ASCII mode for listing
     queueCommand(Command::Pasv);
     queueCommand(Command::List, path);
