@@ -1,4 +1,6 @@
 #include "preferencesdialog.h"
+#include "../services/c64urestclient.h"
+#include "../services/credentialstore.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -11,6 +13,7 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QMessageBox>
+#include <QApplication>
 
 PreferencesDialog::PreferencesDialog(QWidget *parent)
     : QDialog(parent)
@@ -105,9 +108,15 @@ void PreferencesDialog::loadSettings()
 {
     QSettings settings;
 
-    hostEdit_->setText(settings.value("device/host", "").toString());
-    // Note: Password should be loaded from secure storage in production
-    passwordEdit_->setText(settings.value("device/password", "").toString());
+    QString host = settings.value("device/host", "").toString();
+    hostEdit_->setText(host);
+
+    // Load password from secure storage
+    if (!host.isEmpty()) {
+        QString password = CredentialStore::retrievePassword("r64u", host);
+        passwordEdit_->setText(password);
+    }
+
     autoConnectCheck_->setChecked(settings.value("device/autoConnect", false).toBool());
 
     QString defaultDownloadPath = QStandardPaths::writableLocation(
@@ -129,9 +138,17 @@ void PreferencesDialog::saveSettings()
 {
     QSettings settings;
 
-    settings.setValue("device/host", hostEdit_->text());
-    // Note: Password should be saved to secure storage in production
-    settings.setValue("device/password", passwordEdit_->text());
+    QString host = hostEdit_->text().trimmed();
+    settings.setValue("device/host", host);
+
+    // Save password to secure storage (Keychain on macOS)
+    if (!host.isEmpty()) {
+        CredentialStore::storePassword("r64u", host, passwordEdit_->text());
+    }
+
+    // Remove the insecure password from QSettings if it exists
+    settings.remove("device/password");
+
     settings.setValue("device/autoConnect", autoConnectCheck_->isChecked());
 
     settings.setValue("app/downloadPath", downloadPathEdit_->text());
@@ -149,8 +166,62 @@ void PreferencesDialog::onAccept()
 
 void PreferencesDialog::onTestConnection()
 {
-    // TODO: Implement connection test using REST client
-    QMessageBox::information(this, tr("Test Connection"),
-        tr("Connection test not yet implemented.\n"
-           "Will test connection to: %1").arg(hostEdit_->text()));
+    QString host = hostEdit_->text().trimmed();
+    if (host.isEmpty()) {
+        QMessageBox::warning(this, tr("Test Connection"),
+            tr("Please enter a host address."));
+        return;
+    }
+
+    // Clean up any existing test client
+    if (testClient_) {
+        testClient_->deleteLater();
+    }
+
+    testClient_ = new C64URestClient(this);
+    testClient_->setHost(host);
+    testClient_->setPassword(passwordEdit_->text());
+
+    connect(testClient_, &C64URestClient::infoReceived,
+            this, &PreferencesDialog::onTestConnectionSuccess);
+    connect(testClient_, &C64URestClient::connectionError,
+            this, &PreferencesDialog::onTestConnectionError);
+
+    // Show waiting cursor
+    QApplication::setOverrideCursor(Qt::WaitCursor);
+
+    testClient_->getInfo();
+}
+
+void PreferencesDialog::onTestConnectionSuccess(const DeviceInfo &info)
+{
+    QApplication::restoreOverrideCursor();
+
+    QString message = tr("Connection successful!\n\n"
+                         "Device: %1\n"
+                         "Firmware: %2\n"
+                         "Hostname: %3")
+        .arg(info.product)
+        .arg(info.firmwareVersion)
+        .arg(info.hostname);
+
+    QMessageBox::information(this, tr("Test Connection"), message);
+
+    if (testClient_) {
+        testClient_->deleteLater();
+        testClient_ = nullptr;
+    }
+}
+
+void PreferencesDialog::onTestConnectionError(const QString &error)
+{
+    QApplication::restoreOverrideCursor();
+
+    QMessageBox::critical(this, tr("Test Connection"),
+        tr("Connection failed:\n%1").arg(error));
+
+    if (testClient_) {
+        testClient_->deleteLater();
+        testClient_ = nullptr;
+    }
 }

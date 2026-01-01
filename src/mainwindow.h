@@ -15,6 +15,8 @@
 class PreferencesDialog;
 class DeviceConnection;
 class RemoteFileModel;
+class TransferQueue;
+class TransferQueueWidget;
 
 class MainWindow : public QMainWindow
 {
@@ -39,6 +41,8 @@ private slots:
     void onMount();
     void onMountToDriveA();
     void onMountToDriveB();
+    void onEjectDriveA();
+    void onEjectDriveB();
     void onReset();
     void onUpload();
     void onDownload();
@@ -94,6 +98,7 @@ private:
     // Services
     DeviceConnection *deviceConnection_ = nullptr;
     RemoteFileModel *remoteFileModel_ = nullptr;
+    TransferQueue *transferQueue_ = nullptr;
 
     // Central widget
     QStackedWidget *stackedWidget_ = nullptr;
@@ -108,6 +113,7 @@ private:
     QTreeView *localTreeView_ = nullptr;
     QTreeView *remoteTransferTreeView_ = nullptr;
     QFileSystemModel *localFileModel_ = nullptr;
+    TransferQueueWidget *transferQueueWidget_ = nullptr;
 
     // Toolbar
     QToolBar *mainToolBar_ = nullptr;

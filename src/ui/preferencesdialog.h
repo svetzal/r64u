@@ -6,6 +6,8 @@
 #include <QCheckBox>
 #include <QComboBox>
 
+#include "../services/c64urestclient.h"
+
 class PreferencesDialog : public QDialog
 {
     Q_OBJECT
@@ -17,6 +19,8 @@ public:
 private slots:
     void onAccept();
     void onTestConnection();
+    void onTestConnectionSuccess(const DeviceInfo &info);
+    void onTestConnectionError(const QString &error);
 
 private:
     void setupUi();
@@ -32,6 +36,9 @@ private:
     QLineEdit *downloadPathEdit_ = nullptr;
     QComboBox *defaultDriveCombo_ = nullptr;
     QComboBox *mountModeCombo_ = nullptr;
+
+    // Test connection
+    C64URestClient *testClient_ = nullptr;
 };
 
 #endif // PREFERENCESDIALOG_H

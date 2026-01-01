@@ -23,20 +23,30 @@ set(SOURCES
     src/main.cpp
     src/mainwindow.cpp
     src/ui/preferencesdialog.cpp
+    src/ui/transferqueuewidget.cpp
     src/services/c64urestclient.cpp
     src/services/c64uftpclient.cpp
     src/services/deviceconnection.cpp
     src/models/remotefilemodel.cpp
+    src/models/transferqueue.cpp
 )
 
 set(HEADERS
     src/mainwindow.h
     src/ui/preferencesdialog.h
+    src/ui/transferqueuewidget.h
     src/services/c64urestclient.h
     src/services/c64uftpclient.h
     src/services/deviceconnection.h
+    src/services/credentialstore.h
     src/models/remotefilemodel.h
+    src/models/transferqueue.h
 )
+
+# Platform-specific credential storage
+if(APPLE)
+    list(APPEND SOURCES src/services/credentialstore_mac.mm)
+endif()
 
 set(RESOURCES
     resources/r64u.qrc
@@ -92,6 +102,14 @@ target_link_libraries(r64u PRIVATE
     Qt6::Widgets
     Qt6::Network
 )
+
+# Platform-specific libraries
+if(APPLE)
+    target_link_libraries(r64u PRIVATE
+        "-framework Security"
+        "-framework Foundation"
+    )
+endif()
 
 install(TARGETS r64u
     BUNDLE DESTINATION .

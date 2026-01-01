@@ -1,7 +1,9 @@
 #include "mainwindow.h"
 #include "ui/preferencesdialog.h"
+#include "ui/transferqueuewidget.h"
 #include "services/deviceconnection.h"
 #include "models/remotefilemodel.h"
+#include "models/transferqueue.h"
 
 #include <QMenuBar>
 #include <QStatusBar>
@@ -16,13 +18,17 @@
 #include <QFileInfo>
 #include <QTimer>
 
+#include "services/credentialstore.h"
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , deviceConnection_(new DeviceConnection(this))
     , remoteFileModel_(new RemoteFileModel(this))
+    , transferQueue_(new TransferQueue(this))
 {
-    // Connect the FTP client to the model
+    // Connect the FTP client to the model and queue
     remoteFileModel_->setFtpClient(deviceConnection_->ftpClient());
+    transferQueue_->setFtpClient(deviceConnection_->ftpClient());
 
     setupUi();
     setupMenuBar();
@@ -101,6 +107,14 @@ void MainWindow::setupMenuBar()
 
     auto *resetMachineAction = machineMenu->addAction(tr("&Reset"));
     connect(resetMachineAction, &QAction::triggered, this, &MainWindow::onReset);
+
+    machineMenu->addSeparator();
+
+    auto *ejectDriveAAction = machineMenu->addAction(tr("Eject Drive &A"));
+    connect(ejectDriveAAction, &QAction::triggered, this, &MainWindow::onEjectDriveA);
+
+    auto *ejectDriveBAction = machineMenu->addAction(tr("Eject Drive &B"));
+    connect(ejectDriveBAction, &QAction::triggered, this, &MainWindow::onEjectDriveB);
 
     // Help menu
     auto *helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -244,30 +258,7 @@ void MainWindow::setupTransferMode()
 
     transferSplitter_ = new QSplitter(Qt::Horizontal);
 
-    // Local file browser
-    auto *localWidget = new QWidget();
-    auto *localLayout = new QVBoxLayout(localWidget);
-    localLayout->setContentsMargins(4, 4, 4, 4);
-
-    auto *localLabel = new QLabel(tr("Local Files"));
-    localLabel->setStyleSheet("font-weight: bold;");
-    localLayout->addWidget(localLabel);
-
-    localTreeView_ = new QTreeView();
-    localTreeView_->setAlternatingRowColors(true);
-    localTreeView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
-
-    localFileModel_ = new QFileSystemModel(this);
-    localFileModel_->setRootPath(QStandardPaths::writableLocation(QStandardPaths::HomeLocation));
-    localTreeView_->setModel(localFileModel_);
-    localTreeView_->setRootIndex(localFileModel_->index(
-        QStandardPaths::writableLocation(QStandardPaths::HomeLocation)));
-    localTreeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
-
-    localLayout->addWidget(localTreeView_);
-    transferSplitter_->addWidget(localWidget);
-
-    // Remote file browser (shares model with explore mode)
+    // Remote file browser (shares model with explore mode) - LEFT SIDE
     auto *remoteWidget = new QWidget();
     auto *remoteLayout = new QVBoxLayout(remoteWidget);
     remoteLayout->setContentsMargins(4, 4, 4, 4);
@@ -294,8 +285,37 @@ void MainWindow::setupTransferMode()
     remoteLayout->addWidget(remoteTransferTreeView_);
     transferSplitter_->addWidget(remoteWidget);
 
+    // Local file browser - RIGHT SIDE
+    auto *localWidget = new QWidget();
+    auto *localLayout = new QVBoxLayout(localWidget);
+    localLayout->setContentsMargins(4, 4, 4, 4);
+
+    auto *localLabel = new QLabel(tr("Local Files"));
+    localLabel->setStyleSheet("font-weight: bold;");
+    localLayout->addWidget(localLabel);
+
+    localTreeView_ = new QTreeView();
+    localTreeView_->setAlternatingRowColors(true);
+    localTreeView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
+
+    localFileModel_ = new QFileSystemModel(this);
+    localFileModel_->setRootPath(QStandardPaths::writableLocation(QStandardPaths::HomeLocation));
+    localTreeView_->setModel(localFileModel_);
+    localTreeView_->setRootIndex(localFileModel_->index(
+        QStandardPaths::writableLocation(QStandardPaths::HomeLocation)));
+    localTreeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+
+    localLayout->addWidget(localTreeView_);
+    transferSplitter_->addWidget(localWidget);
+
     transferSplitter_->setSizes({400, 400});
-    layout->addWidget(transferSplitter_);
+    layout->addWidget(transferSplitter_, 1);
+
+    // Transfer queue widget
+    transferQueueWidget_ = new TransferQueueWidget();
+    transferQueueWidget_->setTransferQueue(transferQueue_);
+    transferQueueWidget_->setMaximumHeight(200);
+    layout->addWidget(transferQueueWidget_);
 
     stackedWidget_->addWidget(transferWidget_);
 
@@ -340,20 +360,23 @@ void MainWindow::setupConnections()
         statusBar()->showMessage(tr("Error: %1").arg(message), 5000);
     });
 
-    // FTP transfer signals
+    // FTP transfer signals (for non-queued operations)
     C64UFtpClient *ftp = deviceConnection_->ftpClient();
-    connect(ftp, &C64UFtpClient::uploadProgress,
-            this, &MainWindow::onUploadProgress);
-    connect(ftp, &C64UFtpClient::uploadFinished,
-            this, &MainWindow::onUploadFinished);
-    connect(ftp, &C64UFtpClient::downloadProgress,
-            this, &MainWindow::onDownloadProgress);
-    connect(ftp, &C64UFtpClient::downloadFinished,
-            this, &MainWindow::onDownloadFinished);
     connect(ftp, &C64UFtpClient::directoryCreated,
             this, &MainWindow::onDirectoryCreated);
     connect(ftp, &C64UFtpClient::fileRemoved,
             this, &MainWindow::onFileRemoved);
+
+    // Transfer queue signals
+    connect(transferQueue_, &TransferQueue::transferCompleted,
+            this, [this](const QString &fileName) {
+        statusBar()->showMessage(tr("Transfer complete: %1").arg(fileName), 3000);
+        remoteFileModel_->refresh();
+    });
+    connect(transferQueue_, &TransferQueue::transferFailed,
+            this, [this](const QString &fileName, const QString &error) {
+        statusBar()->showMessage(tr("Transfer failed: %1 - %2").arg(fileName, error), 5000);
+    });
 }
 
 void MainWindow::switchToMode(Mode mode)
@@ -466,10 +489,12 @@ void MainWindow::loadSettings()
 {
     QSettings settings;
     QString host = settings.value("device/host").toString();
-    QString password = settings.value("device/password").toString();
     bool autoConnect = settings.value("device/autoConnect", false).toBool();
 
     if (!host.isEmpty()) {
+        // Load password from secure storage (Keychain on macOS)
+        QString password = CredentialStore::retrievePassword("r64u", host);
+
         deviceConnection_->setHost(host);
         deviceConnection_->setPassword(password);
 
@@ -639,6 +664,18 @@ void MainWindow::onMountToDriveB()
     statusBar()->showMessage(tr("Mounting to Drive B: %1").arg(path), 3000);
 }
 
+void MainWindow::onEjectDriveA()
+{
+    deviceConnection_->restClient()->unmountImage("a");
+    statusBar()->showMessage(tr("Ejecting Drive A"), 3000);
+}
+
+void MainWindow::onEjectDriveB()
+{
+    deviceConnection_->restClient()->unmountImage("b");
+    statusBar()->showMessage(tr("Ejecting Drive B"), 3000);
+}
+
 void MainWindow::onReset()
 {
     deviceConnection_->restClient()->resetMachine();
@@ -672,11 +709,8 @@ void MainWindow::onUpload()
 
     QString remotePath = remoteDir + fileInfo.fileName();
 
-    transferProgress_->setVisible(true);
-    transferProgress_->setValue(0);
-    statusBar()->showMessage(tr("Uploading %1...").arg(fileInfo.fileName()));
-
-    deviceConnection_->ftpClient()->upload(localPath, remotePath);
+    transferQueue_->enqueueUpload(localPath, remotePath);
+    statusBar()->showMessage(tr("Queued upload: %1").arg(fileInfo.fileName()), 3000);
 }
 
 void MainWindow::onDownload()
@@ -702,11 +736,8 @@ void MainWindow::onDownload()
     QString fileName = QFileInfo(remotePath).fileName();
     QString localPath = downloadDir + "/" + fileName;
 
-    transferProgress_->setVisible(true);
-    transferProgress_->setValue(0);
-    statusBar()->showMessage(tr("Downloading %1...").arg(fileName));
-
-    deviceConnection_->ftpClient()->download(remotePath, localPath);
+    transferQueue_->enqueueDownload(remotePath, localPath);
+    statusBar()->showMessage(tr("Queued download: %1").arg(fileName), 3000);
 }
 
 void MainWindow::onNewFolder()
