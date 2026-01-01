@@ -14,6 +14,7 @@
 #include <QCloseEvent>
 #include <QInputDialog>
 #include <QFileInfo>
+#include <QTimer>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -473,7 +474,9 @@ void MainWindow::loadSettings()
         deviceConnection_->setPassword(password);
 
         if (autoConnect) {
-            onConnect();
+            // Defer auto-connect to after event loop starts
+            // Network stack may not be ready during app initialization
+            QTimer::singleShot(500, this, &MainWindow::onConnect);
         }
     }
 
