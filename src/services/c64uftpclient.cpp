@@ -231,27 +231,8 @@ void C64UFtpClient::handleResponse(int code, const QString &text)
         break;
 
     case State::LoggingIn:
-        if (currentCommand_ == Command::User) {
-            if (code == 331) {
-                // Password required
-                queueCommand(Command::Pass);
-            } else if (code == 230) {
-                // Logged in without password
-                setState(State::Ready);
-                emit connected();
-            } else {
-                emit error("Login failed: " + text);
-                disconnect();
-            }
-        } else if (currentCommand_ == Command::Pass) {
-            if (code == 230) {
-                setState(State::Ready);
-                emit connected();
-            } else {
-                emit error("Login failed: " + text);
-                disconnect();
-            }
-        }
+        // Login responses are handled in handleBusyResponse since
+        // processNextCommand() transitions to Busy before responses arrive
         processNextCommand();
         break;
 
@@ -267,6 +248,34 @@ void C64UFtpClient::handleResponse(int code, const QString &text)
 void C64UFtpClient::handleBusyResponse(int code, const QString &text)
 {
     switch (currentCommand_) {
+    case Command::User:
+        if (code == 331) {
+            // Password required
+            queueCommand(Command::Pass);
+        } else if (code == 230) {
+            // Logged in without password
+            setState(State::Ready);
+            emit connected();
+        } else {
+            emit error("Login failed: " + text);
+            disconnect();
+            return;
+        }
+        processNextCommand();
+        break;
+
+    case Command::Pass:
+        if (code == 230) {
+            setState(State::Ready);
+            emit connected();
+        } else {
+            emit error("Login failed: " + text);
+            disconnect();
+            return;
+        }
+        processNextCommand();
+        break;
+
     case Command::Pwd:
         if (code == 257) {
             // Extract path from response like: 257 "/path" is current directory
