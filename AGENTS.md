@@ -2,6 +2,19 @@
 
 This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
 
+## Build Environment
+
+Qt 6.10.1 is installed via the native Qt installer at `~/Qt/`.
+
+```bash
+# Configure and build
+cmake -B build -DCMAKE_PREFIX_PATH=~/Qt/6.10.1/macos
+cmake --build build
+
+# Run the app
+open build/r64u.app  # macOS
+```
+
 ## Quick Reference
 
 ```bash
