@@ -46,6 +46,9 @@ set(HEADERS
 # Platform-specific credential storage
 if(APPLE)
     list(APPEND SOURCES src/services/credentialstore_mac.mm)
+else()
+    # Stub implementation for Windows/Linux (secure storage not yet implemented)
+    list(APPEND SOURCES src/services/credentialstore_stub.cpp)
 endif()
 
 set(RESOURCES
