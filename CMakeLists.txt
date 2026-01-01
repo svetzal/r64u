@@ -26,6 +26,7 @@ set(SOURCES
     src/services/c64urestclient.cpp
     src/services/c64uftpclient.cpp
     src/services/deviceconnection.cpp
+    src/models/remotefilemodel.cpp
 )
 
 set(HEADERS
@@ -34,6 +35,7 @@ set(HEADERS
     src/services/c64urestclient.h
     src/services/c64uftpclient.h
     src/services/deviceconnection.h
+    src/models/remotefilemodel.h
 )
 
 set(RESOURCES
