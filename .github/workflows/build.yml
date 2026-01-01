@@ -1,0 +1,161 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+env:
+  QT_VERSION: '6.8.0'
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            name: Linux
+            artifact: r64u-linux
+          - os: macos-latest
+            name: macOS
+            artifact: r64u-macos
+          - os: windows-latest
+            name: Windows
+            artifact: r64u-windows
+
+    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.name }})
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          cache: true
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libxkbcommon-dev libxkbcommon-x11-0 \
+            libfuse2 libxcb-cursor0
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build
+        run: cmake --build build --config ${{ env.BUILD_TYPE }}
+
+      - name: Bundle Qt Frameworks (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          APP_PATH="build/r64u.app"
+          macdeployqt "$APP_PATH" -verbose=2
+
+          # Remove Headers and .prl files that can cause signing issues
+          find "$APP_PATH/Contents/Frameworks" -name "Headers" -exec rm -rf {} + 2>/dev/null || true
+          find "$APP_PATH/Contents/Frameworks" -name "*.prl" -delete
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cd build
+          ditto -c -k --sequesterRsrc --keepParent r64u.app r64u-macos.zip
+
+      - name: Package (Linux AppImage)
+        if: runner.os == 'Linux'
+        run: |
+          # Create AppDir structure
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+
+          # Copy executable
+          cp build/r64u AppDir/usr/bin/
+
+          # Create desktop file
+          cat > AppDir/usr/share/applications/r64u.desktop << 'EOF'
+          [Desktop Entry]
+          Type=Application
+          Name=r64u
+          Comment=Remote access tool for Commodore 64 Ultimate devices
+          Exec=r64u
+          Icon=r64u
+          Categories=Utility;
+          EOF
+          cp AppDir/usr/share/applications/r64u.desktop AppDir/
+
+          # Create a simple icon placeholder
+          convert -size 256x256 xc:'#4488CC' AppDir/usr/share/icons/hicolor/256x256/apps/r64u.png
+          cp AppDir/usr/share/icons/hicolor/256x256/apps/r64u.png AppDir/r64u.png
+
+          # Download linuxdeployqt
+          wget -q https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
+          chmod +x linuxdeployqt-continuous-x86_64.AppImage
+
+          # Create AppImage
+          ./linuxdeployqt-continuous-x86_64.AppImage AppDir/usr/share/applications/r64u.desktop -appimage -verbose=2
+
+          # Rename to standard name
+          mv r64u*.AppImage r64u-linux.AppImage || mv R64u*.AppImage r64u-linux.AppImage
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cd build/Release
+          mkdir package
+          copy r64u.exe package/
+          windeployqt --release --no-translations package/r64u.exe
+          Compress-Archive -Path package/* -DestinationPath ../r64u-windows.zip
+
+      - name: Upload artifact (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: build/r64u-macos.zip
+
+      - name: Upload artifact (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: r64u-linux.AppImage
+
+      - name: Upload artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: build/r64u-windows.zip
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/r64u-linux/r64u-linux.AppImage
+            artifacts/r64u-macos/r64u-macos.zip
+            artifacts/r64u-windows/r64u-windows.zip
+          draft: true
+          generate_release_notes: true
