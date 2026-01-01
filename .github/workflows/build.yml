@@ -246,5 +246,5 @@ jobs:
             artifacts/r64u-linux/r64u-linux.AppImage
             artifacts/r64u-macos/r64u-macos.zip
             artifacts/r64u-windows/r64u-windows.zip
-          draft: true
+          draft: false
           generate_release_notes: true
