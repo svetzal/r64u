@@ -12,6 +12,8 @@
 #include <QMessageBox>
 #include <QSettings>
 #include <QCloseEvent>
+#include <QInputDialog>
+#include <QFileInfo>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -183,9 +185,14 @@ void MainWindow::setupStatusBar()
     driveBLabel_ = new QLabel(tr("Drive B: [none]"));
     connectionLabel_ = new QLabel(tr("Disconnected"));
 
+    transferProgress_ = new QProgressBar();
+    transferProgress_->setMaximumWidth(150);
+    transferProgress_->setVisible(false);
+
     statusBar()->addWidget(driveALabel_);
     statusBar()->addWidget(new QLabel(" | "));
     statusBar()->addWidget(driveBLabel_);
+    statusBar()->addPermanentWidget(transferProgress_);
     statusBar()->addPermanentWidget(connectionLabel_);
 }
 
@@ -272,7 +279,16 @@ void MainWindow::setupTransferMode()
     remoteTransferTreeView_->setModel(remoteFileModel_);
     remoteTransferTreeView_->setAlternatingRowColors(true);
     remoteTransferTreeView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    remoteTransferTreeView_->setContextMenuPolicy(Qt::CustomContextMenu);
     remoteTransferTreeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+
+    connect(remoteTransferTreeView_, &QTreeView::customContextMenuRequested,
+            this, [this](const QPoint &pos) {
+        QModelIndex index = remoteTransferTreeView_->indexAt(pos);
+        if (index.isValid()) {
+            transferContextMenu_->exec(remoteTransferTreeView_->viewport()->mapToGlobal(pos));
+        }
+    });
 
     remoteLayout->addWidget(remoteTransferTreeView_);
     transferSplitter_->addWidget(remoteWidget);
@@ -281,6 +297,14 @@ void MainWindow::setupTransferMode()
     layout->addWidget(transferSplitter_);
 
     stackedWidget_->addWidget(transferWidget_);
+
+    // Setup transfer context menu
+    transferContextMenu_ = new QMenu(this);
+    transferContextMenu_->addAction(tr("Download"), this, &MainWindow::onDownload);
+    transferContextMenu_->addAction(tr("Delete"), this, &MainWindow::onDelete);
+    transferContextMenu_->addSeparator();
+    transferContextMenu_->addAction(tr("New Folder"), this, &MainWindow::onNewFolder);
+    transferContextMenu_->addAction(tr("Refresh"), this, &MainWindow::onRefresh);
 }
 
 void MainWindow::setupConnections()
@@ -314,6 +338,21 @@ void MainWindow::setupConnections()
             this, [this](const QString &message) {
         statusBar()->showMessage(tr("Error: %1").arg(message), 5000);
     });
+
+    // FTP transfer signals
+    C64UFtpClient *ftp = deviceConnection_->ftpClient();
+    connect(ftp, &C64UFtpClient::uploadProgress,
+            this, &MainWindow::onUploadProgress);
+    connect(ftp, &C64UFtpClient::uploadFinished,
+            this, &MainWindow::onUploadFinished);
+    connect(ftp, &C64UFtpClient::downloadProgress,
+            this, &MainWindow::onDownloadProgress);
+    connect(ftp, &C64UFtpClient::downloadFinished,
+            this, &MainWindow::onDownloadFinished);
+    connect(ftp, &C64UFtpClient::directoryCreated,
+            this, &MainWindow::onDirectoryCreated);
+    connect(ftp, &C64UFtpClient::fileRemoved,
+            this, &MainWindow::onFileRemoved);
 }
 
 void MainWindow::switchToMode(Mode mode)
@@ -470,6 +509,32 @@ bool MainWindow::isSelectedDirectory() const
     return false;
 }
 
+QString MainWindow::selectedLocalPath() const
+{
+    QModelIndex index = localTreeView_->currentIndex();
+    if (index.isValid()) {
+        return localFileModel_->filePath(index);
+    }
+    return QString();
+}
+
+QString MainWindow::currentRemoteDirectory() const
+{
+    QTreeView *view = (currentMode_ == Mode::ExploreRun) ? remoteTreeView_ : remoteTransferTreeView_;
+    QModelIndex index = view->currentIndex();
+
+    if (index.isValid()) {
+        QString path = remoteFileModel_->filePath(index);
+        if (remoteFileModel_->isDirectory(index)) {
+            return path;
+        }
+        // Return parent directory
+        return QFileInfo(path).path();
+    }
+
+    return remoteFileModel_->rootPath();
+}
+
 // Slots
 
 void MainWindow::onModeChanged(int index)
@@ -579,20 +644,120 @@ void MainWindow::onReset()
 
 void MainWindow::onUpload()
 {
-    // TODO: Implement in Transfer mode issue
-    statusBar()->showMessage(tr("Upload: Not yet implemented"), 3000);
+    if (!deviceConnection_->isConnected()) return;
+
+    QString localPath = selectedLocalPath();
+    if (localPath.isEmpty()) {
+        statusBar()->showMessage(tr("No local file selected"), 3000);
+        return;
+    }
+
+    QFileInfo fileInfo(localPath);
+    if (!fileInfo.isFile()) {
+        statusBar()->showMessage(tr("Cannot upload directories yet"), 3000);
+        return;
+    }
+
+    // Determine remote destination
+    QString remoteDir = currentRemoteDirectory();
+    if (remoteDir.isEmpty()) {
+        remoteDir = "/";
+    }
+    if (!remoteDir.endsWith('/')) {
+        remoteDir += '/';
+    }
+
+    QString remotePath = remoteDir + fileInfo.fileName();
+
+    transferProgress_->setVisible(true);
+    transferProgress_->setValue(0);
+    statusBar()->showMessage(tr("Uploading %1...").arg(fileInfo.fileName()));
+
+    deviceConnection_->ftpClient()->upload(localPath, remotePath);
 }
 
 void MainWindow::onDownload()
 {
-    // TODO: Implement in Transfer mode issue
-    statusBar()->showMessage(tr("Download: Not yet implemented"), 3000);
+    if (!deviceConnection_->isConnected()) return;
+
+    QString remotePath = selectedRemotePath();
+    if (remotePath.isEmpty()) {
+        statusBar()->showMessage(tr("No remote file selected"), 3000);
+        return;
+    }
+
+    if (isSelectedDirectory()) {
+        statusBar()->showMessage(tr("Cannot download directories yet"), 3000);
+        return;
+    }
+
+    // Get download directory from settings
+    QSettings settings;
+    QString downloadDir = settings.value("app/downloadPath",
+        QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)).toString();
+
+    QString fileName = QFileInfo(remotePath).fileName();
+    QString localPath = downloadDir + "/" + fileName;
+
+    transferProgress_->setVisible(true);
+    transferProgress_->setValue(0);
+    statusBar()->showMessage(tr("Downloading %1...").arg(fileName));
+
+    deviceConnection_->ftpClient()->download(remotePath, localPath);
 }
 
 void MainWindow::onNewFolder()
 {
-    // TODO: Implement in Transfer mode issue
-    statusBar()->showMessage(tr("New Folder: Not yet implemented"), 3000);
+    if (!deviceConnection_->isConnected()) return;
+
+    QString remoteDir = currentRemoteDirectory();
+    if (remoteDir.isEmpty()) {
+        remoteDir = "/";
+    }
+
+    bool ok;
+    QString folderName = QInputDialog::getText(this, tr("New Folder"),
+        tr("Folder name:"), QLineEdit::Normal, "", &ok);
+
+    if (!ok || folderName.isEmpty()) {
+        return;
+    }
+
+    if (!remoteDir.endsWith('/')) {
+        remoteDir += '/';
+    }
+
+    QString newPath = remoteDir + folderName;
+    deviceConnection_->ftpClient()->makeDirectory(newPath);
+    statusBar()->showMessage(tr("Creating folder %1...").arg(folderName));
+}
+
+void MainWindow::onDelete()
+{
+    if (!deviceConnection_->isConnected()) return;
+
+    QString remotePath = selectedRemotePath();
+    if (remotePath.isEmpty()) {
+        return;
+    }
+
+    QString fileName = QFileInfo(remotePath).fileName();
+
+    int result = QMessageBox::question(this, tr("Delete File"),
+        tr("Are you sure you want to delete '%1'?").arg(fileName),
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (result != QMessageBox::Yes) {
+        return;
+    }
+
+    if (isSelectedDirectory()) {
+        deviceConnection_->ftpClient()->removeDirectory(remotePath);
+    } else {
+        deviceConnection_->ftpClient()->remove(remotePath);
+    }
+
+    statusBar()->showMessage(tr("Deleting %1...").arg(fileName));
 }
 
 void MainWindow::onRefresh()
@@ -711,4 +876,57 @@ void MainWindow::onOperationSucceeded(const QString &operation)
 void MainWindow::onOperationFailed(const QString &operation, const QString &error)
 {
     statusBar()->showMessage(tr("%1 failed: %2").arg(operation).arg(error), 5000);
+}
+
+// Transfer progress slots
+
+void MainWindow::onUploadProgress(const QString &file, qint64 sent, qint64 total)
+{
+    Q_UNUSED(file)
+    if (total > 0) {
+        int percent = static_cast<int>((sent * 100) / total);
+        transferProgress_->setValue(percent);
+    }
+}
+
+void MainWindow::onUploadFinished(const QString &localPath, const QString &remotePath)
+{
+    Q_UNUSED(localPath)
+    transferProgress_->setVisible(false);
+    statusBar()->showMessage(tr("Upload complete: %1").arg(QFileInfo(remotePath).fileName()), 3000);
+
+    // Refresh the remote file listing
+    remoteFileModel_->refresh();
+}
+
+void MainWindow::onDownloadProgress(const QString &file, qint64 received, qint64 total)
+{
+    Q_UNUSED(file)
+    if (total > 0) {
+        int percent = static_cast<int>((received * 100) / total);
+        transferProgress_->setValue(percent);
+    }
+}
+
+void MainWindow::onDownloadFinished(const QString &remotePath, const QString &localPath)
+{
+    Q_UNUSED(remotePath)
+    transferProgress_->setVisible(false);
+    statusBar()->showMessage(tr("Download complete: %1").arg(QFileInfo(localPath).fileName()), 3000);
+}
+
+void MainWindow::onDirectoryCreated(const QString &path)
+{
+    statusBar()->showMessage(tr("Folder created: %1").arg(QFileInfo(path).fileName()), 3000);
+
+    // Refresh the remote file listing
+    remoteFileModel_->refresh();
+}
+
+void MainWindow::onFileRemoved(const QString &path)
+{
+    statusBar()->showMessage(tr("Deleted: %1").arg(QFileInfo(path).fileName()), 3000);
+
+    // Refresh the remote file listing
+    remoteFileModel_->refresh();
 }

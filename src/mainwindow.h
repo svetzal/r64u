@@ -10,6 +10,7 @@
 #include <QLabel>
 #include <QFileSystemModel>
 #include <QMenu>
+#include <QProgressBar>
 
 class PreferencesDialog;
 class DeviceConnection;
@@ -42,7 +43,16 @@ private slots:
     void onUpload();
     void onDownload();
     void onNewFolder();
+    void onDelete();
     void onRefresh();
+
+    // Transfer progress slots
+    void onUploadProgress(const QString &file, qint64 sent, qint64 total);
+    void onUploadFinished(const QString &localPath, const QString &remotePath);
+    void onDownloadProgress(const QString &file, qint64 received, qint64 total);
+    void onDownloadFinished(const QString &remotePath, const QString &localPath);
+    void onDirectoryCreated(const QString &path);
+    void onFileRemoved(const QString &path);
 
     // Connection slots
     void onConnectionStateChanged();
@@ -75,6 +85,8 @@ private:
     void saveSettings();
 
     QString selectedRemotePath() const;
+    QString selectedLocalPath() const;
+    QString currentRemoteDirectory() const;
     bool isSelectedDirectory() const;
 
     Mode currentMode_ = Mode::ExploreRun;
@@ -110,13 +122,16 @@ private:
     QAction *uploadAction_ = nullptr;
     QAction *downloadAction_ = nullptr;
     QAction *newFolderAction_ = nullptr;
+    QAction *deleteAction_ = nullptr;
     QAction *refreshAction_ = nullptr;
 
-    // Context menu
+    // Context menus
     QMenu *remoteContextMenu_ = nullptr;
+    QMenu *transferContextMenu_ = nullptr;
 
     // Status bar
     QLabel *driveALabel_ = nullptr;
+    QProgressBar *transferProgress_ = nullptr;
     QLabel *driveBLabel_ = nullptr;
     QLabel *connectionLabel_ = nullptr;
 
