@@ -1,0 +1,22 @@
+{
+	"BUILD_DIR" : "/Users/svetzal/Work/Personal/C64/r64u/r64u_autogen",
+	"CMAKE_BINARY_DIR" : "/Users/svetzal/Work/Personal/C64/r64u",
+	"CMAKE_CURRENT_BINARY_DIR" : "/Users/svetzal/Work/Personal/C64/r64u",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/Users/svetzal/Work/Personal/C64/r64u",
+	"CMAKE_SOURCE_DIR" : "/Users/svetzal/Work/Personal/C64/r64u",
+	"CROSS_CONFIG" : false,
+	"GENERATOR" : "Unix Makefiles",
+	"INCLUDE_DIR" : "/Users/svetzal/Work/Personal/C64/r64u/r64u_autogen/include",
+	"INPUTS" : [ "/Users/svetzal/Work/Personal/C64/r64u/resources/icons/app.png" ],
+	"LOCK_FILE" : "/Users/svetzal/Work/Personal/C64/r64u/CMakeFiles/r64u_autogen.dir/AutoRcc_r64u_3YJK5W5UP7_Lock.lock",
+	"MULTI_CONFIG" : false,
+	"OPTIONS" : [ "--no-zstd", "-name", "r64u" ],
+	"OUTPUT_CHECKSUM" : "3YJK5W5UP7",
+	"OUTPUT_NAME" : "qrc_r64u.cpp",
+	"RCC_EXECUTABLE" : "/Users/svetzal/Qt/6.10.1/macos/libexec/rcc",
+	"RCC_LIST_OPTIONS" : [ "--list" ],
+	"SETTINGS_FILE" : "/Users/svetzal/Work/Personal/C64/r64u/CMakeFiles/r64u_autogen.dir/AutoRcc_r64u_3YJK5W5UP7_Used.txt",
+	"SOURCE" : "/Users/svetzal/Work/Personal/C64/r64u/resources/r64u.qrc",
+	"USE_BETTER_GRAPH" : true,
+	"VERBOSITY" : 0
+}

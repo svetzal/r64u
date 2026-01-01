@@ -1,0 +1,9 @@
+/Users/svetzal/Work/Personal/C64/r64u/CMakeFiles/r64u.dir
+/Users/svetzal/Work/Personal/C64/r64u/CMakeFiles/edit_cache.dir
+/Users/svetzal/Work/Personal/C64/r64u/CMakeFiles/rebuild_cache.dir
+/Users/svetzal/Work/Personal/C64/r64u/CMakeFiles/list_install_components.dir
+/Users/svetzal/Work/Personal/C64/r64u/CMakeFiles/install.dir
+/Users/svetzal/Work/Personal/C64/r64u/CMakeFiles/install/local.dir
+/Users/svetzal/Work/Personal/C64/r64u/CMakeFiles/install/strip.dir
+/Users/svetzal/Work/Personal/C64/r64u/CMakeFiles/r64u_autogen_timestamp_deps.dir
+/Users/svetzal/Work/Personal/C64/r64u/CMakeFiles/r64u_autogen.dir

@@ -9,8 +9,11 @@
 #include <QComboBox>
 #include <QLabel>
 #include <QFileSystemModel>
+#include <QMenu>
 
 class PreferencesDialog;
+class DeviceConnection;
+class RemoteFileModel;
 
 class MainWindow : public QMainWindow
 {
@@ -28,14 +31,33 @@ public:
 private slots:
     void onModeChanged(int index);
     void onPreferences();
+    void onConnect();
+    void onDisconnect();
     void onPlay();
     void onRun();
     void onMount();
+    void onMountToDriveA();
+    void onMountToDriveB();
     void onReset();
     void onUpload();
     void onDownload();
     void onNewFolder();
     void onRefresh();
+
+    // Connection slots
+    void onConnectionStateChanged();
+    void onDeviceInfoUpdated();
+    void onDriveInfoUpdated();
+    void onConnectionError(const QString &message);
+
+    // Tree view slots
+    void onRemoteSelectionChanged();
+    void onRemoteDoubleClicked(const QModelIndex &index);
+    void onRemoteContextMenu(const QPoint &pos);
+
+    // Operation result slots
+    void onOperationSucceeded(const QString &operation);
+    void onOperationFailed(const QString &operation, const QString &error);
 
 private:
     void setupUi();
@@ -44,12 +66,22 @@ private:
     void setupStatusBar();
     void setupExploreRunMode();
     void setupTransferMode();
+    void setupConnections();
     void switchToMode(Mode mode);
     void updateWindowTitle();
+    void updateStatusBar();
+    void updateActions();
+    void loadSettings();
+    void saveSettings();
+
+    QString selectedRemotePath() const;
+    bool isSelectedDirectory() const;
 
     Mode currentMode_ = Mode::ExploreRun;
-    QString connectedHost_;
-    QString firmwareVersion_;
+
+    // Services
+    DeviceConnection *deviceConnection_ = nullptr;
+    RemoteFileModel *remoteFileModel_ = nullptr;
 
     // Central widget
     QStackedWidget *stackedWidget_ = nullptr;
@@ -68,6 +100,7 @@ private:
     // Toolbar
     QToolBar *mainToolBar_ = nullptr;
     QComboBox *modeCombo_ = nullptr;
+    QAction *connectAction_ = nullptr;
 
     // Mode-specific actions
     QAction *playAction_ = nullptr;
@@ -77,6 +110,10 @@ private:
     QAction *uploadAction_ = nullptr;
     QAction *downloadAction_ = nullptr;
     QAction *newFolderAction_ = nullptr;
+    QAction *refreshAction_ = nullptr;
+
+    // Context menu
+    QMenu *remoteContextMenu_ = nullptr;
 
     // Status bar
     QLabel *driveALabel_ = nullptr;
