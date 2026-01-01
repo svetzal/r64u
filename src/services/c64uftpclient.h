@@ -40,6 +40,7 @@ public:
 
     State state() const { return state_; }
     bool isConnected() const { return state_ == State::Ready || state_ == State::Busy; }
+    bool isLoggedIn() const { return loggedIn_; }
 
     // Connection
     void connectToHost();
@@ -135,6 +136,7 @@ private:
     QString password_;
 
     State state_ = State::Disconnected;
+    bool loggedIn_ = false;
     Command currentCommand_ = Command::None;
     QString currentArg_;
     QString currentLocalPath_;

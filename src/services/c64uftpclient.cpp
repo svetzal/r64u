@@ -70,6 +70,8 @@ void C64UFtpClient::disconnect()
     }
 
     commandQueue_.clear();
+    loggedIn_ = false;
+
     if (dataSocket_->state() != QAbstractSocket::UnconnectedState) {
         dataSocket_->abort();
     }
@@ -254,6 +256,7 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
             queueCommand(Command::Pass);
         } else if (code == 230) {
             // Logged in without password
+            loggedIn_ = true;
             setState(State::Ready);
             emit connected();
         } else {
@@ -266,6 +269,7 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
 
     case Command::Pass:
         if (code == 230) {
+            loggedIn_ = true;
             setState(State::Ready);
             emit connected();
         } else {
@@ -522,6 +526,10 @@ QList<FtpEntry> C64UFtpClient::parseDirectoryListing(const QByteArray &data)
 
 void C64UFtpClient::list(const QString &path)
 {
+    if (!loggedIn_) {
+        emit error("Not logged in");
+        return;
+    }
     queueCommand(Command::Type, "A");  // ASCII mode for listing
     queueCommand(Command::Pasv);
     queueCommand(Command::List, path);
@@ -529,21 +537,29 @@ void C64UFtpClient::list(const QString &path)
 
 void C64UFtpClient::changeDirectory(const QString &path)
 {
+    if (!loggedIn_) return;
     queueCommand(Command::Cwd, path);
 }
 
 void C64UFtpClient::makeDirectory(const QString &path)
 {
+    if (!loggedIn_) return;
     queueCommand(Command::Mkd, path);
 }
 
 void C64UFtpClient::removeDirectory(const QString &path)
 {
+    if (!loggedIn_) return;
     queueCommand(Command::Rmd, path);
 }
 
 void C64UFtpClient::download(const QString &remotePath, const QString &localPath)
 {
+    if (!loggedIn_) {
+        emit error("Not logged in");
+        return;
+    }
+
     transferFile_ = new QFile(localPath);
     if (!transferFile_->open(QIODevice::WriteOnly)) {
         emit error("Failed to open local file for writing: " + localPath);
@@ -560,6 +576,11 @@ void C64UFtpClient::download(const QString &remotePath, const QString &localPath
 
 void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
 {
+    if (!loggedIn_) {
+        emit error("Not logged in");
+        return;
+    }
+
     transferFile_ = new QFile(localPath);
     if (!transferFile_->open(QIODevice::ReadOnly)) {
         emit error("Failed to open local file for reading: " + localPath);
@@ -576,11 +597,13 @@ void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
 
 void C64UFtpClient::remove(const QString &path)
 {
+    if (!loggedIn_) return;
     queueCommand(Command::Dele, path);
 }
 
 void C64UFtpClient::rename(const QString &oldPath, const QString &newPath)
 {
+    if (!loggedIn_) return;
     queueCommand(Command::RnFr, oldPath, oldPath);  // Store oldPath for signal
     queueCommand(Command::RnTo, newPath);
 }
