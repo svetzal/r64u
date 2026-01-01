@@ -25,6 +25,7 @@ set(SOURCES
     src/ui/preferencesdialog.cpp
     src/services/c64urestclient.cpp
     src/services/c64uftpclient.cpp
+    src/services/deviceconnection.cpp
 )
 
 set(HEADERS
@@ -32,6 +33,7 @@ set(HEADERS
     src/ui/preferencesdialog.h
     src/services/c64urestclient.h
     src/services/c64uftpclient.h
+    src/services/deviceconnection.h
 )
 
 set(RESOURCES
