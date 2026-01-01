@@ -3,6 +3,13 @@ build/
 cmake-build-*/
 out/
 
+# CMake artifacts (if run in source dir)
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+.qt/
+
 # IDE files
 .idea/
 .vscode/
