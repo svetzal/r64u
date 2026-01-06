@@ -2,6 +2,9 @@
 #include "../services/c64uftpclient.h"
 
 #include <QFileInfo>
+#include <QDir>
+#include <QDirIterator>
+#include <QDebug>
 
 TransferQueue::TransferQueue(QObject *parent)
     : QAbstractListModel(parent)
@@ -27,6 +30,10 @@ void TransferQueue::setFtpClient(C64UFtpClient *client)
                 this, &TransferQueue::onDownloadFinished);
         connect(ftpClient_, &C64UFtpClient::error,
                 this, &TransferQueue::onFtpError);
+        connect(ftpClient_, &C64UFtpClient::directoryCreated,
+                this, &TransferQueue::onDirectoryCreated);
+        connect(ftpClient_, &C64UFtpClient::directoryListed,
+                this, &TransferQueue::onDirectoryListed);
     }
 }
 
@@ -69,16 +76,124 @@ void TransferQueue::enqueueDownload(const QString &remotePath, const QString &lo
     }
 }
 
+void TransferQueue::enqueueRecursiveUpload(const QString &localDir, const QString &remoteDir)
+{
+    if (!ftpClient_ || !ftpClient_->isConnected()) return;
+
+    // Collect all directories that need to be created first
+    QDir baseDir(localDir);
+    if (!baseDir.exists()) return;
+
+    QString baseName = QFileInfo(localDir).fileName();
+    QString targetDir = remoteDir;
+    if (!targetDir.endsWith('/')) targetDir += '/';
+    targetDir += baseName;
+
+    // Queue the root directory creation
+    PendingMkdir rootMkdir;
+    rootMkdir.remotePath = targetDir;
+    rootMkdir.localDir = localDir;
+    rootMkdir.remoteBase = targetDir;
+    pendingMkdirs_.enqueue(rootMkdir);
+
+    // Recursively find all subdirectories and queue them
+    QDirIterator it(localDir, QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        QString subDir = it.next();
+        QString relativePath = baseDir.relativeFilePath(subDir);
+        QString remotePath = targetDir + '/' + relativePath;
+
+        PendingMkdir mkdir;
+        mkdir.remotePath = remotePath;
+        mkdir.localDir = subDir;
+        mkdir.remoteBase = targetDir;
+        pendingMkdirs_.enqueue(mkdir);
+    }
+
+    // Start creating directories
+    processPendingDirectoryCreation();
+}
+
+void TransferQueue::processRecursiveUpload(const QString &localDir, const QString &remoteDir)
+{
+    // Queue all files for upload
+    QDir dir(localDir);
+    QDirIterator it(localDir, QDir::Files, QDirIterator::Subdirectories);
+
+    while (it.hasNext()) {
+        QString filePath = it.next();
+        QString relativePath = dir.relativeFilePath(filePath);
+        QString remotePath = remoteDir + '/' + relativePath;
+
+        enqueueUpload(filePath, remotePath);
+    }
+}
+
+void TransferQueue::processPendingDirectoryCreation()
+{
+    if (creatingDirectory_ || pendingMkdirs_.isEmpty()) {
+        return;
+    }
+
+    creatingDirectory_ = true;
+    PendingMkdir mkdir = pendingMkdirs_.head();
+    ftpClient_->makeDirectory(mkdir.remotePath);
+}
+
+void TransferQueue::enqueueRecursiveDownload(const QString &remoteDir, const QString &localDir)
+{
+    if (!ftpClient_ || !ftpClient_->isConnected()) return;
+
+    qDebug() << "TransferQueue: enqueueRecursiveDownload" << remoteDir << "->" << localDir;
+
+    // Set scanning mode - this prevents processNext() from starting downloads
+    // until all directories have been scanned
+    scanningDirectories_ = true;
+
+    // Store the base paths for path calculation
+    recursiveRemoteBase_ = remoteDir;
+    recursiveLocalBase_ = localDir;
+
+    // Create local base directory with the remote folder's name
+    QString folderName = QFileInfo(remoteDir).fileName();
+    QString targetDir = localDir;
+    if (!targetDir.endsWith('/')) targetDir += '/';
+    targetDir += folderName;
+
+    qDebug() << "TransferQueue: Creating local dir:" << targetDir;
+    QDir().mkpath(targetDir);
+    recursiveLocalBase_ = targetDir;
+
+    // Queue the initial directory scan
+    PendingScan scan;
+    scan.remotePath = remoteDir;
+    scan.localBasePath = targetDir;
+    pendingScans_.enqueue(scan);
+
+    // Track that we're requesting this listing (to avoid conflict with RemoteFileModel)
+    requestedListings_.insert(remoteDir);
+    qDebug() << "TransferQueue: Requesting listing for:" << remoteDir;
+
+    // Start scanning
+    ftpClient_->list(remoteDir);
+}
+
 void TransferQueue::clear()
 {
-    if (items_.isEmpty()) return;
-
     beginResetModel();
     items_.clear();
     endResetModel();
 
     processing_ = false;
     currentIndex_ = -1;
+
+    // Clear recursive operation state
+    pendingScans_.clear();
+    requestedListings_.clear();
+    scanningDirectories_ = false;
+    pendingMkdirs_.clear();
+    creatingDirectory_ = false;
+
     emit queueChanged();
 }
 
@@ -117,6 +232,13 @@ void TransferQueue::cancelAll()
 
     processing_ = false;
     currentIndex_ = -1;
+
+    // Clear recursive operation state
+    pendingScans_.clear();
+    requestedListings_.clear();
+    scanningDirectories_ = false;
+    pendingMkdirs_.clear();
+    creatingDirectory_ = false;
 
     emit dataChanged(index(0), index(items_.size() - 1));
     emit queueChanged();
@@ -208,6 +330,12 @@ void TransferQueue::processNext()
 {
     if (!ftpClient_ || !ftpClient_->isConnected()) {
         processing_ = false;
+        return;
+    }
+
+    // Don't start transfers while we're still scanning directories
+    if (scanningDirectories_) {
+        qDebug() << "TransferQueue: processNext - waiting for directory scanning to complete";
         return;
     }
 
@@ -320,4 +448,115 @@ void TransferQueue::onFtpError(const QString &message)
 
     emit queueChanged();
     processNext();
+}
+
+void TransferQueue::onDirectoryCreated(const QString &path)
+{
+    if (!creatingDirectory_) return;
+
+    creatingDirectory_ = false;
+
+    // Check if this was for our recursive upload
+    if (!pendingMkdirs_.isEmpty()) {
+        PendingMkdir completed = pendingMkdirs_.dequeue();
+
+        // If this was the last directory, queue all files for upload
+        if (pendingMkdirs_.isEmpty()) {
+            // Find the original local directory (first one created was the root)
+            processRecursiveUpload(completed.localDir, completed.remoteBase);
+        } else {
+            // Continue creating directories
+            processPendingDirectoryCreation();
+        }
+    }
+}
+
+void TransferQueue::onDirectoryListed(const QString &path, const QList<FtpEntry> &entries)
+{
+    qDebug() << "TransferQueue: onDirectoryListed path:" << path << "entries:" << entries.size();
+    qDebug() << "TransferQueue: requestedListings_ contains path:" << requestedListings_.contains(path);
+    qDebug() << "TransferQueue: requestedListings_:" << requestedListings_;
+
+    // Only process listings we explicitly requested for recursive download
+    if (!requestedListings_.contains(path)) {
+        qDebug() << "TransferQueue: IGNORING - not our listing";
+        return;  // This listing is for RemoteFileModel, not us
+    }
+
+    // Remove from our tracking set
+    requestedListings_.remove(path);
+
+    // Find the matching pending scan
+    PendingScan currentScan;
+    bool found = false;
+    for (int i = 0; i < pendingScans_.size(); ++i) {
+        if (pendingScans_[i].remotePath == path) {
+            currentScan = pendingScans_.takeAt(i);
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        qDebug() << "TransferQueue: ERROR - no matching pending scan found!";
+        return;  // Shouldn't happen, but be safe
+    }
+
+    qDebug() << "TransferQueue: Processing scan for" << path << "-> local base:" << currentScan.localBasePath;
+
+    // Calculate the local directory for this scan
+    // The localBasePath in the scan is the root destination (e.g., ~/OneDrive/C64/BBS)
+    // We need to calculate the subdirectory path relative to the remote base
+    QString localTargetDir;
+    if (path == recursiveRemoteBase_) {
+        localTargetDir = currentScan.localBasePath;
+    } else {
+        // Calculate relative path from remote base
+        QString relativePath = path.mid(recursiveRemoteBase_.length());
+        if (relativePath.startsWith('/')) relativePath = relativePath.mid(1);
+        localTargetDir = currentScan.localBasePath + '/' + relativePath;
+    }
+
+    qDebug() << "TransferQueue: localTargetDir:" << localTargetDir;
+
+    // Process entries
+    for (const FtpEntry &entry : entries) {
+        QString entryRemotePath = path;
+        if (!entryRemotePath.endsWith('/')) entryRemotePath += '/';
+        entryRemotePath += entry.name;
+
+        if (entry.isDirectory) {
+            // Create local directory
+            QString localDirPath = localTargetDir + '/' + entry.name;
+            qDebug() << "TransferQueue: Creating subdir:" << localDirPath;
+            QDir().mkpath(localDirPath);
+
+            // Queue subdirectory for scanning
+            PendingScan subScan;
+            subScan.remotePath = entryRemotePath;
+            subScan.localBasePath = currentScan.localBasePath;  // Keep the same base
+            pendingScans_.enqueue(subScan);
+
+            // Track that we'll request this listing
+            requestedListings_.insert(entryRemotePath);
+            qDebug() << "TransferQueue: Queued subdir scan:" << entryRemotePath;
+        } else {
+            // Queue file for download
+            QString localFilePath = localTargetDir + '/' + entry.name;
+            qDebug() << "TransferQueue: Queuing download:" << entryRemotePath << "->" << localFilePath;
+            enqueueDownload(entryRemotePath, localFilePath);
+        }
+    }
+
+    // Continue scanning if there are more directories
+    if (!pendingScans_.isEmpty()) {
+        PendingScan next = pendingScans_.head();
+        qDebug() << "TransferQueue: Next scan:" << next.remotePath;
+        ftpClient_->list(next.remotePath);
+    } else {
+        qDebug() << "TransferQueue: All scans complete, starting transfers";
+        // All directories scanned - now start processing the download queue
+        scanningDirectories_ = false;
+        processNext();
+    }
 }

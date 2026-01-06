@@ -19,6 +19,7 @@
 #include <QInputDialog>
 #include <QFileInfo>
 #include <QTimer>
+#include <QDir>
 
 #include "services/credentialstore.h"
 
@@ -290,6 +291,12 @@ void MainWindow::setupTransferMode()
     remoteLabel->setStyleSheet("font-weight: bold;");
     remoteLayout->addWidget(remoteLabel);
 
+    // Current remote directory indicator
+    remoteCurrentDirLabel_ = new QLabel(tr("Upload to: /"));
+    remoteCurrentDirLabel_->setStyleSheet("color: #0066cc; padding: 2px; background-color: #f0f8ff; border-radius: 3px;");
+    remoteCurrentDirLabel_->setWordWrap(true);
+    remoteLayout->addWidget(remoteCurrentDirLabel_);
+
     remoteTransferTreeView_ = new QTreeView();
     remoteTransferTreeView_->setModel(remoteFileModel_);
     remoteTransferTreeView_->setAlternatingRowColors(true);
@@ -304,6 +311,8 @@ void MainWindow::setupTransferMode()
             transferContextMenu_->exec(remoteTransferTreeView_->viewport()->mapToGlobal(pos));
         }
     });
+    connect(remoteTransferTreeView_, &QTreeView::doubleClicked,
+            this, &MainWindow::onRemoteTransferDoubleClicked);
 
     remoteLayout->addWidget(remoteTransferTreeView_);
     transferSplitter_->addWidget(remoteWidget);
@@ -317,16 +326,32 @@ void MainWindow::setupTransferMode()
     localLabel->setStyleSheet("font-weight: bold;");
     localLayout->addWidget(localLabel);
 
+    // Current local directory indicator
+    localCurrentDirLabel_ = new QLabel(tr("Download to: ~"));
+    localCurrentDirLabel_->setStyleSheet("color: #006600; padding: 2px; background-color: #f0fff0; border-radius: 3px;");
+    localCurrentDirLabel_->setWordWrap(true);
+    localLayout->addWidget(localCurrentDirLabel_);
+
     localTreeView_ = new QTreeView();
     localTreeView_->setAlternatingRowColors(true);
     localTreeView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    localTreeView_->setContextMenuPolicy(Qt::CustomContextMenu);
 
     localFileModel_ = new QFileSystemModel(this);
-    localFileModel_->setRootPath(QStandardPaths::writableLocation(QStandardPaths::HomeLocation));
+    QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    localFileModel_->setRootPath(homePath);
     localTreeView_->setModel(localFileModel_);
-    localTreeView_->setRootIndex(localFileModel_->index(
-        QStandardPaths::writableLocation(QStandardPaths::HomeLocation)));
+    localTreeView_->setRootIndex(localFileModel_->index(homePath));
     localTreeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+
+    // Initialize current directories
+    currentLocalDir_ = homePath;
+    currentRemoteTransferDir_ = "/";
+
+    connect(localTreeView_, &QTreeView::doubleClicked,
+            this, &MainWindow::onLocalDoubleClicked);
+    connect(localTreeView_, &QTreeView::customContextMenuRequested,
+            this, &MainWindow::onLocalContextMenu);
 
     localLayout->addWidget(localTreeView_);
     transferSplitter_->addWidget(localWidget);
@@ -342,13 +367,43 @@ void MainWindow::setupTransferMode()
 
     stackedWidget_->addWidget(transferWidget_);
 
-    // Setup transfer context menu
+    // Setup transfer context menu (for remote files)
     transferContextMenu_ = new QMenu(this);
-    transferContextMenu_->addAction(tr("Download"), this, &MainWindow::onDownload);
+    transferContextMenu_->addAction(tr("Set as Upload Destination"), this, [this]() {
+        QModelIndex index = remoteTransferTreeView_->currentIndex();
+        if (index.isValid()) {
+            QString path = remoteFileModel_->filePath(index);
+            if (remoteFileModel_->isDirectory(index)) {
+                setCurrentRemoteTransferDir(path);
+            } else {
+                setCurrentRemoteTransferDir(QFileInfo(path).path());
+            }
+        }
+    });
+    transferContextMenu_->addSeparator();
+    transferContextMenu_->addAction(tr("Download to Local Directory"), this, &MainWindow::onDownload);
     transferContextMenu_->addAction(tr("Delete"), this, &MainWindow::onDelete);
     transferContextMenu_->addSeparator();
     transferContextMenu_->addAction(tr("New Folder"), this, &MainWindow::onNewFolder);
     transferContextMenu_->addAction(tr("Refresh"), this, &MainWindow::onRefresh);
+
+    // Setup local context menu
+    localContextMenu_ = new QMenu(this);
+    localContextMenu_->addAction(tr("Set as Download Destination"), this, [this]() {
+        QModelIndex index = localTreeView_->currentIndex();
+        if (index.isValid()) {
+            QString path = localFileModel_->filePath(index);
+            if (localFileModel_->isDir(index)) {
+                setCurrentLocalDir(path);
+            } else {
+                setCurrentLocalDir(QFileInfo(path).path());
+            }
+        }
+    });
+    localContextMenu_->addSeparator();
+    localContextMenu_->addAction(tr("Upload to C64U"), this, &MainWindow::onUpload);
+    localContextMenu_->addSeparator();
+    localContextMenu_->addAction(tr("New Folder"), this, &MainWindow::onNewLocalFolder);
 }
 
 void MainWindow::setupConnections()
@@ -515,7 +570,7 @@ void MainWindow::updateActions()
     mountAction_->setEnabled(connected && canMount);
     resetAction_->setEnabled(connected);
     uploadAction_->setEnabled(connected);
-    downloadAction_->setEnabled(connected && hasSelection && !isDir);
+    downloadAction_->setEnabled(connected && hasSelection);  // Allow downloading directories now
     newFolderAction_->setEnabled(connected);
     refreshAction_->setEnabled(connected);
 }
@@ -728,24 +783,26 @@ void MainWindow::onUpload()
     }
 
     QFileInfo fileInfo(localPath);
-    if (!fileInfo.isFile()) {
-        statusBar()->showMessage(tr("Cannot upload directories yet"), 3000);
-        return;
-    }
 
-    // Determine remote destination
-    QString remoteDir = currentRemoteDirectory();
+    // Use the current remote transfer directory as destination
+    QString remoteDir = currentRemoteTransferDir_;
     if (remoteDir.isEmpty()) {
         remoteDir = "/";
     }
-    if (!remoteDir.endsWith('/')) {
-        remoteDir += '/';
+
+    if (fileInfo.isDir()) {
+        // Recursive folder upload
+        transferQueue_->enqueueRecursiveUpload(localPath, remoteDir);
+        statusBar()->showMessage(tr("Queued folder upload: %1 → %2").arg(fileInfo.fileName()).arg(remoteDir), 3000);
+    } else {
+        // Single file upload
+        if (!remoteDir.endsWith('/')) {
+            remoteDir += '/';
+        }
+        QString remotePath = remoteDir + fileInfo.fileName();
+        transferQueue_->enqueueUpload(localPath, remotePath);
+        statusBar()->showMessage(tr("Queued upload: %1 → %2").arg(fileInfo.fileName()).arg(remoteDir), 3000);
     }
-
-    QString remotePath = remoteDir + fileInfo.fileName();
-
-    transferQueue_->enqueueUpload(localPath, remotePath);
-    statusBar()->showMessage(tr("Queued upload: %1").arg(fileInfo.fileName()), 3000);
 }
 
 void MainWindow::onDownload()
@@ -758,34 +815,49 @@ void MainWindow::onDownload()
         return;
     }
 
-    if (isSelectedDirectory()) {
-        statusBar()->showMessage(tr("Cannot download directories yet"), 3000);
-        return;
+    // Use current local directory as destination in Transfer mode,
+    // otherwise fall back to settings
+    QString downloadDir;
+    if (currentMode_ == Mode::Transfer && !currentLocalDir_.isEmpty()) {
+        downloadDir = currentLocalDir_;
+    } else {
+        QSettings settings;
+        downloadDir = settings.value("app/downloadPath",
+            QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)).toString();
     }
 
-    // Get download directory from settings
-    QSettings settings;
-    QString downloadDir = settings.value("app/downloadPath",
-        QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)).toString();
-
-    QString fileName = QFileInfo(remotePath).fileName();
-    QString localPath = downloadDir + "/" + fileName;
-
-    transferQueue_->enqueueDownload(remotePath, localPath);
-    statusBar()->showMessage(tr("Queued download: %1").arg(fileName), 3000);
+    if (isSelectedDirectory()) {
+        // Recursive folder download
+        transferQueue_->enqueueRecursiveDownload(remotePath, downloadDir);
+        QString folderName = QFileInfo(remotePath).fileName();
+        statusBar()->showMessage(tr("Queued folder download: %1 → %2").arg(folderName).arg(downloadDir), 3000);
+    } else {
+        // Single file download
+        QString fileName = QFileInfo(remotePath).fileName();
+        QString localPath = downloadDir + "/" + fileName;
+        transferQueue_->enqueueDownload(remotePath, localPath);
+        statusBar()->showMessage(tr("Queued download: %1 → %2").arg(fileName).arg(downloadDir), 3000);
+    }
 }
 
 void MainWindow::onNewFolder()
 {
     if (!deviceConnection_->isConnected()) return;
 
-    QString remoteDir = currentRemoteDirectory();
+    // In Transfer mode, use the current remote transfer directory
+    QString remoteDir;
+    if (currentMode_ == Mode::Transfer && !currentRemoteTransferDir_.isEmpty()) {
+        remoteDir = currentRemoteTransferDir_;
+    } else {
+        remoteDir = currentRemoteDirectory();
+    }
+
     if (remoteDir.isEmpty()) {
         remoteDir = "/";
     }
 
     bool ok;
-    QString folderName = QInputDialog::getText(this, tr("New Folder"),
+    QString folderName = QInputDialog::getText(this, tr("New Remote Folder"),
         tr("Folder name:"), QLineEdit::Normal, "", &ok);
 
     if (!ok || folderName.isEmpty()) {
@@ -798,7 +870,7 @@ void MainWindow::onNewFolder()
 
     QString newPath = remoteDir + folderName;
     deviceConnection_->ftpClient()->makeDirectory(newPath);
-    statusBar()->showMessage(tr("Creating folder %1...").arg(folderName));
+    statusBar()->showMessage(tr("Creating folder %1 in %2...").arg(folderName).arg(remoteDir));
 }
 
 void MainWindow::onDelete()
@@ -1065,4 +1137,86 @@ void MainWindow::onConfigLoadFailed(const QString &path, const QString &error)
     statusBar()->showMessage(tr("Failed to load %1: %2").arg(QFileInfo(path).fileName()).arg(error), 5000);
     QMessageBox::warning(this, tr("Configuration Error"),
         tr("Failed to load configuration file:\n%1\n\nError: %2").arg(path).arg(error));
+}
+
+// Transfer mode slots
+
+void MainWindow::onLocalDoubleClicked(const QModelIndex &index)
+{
+    if (!index.isValid()) return;
+
+    QString path = localFileModel_->filePath(index);
+
+    if (localFileModel_->isDir(index)) {
+        // Set as current download destination
+        setCurrentLocalDir(path);
+    }
+    // For files, no special action - tree view handles expand/collapse
+}
+
+void MainWindow::onRemoteTransferDoubleClicked(const QModelIndex &index)
+{
+    if (!index.isValid()) return;
+
+    if (remoteFileModel_->isDirectory(index)) {
+        // Set as current upload destination
+        QString path = remoteFileModel_->filePath(index);
+        setCurrentRemoteTransferDir(path);
+    }
+    // For files, no special action - tree view handles expand/collapse
+}
+
+void MainWindow::onLocalContextMenu(const QPoint &pos)
+{
+    QModelIndex index = localTreeView_->indexAt(pos);
+    if (index.isValid()) {
+        localContextMenu_->exec(localTreeView_->viewport()->mapToGlobal(pos));
+    }
+}
+
+void MainWindow::onNewLocalFolder()
+{
+    bool ok;
+    QString folderName = QInputDialog::getText(this, tr("New Local Folder"),
+        tr("Folder name:"), QLineEdit::Normal, "", &ok);
+
+    if (!ok || folderName.isEmpty()) {
+        return;
+    }
+
+    QString newPath = currentLocalDir_;
+    if (!newPath.endsWith('/')) {
+        newPath += '/';
+    }
+    newPath += folderName;
+
+    QDir dir;
+    if (dir.mkdir(newPath)) {
+        statusBar()->showMessage(tr("Local folder created: %1").arg(folderName), 3000);
+    } else {
+        QMessageBox::warning(this, tr("Error"),
+            tr("Failed to create folder: %1").arg(newPath));
+    }
+}
+
+void MainWindow::setCurrentLocalDir(const QString &path)
+{
+    currentLocalDir_ = path;
+
+    // Shorten path for display by replacing home with ~
+    QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    QString displayPath = path;
+    if (displayPath.startsWith(homePath)) {
+        displayPath = "~" + displayPath.mid(homePath.length());
+    }
+
+    localCurrentDirLabel_->setText(tr("Download to: %1").arg(displayPath));
+    statusBar()->showMessage(tr("Download destination: %1").arg(displayPath), 2000);
+}
+
+void MainWindow::setCurrentRemoteTransferDir(const QString &path)
+{
+    currentRemoteTransferDir_ = path;
+    remoteCurrentDirLabel_->setText(tr("Upload to: %1").arg(path));
+    statusBar()->showMessage(tr("Upload destination: %1").arg(path), 2000);
 }

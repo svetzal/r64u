@@ -84,6 +84,14 @@ private slots:
     void onConfigLoadFinished(const QString &path);
     void onConfigLoadFailed(const QString &path, const QString &error);
 
+    // Transfer mode slots
+    void onLocalDoubleClicked(const QModelIndex &index);
+    void onRemoteTransferDoubleClicked(const QModelIndex &index);
+    void onLocalContextMenu(const QPoint &pos);
+    void onNewLocalFolder();
+    void setCurrentLocalDir(const QString &path);
+    void setCurrentRemoteTransferDir(const QString &path);
+
 private:
     void setupUi();
     void setupMenuBar();
@@ -148,6 +156,13 @@ private:
     // Context menus
     QMenu *remoteContextMenu_ = nullptr;
     QMenu *transferContextMenu_ = nullptr;
+    QMenu *localContextMenu_ = nullptr;
+
+    // Transfer mode current directories
+    QString currentLocalDir_;
+    QString currentRemoteTransferDir_;
+    QLabel *localCurrentDirLabel_ = nullptr;
+    QLabel *remoteCurrentDirLabel_ = nullptr;
 
     // Status bar
     QLabel *driveALabel_ = nullptr;

@@ -4,8 +4,10 @@
 #include <QAbstractListModel>
 #include <QQueue>
 #include <QString>
+#include <QSet>
 
 class C64UFtpClient;
+struct FtpEntry;
 
 struct TransferItem {
     enum class Direction { Upload, Download };
@@ -44,6 +46,11 @@ public:
     // Queue operations
     void enqueueUpload(const QString &localPath, const QString &remotePath);
     void enqueueDownload(const QString &remotePath, const QString &localPath);
+
+    // Recursive operations
+    void enqueueRecursiveUpload(const QString &localDir, const QString &remoteDir);
+    void enqueueRecursiveDownload(const QString &remoteDir, const QString &localDir);
+
     void clear();
     void removeCompleted();
     void cancelAll();
@@ -51,6 +58,7 @@ public:
     int pendingCount() const;
     int activeCount() const;
     bool isProcessing() const { return processing_; }
+    bool isScanning() const { return !pendingScans_.isEmpty(); }
 
     // QAbstractListModel interface
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -70,15 +78,39 @@ private slots:
     void onDownloadProgress(const QString &file, qint64 received, qint64 total);
     void onDownloadFinished(const QString &remotePath, const QString &localPath);
     void onFtpError(const QString &message);
+    void onDirectoryCreated(const QString &path);
+    void onDirectoryListed(const QString &path, const QList<FtpEntry> &entries);
 
 private:
     void processNext();
     int findItemIndex(const QString &localPath, const QString &remotePath) const;
+    void processRecursiveUpload(const QString &localDir, const QString &remoteDir);
+    void processPendingDirectoryCreation();
 
     C64UFtpClient *ftpClient_ = nullptr;
     QList<TransferItem> items_;
     bool processing_ = false;
     int currentIndex_ = -1;
+
+    // Recursive download state
+    struct PendingScan {
+        QString remotePath;
+        QString localBasePath;
+    };
+    QQueue<PendingScan> pendingScans_;
+    QSet<QString> requestedListings_;  // Track paths we've explicitly requested
+    QString recursiveLocalBase_;
+    QString recursiveRemoteBase_;
+    bool scanningDirectories_ = false;  // True while scanning dirs for recursive download
+
+    // Recursive upload state
+    struct PendingMkdir {
+        QString remotePath;
+        QString localDir;
+        QString remoteBase;
+    };
+    QQueue<PendingMkdir> pendingMkdirs_;
+    bool creatingDirectory_ = false;
 };
 
 #endif // TRANSFERQUEUE_H
