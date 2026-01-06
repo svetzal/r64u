@@ -55,6 +55,7 @@ public:
 
     // File operations
     void download(const QString &remotePath, const QString &localPath);
+    void downloadToMemory(const QString &remotePath);
     void upload(const QString &localPath, const QString &remotePath);
     void remove(const QString &path);
     void rename(const QString &oldPath, const QString &newPath);
@@ -74,6 +75,7 @@ signals:
 
     void downloadProgress(const QString &file, qint64 received, qint64 total);
     void downloadFinished(const QString &remotePath, const QString &localPath);
+    void downloadToMemoryFinished(const QString &remotePath, const QByteArray &data);
 
     void uploadProgress(const QString &file, qint64 sent, qint64 total);
     void uploadFinished(const QString &localPath, const QString &remotePath);
@@ -151,6 +153,7 @@ private:
     QFile *transferFile_ = nullptr;
     qint64 transferSize_ = 0;
     bool downloading_ = false;
+    bool downloadingToMemory_ = false;
 
     // For LIST command - wait for data socket to close before processing
     bool listPending226_ = false;

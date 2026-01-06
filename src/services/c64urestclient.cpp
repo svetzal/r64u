@@ -205,6 +205,15 @@ void C64URestClient::createD81(const QString &path, const QString &diskName)
     sendPutRequest(endpoint, "createD81");
 }
 
+// Configuration management
+
+void C64URestClient::updateConfigsBatch(const QJsonObject &configs)
+{
+    QJsonDocument doc(configs);
+    QByteArray data = doc.toJson(QJsonDocument::Compact);
+    sendPostRequest("/v1/configs", "updateConfigs", data, "application/json");
+}
+
 // Response handling
 
 void C64URestClient::onReplyFinished(QNetworkReply *reply)
@@ -224,7 +233,24 @@ void C64URestClient::onReplyFinished(QNetworkReply *reply)
     }
 
     if (reply->error() != QNetworkReply::NoError) {
-        emit operationFailed(operation, reply->errorString());
+        // Try to read the response body for more detailed error info
+        QByteArray errorData = reply->readAll();
+        QString errorMsg = reply->errorString();
+        if (!errorData.isEmpty()) {
+            QJsonDocument errorDoc = QJsonDocument::fromJson(errorData);
+            if (errorDoc.isObject()) {
+                QJsonObject errorJson = errorDoc.object();
+                QStringList errors = extractErrors(errorJson);
+                if (!errors.isEmpty()) {
+                    errorMsg = errors.join("; ");
+                }
+            } else {
+                // Not JSON, include raw response
+                errorMsg += " - Response: " + QString::fromUtf8(errorData).left(200);
+            }
+        }
+        qDebug() << "REST error for" << operation << ":" << errorMsg;
+        emit operationFailed(operation, errorMsg);
         return;
     }
 
@@ -253,6 +279,9 @@ void C64URestClient::onReplyFinished(QNetworkReply *reply)
         handleDrivesResponse(json);
     } else if (operation == "fileInfo") {
         handleFileInfoResponse(json);
+    } else if (operation == "updateConfigs") {
+        emit configsUpdated();
+        emit operationSucceeded(operation);
     } else {
         handleGenericResponse(operation, json);
     }

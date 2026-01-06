@@ -74,11 +74,15 @@ public:
                    int tracks = 35);
     void createD81(const QString &path, const QString &diskName = QString());
 
+    // Configuration management
+    void updateConfigsBatch(const QJsonObject &configs);
+
 signals:
     void versionReceived(const QString &version);
     void infoReceived(const DeviceInfo &info);
     void drivesReceived(const QList<DriveInfo> &drives);
     void fileInfoReceived(const QString &path, qint64 size, const QString &extension);
+    void configsUpdated();
 
     void operationSucceeded(const QString &operation);
     void operationFailed(const QString &operation, const QString &error);

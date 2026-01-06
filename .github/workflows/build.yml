@@ -38,6 +38,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
+          modules: 'qtwebengine qtwebchannel qtpositioning'
           cache: true
 
       - name: Install Linux dependencies
@@ -45,7 +46,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgl1-mesa-dev libxkbcommon-dev libxkbcommon-x11-0 \
-            libfuse2 libxcb-cursor0
+            libfuse2 libxcb-cursor0 \
+            libnss3 libnss3-dev libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
+            libcups2 libdrm2 libxcomposite1 libxdamage1 libxrandr2 libgbm1 \
+            libasound2 libpango-1.0-0 libcairo2 libatspi2.0-0 libxshmfence1
 
       - name: Configure CMake
         run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}

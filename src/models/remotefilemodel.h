@@ -26,7 +26,8 @@ public:
         Cartridge,
         DiskImage,
         TapeImage,
-        Rom
+        Rom,
+        Config
     };
     Q_ENUM(FileType)
 

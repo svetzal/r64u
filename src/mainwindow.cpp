@@ -1,7 +1,9 @@
 #include "mainwindow.h"
 #include "ui/preferencesdialog.h"
 #include "ui/transferqueuewidget.h"
+#include "ui/filedetailspanel.h"
 #include "services/deviceconnection.h"
+#include "services/configfileloader.h"
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 
@@ -25,10 +27,15 @@ MainWindow::MainWindow(QWidget *parent)
     , deviceConnection_(new DeviceConnection(this))
     , remoteFileModel_(new RemoteFileModel(this))
     , transferQueue_(new TransferQueue(this))
+    , configFileLoader_(new ConfigFileLoader(this))
 {
     // Connect the FTP client to the model and queue
     remoteFileModel_->setFtpClient(deviceConnection_->ftpClient());
     transferQueue_->setFtpClient(deviceConnection_->ftpClient());
+
+    // Configure the config file loader
+    configFileLoader_->setFtpClient(deviceConnection_->ftpClient());
+    configFileLoader_->setRestClient(deviceConnection_->restClient());
 
     setupUi();
     setupMenuBar();
@@ -217,6 +224,10 @@ void MainWindow::setupExploreRunMode()
     auto *layout = new QVBoxLayout(exploreRunWidget_);
     layout->setContentsMargins(0, 0, 0, 0);
 
+    // Create horizontal splitter for tree view and details panel
+    exploreRunSplitter_ = new QSplitter(Qt::Horizontal);
+
+    // Left side: file tree
     remoteTreeView_ = new QTreeView();
     remoteTreeView_->setModel(remoteFileModel_);
     remoteTreeView_->setHeaderHidden(false);
@@ -233,7 +244,18 @@ void MainWindow::setupExploreRunMode()
     connect(remoteTreeView_, &QTreeView::customContextMenuRequested,
             this, &MainWindow::onRemoteContextMenu);
 
-    layout->addWidget(remoteTreeView_);
+    exploreRunSplitter_->addWidget(remoteTreeView_);
+
+    // Right side: file details panel
+    fileDetailsPanel_ = new FileDetailsPanel();
+    connect(fileDetailsPanel_, &FileDetailsPanel::contentRequested,
+            this, &MainWindow::onFileContentRequested);
+    exploreRunSplitter_->addWidget(fileDetailsPanel_);
+
+    // Set initial splitter sizes (40% tree, 60% details)
+    exploreRunSplitter_->setSizes({400, 600});
+
+    layout->addWidget(exploreRunSplitter_);
 
     stackedWidget_->addWidget(exploreRunWidget_);
 
@@ -241,6 +263,7 @@ void MainWindow::setupExploreRunMode()
     remoteContextMenu_ = new QMenu(this);
     remoteContextMenu_->addAction(tr("Play"), this, &MainWindow::onPlay);
     remoteContextMenu_->addAction(tr("Run"), this, &MainWindow::onRun);
+    remoteContextMenu_->addAction(tr("Load Config"), this, &MainWindow::onLoadConfig);
     remoteContextMenu_->addSeparator();
     remoteContextMenu_->addAction(tr("Mount to Drive A"), this, &MainWindow::onMountToDriveA);
     remoteContextMenu_->addAction(tr("Mount to Drive B"), this, &MainWindow::onMountToDriveB);
@@ -366,6 +389,18 @@ void MainWindow::setupConnections()
             this, &MainWindow::onDirectoryCreated);
     connect(ftp, &C64UFtpClient::fileRemoved,
             this, &MainWindow::onFileRemoved);
+    connect(ftp, &C64UFtpClient::downloadToMemoryFinished,
+            this, &MainWindow::onFileContentReceived);
+
+    // Config file loader signals
+    connect(configFileLoader_, &ConfigFileLoader::loadStarted,
+            this, [this](const QString &path) {
+        statusBar()->showMessage(tr("Loading configuration: %1...").arg(QFileInfo(path).fileName()));
+    });
+    connect(configFileLoader_, &ConfigFileLoader::loadFinished,
+            this, &MainWindow::onConfigLoadFinished);
+    connect(configFileLoader_, &ConfigFileLoader::loadFailed,
+            this, &MainWindow::onConfigLoadFailed);
 
     // Transfer queue signals
     connect(transferQueue_, &TransferQueue::transferCompleted,
@@ -854,6 +889,25 @@ void MainWindow::onConnectionError(const QString &message)
 void MainWindow::onRemoteSelectionChanged()
 {
     updateActions();
+
+    // Update file details panel
+    QModelIndex index = remoteTreeView_->currentIndex();
+    if (!index.isValid()) {
+        fileDetailsPanel_->clear();
+        return;
+    }
+
+    if (remoteFileModel_->isDirectory(index)) {
+        fileDetailsPanel_->clear();
+        return;
+    }
+
+    QString path = remoteFileModel_->filePath(index);
+    qint64 size = remoteFileModel_->fileSize(index);
+    RemoteFileModel::FileType fileType = remoteFileModel_->fileType(index);
+    QString typeStr = RemoteFileModel::fileTypeString(fileType);
+
+    fileDetailsPanel_->showFileDetails(path, size, typeStr);
 }
 
 void MainWindow::onRemoteDoubleClicked(const QModelIndex &index)
@@ -877,6 +931,9 @@ void MainWindow::onRemoteDoubleClicked(const QModelIndex &index)
             break;
         case RemoteFileModel::FileType::DiskImage:
             onMount();
+            break;
+        case RemoteFileModel::FileType::Config:
+            onLoadConfig();
             break;
         default:
             break;
@@ -958,4 +1015,54 @@ void MainWindow::onFileRemoved(const QString &path)
 
     // Refresh the remote file listing
     remoteFileModel_->refresh();
+}
+
+void MainWindow::onFileContentRequested(const QString &path)
+{
+    if (!deviceConnection_->isConnected()) {
+        fileDetailsPanel_->showError(tr("Not connected"));
+        return;
+    }
+
+    // Download file content to memory for preview
+    deviceConnection_->ftpClient()->downloadToMemory(path);
+}
+
+void MainWindow::onFileContentReceived(const QString &remotePath, const QByteArray &data)
+{
+    Q_UNUSED(remotePath)
+    // Display the content in the file details panel
+    QString content = QString::fromUtf8(data);
+    fileDetailsPanel_->showTextContent(content);
+}
+
+void MainWindow::onLoadConfig()
+{
+    QString path = selectedRemotePath();
+    if (path.isEmpty()) return;
+
+    RemoteFileModel::FileType type = remoteFileModel_->fileType(remoteTreeView_->currentIndex());
+    if (type != RemoteFileModel::FileType::Config) {
+        statusBar()->showMessage(tr("Selected file is not a configuration file"), 3000);
+        return;
+    }
+
+    if (!deviceConnection_->isConnected()) {
+        statusBar()->showMessage(tr("Not connected"), 3000);
+        return;
+    }
+
+    configFileLoader_->loadConfigFile(path);
+}
+
+void MainWindow::onConfigLoadFinished(const QString &path)
+{
+    statusBar()->showMessage(tr("Configuration loaded: %1").arg(QFileInfo(path).fileName()), 5000);
+}
+
+void MainWindow::onConfigLoadFailed(const QString &path, const QString &error)
+{
+    statusBar()->showMessage(tr("Failed to load %1: %2").arg(QFileInfo(path).fileName()).arg(error), 5000);
+    QMessageBox::warning(this, tr("Configuration Error"),
+        tr("Failed to load configuration file:\n%1\n\nError: %2").arg(path).arg(error));
 }

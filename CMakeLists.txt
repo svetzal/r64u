@@ -17,6 +17,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     Gui
     Widgets
     Network
+    WebEngineWidgets
 )
 
 set(SOURCES
@@ -24,9 +25,11 @@ set(SOURCES
     src/mainwindow.cpp
     src/ui/preferencesdialog.cpp
     src/ui/transferqueuewidget.cpp
+    src/ui/filedetailspanel.cpp
     src/services/c64urestclient.cpp
     src/services/c64uftpclient.cpp
     src/services/deviceconnection.cpp
+    src/services/configfileloader.cpp
     src/models/remotefilemodel.cpp
     src/models/transferqueue.cpp
 )
@@ -35,9 +38,11 @@ set(HEADERS
     src/mainwindow.h
     src/ui/preferencesdialog.h
     src/ui/transferqueuewidget.h
+    src/ui/filedetailspanel.h
     src/services/c64urestclient.h
     src/services/c64uftpclient.h
     src/services/deviceconnection.h
+    src/services/configfileloader.h
     src/services/credentialstore.h
     src/models/remotefilemodel.h
     src/models/transferqueue.h
@@ -104,6 +109,7 @@ target_link_libraries(r64u PRIVATE
     Qt6::Gui
     Qt6::Widgets
     Qt6::Network
+    Qt6::WebEngineWidgets
 )
 
 # Platform-specific libraries

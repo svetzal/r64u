@@ -279,6 +279,8 @@ RemoteFileModel::FileType RemoteFileModel::detectFileType(const QString &filenam
         return FileType::TapeImage;
     } else if (ext == "rom" || ext == "bin") {
         return FileType::Rom;
+    } else if (ext == "cfg") {
+        return FileType::Config;
     }
 
     return FileType::Unknown;
@@ -305,6 +307,8 @@ QIcon RemoteFileModel::iconForFileType(FileType type)
         return style->standardIcon(QStyle::SP_DriveCDIcon);
     case FileType::Rom:
         return style->standardIcon(QStyle::SP_FileDialogDetailedView);
+    case FileType::Config:
+        return style->standardIcon(QStyle::SP_FileDialogInfoView);
     default:
         return style->standardIcon(QStyle::SP_FileIcon);
     }
@@ -321,6 +325,7 @@ QString RemoteFileModel::fileTypeString(FileType type)
     case FileType::DiskImage: return tr("Disk Image");
     case FileType::TapeImage: return tr("Tape Image");
     case FileType::Rom: return tr("ROM");
+    case FileType::Config: return tr("Configuration");
     default: return tr("File");
     }
 }

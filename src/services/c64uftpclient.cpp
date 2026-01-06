@@ -388,7 +388,11 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
             }
         } else if (code == 226) {
             // Transfer complete
-            if (transferFile_) {
+            if (downloadingToMemory_) {
+                emit downloadToMemoryFinished(currentArg_, dataBuffer_);
+                dataBuffer_.clear();
+                downloadingToMemory_ = false;
+            } else if (transferFile_) {
                 transferFile_->close();
                 emit downloadFinished(currentArg_, currentLocalPath_);
                 delete transferFile_;
@@ -397,7 +401,10 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
             processNextCommand();
         } else if (code >= 400) {
             emit error("Download failed: " + text);
-            if (transferFile_) {
+            if (downloadingToMemory_) {
+                dataBuffer_.clear();
+                downloadingToMemory_ = false;
+            } else if (transferFile_) {
                 transferFile_->close();
                 delete transferFile_;
                 transferFile_ = nullptr;
@@ -491,9 +498,14 @@ void C64UFtpClient::onDataReadyRead()
 
     if (currentCommand_ == Command::List) {
         dataBuffer_.append(data);
-    } else if (currentCommand_ == Command::Retr && transferFile_) {
-        transferFile_->write(data);
-        emit downloadProgress(currentArg_, transferFile_->size(), transferSize_);
+    } else if (currentCommand_ == Command::Retr) {
+        if (downloadingToMemory_) {
+            dataBuffer_.append(data);
+            emit downloadProgress(currentArg_, dataBuffer_.size(), transferSize_);
+        } else if (transferFile_) {
+            transferFile_->write(data);
+            emit downloadProgress(currentArg_, transferFile_->size(), transferSize_);
+        }
     }
 }
 
@@ -642,9 +654,25 @@ void C64UFtpClient::download(const QString &remotePath, const QString &localPath
     }
 
     transferSize_ = 0;
+    downloadingToMemory_ = false;
     queueCommand(Command::Type, "I");  // Binary mode
     queueCommand(Command::Pasv);
     queueCommand(Command::Retr, remotePath, localPath);
+}
+
+void C64UFtpClient::downloadToMemory(const QString &remotePath)
+{
+    if (!loggedIn_) {
+        emit error("Not logged in");
+        return;
+    }
+
+    dataBuffer_.clear();
+    transferSize_ = 0;
+    downloadingToMemory_ = true;
+    queueCommand(Command::Type, "I");  // Binary mode
+    queueCommand(Command::Pasv);
+    queueCommand(Command::Retr, remotePath);
 }
 
 void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)

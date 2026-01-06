@@ -17,6 +17,8 @@ class DeviceConnection;
 class RemoteFileModel;
 class TransferQueue;
 class TransferQueueWidget;
+class FileDetailsPanel;
+class ConfigFileLoader;
 
 class MainWindow : public QMainWindow
 {
@@ -73,6 +75,15 @@ private slots:
     void onOperationSucceeded(const QString &operation);
     void onOperationFailed(const QString &operation, const QString &error);
 
+    // File details panel slots
+    void onFileContentRequested(const QString &path);
+    void onFileContentReceived(const QString &remotePath, const QByteArray &data);
+
+    // Config file loading slots
+    void onLoadConfig();
+    void onConfigLoadFinished(const QString &path);
+    void onConfigLoadFailed(const QString &path, const QString &error);
+
 private:
     void setupUi();
     void setupMenuBar();
@@ -99,13 +110,16 @@ private:
     DeviceConnection *deviceConnection_ = nullptr;
     RemoteFileModel *remoteFileModel_ = nullptr;
     TransferQueue *transferQueue_ = nullptr;
+    ConfigFileLoader *configFileLoader_ = nullptr;
 
     // Central widget
     QStackedWidget *stackedWidget_ = nullptr;
 
     // Explore/Run mode widgets
     QWidget *exploreRunWidget_ = nullptr;
+    QSplitter *exploreRunSplitter_ = nullptr;
     QTreeView *remoteTreeView_ = nullptr;
+    FileDetailsPanel *fileDetailsPanel_ = nullptr;
 
     // Transfer mode widgets
     QWidget *transferWidget_ = nullptr;
