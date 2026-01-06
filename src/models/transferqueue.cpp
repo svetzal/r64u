@@ -146,16 +146,22 @@ void TransferQueue::enqueueRecursiveDownload(const QString &remoteDir, const QSt
 
     qDebug() << "TransferQueue: enqueueRecursiveDownload" << remoteDir << "->" << localDir;
 
+    // Normalize remote path - remove trailing slashes
+    QString normalizedRemote = remoteDir;
+    while (normalizedRemote.endsWith('/') && normalizedRemote.length() > 1) {
+        normalizedRemote.chop(1);
+    }
+
     // Set scanning mode - this prevents processNext() from starting downloads
     // until all directories have been scanned
     scanningDirectories_ = true;
 
     // Store the base paths for path calculation
-    recursiveRemoteBase_ = remoteDir;
+    recursiveRemoteBase_ = normalizedRemote;
     recursiveLocalBase_ = localDir;
 
     // Create local base directory with the remote folder's name
-    QString folderName = QFileInfo(remoteDir).fileName();
+    QString folderName = QFileInfo(normalizedRemote).fileName();
     QString targetDir = localDir;
     if (!targetDir.endsWith('/')) targetDir += '/';
     targetDir += folderName;
@@ -166,16 +172,16 @@ void TransferQueue::enqueueRecursiveDownload(const QString &remoteDir, const QSt
 
     // Queue the initial directory scan
     PendingScan scan;
-    scan.remotePath = remoteDir;
+    scan.remotePath = normalizedRemote;
     scan.localBasePath = targetDir;
     pendingScans_.enqueue(scan);
 
     // Track that we're requesting this listing (to avoid conflict with RemoteFileModel)
-    requestedListings_.insert(remoteDir);
-    qDebug() << "TransferQueue: Requesting listing for:" << remoteDir;
+    requestedListings_.insert(normalizedRemote);
+    qDebug() << "TransferQueue: Requesting listing for:" << normalizedRemote;
 
     // Start scanning
-    ftpClient_->list(remoteDir);
+    ftpClient_->list(normalizedRemote);
 }
 
 void TransferQueue::clear()

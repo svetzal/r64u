@@ -264,6 +264,40 @@ private slots:
         // Directory should have been created
         QVERIFY(QDir(tempDir.path() + "/empty").exists());
     }
+
+    // Test that trailing slashes in remote path are handled correctly
+    void testRecursiveDownloadTrailingSlash()
+    {
+        // Setup directory with trailing slash in path
+        QList<FtpEntry> entries;
+        FtpEntry file; file.name = "test.txt"; file.isDirectory = false;
+        entries << file;
+        mockFtp->mockSetDirectoryListing("/remote/folder", entries);  // Server returns without trailing slash
+        mockFtp->mockSetDownloadData("/remote/folder/test.txt", "test content");
+
+        // Request with trailing slash
+        queue->enqueueRecursiveDownload("/remote/folder/", tempDir.path());
+
+        // Process the LIST
+        mockFtp->mockProcessNextOperation();
+
+        // Scanning should complete
+        QVERIFY(!queue->isScanning());
+
+        // One file should be queued
+        QCOMPARE(queue->rowCount(), 1);
+
+        // Process download
+        mockFtp->mockProcessAllOperations();
+
+        // File should be in correct location (folder/test.txt, not just test.txt)
+        QString filePath = tempDir.path() + "/folder/test.txt";
+        QVERIFY2(QFile::exists(filePath), qPrintable("File should exist at " + filePath));
+
+        QFile f(filePath);
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        QCOMPARE(f.readAll(), QByteArray("test content"));
+    }
 };
 
 QTEST_MAIN(TestTransferQueue)
