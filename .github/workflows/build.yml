@@ -48,7 +48,7 @@ jobs:
           sudo apt-get install -y libgl1-mesa-dev libxkbcommon-dev libxkbcommon-x11-0 \
             libfuse2 libxcb-cursor0 \
             libnss3 libnss3-dev libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
-            libcups2 libdrm2 libxcomposite1 libxdamage1 libxrandr2 libgbm1 \
+            libcups2 libcups2-dev libdrm2 libxcomposite1 libxdamage1 libxrandr2 libgbm1 \
             libasound2 libpango-1.0-0 libcairo2 libatspi2.0-0 libxshmfence1
 
       - name: Configure CMake
@@ -107,8 +107,15 @@ jobs:
         run: |
           APP_PATH="build/r64u.app"
 
-          # Sign Qt frameworks
+          # Sign nested helper apps first (e.g., QtWebEngineProcess.app inside frameworks)
+          find "$APP_PATH/Contents/Frameworks" -name "*.app" -type d | while read helper_app; do
+            echo "Signing helper app: $helper_app"
+            codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$helper_app"
+          done
+
+          # Sign Qt frameworks (after their nested apps are signed)
           find "$APP_PATH/Contents/Frameworks" -name "*.framework" -type d | while read framework; do
+            echo "Signing framework: $framework"
             codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$framework"
           done
 
