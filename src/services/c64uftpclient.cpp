@@ -30,9 +30,28 @@ C64UFtpClient::C64UFtpClient(QObject *parent)
 
 C64UFtpClient::~C64UFtpClient()
 {
+    // Clean up any file handles in queued commands
+    // unique_ptr handles cleanup automatically when commandQueue_ is cleared
+    while (!commandQueue_.isEmpty()) {
+        PendingCommand cmd = std::move(commandQueue_.head());
+        commandQueue_.dequeue();
+        if (cmd.transferFile) {
+            cmd.transferFile->close();
+        }
+        // unique_ptr automatically deletes when cmd goes out of scope
+    }
+
+    // Close files - unique_ptr handles deletion automatically
     if (transferFile_) {
         transferFile_->close();
-        delete transferFile_;
+    }
+
+    if (currentRetrFile_) {
+        currentRetrFile_->close();
+    }
+
+    if (retrPendingFile_) {
+        retrPendingFile_->close();
     }
 }
 
@@ -117,6 +136,22 @@ void C64UFtpClient::queueCommand(Command cmd, const QString &arg, const QString 
     }
 }
 
+void C64UFtpClient::queueRetrCommand(const QString &remotePath, const QString &localPath,
+                                      std::shared_ptr<QFile> file, bool isMemory)
+{
+    PendingCommand pending;
+    pending.cmd = Command::Retr;
+    pending.arg = remotePath;
+    pending.localPath = localPath;
+    pending.transferFile = std::move(file);
+    pending.isMemoryDownload = isMemory;
+    commandQueue_.enqueue(std::move(pending));
+
+    if (state_ == State::Ready) {
+        processNextCommand();
+    }
+}
+
 void C64UFtpClient::processNextCommand()
 {
     if (commandQueue_.isEmpty()) {
@@ -125,7 +160,8 @@ void C64UFtpClient::processNextCommand()
     }
 
     setState(State::Busy);
-    PendingCommand pending = commandQueue_.dequeue();
+    PendingCommand pending = std::move(commandQueue_.head());
+    commandQueue_.dequeue();
     currentCommand_ = pending.cmd;
     currentArg_ = pending.arg;
     currentLocalPath_ = pending.localPath;
@@ -153,6 +189,11 @@ void C64UFtpClient::processNextCommand()
         sendCommand("LIST" + (currentArg_.isEmpty() ? "" : " " + currentArg_));
         break;
     case Command::Retr:
+        // Set the current RETR state from the queued command
+        // This ensures we have the correct file even if other operations were queued
+        currentRetrFile_ = std::move(pending.transferFile);
+        currentRetrIsMemory_ = pending.isMemoryDownload;
+        qDebug() << "FTP: Processing RETR, file:" << currentRetrFile_.get() << "isMemory:" << currentRetrIsMemory_;
         sendCommand("RETR " + currentArg_);
         break;
     case Command::Stor:
@@ -387,28 +428,48 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                 transferSize_ = match.captured(1).toLongLong();
             }
         } else if (code == 226) {
-            // Transfer complete
-            if (downloadingToMemory_) {
-                emit downloadToMemoryFinished(currentArg_, dataBuffer_);
-                dataBuffer_.clear();
-                downloadingToMemory_ = false;
-            } else if (transferFile_) {
-                transferFile_->close();
-                emit downloadFinished(currentArg_, currentLocalPath_);
-                delete transferFile_;
-                transferFile_ = nullptr;
+            // Transfer complete on server side, but data may still be in flight
+            // Use currentRetrFile_/currentRetrIsMemory_ which were set when RETR was dequeued
+            if (dataSocket_->state() == QAbstractSocket::UnconnectedState) {
+                // Data socket already closed, process immediately
+                qDebug() << "FTP: RETR 226 received, data socket already closed, processing"
+                         << "isMemory:" << currentRetrIsMemory_ << "file:" << currentRetrFile_.get();
+                if (currentRetrIsMemory_) {
+                    emit downloadToMemoryFinished(currentArg_, dataBuffer_);
+                    dataBuffer_.clear();
+                } else if (currentRetrFile_) {
+                    currentRetrFile_->close();
+                    emit downloadFinished(currentArg_, currentLocalPath_);
+                    currentRetrFile_.reset();
+                } else {
+                    qDebug() << "FTP: ERROR - RETR 226 but no file handle!";
+                }
+                currentRetrFile_.reset();
+                currentRetrIsMemory_ = false;
+                processNextCommand();
+            } else {
+                // Wait for data socket to close before processing
+                qDebug() << "FTP: RETR 226 received, waiting for data socket to finish";
+                retrPending226_ = true;
+                retrPendingRemotePath_ = currentArg_;
+                retrPendingLocalPath_ = currentLocalPath_;
+                retrPendingIsMemory_ = currentRetrIsMemory_;
+                retrPendingFile_ = std::move(currentRetrFile_);
+                // Clear current state (saved in pending vars)
+                currentRetrFile_.reset();
+                currentRetrIsMemory_ = false;
+                // Don't process next command yet - wait for data socket
             }
-            processNextCommand();
         } else if (code >= 400) {
             emit error("Download failed: " + text);
-            if (downloadingToMemory_) {
+            if (currentRetrIsMemory_) {
                 dataBuffer_.clear();
-                downloadingToMemory_ = false;
-            } else if (transferFile_) {
-                transferFile_->close();
-                delete transferFile_;
-                transferFile_ = nullptr;
+            } else if (currentRetrFile_) {
+                currentRetrFile_->close();
+                currentRetrFile_.reset();
             }
+            currentRetrFile_.reset();
+            currentRetrIsMemory_ = false;
             processNextCommand();
         }
         break;
@@ -426,16 +487,14 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
             if (transferFile_) {
                 transferFile_->close();
                 emit uploadFinished(currentLocalPath_, currentArg_);
-                delete transferFile_;
-                transferFile_ = nullptr;
+                transferFile_.reset();
             }
             processNextCommand();
         } else if (code >= 400) {
             emit error("Upload failed: " + text);
             if (transferFile_) {
                 transferFile_->close();
-                delete transferFile_;
-                transferFile_ = nullptr;
+                transferFile_.reset();
             }
             processNextCommand();
         }
@@ -499,12 +558,17 @@ void C64UFtpClient::onDataReadyRead()
     if (currentCommand_ == Command::List) {
         dataBuffer_.append(data);
     } else if (currentCommand_ == Command::Retr) {
-        if (downloadingToMemory_) {
+        // Check pending state first (226 may have arrived but data still coming)
+        // then fall back to current RETR state (set when RETR was dequeued)
+        bool isMemory = retrPending226_ ? retrPendingIsMemory_ : currentRetrIsMemory_;
+        QFile *file = retrPending226_ ? retrPendingFile_.get() : currentRetrFile_.get();
+
+        if (isMemory) {
             dataBuffer_.append(data);
             emit downloadProgress(currentArg_, dataBuffer_.size(), transferSize_);
-        } else if (transferFile_) {
-            transferFile_->write(data);
-            emit downloadProgress(currentArg_, transferFile_->size(), transferSize_);
+        } else if (file) {
+            file->write(data);
+            emit downloadProgress(currentArg_, file->size(), transferSize_);
         }
     }
 }
@@ -527,6 +591,27 @@ void C64UFtpClient::onDataDisconnected()
         emit directoryListed(listPendingPath_, entries);
         listPending226_ = false;
         listPendingPath_.clear();
+        processNextCommand();
+    } else if (retrPending226_) {
+        qDebug() << "FTP: Processing pending RETR for" << retrPendingRemotePath_
+                 << "isMemory:" << retrPendingIsMemory_ << "file:" << retrPendingFile_.get();
+        // Use the SAVED state, not the current global state (which may have been
+        // corrupted by other operations like downloadToMemory for file preview)
+        if (retrPendingIsMemory_) {
+            emit downloadToMemoryFinished(retrPendingRemotePath_, dataBuffer_);
+            dataBuffer_.clear();
+        } else if (retrPendingFile_) {
+            retrPendingFile_->close();
+            emit downloadFinished(retrPendingRemotePath_, retrPendingLocalPath_);
+            retrPendingFile_.reset();
+        } else {
+            qDebug() << "FTP: ERROR - pending RETR has no file handle!";
+        }
+        retrPending226_ = false;
+        retrPendingRemotePath_.clear();
+        retrPendingLocalPath_.clear();
+        retrPendingIsMemory_ = false;
+        retrPendingFile_.reset();
         processNextCommand();
     }
 }
@@ -645,19 +730,19 @@ void C64UFtpClient::download(const QString &remotePath, const QString &localPath
         return;
     }
 
-    transferFile_ = new QFile(localPath);
-    if (!transferFile_->open(QIODevice::WriteOnly)) {
+    // Create the file now, but pass ownership to the queued command
+    // This way the file handle stays with the RETR command even if
+    // other operations are queued before it executes
+    auto file = std::make_shared<QFile>(localPath);
+    if (!file->open(QIODevice::WriteOnly)) {
         emit error("Failed to open local file for writing: " + localPath);
-        delete transferFile_;
-        transferFile_ = nullptr;
         return;
     }
 
     transferSize_ = 0;
-    downloadingToMemory_ = false;
     queueCommand(Command::Type, "I");  // Binary mode
     queueCommand(Command::Pasv);
-    queueCommand(Command::Retr, remotePath, localPath);
+    queueRetrCommand(remotePath, localPath, std::move(file), false);
 }
 
 void C64UFtpClient::downloadToMemory(const QString &remotePath)
@@ -669,10 +754,9 @@ void C64UFtpClient::downloadToMemory(const QString &remotePath)
 
     dataBuffer_.clear();
     transferSize_ = 0;
-    downloadingToMemory_ = true;
     queueCommand(Command::Type, "I");  // Binary mode
     queueCommand(Command::Pasv);
-    queueCommand(Command::Retr, remotePath);
+    queueRetrCommand(remotePath, QString(), nullptr, true);  // nullptr becomes empty unique_ptr
 }
 
 void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
@@ -682,11 +766,10 @@ void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
         return;
     }
 
-    transferFile_ = new QFile(localPath);
+    transferFile_ = std::make_shared<QFile>(localPath);
     if (!transferFile_->open(QIODevice::ReadOnly)) {
         emit error("Failed to open local file for reading: " + localPath);
-        delete transferFile_;
-        transferFile_ = nullptr;
+        transferFile_.reset();
         return;
     }
 
@@ -711,15 +794,47 @@ void C64UFtpClient::rename(const QString &oldPath, const QString &newPath)
 
 void C64UFtpClient::abort()
 {
-    commandQueue_.clear();
+    // Clean up any file handles in queued commands
+    // unique_ptr handles cleanup automatically
+    while (!commandQueue_.isEmpty()) {
+        PendingCommand cmd = std::move(commandQueue_.head());
+        commandQueue_.dequeue();
+        if (cmd.transferFile) {
+            cmd.transferFile->close();
+        }
+        // unique_ptr automatically deletes when cmd goes out of scope
+    }
+
     if (dataSocket_->state() != QAbstractSocket::UnconnectedState) {
         dataSocket_->abort();
     }
+
+    // Clean up upload file handle
     if (transferFile_) {
         transferFile_->close();
-        delete transferFile_;
-        transferFile_ = nullptr;
+        transferFile_.reset();
     }
+
+    // Clean up current RETR state
+    if (currentRetrFile_) {
+        currentRetrFile_->close();
+        currentRetrFile_.reset();
+    }
+    currentRetrIsMemory_ = false;
+
+    // Clear pending state
+    listPending226_ = false;
+    listPendingPath_.clear();
+    retrPending226_ = false;
+    retrPendingRemotePath_.clear();
+    retrPendingLocalPath_.clear();
+    if (retrPendingFile_) {
+        retrPendingFile_->close();
+        retrPendingFile_.reset();
+    }
+    retrPendingIsMemory_ = false;
+    dataBuffer_.clear();
+
     sendCommand("ABOR");
     setState(State::Ready);
 }

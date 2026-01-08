@@ -7,6 +7,8 @@
 #include <QFile>
 #include <QDateTime>
 
+#include <memory>
+
 struct FtpEntry {
     QString name;
     bool isDirectory = false;
@@ -118,12 +120,18 @@ private:
         Command cmd;
         QString arg;
         QString localPath;  // For transfers
+        // For RETR commands - store transfer state with the command
+        // so it's not corrupted by concurrent operations
+        std::shared_ptr<QFile> transferFile;
+        bool isMemoryDownload = false;
     };
 
     void setState(State state);
     void sendCommand(const QString &command);
     void queueCommand(Command cmd, const QString &arg = QString(),
                       const QString &localPath = QString());
+    void queueRetrCommand(const QString &remotePath, const QString &localPath,
+                          std::shared_ptr<QFile> file, bool isMemory);
     void processNextCommand();
     void handleResponse(int code, const QString &text);
     void handleBusyResponse(int code, const QString &text);
@@ -150,14 +158,29 @@ private:
 
     // For data transfers
     QByteArray dataBuffer_;
-    QFile *transferFile_ = nullptr;
     qint64 transferSize_ = 0;
     bool downloading_ = false;
-    bool downloadingToMemory_ = false;
+
+    // For uploads (STOR command)
+    std::shared_ptr<QFile> transferFile_;
+
+    // Current RETR command state - set when RETR command is dequeued
+    // These are the authoritative values for the current download
+    std::shared_ptr<QFile> currentRetrFile_;
+    bool currentRetrIsMemory_ = false;
 
     // For LIST command - wait for data socket to close before processing
     bool listPending226_ = false;
     QString listPendingPath_;
+
+    // For RETR command - wait for data socket to close before processing
+    // We must save ALL state at the time of 226 because other operations
+    // (like downloadToMemory for file preview) might corrupt global state
+    bool retrPending226_ = false;
+    QString retrPendingRemotePath_;
+    QString retrPendingLocalPath_;
+    bool retrPendingIsMemory_ = false;
+    std::shared_ptr<QFile> retrPendingFile_;
 };
 
 #endif // C64UFTPCLIENT_H
