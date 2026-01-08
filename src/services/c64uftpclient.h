@@ -8,6 +8,7 @@
 #include <QDateTime>
 
 #include <memory>
+#include <optional>
 
 struct FtpEntry {
     QString name;
@@ -36,13 +37,13 @@ public:
     ~C64UFtpClient() override;
 
     void setHost(const QString &host, quint16 port = 21);
-    QString host() const { return host_; }
+    [[nodiscard]] QString host() const { return host_; }
 
     void setCredentials(const QString &user, const QString &password);
 
-    State state() const { return state_; }
-    bool isConnected() const { return state_ == State::Ready || state_ == State::Busy; }
-    bool isLoggedIn() const { return loggedIn_; }
+    [[nodiscard]] State state() const { return state_; }
+    [[nodiscard]] bool isConnected() const { return state_ == State::Ready || state_ == State::Busy; }
+    [[nodiscard]] bool isLoggedIn() const { return loggedIn_; }
 
     // Connection
     void connectToHost();
@@ -53,7 +54,7 @@ public:
     void changeDirectory(const QString &path);
     void makeDirectory(const QString &path);
     void removeDirectory(const QString &path);
-    QString currentDirectory() const { return currentDir_; }
+    [[nodiscard]] QString currentDirectory() const { return currentDir_; }
 
     // File operations
     void download(const QString &remotePath, const QString &localPath);
@@ -126,6 +127,19 @@ private:
         bool isMemoryDownload = false;
     };
 
+    // RAII struct for pending LIST state - cleared with single reset()
+    struct PendingListState {
+        QString path;
+    };
+
+    // RAII struct for pending RETR state - cleared with single reset()
+    struct PendingRetrState {
+        QString remotePath;
+        QString localPath;
+        std::shared_ptr<QFile> file;
+        bool isMemory = false;
+    };
+
     void setState(State state);
     void sendCommand(const QString &command);
     void queueCommand(Command cmd, const QString &arg = QString(),
@@ -135,8 +149,8 @@ private:
     void processNextCommand();
     void handleResponse(int code, const QString &text);
     void handleBusyResponse(int code, const QString &text);
-    bool parsePassiveResponse(const QString &text, QString &host, quint16 &port);
-    QList<FtpEntry> parseDirectoryListing(const QByteArray &data);
+    [[nodiscard]] bool parsePassiveResponse(const QString &text, QString &host, quint16 &port);
+    [[nodiscard]] QList<FtpEntry> parseDirectoryListing(const QByteArray &data);
 
     QTcpSocket *controlSocket_ = nullptr;
     QTcpSocket *dataSocket_ = nullptr;
@@ -170,17 +184,14 @@ private:
     bool currentRetrIsMemory_ = false;
 
     // For LIST command - wait for data socket to close before processing
-    bool listPending226_ = false;
-    QString listPendingPath_;
+    // Using optional allows clearing all state with single reset()
+    std::optional<PendingListState> pendingList_;
 
     // For RETR command - wait for data socket to close before processing
     // We must save ALL state at the time of 226 because other operations
     // (like downloadToMemory for file preview) might corrupt global state
-    bool retrPending226_ = false;
-    QString retrPendingRemotePath_;
-    QString retrPendingLocalPath_;
-    bool retrPendingIsMemory_ = false;
-    std::shared_ptr<QFile> retrPendingFile_;
+    // Using optional allows clearing all state with single reset()
+    std::optional<PendingRetrState> pendingRetr_;
 };
 
 #endif // C64UFTPCLIENT_H

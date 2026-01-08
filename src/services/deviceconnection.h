@@ -26,24 +26,24 @@ public:
 
     // Configuration
     void setHost(const QString &host);
-    QString host() const { return host_; }
+    [[nodiscard]] QString host() const { return host_; }
 
     void setPassword(const QString &password);
 
     void setAutoReconnect(bool enabled);
-    bool autoReconnect() const { return autoReconnect_; }
+    [[nodiscard]] bool autoReconnect() const { return autoReconnect_; }
 
     // State
-    ConnectionState state() const { return state_; }
-    bool isConnected() const { return state_ == ConnectionState::Connected; }
+    [[nodiscard]] ConnectionState state() const { return state_; }
+    [[nodiscard]] bool isConnected() const { return state_ == ConnectionState::Connected; }
 
     // Device info (valid when connected)
-    DeviceInfo deviceInfo() const { return deviceInfo_; }
-    QList<DriveInfo> driveInfo() const { return driveInfo_; }
+    [[nodiscard]] DeviceInfo deviceInfo() const { return deviceInfo_; }
+    [[nodiscard]] QList<DriveInfo> driveInfo() const { return driveInfo_; }
 
     // Access to underlying clients
-    C64URestClient* restClient() { return restClient_; }
-    C64UFtpClient* ftpClient() { return ftpClient_; }
+    [[nodiscard]] C64URestClient* restClient() { return restClient_; }
+    [[nodiscard]] C64UFtpClient* ftpClient() { return ftpClient_; }
 
 public slots:
     void connectToDevice();

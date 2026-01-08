@@ -37,10 +37,10 @@ public:
     ~C64URestClient() override;
 
     void setHost(const QString &host);
-    QString host() const { return host_; }
+    [[nodiscard]] QString host() const { return host_; }
 
     void setPassword(const QString &password);
-    bool hasPassword() const { return !password_.isEmpty(); }
+    [[nodiscard]] bool hasPassword() const { return !password_.isEmpty(); }
 
     // Device information
     void getVersion();
@@ -93,7 +93,7 @@ private slots:
     void onReplyFinished(QNetworkReply *reply);
 
 private:
-    QNetworkRequest createRequest(const QString &endpoint) const;
+    [[nodiscard]] QNetworkRequest createRequest(const QString &endpoint) const;
     void sendGetRequest(const QString &endpoint, const QString &operation);
     void sendPutRequest(const QString &endpoint, const QString &operation,
                         const QByteArray &data = QByteArray());
@@ -107,7 +107,7 @@ private:
     void handleFileInfoResponse(const QJsonObject &json);
     void handleGenericResponse(const QString &operation, const QJsonObject &json);
 
-    QStringList extractErrors(const QJsonObject &json) const;
+    [[nodiscard]] QStringList extractErrors(const QJsonObject &json) const;
 
     QNetworkAccessManager *networkManager_ = nullptr;
     QString host_;

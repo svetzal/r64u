@@ -50,8 +50,8 @@ C64UFtpClient::~C64UFtpClient()
         currentRetrFile_->close();
     }
 
-    if (retrPendingFile_) {
-        retrPendingFile_->close();
+    if (pendingRetr_ && pendingRetr_->file) {
+        pendingRetr_->file->close();
     }
 }
 
@@ -407,8 +407,7 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
             } else {
                 // Wait for data socket to close before processing
                 qDebug() << "FTP: 226 received, waiting for data socket to finish";
-                listPending226_ = true;
-                listPendingPath_ = path;
+                pendingList_ = PendingListState{path};
                 // Don't process next command yet - wait for data socket
             }
         } else if (code >= 400) {
@@ -450,12 +449,13 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
             } else {
                 // Wait for data socket to close before processing
                 qDebug() << "FTP: RETR 226 received, waiting for data socket to finish";
-                retrPending226_ = true;
-                retrPendingRemotePath_ = currentArg_;
-                retrPendingLocalPath_ = currentLocalPath_;
-                retrPendingIsMemory_ = currentRetrIsMemory_;
-                retrPendingFile_ = std::move(currentRetrFile_);
-                // Clear current state (saved in pending vars)
+                pendingRetr_ = PendingRetrState{
+                    currentArg_,
+                    currentLocalPath_,
+                    std::move(currentRetrFile_),
+                    currentRetrIsMemory_
+                };
+                // Clear current state (saved in pending struct)
                 currentRetrFile_.reset();
                 currentRetrIsMemory_ = false;
                 // Don't process next command yet - wait for data socket
@@ -560,8 +560,8 @@ void C64UFtpClient::onDataReadyRead()
     } else if (currentCommand_ == Command::Retr) {
         // Check pending state first (226 may have arrived but data still coming)
         // then fall back to current RETR state (set when RETR was dequeued)
-        bool isMemory = retrPending226_ ? retrPendingIsMemory_ : currentRetrIsMemory_;
-        QFile *file = retrPending226_ ? retrPendingFile_.get() : currentRetrFile_.get();
+        bool isMemory = pendingRetr_ ? pendingRetr_->isMemory : currentRetrIsMemory_;
+        QFile *file = pendingRetr_ ? pendingRetr_->file.get() : currentRetrFile_.get();
 
         if (isMemory) {
             dataBuffer_.append(data);
@@ -583,35 +583,29 @@ void C64UFtpClient::onDataDisconnected()
     downloading_ = false;
 
     // If we received 226 and were waiting for data socket to close, process now
-    if (listPending226_) {
+    if (pendingList_) {
         qDebug() << "FTP: Processing pending LIST, total data:" << dataBuffer_.size() << "bytes";
         qDebug() << "FTP: Data buffer contents:" << dataBuffer_;
         QList<FtpEntry> entries = parseDirectoryListing(dataBuffer_);
         qDebug() << "FTP: Parsed" << entries.size() << "entries";
-        emit directoryListed(listPendingPath_, entries);
-        listPending226_ = false;
-        listPendingPath_.clear();
+        emit directoryListed(pendingList_->path, entries);
+        pendingList_.reset();  // Clear all pending LIST state with one call
         processNextCommand();
-    } else if (retrPending226_) {
-        qDebug() << "FTP: Processing pending RETR for" << retrPendingRemotePath_
-                 << "isMemory:" << retrPendingIsMemory_ << "file:" << retrPendingFile_.get();
+    } else if (pendingRetr_) {
+        qDebug() << "FTP: Processing pending RETR for" << pendingRetr_->remotePath
+                 << "isMemory:" << pendingRetr_->isMemory << "file:" << pendingRetr_->file.get();
         // Use the SAVED state, not the current global state (which may have been
         // corrupted by other operations like downloadToMemory for file preview)
-        if (retrPendingIsMemory_) {
-            emit downloadToMemoryFinished(retrPendingRemotePath_, dataBuffer_);
+        if (pendingRetr_->isMemory) {
+            emit downloadToMemoryFinished(pendingRetr_->remotePath, dataBuffer_);
             dataBuffer_.clear();
-        } else if (retrPendingFile_) {
-            retrPendingFile_->close();
-            emit downloadFinished(retrPendingRemotePath_, retrPendingLocalPath_);
-            retrPendingFile_.reset();
+        } else if (pendingRetr_->file) {
+            pendingRetr_->file->close();
+            emit downloadFinished(pendingRetr_->remotePath, pendingRetr_->localPath);
         } else {
             qDebug() << "FTP: ERROR - pending RETR has no file handle!";
         }
-        retrPending226_ = false;
-        retrPendingRemotePath_.clear();
-        retrPendingLocalPath_.clear();
-        retrPendingIsMemory_ = false;
-        retrPendingFile_.reset();
+        pendingRetr_.reset();  // Clear all pending RETR state with one call
         processNextCommand();
     }
 }
@@ -822,17 +816,12 @@ void C64UFtpClient::abort()
     }
     currentRetrIsMemory_ = false;
 
-    // Clear pending state
-    listPending226_ = false;
-    listPendingPath_.clear();
-    retrPending226_ = false;
-    retrPendingRemotePath_.clear();
-    retrPendingLocalPath_.clear();
-    if (retrPendingFile_) {
-        retrPendingFile_->close();
-        retrPendingFile_.reset();
+    // Clear pending state - RAII structs make this simple
+    pendingList_.reset();
+    if (pendingRetr_ && pendingRetr_->file) {
+        pendingRetr_->file->close();
     }
-    retrPendingIsMemory_ = false;
+    pendingRetr_.reset();
     dataBuffer_.clear();
 
     sendCommand("ABOR");

@@ -55,15 +55,15 @@ public:
     void removeCompleted();
     void cancelAll();
 
-    int pendingCount() const;
-    int activeCount() const;
-    bool isProcessing() const { return processing_; }
-    bool isScanning() const { return !pendingScans_.isEmpty(); }
+    [[nodiscard]] int pendingCount() const;
+    [[nodiscard]] int activeCount() const;
+    [[nodiscard]] bool isProcessing() const { return processing_; }
+    [[nodiscard]] bool isScanning() const { return !pendingScans_.isEmpty(); }
 
     // QAbstractListModel interface
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-    QHash<int, QByteArray> roleNames() const override;
+    [[nodiscard]] int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    [[nodiscard]] QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
 signals:
     void transferStarted(const QString &fileName);
@@ -83,7 +83,7 @@ private slots:
 
 private:
     void processNext();
-    int findItemIndex(const QString &localPath, const QString &remotePath) const;
+    [[nodiscard]] int findItemIndex(const QString &localPath, const QString &remotePath) const;
     void processRecursiveUpload(const QString &localDir, const QString &remoteDir);
     void processPendingDirectoryCreation();
 
