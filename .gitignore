@@ -43,3 +43,6 @@ qrc_*.cpp
 *~
 *.swp
 *.swo
+
+# Stride authentication (contains secrets)
+.stride_auth.md
