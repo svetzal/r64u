@@ -61,6 +61,8 @@ private slots:
     void onDownloadFinished(const QString &remotePath, const QString &localPath);
     void onDirectoryCreated(const QString &path);
     void onFileRemoved(const QString &path);
+    void onFileRenamed(const QString &oldPath, const QString &newPath);
+    void onRemoteRename();
 
     // Connection slots
     void onConnectionStateChanged();
@@ -160,6 +162,7 @@ private:
     QAction *downloadAction_ = nullptr;
     QAction *newFolderAction_ = nullptr;
     QAction *remoteDeleteAction_ = nullptr;
+    QAction *remoteRenameAction_ = nullptr;
     QAction *localDeleteAction_ = nullptr;
     QAction *localRenameAction_ = nullptr;
     QAction *localNewFolderAction_ = nullptr;

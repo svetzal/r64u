@@ -201,6 +201,10 @@ void MainWindow::setupToolBar()
     remoteDeleteAction_->setToolTip(tr("Delete selected file or folder on C64U"));
     connect(remoteDeleteAction_, &QAction::triggered, this, &MainWindow::onDelete);
 
+    remoteRenameAction_ = mainToolBar_->addAction(tr("Rename Remote"));
+    remoteRenameAction_->setToolTip(tr("Rename selected file or folder on C64U"));
+    connect(remoteRenameAction_, &QAction::triggered, this, &MainWindow::onRemoteRename);
+
     localNewFolderAction_ = mainToolBar_->addAction(tr("New Local Folder"));
     localNewFolderAction_->setToolTip(tr("Create new folder in local directory"));
     connect(localNewFolderAction_, &QAction::triggered, this, &MainWindow::onNewLocalFolder);
@@ -499,6 +503,8 @@ void MainWindow::setupConnections()
             this, &MainWindow::onDirectoryCreated);
     connect(ftp, &C64UFtpClient::fileRemoved,
             this, &MainWindow::onFileRemoved);
+    connect(ftp, &C64UFtpClient::fileRenamed,
+            this, &MainWindow::onFileRenamed);
     connect(ftp, &C64UFtpClient::downloadToMemoryFinished,
             this, &MainWindow::onFileContentReceived);
 
@@ -540,6 +546,7 @@ void MainWindow::switchToMode(Mode mode)
     downloadAction_->setVisible(!exploreMode);
     newFolderAction_->setVisible(!exploreMode);
     remoteDeleteAction_->setVisible(!exploreMode);
+    remoteRenameAction_->setVisible(!exploreMode);
     localNewFolderAction_->setVisible(!exploreMode);
     localDeleteAction_->setVisible(!exploreMode);
     localRenameAction_->setVisible(!exploreMode);
@@ -638,6 +645,7 @@ void MainWindow::updateActions()
     downloadAction_->setEnabled(connected && hasRemoteSelection);
     newFolderAction_->setEnabled(connected);
     remoteDeleteAction_->setEnabled(connected && hasRemoteSelection);
+    remoteRenameAction_->setEnabled(connected && hasRemoteSelection);
     localNewFolderAction_->setEnabled(true);  // Always enabled in Transfer mode
     localDeleteAction_->setEnabled(hasLocalSelection);
     localRenameAction_->setEnabled(hasLocalSelection);
@@ -1179,6 +1187,63 @@ void MainWindow::onFileRemoved(const QString &path)
 
     // Refresh the remote file listing
     remoteFileModel_->refresh();
+}
+
+void MainWindow::onFileRenamed(const QString &oldPath, const QString &newPath)
+{
+    QString oldName = QFileInfo(oldPath).fileName();
+    QString newName = QFileInfo(newPath).fileName();
+    statusBar()->showMessage(tr("Renamed: %1 → %2").arg(oldName).arg(newName), 3000);
+
+    // Refresh the remote file listing
+    remoteFileModel_->refresh();
+}
+
+void MainWindow::onRemoteRename()
+{
+    if (!deviceConnection_->isConnected()) {
+        return;
+    }
+
+    QString remotePath = selectedRemotePath();
+    if (remotePath.isEmpty()) {
+        return;
+    }
+
+    QFileInfo fileInfo(remotePath);
+    QString oldName = fileInfo.fileName();
+    QString itemType = isSelectedDirectory() ? tr("folder") : tr("file");
+
+    bool ok;
+    QString newName = QInputDialog::getText(this, tr("Rename Remote %1").arg(itemType),
+        tr("New name:"), QLineEdit::Normal, oldName, &ok);
+
+    if (!ok || newName.isEmpty()) {
+        return;
+    }
+
+    // Check if the name changed
+    if (newName == oldName) {
+        return;
+    }
+
+    // Validate the new name - check for invalid characters
+    if (newName.contains('/') || newName.contains('\\')) {
+        QMessageBox::warning(this, tr("Invalid Name"),
+            tr("The name cannot contain '/' or '\\' characters."));
+        return;
+    }
+
+    // Construct the new path
+    QString parentPath = fileInfo.path();
+    if (!parentPath.endsWith('/')) {
+        parentPath += '/';
+    }
+    QString newPath = parentPath + newName;
+
+    // Perform the rename via FTP
+    deviceConnection_->ftpClient()->rename(remotePath, newPath);
+    statusBar()->showMessage(tr("Renaming %1...").arg(oldName));
 }
 
 void MainWindow::onFileContentRequested(const QString &path)
