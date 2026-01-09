@@ -37,6 +37,7 @@ set(SOURCES
     src/services/deviceconnection.cpp
     src/services/configfileloader.cpp
     src/services/streamcontrolclient.cpp
+    src/services/videostreamreceiver.cpp
     src/models/remotefilemodel.cpp
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
@@ -53,6 +54,7 @@ set(HEADERS
     src/services/configfileloader.h
     src/services/credentialstore.h
     src/services/streamcontrolclient.h
+    src/services/videostreamreceiver.h
     src/models/remotefilemodel.h
     src/models/localfileproxymodel.h
     src/models/transferqueue.h
