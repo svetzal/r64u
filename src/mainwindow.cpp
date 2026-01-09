@@ -26,8 +26,8 @@
 #include <QFileInfo>
 #include <QTimer>
 #include <QDir>
+#include <QUrl>
 #include <QNetworkInterface>
-#include <QHostInfo>
 
 #include "services/credentialstore.h"
 
@@ -1855,32 +1855,21 @@ void MainWindow::onStartStreaming()
     // Clear any pending commands from previous sessions
     streamControl_->clearPendingCommands();
 
-    // Configure stream control client with device host
-    QString deviceHost = deviceConnection_->restClient()->host();
+    // Extract just the host/IP from the REST client URL
+    QString deviceUrl = deviceConnection_->restClient()->host();
+    QString deviceHost = QUrl(deviceUrl).host();
+    if (deviceHost.isEmpty()) {
+        // Maybe it's already just an IP address without scheme
+        deviceHost = deviceUrl;
+    }
     streamControl_->setHost(deviceHost);
 
-    // Resolve device hostname to IP address if needed
+    // Parse the device IP address
     QHostAddress deviceAddr(deviceHost);
-    if (deviceAddr.isNull()) {
-        // deviceHost is a hostname, need to resolve it
-        QHostInfo hostInfo = QHostInfo::fromName(deviceHost);
-        if (hostInfo.error() != QHostInfo::NoError || hostInfo.addresses().isEmpty()) {
-            QMessageBox::warning(this, tr("Network Error"),
-                               tr("Could not resolve device hostname: %1").arg(deviceHost));
-            return;
-        }
-        // Find first IPv4 address
-        for (const QHostAddress &addr : hostInfo.addresses()) {
-            if (addr.protocol() == QAbstractSocket::IPv4Protocol) {
-                deviceAddr = addr;
-                break;
-            }
-        }
-        if (deviceAddr.isNull()) {
-            QMessageBox::warning(this, tr("Network Error"),
-                               tr("Could not find IPv4 address for device: %1").arg(deviceHost));
-            return;
-        }
+    if (deviceAddr.isNull() || deviceAddr.protocol() != QAbstractSocket::IPv4Protocol) {
+        QMessageBox::warning(this, tr("Network Error"),
+                           tr("Invalid device IP address: %1").arg(deviceHost));
+        return;
     }
 
     // Find our local IP address that can reach the device
