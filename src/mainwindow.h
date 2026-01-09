@@ -12,13 +12,13 @@
 #include <QMenu>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QTimer>
 
 class PreferencesDialog;
 class DeviceConnection;
 class RemoteFileModel;
 class LocalFileProxyModel;
 class TransferQueue;
-class TransferQueueWidget;
 class FileDetailsPanel;
 class ConfigFileLoader;
 
@@ -100,6 +100,12 @@ private slots:
     void setCurrentLocalDir(const QString &path);
     void setCurrentRemoteTransferDir(const QString &path);
 
+    // Transfer progress slots
+    void onTransferStarted(const QString &fileName);
+    void onTransferQueueChanged();
+    void onAllTransfersCompleted();
+    void onShowTransferProgress();
+
 private:
     void setupUi();
     void setupMenuBar();
@@ -146,9 +152,17 @@ private:
     LocalFileProxyModel *localFileProxyModel_ = nullptr;
     QPushButton *localUpButton_ = nullptr;
     QPushButton *remoteUpButton_ = nullptr;
-    TransferQueueWidget *transferQueueWidget_ = nullptr;
     QToolBar *remotePanelToolBar_ = nullptr;
     QToolBar *localPanelToolBar_ = nullptr;
+
+    // Transfer progress UI
+    QWidget *transferProgressWidget_ = nullptr;
+    QProgressBar *transferProgressBar_ = nullptr;
+    QLabel *transferStatusLabel_ = nullptr;
+    QTimer *transferProgressDelayTimer_ = nullptr;
+    int transferTotalCount_ = 0;
+    int transferCompletedCount_ = 0;
+    bool transferProgressPending_ = false;
 
     // Toolbar
     QToolBar *mainToolBar_ = nullptr;

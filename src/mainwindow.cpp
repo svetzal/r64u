@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include "ui/preferencesdialog.h"
-#include "ui/transferqueuewidget.h"
 #include "ui/filedetailspanel.h"
 #include "services/deviceconnection.h"
 #include "services/configfileloader.h"
@@ -416,11 +415,31 @@ void MainWindow::setupTransferMode()
     transferSplitter_->setSizes({400, 400});
     layout->addWidget(transferSplitter_, 1);
 
-    // Transfer queue widget
-    transferQueueWidget_ = new TransferQueueWidget();
-    transferQueueWidget_->setTransferQueue(transferQueue_);
-    transferQueueWidget_->setMaximumHeight(200);
-    layout->addWidget(transferQueueWidget_);
+    // Transfer progress widget (replaces TransferQueueWidget)
+    transferProgressWidget_ = new QWidget();
+    transferProgressWidget_->setMaximumHeight(60);
+    auto *progressLayout = new QHBoxLayout(transferProgressWidget_);
+    progressLayout->setContentsMargins(8, 4, 8, 4);
+
+    transferStatusLabel_ = new QLabel(tr("Ready"));
+    transferStatusLabel_->setMinimumWidth(200);
+    progressLayout->addWidget(transferStatusLabel_);
+
+    transferProgressBar_ = new QProgressBar();
+    transferProgressBar_->setMinimum(0);
+    transferProgressBar_->setMaximum(100);
+    transferProgressBar_->setValue(0);
+    progressLayout->addWidget(transferProgressBar_, 1);
+
+    // Initially hide the progress widget
+    transferProgressWidget_->setVisible(false);
+    layout->addWidget(transferProgressWidget_);
+
+    // Setup 2-second delay timer for progress display
+    transferProgressDelayTimer_ = new QTimer(this);
+    transferProgressDelayTimer_->setSingleShot(true);
+    connect(transferProgressDelayTimer_, &QTimer::timeout,
+            this, &MainWindow::onShowTransferProgress);
 
     stackedWidget_->addWidget(transferWidget_);
 
@@ -520,15 +539,24 @@ void MainWindow::setupConnections()
             this, &MainWindow::onConfigLoadFailed);
 
     // Transfer queue signals
+    connect(transferQueue_, &TransferQueue::transferStarted,
+            this, &MainWindow::onTransferStarted);
     connect(transferQueue_, &TransferQueue::transferCompleted,
             this, [this](const QString &fileName) {
         statusBar()->showMessage(tr("Transfer complete: %1").arg(fileName), 3000);
-        // Don't refresh - it resets the directory tree. User can manually refresh if needed.
+        transferCompletedCount_++;
+        onTransferQueueChanged();
     });
     connect(transferQueue_, &TransferQueue::transferFailed,
             this, [this](const QString &fileName, const QString &error) {
         statusBar()->showMessage(tr("Transfer failed: %1 - %2").arg(fileName, error), 5000);
+        transferCompletedCount_++;
+        onTransferQueueChanged();
     });
+    connect(transferQueue_, &TransferQueue::allTransfersCompleted,
+            this, &MainWindow::onAllTransfersCompleted);
+    connect(transferQueue_, &TransferQueue::queueChanged,
+            this, &MainWindow::onTransferQueueChanged);
 }
 
 void MainWindow::switchToMode(Mode mode)
@@ -1518,4 +1546,88 @@ void MainWindow::setCurrentRemoteTransferDir(const QString &path)
     // Enable/disable up button based on whether we can go up
     bool canGoUp = (path != "/" && !path.isEmpty());
     remoteUpButton_->setEnabled(canGoUp);
+}
+
+// Transfer progress slots
+
+void MainWindow::onTransferStarted(const QString &fileName)
+{
+    Q_UNUSED(fileName)
+
+    // If this is the first transfer, start the delay timer
+    if (!transferProgressPending_ && !transferProgressWidget_->isVisible()) {
+        transferProgressPending_ = true;
+        transferTotalCount_ = transferQueue_->rowCount();
+        transferCompletedCount_ = 0;
+        transferProgressDelayTimer_->start(2000);  // 2-second delay
+    }
+}
+
+void MainWindow::onTransferQueueChanged()
+{
+    // Update progress count
+    transferTotalCount_ = transferQueue_->rowCount();
+
+    // Update progress bar and label if visible
+    if (transferProgressWidget_->isVisible()) {
+        if (transferQueue_->isScanning()) {
+            // Indeterminate mode while scanning directories
+            transferProgressBar_->setMaximum(0);  // Indeterminate
+            transferStatusLabel_->setText(tr("Scanning directories..."));
+        } else if (transferTotalCount_ > 0) {
+            // Determinate mode showing file progress
+            transferProgressBar_->setMaximum(100);
+            int progress = (transferTotalCount_ > 0)
+                ? (transferCompletedCount_ * 100) / transferTotalCount_
+                : 0;
+            transferProgressBar_->setValue(progress);
+            transferStatusLabel_->setText(tr("Transferring %1 of %2 files...")
+                .arg(transferCompletedCount_ + 1)
+                .arg(transferTotalCount_));
+        }
+    }
+}
+
+void MainWindow::onAllTransfersCompleted()
+{
+    // Cancel the delay timer if it hasn't fired yet
+    transferProgressDelayTimer_->stop();
+    transferProgressPending_ = false;
+
+    // Hide the progress widget
+    transferProgressWidget_->setVisible(false);
+
+    // Reset counters
+    transferTotalCount_ = 0;
+    transferCompletedCount_ = 0;
+
+    // Reset progress bar
+    transferProgressBar_->setMaximum(100);
+    transferProgressBar_->setValue(0);
+    transferStatusLabel_->setText(tr("Ready"));
+}
+
+void MainWindow::onShowTransferProgress()
+{
+    transferProgressPending_ = false;
+
+    // Only show if there are still transfers in progress
+    if (transferQueue_->isProcessing() || transferQueue_->isScanning()) {
+        transferProgressWidget_->setVisible(true);
+
+        // Initialize display state
+        if (transferQueue_->isScanning()) {
+            transferProgressBar_->setMaximum(0);  // Indeterminate
+            transferStatusLabel_->setText(tr("Scanning directories..."));
+        } else {
+            transferProgressBar_->setMaximum(100);
+            int progress = (transferTotalCount_ > 0)
+                ? (transferCompletedCount_ * 100) / transferTotalCount_
+                : 0;
+            transferProgressBar_->setValue(progress);
+            transferStatusLabel_->setText(tr("Transferring %1 of %2 files...")
+                .arg(transferCompletedCount_ + 1)
+                .arg(transferTotalCount_));
+        }
+    }
 }
