@@ -4,6 +4,7 @@
  */
 
 #include "streamcontrolclient.h"
+#include <QDebug>
 
 StreamControlClient::StreamControlClient(QObject *parent)
     : QObject(parent)
@@ -26,6 +27,7 @@ StreamControlClient::~StreamControlClient()
 
 void StreamControlClient::setHost(const QString &host)
 {
+    qDebug() << "StreamControlClient: setHost" << host;
     host_ = host;
 }
 
@@ -113,24 +115,31 @@ void StreamControlClient::connectAndSend()
         return;
     }
 
+    qDebug() << "StreamControlClient: Connecting to" << host_ << "port" << ControlPort;
     connecting_ = true;
     socket_->connectToHost(host_, ControlPort);
 }
 
 void StreamControlClient::onSocketConnected()
 {
+    qDebug() << "StreamControlClient: Connected to" << host_;
     connecting_ = false;
 
     // Send all pending commands
     while (!pendingCommands_.isEmpty()) {
         PendingCommand cmd = pendingCommands_.takeFirst();
 
+        qDebug() << "StreamControlClient: Sending command:" << cmd.description
+                 << "data size:" << cmd.data.size() << "bytes";
+
         qint64 written = socket_->write(cmd.data);
         socket_->flush();
 
         if (written == cmd.data.size()) {
+            qDebug() << "StreamControlClient: Command sent successfully";
             emit commandSucceeded(cmd.description);
         } else {
+            qDebug() << "StreamControlClient: Failed to write command, wrote" << written << "of" << cmd.data.size();
             emit commandFailed(cmd.description, "Failed to write command data");
         }
     }
@@ -149,6 +158,8 @@ void StreamControlClient::onSocketDisconnected()
 
 void StreamControlClient::onSocketError(QAbstractSocket::SocketError error)
 {
+    qDebug() << "StreamControlClient: Socket error connecting to" << host_ << "port" << ControlPort
+             << "- error code:" << error << socket_->errorString();
     connecting_ = false;
 
     QString errorMsg;

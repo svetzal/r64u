@@ -27,6 +27,7 @@
 #include <QTimer>
 #include <QDir>
 #include <QUrl>
+#include <QDebug>
 #include <QNetworkInterface>
 
 #include "services/credentialstore.h"
@@ -1857,20 +1858,25 @@ void MainWindow::onStartStreaming()
 
     // Extract just the host/IP from the REST client URL
     QString deviceUrl = deviceConnection_->restClient()->host();
+    qDebug() << "MainWindow::onStartStreaming: deviceUrl from restClient:" << deviceUrl;
     QString deviceHost = QUrl(deviceUrl).host();
     if (deviceHost.isEmpty()) {
         // Maybe it's already just an IP address without scheme
         deviceHost = deviceUrl;
     }
+    qDebug() << "MainWindow::onStartStreaming: extracted deviceHost:" << deviceHost;
     streamControl_->setHost(deviceHost);
 
     // Parse the device IP address
     QHostAddress deviceAddr(deviceHost);
     if (deviceAddr.isNull() || deviceAddr.protocol() != QAbstractSocket::IPv4Protocol) {
+        qDebug() << "MainWindow::onStartStreaming: Invalid device IP - isNull:" << deviceAddr.isNull()
+                 << "protocol:" << deviceAddr.protocol();
         QMessageBox::warning(this, tr("Network Error"),
                            tr("Invalid device IP address: %1").arg(deviceHost));
         return;
     }
+    qDebug() << "MainWindow::onStartStreaming: device IP address:" << deviceAddr.toString();
 
     // Find our local IP address that can reach the device
     // Look for an interface on the same subnet as the C64 device
@@ -1902,6 +1908,7 @@ void MainWindow::onStartStreaming()
     }
 
     if (targetHost.isEmpty()) {
+        qDebug() << "MainWindow::onStartStreaming: Could not find local IP on same subnet as device";
         QMessageBox::warning(this, tr("Network Error"),
                            tr("Could not determine local IP address for streaming.\n\n"
                               "Device IP: %1\n"
@@ -1909,6 +1916,8 @@ void MainWindow::onStartStreaming()
                            .arg(deviceAddr.toString()));
         return;
     }
+
+    qDebug() << "MainWindow::onStartStreaming: Local IP for streaming:" << targetHost;
 
     // Start UDP receivers
     if (!videoReceiver_->bind()) {
@@ -1934,6 +1943,10 @@ void MainWindow::onStartStreaming()
     }
 
     // Send stream start commands to the device
+    qDebug() << "MainWindow::onStartStreaming: Sending stream commands to device"
+             << deviceHost << "- target:" << targetHost
+             << "video port:" << VideoStreamReceiver::DefaultPort
+             << "audio port:" << AudioStreamReceiver::DefaultPort;
     streamControl_->startAllStreams(targetHost,
                                     VideoStreamReceiver::DefaultPort,
                                     AudioStreamReceiver::DefaultPort);
