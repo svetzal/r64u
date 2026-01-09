@@ -36,6 +36,7 @@ set(SOURCES
     src/services/c64uftpclient.cpp
     src/services/deviceconnection.cpp
     src/services/configfileloader.cpp
+    src/services/streamcontrolclient.cpp
     src/models/remotefilemodel.cpp
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
@@ -51,6 +52,7 @@ set(HEADERS
     src/services/deviceconnection.h
     src/services/configfileloader.h
     src/services/credentialstore.h
+    src/services/streamcontrolclient.h
     src/models/remotefilemodel.h
     src/models/localfileproxymodel.h
     src/models/transferqueue.h
