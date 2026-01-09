@@ -32,6 +32,7 @@ set(SOURCES
     src/ui/preferencesdialog.cpp
     src/ui/transferqueuewidget.cpp
     src/ui/filedetailspanel.cpp
+    src/ui/videodisplaywidget.cpp
     src/services/c64urestclient.cpp
     src/services/c64uftpclient.cpp
     src/services/deviceconnection.cpp
@@ -48,6 +49,7 @@ set(HEADERS
     src/ui/preferencesdialog.h
     src/ui/transferqueuewidget.h
     src/ui/filedetailspanel.h
+    src/ui/videodisplaywidget.h
     src/services/c64urestclient.h
     src/services/c64uftpclient.h
     src/services/deviceconnection.h
