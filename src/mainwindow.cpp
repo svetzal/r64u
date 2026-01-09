@@ -166,25 +166,6 @@ void MainWindow::setupToolBar()
 
     mainToolBar_->addSeparator();
 
-    // Explore/Run mode actions
-    playAction_ = mainToolBar_->addAction(tr("Play"));
-    playAction_->setToolTip(tr("Play selected SID/MOD file"));
-    connect(playAction_, &QAction::triggered, this, &MainWindow::onPlay);
-
-    runAction_ = mainToolBar_->addAction(tr("Run"));
-    runAction_->setToolTip(tr("Run selected PRG/CRT file"));
-    connect(runAction_, &QAction::triggered, this, &MainWindow::onRun);
-
-    mountAction_ = mainToolBar_->addAction(tr("Mount"));
-    mountAction_->setToolTip(tr("Mount selected disk image"));
-    connect(mountAction_, &QAction::triggered, this, &MainWindow::onMount);
-
-    resetAction_ = mainToolBar_->addAction(tr("Reset"));
-    resetAction_->setToolTip(tr("Reset the C64"));
-    connect(resetAction_, &QAction::triggered, this, &MainWindow::onReset);
-
-    mainToolBar_->addSeparator();
-
     auto *prefsAction = mainToolBar_->addAction(tr("Preferences"));
     prefsAction->setToolTip(tr("Open preferences dialog"));
     connect(prefsAction, &QAction::triggered, this, &MainWindow::onPreferences);
@@ -234,6 +215,27 @@ void MainWindow::setupExploreRunMode()
     exploreRemoteUpButton_->setToolTip(tr("Go to parent folder"));
     connect(exploreRemoteUpButton_, &QPushButton::clicked, this, &MainWindow::onExploreRemoteParentFolder);
     exploreRemotePanelToolBar_->addWidget(exploreRemoteUpButton_);
+
+    exploreRemotePanelToolBar_->addSeparator();
+
+    // File actions
+    playAction_ = exploreRemotePanelToolBar_->addAction(tr("Play"));
+    playAction_->setToolTip(tr("Play selected SID/MOD file"));
+    connect(playAction_, &QAction::triggered, this, &MainWindow::onPlay);
+
+    runAction_ = exploreRemotePanelToolBar_->addAction(tr("Run"));
+    runAction_->setToolTip(tr("Run selected PRG/CRT file"));
+    connect(runAction_, &QAction::triggered, this, &MainWindow::onRun);
+
+    mountAction_ = exploreRemotePanelToolBar_->addAction(tr("Mount"));
+    mountAction_->setToolTip(tr("Mount selected disk image"));
+    connect(mountAction_, &QAction::triggered, this, &MainWindow::onMount);
+
+    exploreRemotePanelToolBar_->addSeparator();
+
+    resetAction_ = exploreRemotePanelToolBar_->addAction(tr("Reset"));
+    resetAction_->setToolTip(tr("Reset the C64"));
+    connect(resetAction_, &QAction::triggered, this, &MainWindow::onReset);
 
     exploreRemotePanelToolBar_->addSeparator();
 
@@ -340,6 +342,12 @@ void MainWindow::setupTransferMode()
     remoteDeleteAction_ = remotePanelToolBar_->addAction(tr("Delete"));
     remoteDeleteAction_->setToolTip(tr("Delete selected file or folder on C64U"));
     connect(remoteDeleteAction_, &QAction::triggered, this, &MainWindow::onDelete);
+
+    remotePanelToolBar_->addSeparator();
+
+    auto *transferRefreshAction = remotePanelToolBar_->addAction(tr("Refresh"));
+    transferRefreshAction->setToolTip(tr("Refresh file listing"));
+    connect(transferRefreshAction, &QAction::triggered, this, &MainWindow::onRefresh);
 
     remoteLayout->addWidget(remotePanelToolBar_);
 
@@ -599,13 +607,7 @@ void MainWindow::switchToMode(Mode mode)
 
     bool exploreMode = (mode == Mode::ExploreRun);
 
-    // Show/hide mode-specific main toolbar actions
-    playAction_->setVisible(exploreMode);
-    runAction_->setVisible(exploreMode);
-    mountAction_->setVisible(exploreMode);
-    resetAction_->setVisible(exploreMode);
-
-    // Transfer mode actions are on panel toolbars which are part of transferWidget_,
+    // Mode-specific actions are on panel toolbars which are part of the mode widgets,
     // so they automatically become visible/invisible when switching modes via stacked widget
 
     // Switch stacked widget
