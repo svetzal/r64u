@@ -216,7 +216,40 @@ void MainWindow::setupExploreRunMode()
     // Create horizontal splitter for tree view and details panel
     exploreRunSplitter_ = new QSplitter(Qt::Horizontal);
 
-    // Left side: file tree
+    // Left side: remote file browser with toolbar
+    auto *remoteWidget = new QWidget();
+    auto *remoteLayout = new QVBoxLayout(remoteWidget);
+    remoteLayout->setContentsMargins(4, 4, 4, 4);
+
+    auto *remoteLabel = new QLabel(tr("C64U Files"));
+    remoteLabel->setStyleSheet("font-weight: bold;");
+    remoteLayout->addWidget(remoteLabel);
+
+    // Remote panel toolbar
+    exploreRemotePanelToolBar_ = new QToolBar();
+    exploreRemotePanelToolBar_->setIconSize(QSize(16, 16));
+    exploreRemotePanelToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+
+    exploreRemoteUpButton_ = new QPushButton(tr("↑ Up"));
+    exploreRemoteUpButton_->setToolTip(tr("Go to parent folder"));
+    connect(exploreRemoteUpButton_, &QPushButton::clicked, this, &MainWindow::onExploreRemoteParentFolder);
+    exploreRemotePanelToolBar_->addWidget(exploreRemoteUpButton_);
+
+    exploreRemotePanelToolBar_->addSeparator();
+
+    auto *exploreRefreshAction = exploreRemotePanelToolBar_->addAction(tr("Refresh"));
+    exploreRefreshAction->setToolTip(tr("Refresh file listing"));
+    connect(exploreRefreshAction, &QAction::triggered, this, &MainWindow::onRefresh);
+
+    remoteLayout->addWidget(exploreRemotePanelToolBar_);
+
+    // Current directory indicator
+    exploreRemoteCurrentDirLabel_ = new QLabel(tr("Location: /"));
+    exploreRemoteCurrentDirLabel_->setStyleSheet("color: #0066cc; padding: 2px; background-color: #f0f8ff; border-radius: 3px;");
+    exploreRemoteCurrentDirLabel_->setWordWrap(true);
+    remoteLayout->addWidget(exploreRemoteCurrentDirLabel_);
+
+    // File tree
     remoteTreeView_ = new QTreeView();
     remoteTreeView_->setModel(remoteFileModel_);
     remoteTreeView_->setHeaderHidden(false);
@@ -233,7 +266,8 @@ void MainWindow::setupExploreRunMode()
     connect(remoteTreeView_, &QTreeView::customContextMenuRequested,
             this, &MainWindow::onRemoteContextMenu);
 
-    exploreRunSplitter_->addWidget(remoteTreeView_);
+    remoteLayout->addWidget(remoteTreeView_);
+    exploreRunSplitter_->addWidget(remoteWidget);
 
     // Right side: file details panel
     fileDetailsPanel_ = new FileDetailsPanel();
@@ -716,6 +750,15 @@ void MainWindow::loadSettings()
     // Initialize remote up button state (disabled until connected, then based on path)
     bool canGoUpRemote = (savedRemoteDir != "/" && !savedRemoteDir.isEmpty());
     remoteUpButton_->setEnabled(canGoUpRemote && deviceConnection_->isConnected());
+
+    // Set explore remote directory (will be used when connected)
+    QString savedExploreRemoteDir = settings.value("directories/exploreRemote", "/").toString();
+    currentExploreRemoteDir_ = savedExploreRemoteDir;
+    exploreRemoteCurrentDirLabel_->setText(tr("Location: %1").arg(savedExploreRemoteDir));
+
+    // Initialize explore remote up button state (disabled until connected)
+    bool canGoUpExploreRemote = (savedExploreRemoteDir != "/" && !savedExploreRemoteDir.isEmpty());
+    exploreRemoteUpButton_->setEnabled(canGoUpExploreRemote && deviceConnection_->isConnected());
 }
 
 void MainWindow::saveSettings()
@@ -727,6 +770,7 @@ void MainWindow::saveSettings()
     // Save directories
     settings.setValue("directories/local", currentLocalDir_);
     settings.setValue("directories/remote", currentRemoteTransferDir_);
+    settings.setValue("directories/exploreRemote", currentExploreRemoteDir_);
 }
 
 QString MainWindow::selectedRemotePath() const
@@ -1052,8 +1096,9 @@ void MainWindow::onConnectionStateChanged()
         break;
     case DeviceConnection::ConnectionState::Connected:
         statusBar()->showMessage(tr("Connected"), 3000);
-        // Navigate to saved remote directory (or "/" if none saved)
+        // Navigate to saved remote directories (or "/" if none saved)
         setCurrentRemoteTransferDir(currentRemoteTransferDir_.isEmpty() ? "/" : currentRemoteTransferDir_);
+        setCurrentExploreRemoteDir(currentExploreRemoteDir_.isEmpty() ? "/" : currentExploreRemoteDir_);
         break;
     case DeviceConnection::ConnectionState::Reconnecting:
         statusBar()->showMessage(tr("Reconnecting..."));
@@ -1107,11 +1152,15 @@ void MainWindow::onRemoteSelectionChanged()
 
 void MainWindow::onRemoteDoubleClicked(const QModelIndex &index)
 {
-    if (!index.isValid()) return;
+    if (!index.isValid()) {
+        return;
+    }
 
-    // For directories, let the tree view handle expand/collapse automatically
-    // We only need to handle double-click actions for files
-    if (!remoteFileModel_->isDirectory(index)) {
+    if (remoteFileModel_->isDirectory(index)) {
+        // Navigate into the directory
+        QString path = remoteFileModel_->filePath(index);
+        setCurrentExploreRemoteDir(path);
+    } else {
         // Execute default action based on file type
         RemoteFileModel::FileType type = remoteFileModel_->fileType(index);
 
@@ -1630,4 +1679,39 @@ void MainWindow::onShowTransferProgress()
                 .arg(transferTotalCount_));
         }
     }
+}
+
+// Explore/Run mode navigation slots
+
+void MainWindow::onExploreRemoteParentFolder()
+{
+    if (currentExploreRemoteDir_.isEmpty() || currentExploreRemoteDir_ == "/") {
+        return;  // Already at root
+    }
+
+    // Get parent path
+    QString parentPath = currentExploreRemoteDir_;
+    int lastSlash = parentPath.lastIndexOf('/');
+    if (lastSlash > 0) {
+        parentPath = parentPath.left(lastSlash);
+    } else {
+        parentPath = "/";
+    }
+
+    setCurrentExploreRemoteDir(parentPath);
+}
+
+void MainWindow::setCurrentExploreRemoteDir(const QString &path)
+{
+    currentExploreRemoteDir_ = path;
+
+    // Update the remote file model to show this folder as root
+    remoteFileModel_->setRootPath(path);
+
+    exploreRemoteCurrentDirLabel_->setText(tr("Location: %1").arg(path));
+    statusBar()->showMessage(tr("Navigated to: %1").arg(path), 2000);
+
+    // Enable/disable up button based on whether we can go up
+    bool canGoUp = (path != "/" && !path.isEmpty());
+    exploreRemoteUpButton_->setEnabled(canGoUp);
 }

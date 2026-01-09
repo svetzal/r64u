@@ -100,6 +100,10 @@ private slots:
     void setCurrentLocalDir(const QString &path);
     void setCurrentRemoteTransferDir(const QString &path);
 
+    // Explore/Run mode navigation slots
+    void onExploreRemoteParentFolder();
+    void setCurrentExploreRemoteDir(const QString &path);
+
     // Transfer progress slots
     void onTransferStarted(const QString &fileName);
     void onTransferQueueChanged();
@@ -142,6 +146,10 @@ private:
     QSplitter *exploreRunSplitter_ = nullptr;
     QTreeView *remoteTreeView_ = nullptr;
     FileDetailsPanel *fileDetailsPanel_ = nullptr;
+    QToolBar *exploreRemotePanelToolBar_ = nullptr;
+    QPushButton *exploreRemoteUpButton_ = nullptr;
+    QLabel *exploreRemoteCurrentDirLabel_ = nullptr;
+    QString currentExploreRemoteDir_;
 
     // Transfer mode widgets
     QWidget *transferWidget_ = nullptr;
