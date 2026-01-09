@@ -1,0 +1,100 @@
+# Clang-format configuration for r64u
+# Based on Qt/KDE style with some adjustments
+
+Language: Cpp
+BasedOnStyle: LLVM
+
+# Indentation
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+IndentCaseLabels: false
+NamespaceIndentation: None
+AccessModifierOffset: -4
+
+# Line length
+ColumnLimit: 100
+
+# Braces
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: true
+  AfterNamespace: false
+  AfterStruct: true
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+
+# Alignment
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignEscapedNewlines: Left
+AlignOperands: true
+AlignTrailingComments: true
+
+# Single line options
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+
+# Pointer alignment
+PointerAlignment: Right
+DerivePointerAlignment: false
+
+# Include sorting
+IncludeBlocks: Regroup
+IncludeCategories:
+  # Main header (same name as .cpp file)
+  - Regex: '^"[^/]*\.h"$'
+    Priority: 1
+  # Project headers
+  - Regex: '^"'
+    Priority: 2
+  # Qt headers
+  - Regex: '^<Q'
+    Priority: 3
+  # System headers
+  - Regex: '^<'
+    Priority: 4
+SortIncludes: true
+
+# Spaces
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 2
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# Other
+FixNamespaceComments: true
+SortUsingDeclarations: true
+ReflowComments: true
+
+# Keep Qt macros on their own lines
+StatementMacros:
+  - Q_OBJECT
+  - Q_PROPERTY
+  - Q_ENUM
+  - Q_FLAG
+  - Q_GADGET
+  - Q_INTERFACES
+  - Q_INVOKABLE
+  - Q_SIGNAL
+  - Q_SLOT
+  - emit

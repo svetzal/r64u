@@ -1,0 +1,94 @@
+# Clang-tidy configuration for r64u
+# Focuses on bug detection, modernization, and Qt best practices
+
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-branch-clone,
+  clang-analyzer-*,
+  -clang-analyzer-cplusplus.NewDeleteLeaks,
+  cppcoreguidelines-*,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-special-member-functions,
+  -cppcoreguidelines-init-variables,
+  -cppcoreguidelines-narrowing-conversions,
+  -cppcoreguidelines-pro-type-member-init,
+  misc-*,
+  -misc-non-private-member-variables-in-classes,
+  -misc-no-recursion,
+  -misc-include-cleaner,
+  -misc-const-correctness,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-avoid-c-arrays,
+  -modernize-raw-string-literal,
+  performance-*,
+  -performance-enum-size,
+  -performance-implicit-conversion-in-loop,
+  readability-*,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -readability-function-cognitive-complexity,
+  -readability-else-after-return,
+  -readability-redundant-access-specifiers,
+  -readability-implicit-bool-conversion,
+  -readability-convert-member-functions-to-static,
+
+# Treat warnings as errors for CI
+WarningsAsErrors: ''
+
+# Header filter - only check project headers, not Qt/system headers
+HeaderFilterRegex: 'src/.*\.h$'
+
+CheckOptions:
+  # Naming conventions (Qt style)
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack
+  - key: readability-identifier-naming.MethodCase
+    value: camelBack
+  - key: readability-identifier-naming.VariableCase
+    value: camelBack
+  - key: readability-identifier-naming.ParameterCase
+    value: camelBack
+  - key: readability-identifier-naming.PrivateMemberSuffix
+    value: '_'
+  - key: readability-identifier-naming.ConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+
+  # Qt-specific settings
+  - key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
+    value: true
+  - key: modernize-use-override.IgnoreDestructors
+    value: false
+  - key: modernize-loop-convert.MinConfidence
+    value: reasonable
+  - key: performance-unnecessary-value-param.AllowedTypes
+    value: 'QString;QStringList;QByteArray;QVariant'
+
+  # Reasonable limits - Qt code tends to be more verbose
+  - key: readability-function-size.LineThreshold
+    value: 250
+  - key: readability-function-size.StatementThreshold
+    value: 200
+  - key: readability-function-size.BranchThreshold
+    value: 50
+  - key: readability-function-size.ParameterThreshold
+    value: 8

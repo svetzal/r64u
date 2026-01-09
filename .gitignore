@@ -46,3 +46,23 @@ qrc_*.cpp
 
 # Stride authentication (contains secrets)
 .stride_auth.md
+
+# Clangd cache
+.cache/
+
+# CMake generated for IDE/clangd
+compile_commands.json
+
+# Coverage/profiling data
+*.profraw
+*.profdata
+*.gcda
+*.gcno
+*.gcov
+coverage/
+coverage.info
+
+# CTest generated
+tests/CTestTestfile.cmake
+CTestTestfile.cmake
+Testing/
