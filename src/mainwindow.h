@@ -147,6 +147,8 @@ private:
     QPushButton *localUpButton_ = nullptr;
     QPushButton *remoteUpButton_ = nullptr;
     TransferQueueWidget *transferQueueWidget_ = nullptr;
+    QToolBar *remotePanelToolBar_ = nullptr;
+    QToolBar *localPanelToolBar_ = nullptr;
 
     // Toolbar
     QToolBar *mainToolBar_ = nullptr;

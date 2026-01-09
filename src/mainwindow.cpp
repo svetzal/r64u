@@ -184,39 +184,6 @@ void MainWindow::setupToolBar()
     resetAction_->setToolTip(tr("Reset the C64"));
     connect(resetAction_, &QAction::triggered, this, &MainWindow::onReset);
 
-    // Transfer mode actions
-    uploadAction_ = mainToolBar_->addAction(tr("Upload"));
-    uploadAction_->setToolTip(tr("Upload selected files to C64U"));
-    connect(uploadAction_, &QAction::triggered, this, &MainWindow::onUpload);
-
-    downloadAction_ = mainToolBar_->addAction(tr("Download"));
-    downloadAction_->setToolTip(tr("Download selected files from C64U"));
-    connect(downloadAction_, &QAction::triggered, this, &MainWindow::onDownload);
-
-    newFolderAction_ = mainToolBar_->addAction(tr("New Folder"));
-    newFolderAction_->setToolTip(tr("Create new folder on C64U"));
-    connect(newFolderAction_, &QAction::triggered, this, &MainWindow::onNewFolder);
-
-    remoteDeleteAction_ = mainToolBar_->addAction(tr("Delete Remote"));
-    remoteDeleteAction_->setToolTip(tr("Delete selected file or folder on C64U"));
-    connect(remoteDeleteAction_, &QAction::triggered, this, &MainWindow::onDelete);
-
-    remoteRenameAction_ = mainToolBar_->addAction(tr("Rename Remote"));
-    remoteRenameAction_->setToolTip(tr("Rename selected file or folder on C64U"));
-    connect(remoteRenameAction_, &QAction::triggered, this, &MainWindow::onRemoteRename);
-
-    localNewFolderAction_ = mainToolBar_->addAction(tr("New Local Folder"));
-    localNewFolderAction_->setToolTip(tr("Create new folder in local directory"));
-    connect(localNewFolderAction_, &QAction::triggered, this, &MainWindow::onNewLocalFolder);
-
-    localDeleteAction_ = mainToolBar_->addAction(tr("Delete"));
-    localDeleteAction_->setToolTip(tr("Move selected local file to trash"));
-    connect(localDeleteAction_, &QAction::triggered, this, &MainWindow::onLocalDelete);
-
-    localRenameAction_ = mainToolBar_->addAction(tr("Rename"));
-    localRenameAction_->setToolTip(tr("Rename selected local file or folder"));
-    connect(localRenameAction_, &QAction::triggered, this, &MainWindow::onLocalRename);
-
     mainToolBar_->addSeparator();
 
     auto *prefsAction = mainToolBar_->addAction(tr("Preferences"));
@@ -313,24 +280,41 @@ void MainWindow::setupTransferMode()
     remoteLabel->setStyleSheet("font-weight: bold;");
     remoteLayout->addWidget(remoteLabel);
 
-    // Navigation bar with up button and current directory
-    auto *remoteNavLayout = new QHBoxLayout();
-    remoteNavLayout->setContentsMargins(0, 0, 0, 0);
-    remoteNavLayout->setSpacing(4);
+    // Remote panel toolbar
+    remotePanelToolBar_ = new QToolBar();
+    remotePanelToolBar_->setIconSize(QSize(16, 16));
+    remotePanelToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
     remoteUpButton_ = new QPushButton(tr("↑ Up"));
     remoteUpButton_->setToolTip(tr("Go to parent folder"));
-    remoteUpButton_->setMaximumWidth(60);
     connect(remoteUpButton_, &QPushButton::clicked, this, &MainWindow::onRemoteParentFolder);
-    remoteNavLayout->addWidget(remoteUpButton_);
+    remotePanelToolBar_->addWidget(remoteUpButton_);
+
+    remotePanelToolBar_->addSeparator();
+
+    downloadAction_ = remotePanelToolBar_->addAction(tr("Download"));
+    downloadAction_->setToolTip(tr("Download selected files from C64U"));
+    connect(downloadAction_, &QAction::triggered, this, &MainWindow::onDownload);
+
+    newFolderAction_ = remotePanelToolBar_->addAction(tr("New Folder"));
+    newFolderAction_->setToolTip(tr("Create new folder on C64U"));
+    connect(newFolderAction_, &QAction::triggered, this, &MainWindow::onNewFolder);
+
+    remoteRenameAction_ = remotePanelToolBar_->addAction(tr("Rename"));
+    remoteRenameAction_->setToolTip(tr("Rename selected file or folder on C64U"));
+    connect(remoteRenameAction_, &QAction::triggered, this, &MainWindow::onRemoteRename);
+
+    remoteDeleteAction_ = remotePanelToolBar_->addAction(tr("Delete"));
+    remoteDeleteAction_->setToolTip(tr("Delete selected file or folder on C64U"));
+    connect(remoteDeleteAction_, &QAction::triggered, this, &MainWindow::onDelete);
+
+    remoteLayout->addWidget(remotePanelToolBar_);
 
     // Current remote directory indicator
     remoteCurrentDirLabel_ = new QLabel(tr("Upload to: /"));
     remoteCurrentDirLabel_->setStyleSheet("color: #0066cc; padding: 2px; background-color: #f0f8ff; border-radius: 3px;");
     remoteCurrentDirLabel_->setWordWrap(true);
-    remoteNavLayout->addWidget(remoteCurrentDirLabel_, 1);  // stretch factor 1
-
-    remoteLayout->addLayout(remoteNavLayout);
+    remoteLayout->addWidget(remoteCurrentDirLabel_);
 
     remoteTransferTreeView_ = new QTreeView();
     remoteTransferTreeView_->setModel(remoteFileModel_);
@@ -363,24 +347,41 @@ void MainWindow::setupTransferMode()
     localLabel->setStyleSheet("font-weight: bold;");
     localLayout->addWidget(localLabel);
 
-    // Navigation bar with up button and current directory
-    auto *localNavLayout = new QHBoxLayout();
-    localNavLayout->setContentsMargins(0, 0, 0, 0);
-    localNavLayout->setSpacing(4);
+    // Local panel toolbar
+    localPanelToolBar_ = new QToolBar();
+    localPanelToolBar_->setIconSize(QSize(16, 16));
+    localPanelToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
     localUpButton_ = new QPushButton(tr("↑ Up"));
     localUpButton_->setToolTip(tr("Go to parent folder"));
-    localUpButton_->setMaximumWidth(60);
     connect(localUpButton_, &QPushButton::clicked, this, &MainWindow::onLocalParentFolder);
-    localNavLayout->addWidget(localUpButton_);
+    localPanelToolBar_->addWidget(localUpButton_);
+
+    localPanelToolBar_->addSeparator();
+
+    uploadAction_ = localPanelToolBar_->addAction(tr("Upload"));
+    uploadAction_->setToolTip(tr("Upload selected files to C64U"));
+    connect(uploadAction_, &QAction::triggered, this, &MainWindow::onUpload);
+
+    localNewFolderAction_ = localPanelToolBar_->addAction(tr("New Folder"));
+    localNewFolderAction_->setToolTip(tr("Create new folder in local directory"));
+    connect(localNewFolderAction_, &QAction::triggered, this, &MainWindow::onNewLocalFolder);
+
+    localRenameAction_ = localPanelToolBar_->addAction(tr("Rename"));
+    localRenameAction_->setToolTip(tr("Rename selected local file or folder"));
+    connect(localRenameAction_, &QAction::triggered, this, &MainWindow::onLocalRename);
+
+    localDeleteAction_ = localPanelToolBar_->addAction(tr("Delete"));
+    localDeleteAction_->setToolTip(tr("Move selected local file to trash"));
+    connect(localDeleteAction_, &QAction::triggered, this, &MainWindow::onLocalDelete);
+
+    localLayout->addWidget(localPanelToolBar_);
 
     // Current local directory indicator
     localCurrentDirLabel_ = new QLabel(tr("Download to: ~"));
     localCurrentDirLabel_->setStyleSheet("color: #006600; padding: 2px; background-color: #f0fff0; border-radius: 3px;");
     localCurrentDirLabel_->setWordWrap(true);
-    localNavLayout->addWidget(localCurrentDirLabel_, 1);  // stretch factor 1
-
-    localLayout->addLayout(localNavLayout);
+    localLayout->addWidget(localCurrentDirLabel_);
 
     localTreeView_ = new QTreeView();
     localTreeView_->setAlternatingRowColors(true);
@@ -536,20 +537,14 @@ void MainWindow::switchToMode(Mode mode)
 
     bool exploreMode = (mode == Mode::ExploreRun);
 
-    // Show/hide mode-specific actions
+    // Show/hide mode-specific main toolbar actions
     playAction_->setVisible(exploreMode);
     runAction_->setVisible(exploreMode);
     mountAction_->setVisible(exploreMode);
     resetAction_->setVisible(exploreMode);
 
-    uploadAction_->setVisible(!exploreMode);
-    downloadAction_->setVisible(!exploreMode);
-    newFolderAction_->setVisible(!exploreMode);
-    remoteDeleteAction_->setVisible(!exploreMode);
-    remoteRenameAction_->setVisible(!exploreMode);
-    localNewFolderAction_->setVisible(!exploreMode);
-    localDeleteAction_->setVisible(!exploreMode);
-    localRenameAction_->setVisible(!exploreMode);
+    // Transfer mode actions are on panel toolbars which are part of transferWidget_,
+    // so they automatically become visible/invisible when switching modes via stacked widget
 
     // Switch stacked widget
     stackedWidget_->setCurrentIndex(exploreMode ? 0 : 1);
