@@ -24,6 +24,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     Widgets
     Network
     WebEngineWidgets
+    Multimedia
 )
 
 set(SOURCES
@@ -40,6 +41,7 @@ set(SOURCES
     src/services/streamcontrolclient.cpp
     src/services/videostreamreceiver.cpp
     src/services/audiostreamreceiver.cpp
+    src/services/audioplaybackservice.cpp
     src/models/remotefilemodel.cpp
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
@@ -59,6 +61,7 @@ set(HEADERS
     src/services/streamcontrolclient.h
     src/services/videostreamreceiver.h
     src/services/audiostreamreceiver.h
+    src/services/audioplaybackservice.h
     src/models/remotefilemodel.h
     src/models/localfileproxymodel.h
     src/models/transferqueue.h
@@ -126,6 +129,7 @@ target_link_libraries(r64u PRIVATE
     Qt6::Widgets
     Qt6::Network
     Qt6::WebEngineWidgets
+    Qt6::Multimedia
 )
 
 # Platform-specific libraries
