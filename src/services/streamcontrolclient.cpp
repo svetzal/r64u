@@ -87,6 +87,11 @@ void StreamControlClient::stopAllStreams()
     stopAudioStream();
 }
 
+void StreamControlClient::clearPendingCommands()
+{
+    pendingCommands_.clear();
+}
+
 void StreamControlClient::sendCommand(const PendingCommand &command)
 {
     if (host_.isEmpty()) {

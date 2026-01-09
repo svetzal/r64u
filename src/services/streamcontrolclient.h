@@ -124,6 +124,11 @@ public:
      * @brief Stops both video and audio streams.
      */
     void stopAllStreams();
+
+    /**
+     * @brief Clears any pending commands without sending them.
+     */
+    void clearPendingCommands();
     /// @}
 
 signals:

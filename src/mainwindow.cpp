@@ -26,6 +26,7 @@
 #include <QFileInfo>
 #include <QTimer>
 #include <QDir>
+#include <QNetworkInterface>
 
 #include "services/credentialstore.h"
 
@@ -1850,13 +1851,49 @@ void MainWindow::onStartStreaming()
         return;
     }
 
-    // Get local IP address to receive streams
-    QString localHost = deviceConnection_->restClient()->host();
-    // Use the same network interface as the connection
-    // For now, we'll let the device send to our address
+    // Clear any pending commands from previous sessions
+    streamControl_->clearPendingCommands();
 
-    // Configure stream control client
-    streamControl_->setHost(deviceConnection_->restClient()->host());
+    // Configure stream control client with device host
+    QString deviceHost = deviceConnection_->restClient()->host();
+    streamControl_->setHost(deviceHost);
+
+    // Find our local IP address that can reach the device
+    // Look for an interface on the same subnet as the C64 device
+    QString targetHost;
+    QHostAddress deviceAddr(deviceHost);
+
+    for (const QNetworkInterface &iface : QNetworkInterface::allInterfaces()) {
+        if (!(iface.flags() & QNetworkInterface::IsUp) ||
+            !(iface.flags() & QNetworkInterface::IsRunning) ||
+            (iface.flags() & QNetworkInterface::IsLoopBack)) {
+            continue;
+        }
+
+        for (const QNetworkAddressEntry &entry : iface.addressEntries()) {
+            if (entry.ip().protocol() != QAbstractSocket::IPv4Protocol) {
+                continue;
+            }
+
+            // Check if device is in same subnet
+            QHostAddress subnet = entry.netmask();
+            if ((entry.ip().toIPv4Address() & subnet.toIPv4Address()) ==
+                (deviceAddr.toIPv4Address() & subnet.toIPv4Address())) {
+                targetHost = entry.ip().toString();
+                break;
+            }
+        }
+        if (!targetHost.isEmpty()) {
+            break;
+        }
+    }
+
+    if (targetHost.isEmpty()) {
+        QMessageBox::warning(this, tr("Network Error"),
+                           tr("Could not determine local IP address for streaming. "
+                              "Make sure you're on the same network as the C64 device."));
+        return;
+    }
 
     // Start UDP receivers
     if (!videoReceiver_->bind()) {
@@ -1882,9 +1919,6 @@ void MainWindow::onStartStreaming()
     }
 
     // Send stream start commands to the device
-    // Use localhost for now - in reality we'd need to detect our network IP
-    QString targetHost = "127.0.0.1";  // TODO: Detect actual IP
-
     streamControl_->startAllStreams(targetHost,
                                     VideoStreamReceiver::DefaultPort,
                                     AudioStreamReceiver::DefaultPort);
@@ -1892,7 +1926,7 @@ void MainWindow::onStartStreaming()
     isStreaming_ = true;
     startStreamAction_->setEnabled(false);
     stopStreamAction_->setEnabled(true);
-    streamStatusLabel_->setText(tr("Starting stream..."));
+    streamStatusLabel_->setText(tr("Starting stream to %1...").arg(targetHost));
 }
 
 void MainWindow::onStopStreaming()
