@@ -162,6 +162,7 @@ private:
     QAction *deleteAction_ = nullptr;
     QAction *localDeleteAction_ = nullptr;
     QAction *localRenameAction_ = nullptr;
+    QAction *localNewFolderAction_ = nullptr;
     QAction *refreshAction_ = nullptr;
 
     // Context menus

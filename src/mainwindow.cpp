@@ -197,6 +197,10 @@ void MainWindow::setupToolBar()
     newFolderAction_->setToolTip(tr("Create new folder on C64U"));
     connect(newFolderAction_, &QAction::triggered, this, &MainWindow::onNewFolder);
 
+    localNewFolderAction_ = mainToolBar_->addAction(tr("New Local Folder"));
+    localNewFolderAction_->setToolTip(tr("Create new folder in local directory"));
+    connect(localNewFolderAction_, &QAction::triggered, this, &MainWindow::onNewLocalFolder);
+
     localDeleteAction_ = mainToolBar_->addAction(tr("Delete"));
     localDeleteAction_->setToolTip(tr("Move selected local file to trash"));
     connect(localDeleteAction_, &QAction::triggered, this, &MainWindow::onLocalDelete);
@@ -531,6 +535,7 @@ void MainWindow::switchToMode(Mode mode)
     uploadAction_->setVisible(!exploreMode);
     downloadAction_->setVisible(!exploreMode);
     newFolderAction_->setVisible(!exploreMode);
+    localNewFolderAction_->setVisible(!exploreMode);
     localDeleteAction_->setVisible(!exploreMode);
     localRenameAction_->setVisible(!exploreMode);
 
@@ -627,6 +632,7 @@ void MainWindow::updateActions()
     uploadAction_->setEnabled(connected && hasLocalSelection);
     downloadAction_->setEnabled(connected && hasRemoteSelection);
     newFolderAction_->setEnabled(connected);
+    localNewFolderAction_->setEnabled(true);  // Always enabled in Transfer mode
     localDeleteAction_->setEnabled(hasLocalSelection);
     localRenameAction_->setEnabled(hasLocalSelection);
     refreshAction_->setEnabled(connected);
