@@ -12,6 +12,12 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+# Export compile commands for clang-tidy and IDE integration
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Quality tooling (formatting, static analysis, coverage, sanitizers)
+include(cmake/Quality.cmake)
+
 find_package(Qt6 REQUIRED COMPONENTS
     Core
     Gui
@@ -31,6 +37,7 @@ set(SOURCES
     src/services/deviceconnection.cpp
     src/services/configfileloader.cpp
     src/models/remotefilemodel.cpp
+    src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
 )
 
@@ -45,6 +52,7 @@ set(HEADERS
     src/services/configfileloader.h
     src/services/credentialstore.h
     src/models/remotefilemodel.h
+    src/models/localfileproxymodel.h
     src/models/transferqueue.h
 )
 

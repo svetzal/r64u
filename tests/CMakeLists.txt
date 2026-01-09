@@ -32,5 +32,11 @@ target_link_libraries(test_transferqueue PRIVATE
     Qt6::Network
 )
 
-# Don't run tests automatically during build
+# Register test with CTest
 add_test(NAME TransferQueueTest COMMAND test_transferqueue)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(transferqueue test_transferqueue)
+    add_dependencies(coverage coverage_transferqueue)
+endif()

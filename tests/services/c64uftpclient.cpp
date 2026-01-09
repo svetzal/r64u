@@ -84,6 +84,8 @@ void C64UFtpClient::downloadToMemory(const QString &remotePath)
 
 void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
 {
+    uploadRequests_.append(localPath);
+
     PendingOp op;
     op.type = PendingOp::Upload;
     op.path = remotePath;
@@ -129,6 +131,12 @@ void C64UFtpClient::mockSetDownloadData(const QString &remotePath, const QByteAr
     mockDownloadData_[remotePath] = data;
 }
 
+void C64UFtpClient::mockSetNextOperationFails(const QString &errorMessage)
+{
+    nextOpFails_ = true;
+    nextOpError_ = errorMessage;
+}
+
 void C64UFtpClient::mockProcessNextOperation()
 {
     if (pendingOps_.isEmpty()) {
@@ -136,6 +144,13 @@ void C64UFtpClient::mockProcessNextOperation()
     }
 
     PendingOp op = pendingOps_.dequeue();
+
+    // Check if this operation should fail
+    if (nextOpFails_) {
+        nextOpFails_ = false;
+        emit error(nextOpError_);
+        return;
+    }
 
     switch (op.type) {
     case PendingOp::List: {
@@ -192,4 +207,7 @@ void C64UFtpClient::mockReset()
     listRequests_.clear();
     downloadRequests_.clear();
     mkdirRequests_.clear();
+    uploadRequests_.clear();
+    nextOpFails_ = false;
+    nextOpError_.clear();
 }

@@ -1,3 +1,11 @@
+/**
+ * @file c64urestclient.h
+ * @brief REST API client for communicating with Ultimate 64/II+ devices.
+ *
+ * Provides HTTP-based control of C64 Ultimate devices including machine
+ * control, drive operations, and content playback.
+ */
+
 #ifndef C64URESTCLIENT_H
 #define C64URESTCLIENT_H
 
@@ -7,87 +15,317 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
+/**
+ * @brief Device information returned by the Ultimate API.
+ */
 struct DeviceInfo {
-    QString product;
-    QString firmwareVersion;
-    QString fpgaVersion;
-    QString coreVersion;
-    QString hostname;
-    QString uniqueId;
-    QString apiVersion;
+    QString product;         ///< Product name (e.g., "Ultimate 64")
+    QString firmwareVersion; ///< Firmware version string
+    QString fpgaVersion;     ///< FPGA core version
+    QString coreVersion;     ///< Core version string
+    QString hostname;        ///< Network hostname
+    QString uniqueId;        ///< Unique device identifier
+    QString apiVersion;      ///< REST API version
 };
 
+/**
+ * @brief Information about a single drive on the device.
+ */
 struct DriveInfo {
-    QString name;
-    bool enabled = false;
-    int busId = 0;
-    QString type;
-    QString rom;
-    QString imageFile;
-    QString imagePath;
-    QString lastError;
+    QString name;            ///< Drive identifier (e.g., "A", "B")
+    bool enabled = false;    ///< Whether the drive is enabled
+    int busId = 0;           ///< IEC bus device number
+    QString type;            ///< Drive type (1541, 1571, 1581, etc.)
+    QString rom;             ///< Current ROM image
+    QString imageFile;       ///< Filename of mounted disk image
+    QString imagePath;       ///< Full path to mounted image
+    QString lastError;       ///< Last error message, if any
 };
 
+/**
+ * @brief REST API client for Ultimate 64/II+ devices.
+ *
+ * This class provides a Qt-based HTTP client for the Ultimate device
+ * REST API. It supports:
+ * - Machine control (reset, reboot, pause, power off)
+ * - Drive management (mount, unmount, create disk images)
+ * - Content playback (SID, MOD, PRG, CRT files)
+ * - Configuration management
+ * - Device information queries
+ *
+ * All operations are asynchronous with results delivered via Qt signals.
+ *
+ * @par Example usage:
+ * @code
+ * C64URestClient *rest = new C64URestClient(this);
+ * rest->setHost("192.168.1.64");
+ *
+ * connect(rest, &C64URestClient::infoReceived, this, &MyClass::onInfo);
+ * connect(rest, &C64URestClient::operationFailed, this, &MyClass::onError);
+ *
+ * rest->getInfo();
+ * @endcode
+ */
 class C64URestClient : public QObject
 {
     Q_OBJECT
 
 public:
+    /// Maximum characters to include from error response body
+    static constexpr int ErrorResponsePreviewLength = 200;
+
+    /**
+     * @brief Constructs a REST client.
+     * @param parent Optional parent QObject for memory management.
+     */
     explicit C64URestClient(QObject *parent = nullptr);
+
+    /**
+     * @brief Destructor.
+     */
     ~C64URestClient() override;
 
+    /**
+     * @brief Sets the target host.
+     * @param host Hostname or IP address of the Ultimate device.
+     */
     void setHost(const QString &host);
+
+    /**
+     * @brief Returns the currently configured host.
+     * @return The hostname or IP address.
+     */
     [[nodiscard]] QString host() const { return host_; }
 
+    /**
+     * @brief Sets the authentication password.
+     * @param password Password for API authentication.
+     */
     void setPassword(const QString &password);
+
+    /**
+     * @brief Checks if a password is configured.
+     * @return True if a password has been set.
+     */
     [[nodiscard]] bool hasPassword() const { return !password_.isEmpty(); }
 
-    // Device information
+    /// @name Device Information
+    /// @{
+
+    /**
+     * @brief Requests the API version from the device.
+     *
+     * Emits versionReceived() on success.
+     */
     void getVersion();
+
+    /**
+     * @brief Requests full device information.
+     *
+     * Emits infoReceived() on success.
+     */
     void getInfo();
+    /// @}
 
-    // Runners - play/run content
+    /// @name Content Playback
+    /// @{
+
+    /**
+     * @brief Plays a SID music file.
+     * @param filePath Path to the SID file on the device.
+     * @param songNumber Optional song number for multi-song SIDs (-1 for default).
+     */
     void playSid(const QString &filePath, int songNumber = -1);
-    void playMod(const QString &filePath);
-    void loadPrg(const QString &filePath);
-    void runPrg(const QString &filePath);
-    void runCrt(const QString &filePath);
 
-    // Drive control
+    /**
+     * @brief Plays a MOD music file.
+     * @param filePath Path to the MOD file on the device.
+     */
+    void playMod(const QString &filePath);
+
+    /**
+     * @brief Loads a PRG file without running it.
+     * @param filePath Path to the PRG file on the device.
+     */
+    void loadPrg(const QString &filePath);
+
+    /**
+     * @brief Runs a PRG file.
+     * @param filePath Path to the PRG file on the device.
+     */
+    void runPrg(const QString &filePath);
+
+    /**
+     * @brief Runs a cartridge image.
+     * @param filePath Path to the CRT file on the device.
+     */
+    void runCrt(const QString &filePath);
+    /// @}
+
+    /// @name Drive Control
+    /// @{
+
+    /**
+     * @brief Requests information about all drives.
+     *
+     * Emits drivesReceived() on success.
+     */
     void getDrives();
+
+    /**
+     * @brief Mounts a disk image on a drive.
+     * @param drive Drive identifier (e.g., "A").
+     * @param imagePath Path to the disk image.
+     * @param mode Mount mode: "readonly" or "readwrite".
+     */
     void mountImage(const QString &drive, const QString &imagePath,
                     const QString &mode = "readwrite");
+
+    /**
+     * @brief Unmounts a disk image from a drive.
+     * @param drive Drive identifier.
+     */
     void unmountImage(const QString &drive);
+
+    /**
+     * @brief Resets a drive to its initial state.
+     * @param drive Drive identifier.
+     */
     void resetDrive(const QString &drive);
+    /// @}
 
-    // Machine control
+    /// @name Machine Control
+    /// @{
+
+    /**
+     * @brief Resets the C64 machine.
+     */
     void resetMachine();
-    void rebootMachine();
-    void pauseMachine();
-    void resumeMachine();
-    void powerOffMachine();
-    void pressMenuButton();
 
-    // File operations
+    /**
+     * @brief Reboots the Ultimate device.
+     */
+    void rebootMachine();
+
+    /**
+     * @brief Pauses the C64 machine execution.
+     */
+    void pauseMachine();
+
+    /**
+     * @brief Resumes C64 machine execution.
+     */
+    void resumeMachine();
+
+    /**
+     * @brief Powers off the Ultimate device.
+     */
+    void powerOffMachine();
+
+    /**
+     * @brief Simulates pressing the menu button.
+     */
+    void pressMenuButton();
+    /// @}
+
+    /// @name File Operations
+    /// @{
+
+    /**
+     * @brief Gets information about a file.
+     * @param path Path to the file on the device.
+     *
+     * Emits fileInfoReceived() on success.
+     */
     void getFileInfo(const QString &path);
+
+    /**
+     * @brief Creates a new D64 disk image.
+     * @param path Path where the image will be created.
+     * @param diskName Optional disk name (default: empty).
+     * @param tracks Number of tracks: 35 or 40 (default: 35).
+     */
     void createD64(const QString &path, const QString &diskName = QString(),
                    int tracks = 35);
-    void createD81(const QString &path, const QString &diskName = QString());
 
-    // Configuration management
+    /**
+     * @brief Creates a new D81 disk image.
+     * @param path Path where the image will be created.
+     * @param diskName Optional disk name (default: empty).
+     */
+    void createD81(const QString &path, const QString &diskName = QString());
+    /// @}
+
+    /// @name Configuration
+    /// @{
+
+    /**
+     * @brief Updates multiple configuration values.
+     * @param configs JSON object with configuration key-value pairs.
+     *
+     * Emits configsUpdated() on success.
+     */
     void updateConfigsBatch(const QJsonObject &configs);
+    /// @}
 
 signals:
-    void versionReceived(const QString &version);
-    void infoReceived(const DeviceInfo &info);
-    void drivesReceived(const QList<DriveInfo> &drives);
-    void fileInfoReceived(const QString &path, qint64 size, const QString &extension);
-    void configsUpdated();
+    /// @name Information Signals
+    /// @{
 
+    /**
+     * @brief Emitted when the API version is received.
+     * @param version The API version string.
+     */
+    void versionReceived(const QString &version);
+
+    /**
+     * @brief Emitted when device information is received.
+     * @param info The device information structure.
+     */
+    void infoReceived(const DeviceInfo &info);
+
+    /**
+     * @brief Emitted when drive information is received.
+     * @param drives List of drive information structures.
+     */
+    void drivesReceived(const QList<DriveInfo> &drives);
+
+    /**
+     * @brief Emitted when file information is received.
+     * @param path The file path.
+     * @param size File size in bytes.
+     * @param extension File extension.
+     */
+    void fileInfoReceived(const QString &path, qint64 size, const QString &extension);
+
+    /**
+     * @brief Emitted when configuration update completes.
+     */
+    void configsUpdated();
+    /// @}
+
+    /// @name Operation Signals
+    /// @{
+
+    /**
+     * @brief Emitted when an operation succeeds.
+     * @param operation Name of the operation that succeeded.
+     */
     void operationSucceeded(const QString &operation);
+
+    /**
+     * @brief Emitted when an operation fails.
+     * @param operation Name of the operation that failed.
+     * @param error Error description.
+     */
     void operationFailed(const QString &operation, const QString &error);
 
+    /**
+     * @brief Emitted when a network connection error occurs.
+     * @param error Error description.
+     */
     void connectionError(const QString &error);
+    /// @}
 
 private slots:
     void onReplyFinished(QNetworkReply *reply);
@@ -109,11 +347,14 @@ private:
 
     [[nodiscard]] QStringList extractErrors(const QJsonObject &json) const;
 
+    // Network
     QNetworkAccessManager *networkManager_ = nullptr;
+
+    // Configuration
     QString host_;
     QString password_;
 
-    // Map reply to operation name for response handling
+    // Operation tracking
     QHash<QNetworkReply*, QString> pendingOperations_;
 };
 

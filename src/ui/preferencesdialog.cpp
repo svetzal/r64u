@@ -56,22 +56,22 @@ void PreferencesDialog::setupUi()
     auto *appLayout = new QFormLayout(appGroup);
 
     auto *pathLayout = new QHBoxLayout();
-    downloadPathEdit_ = new QLineEdit();
-    downloadPathEdit_->setReadOnly(true);
-    pathLayout->addWidget(downloadPathEdit_);
+    localDirEdit_ = new QLineEdit();
+    localDirEdit_->setReadOnly(true);
+    pathLayout->addWidget(localDirEdit_);
 
     auto *browseButton = new QPushButton(tr("Browse..."));
     connect(browseButton, &QPushButton::clicked, this, [this]() {
         QString path = QFileDialog::getExistingDirectory(this,
-            tr("Select Download Directory"),
-            downloadPathEdit_->text());
+            tr("Select Local Directory"),
+            localDirEdit_->text());
         if (!path.isEmpty()) {
-            downloadPathEdit_->setText(path);
+            localDirEdit_->setText(path);
         }
     });
     pathLayout->addWidget(browseButton);
 
-    appLayout->addRow(tr("Download Path:"), pathLayout);
+    appLayout->addRow(tr("Local Directory:"), pathLayout);
 
     mainLayout->addWidget(appGroup);
 
@@ -119,10 +119,10 @@ void PreferencesDialog::loadSettings()
 
     autoConnectCheck_->setChecked(settings.value("device/autoConnect", false).toBool());
 
-    QString defaultDownloadPath = QStandardPaths::writableLocation(
-        QStandardPaths::DownloadLocation);
-    downloadPathEdit_->setText(
-        settings.value("app/downloadPath", defaultDownloadPath).toString());
+    QString homePath = QStandardPaths::writableLocation(
+        QStandardPaths::HomeLocation);
+    localDirEdit_->setText(
+        settings.value("directories/local", homePath).toString());
 
     defaultDriveCombo_->setCurrentIndex(
         settings.value("drive/defaultDrive", 0).toInt());
@@ -151,7 +151,7 @@ void PreferencesDialog::saveSettings()
 
     settings.setValue("device/autoConnect", autoConnectCheck_->isChecked());
 
-    settings.setValue("app/downloadPath", downloadPathEdit_->text());
+    settings.setValue("directories/local", localDirEdit_->text());
 
     settings.setValue("drive/defaultDrive", defaultDriveCombo_->currentIndex());
     settings.setValue("drive/mountMode",

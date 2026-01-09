@@ -334,7 +334,12 @@ QHash<int, QByteArray> TransferQueue::roleNames() const
 
 void TransferQueue::processNext()
 {
+    qDebug() << "TransferQueue: processNext called, ftpClient_:" << (ftpClient_ != nullptr)
+             << "isConnected:" << (ftpClient_ ? ftpClient_->isConnected() : false)
+             << "scanningDirectories_:" << scanningDirectories_;
+
     if (!ftpClient_ || !ftpClient_->isConnected()) {
+        qDebug() << "TransferQueue: processNext - FTP client not ready, stopping";
         processing_ = false;
         return;
     }
@@ -360,6 +365,9 @@ void TransferQueue::processNext()
             ).fileName();
             emit transferStarted(fileName);
 
+            qDebug() << "TransferQueue: Starting download" << i << "remote:" << items_[i].remotePath
+                     << "local:" << items_[i].localPath;
+
             if (items_[i].direction == TransferItem::Direction::Upload) {
                 ftpClient_->upload(items_[i].localPath, items_[i].remotePath);
             } else {
@@ -370,6 +378,7 @@ void TransferQueue::processNext()
     }
 
     // No more pending items
+    qDebug() << "TransferQueue: processNext - no more pending items";
     processing_ = false;
     currentIndex_ = -1;
     emit allTransfersCompleted();
@@ -423,7 +432,11 @@ void TransferQueue::onDownloadProgress(const QString &file, qint64 received, qin
 
 void TransferQueue::onDownloadFinished(const QString &remotePath, const QString &localPath)
 {
+    qDebug() << "TransferQueue: onDownloadFinished remotePath:" << remotePath << "localPath:" << localPath;
+
     int idx = findItemIndex(localPath, remotePath);
+    qDebug() << "TransferQueue: findItemIndex returned:" << idx;
+
     if (idx >= 0) {
         items_[idx].status = TransferItem::Status::Completed;
         items_[idx].bytesTransferred = items_[idx].totalBytes;
@@ -431,6 +444,12 @@ void TransferQueue::onDownloadFinished(const QString &remotePath, const QString 
 
         QString fileName = QFileInfo(remotePath).fileName();
         emit transferCompleted(fileName);
+    } else {
+        // Debug: show what we were looking for vs what's in the queue
+        qDebug() << "TransferQueue: ERROR - item not found! Queue contents:";
+        for (int i = 0; i < items_.size(); ++i) {
+            qDebug() << "  Item" << i << "remote:" << items_[i].remotePath << "local:" << items_[i].localPath;
+        }
     }
 
     emit queueChanged();

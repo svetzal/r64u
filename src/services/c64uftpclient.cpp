@@ -79,6 +79,7 @@ void C64UFtpClient::connectToHost()
 {
     if (state_ != State::Disconnected) {
         qDebug() << "FTP: connectToHost called but state is" << static_cast<int>(state_);
+        emit error(tr("Cannot connect: connection already in progress or established"));
         return;
     }
 
@@ -251,19 +252,19 @@ void C64UFtpClient::onControlReadyRead()
     while (responseBuffer_.contains("\r\n")) {
         int idx = responseBuffer_.indexOf("\r\n");
         QString line = responseBuffer_.left(idx);
-        responseBuffer_ = responseBuffer_.mid(idx + 2);
+        responseBuffer_ = responseBuffer_.mid(idx + CrLfLength);
 
         // Parse response code (first 3 digits)
-        if (line.length() >= 3) {
-            bool ok;
-            int code = line.left(3).toInt(&ok);
+        if (line.length() >= FtpReplyCodeLength) {
+            bool ok = false;
+            int code = line.left(FtpReplyCodeLength).toInt(&ok);
             if (ok) {
                 // Check if this is a multi-line response (4th char is '-')
-                if (line.length() > 3 && line[3] == '-') {
+                if (line.length() > FtpReplyCodeLength && line[FtpReplyCodeLength] == '-') {
                     // Multi-line response, wait for final line
                     continue;
                 }
-                handleResponse(code, line.mid(4));
+                handleResponse(code, line.mid(FtpReplyTextOffset));
             }
         }
     }
@@ -282,7 +283,7 @@ void C64UFtpClient::handleResponse(int code, const QString &text)
     switch (state_) {
     case State::Connected:
         // Welcome message
-        if (code == 220) {
+        if (code == FtpReplyServiceReady) {
             setState(State::LoggingIn);
             queueCommand(Command::User);
             processNextCommand();
@@ -308,16 +309,16 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
 {
     switch (currentCommand_) {
     case Command::User:
-        if (code == 331) {
+        if (code == FtpReplyPasswordRequired) {
             // Password required
             queueCommand(Command::Pass);
-        } else if (code == 230) {
+        } else if (code == FtpReplyUserLoggedIn) {
             // Logged in without password
             loggedIn_ = true;
             setState(State::Ready);
             emit connected();
         } else {
-            emit error("Login failed: " + text);
+            emit error(tr("Login failed: server rejected username. %1").arg(text));
             disconnect();
             return;
         }
@@ -325,12 +326,12 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
         break;
 
     case Command::Pass:
-        if (code == 230) {
+        if (code == FtpReplyUserLoggedIn) {
             loggedIn_ = true;
             setState(State::Ready);
             emit connected();
         } else {
-            emit error("Login failed: " + text);
+            emit error(tr("Login failed: invalid password. %1").arg(text));
             disconnect();
             return;
         }
@@ -338,7 +339,7 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
         break;
 
     case Command::Pwd:
-        if (code == 257) {
+        if (code == FtpReplyPathCreated) {
             // Extract path from response like: 257 "/path" is current directory
             QRegularExpression rx("\"(.*)\"");
             auto match = rx.match(text);
@@ -350,11 +351,11 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
         break;
 
     case Command::Cwd:
-        if (code == 250) {
+        if (code == FtpReplyActionOk) {
             currentDir_ = currentArg_;
             emit directoryChanged(currentDir_);
         } else {
-            emit error("Failed to change directory: " + text);
+            emit error(tr("Cannot access directory '%1': %2").arg(currentArg_, text));
         }
         processNextCommand();
         break;
@@ -364,9 +365,9 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
         break;
 
     case Command::Pasv:
-        if (code == 227) {
+        if (code == FtpReplyEnteringPassive) {
             QString dataHost;
-            quint16 dataPort;
+            quint16 dataPort = 0;
             if (parsePassiveResponse(text, dataHost, dataPort)) {
                 // Use the control socket's peer address instead of the IP from PASV
                 // Many FTP servers return internal IPs that aren't reachable
@@ -378,22 +379,22 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                 // The server expects the command before sending data
                 processNextCommand();
             } else {
-                emit error("Failed to parse passive mode response");
+                emit error(tr("Data transfer failed: unable to establish data connection"));
                 processNextCommand();
             }
         } else {
-            emit error("Passive mode failed: " + text);
+            emit error(tr("Data transfer failed: server does not support passive mode. %1").arg(text));
             processNextCommand();
         }
         break;
 
     case Command::List:
-        if (code == 150 || code == 125) {
+        if (code == FtpReplyFileStatusOk || code == FtpReplyDataConnectionOpen) {
             // Transfer starting - don't clear buffer here as data may have already arrived
             // (C64U server sometimes sends data before 150 response)
             downloading_ = true;
             qDebug() << "FTP: 150 received, dataBuffer_ size:" << dataBuffer_.size();
-        } else if (code == 226) {
+        } else if (code == FtpReplyTransferComplete) {
             // Transfer complete on server side, but data may still be in flight
             QString path = currentArg_.isEmpty() ? currentDir_ : currentArg_;
             if (dataSocket_->state() == QAbstractSocket::UnconnectedState) {
@@ -410,14 +411,14 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                 pendingList_ = PendingListState{path};
                 // Don't process next command yet - wait for data socket
             }
-        } else if (code >= 400) {
-            emit error("List failed: " + text);
+        } else if (code >= FtpReplyErrorThreshold) {
+            emit error(tr("Cannot list directory contents: %1").arg(text));
             processNextCommand();
         }
         break;
 
     case Command::Retr:
-        if (code == 150 || code == 125) {
+        if (code == FtpReplyFileStatusOk || code == FtpReplyDataConnectionOpen) {
             // Transfer starting
             downloading_ = true;
             // Parse size from response if available
@@ -426,7 +427,7 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
             if (match.hasMatch()) {
                 transferSize_ = match.captured(1).toLongLong();
             }
-        } else if (code == 226) {
+        } else if (code == FtpReplyTransferComplete) {
             // Transfer complete on server side, but data may still be in flight
             // Use currentRetrFile_/currentRetrIsMemory_ which were set when RETR was dequeued
             if (dataSocket_->state() == QAbstractSocket::UnconnectedState) {
@@ -460,8 +461,8 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                 currentRetrIsMemory_ = false;
                 // Don't process next command yet - wait for data socket
             }
-        } else if (code >= 400) {
-            emit error("Download failed: " + text);
+        } else if (code >= FtpReplyErrorThreshold) {
+            emit error(tr("Download failed for '%1': %2").arg(currentArg_, text));
             if (currentRetrIsMemory_) {
                 dataBuffer_.clear();
             } else if (currentRetrFile_) {
@@ -475,14 +476,14 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
         break;
 
     case Command::Stor:
-        if (code == 150 || code == 125) {
+        if (code == FtpReplyFileStatusOk || code == FtpReplyDataConnectionOpen) {
             // Ready to receive data, start sending
             if (transferFile_ && transferFile_->isOpen()) {
                 QByteArray data = transferFile_->readAll();
                 dataSocket_->write(data);
                 dataSocket_->disconnectFromHost();
             }
-        } else if (code == 226) {
+        } else if (code == FtpReplyTransferComplete) {
             // Transfer complete
             if (transferFile_) {
                 transferFile_->close();
@@ -490,8 +491,8 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                 transferFile_.reset();
             }
             processNextCommand();
-        } else if (code >= 400) {
-            emit error("Upload failed: " + text);
+        } else if (code >= FtpReplyErrorThreshold) {
+            emit error(tr("Upload failed for '%1': %2").arg(currentArg_, text));
             if (transferFile_) {
                 transferFile_->close();
                 transferFile_.reset();
@@ -501,38 +502,38 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
         break;
 
     case Command::Mkd:
-        if (code == 257) {
+        if (code == FtpReplyPathCreated) {
             emit directoryCreated(currentArg_);
         } else {
-            emit error("Failed to create directory: " + text);
+            emit error(tr("Cannot create directory '%1': %2").arg(currentArg_, text));
         }
         processNextCommand();
         break;
 
     case Command::Rmd:
     case Command::Dele:
-        if (code == 250) {
+        if (code == FtpReplyActionOk) {
             emit fileRemoved(currentArg_);
         } else {
-            emit error("Failed to delete: " + text);
+            emit error(tr("Cannot delete '%1': %2").arg(currentArg_, text));
         }
         processNextCommand();
         break;
 
     case Command::RnFr:
-        if (code == 350) {
+        if (code == FtpReplyPendingFurtherInfo) {
             // Ready for RNTO
         } else {
-            emit error("Rename failed: " + text);
+            emit error(tr("Cannot rename '%1': file not found or access denied. %2").arg(currentArg_, text));
         }
         processNextCommand();
         break;
 
     case Command::RnTo:
-        if (code == 250) {
+        if (code == FtpReplyActionOk) {
             emit fileRenamed(currentLocalPath_, currentArg_);  // oldPath stored in localPath
         } else {
-            emit error("Rename failed: " + text);
+            emit error(tr("Cannot rename to '%1': %2").arg(currentArg_, text));
         }
         processNextCommand();
         break;
@@ -622,7 +623,7 @@ void C64UFtpClient::onDataError(QAbstractSocket::SocketError socketError)
         return;
     }
     qDebug() << "FTP: Data socket error:" << socketError << dataSocket_->errorString();
-    emit error("Data connection failed: " + dataSocket_->errorString());
+    emit error(tr("File transfer interrupted: %1").arg(dataSocket_->errorString()));
 }
 
 bool C64UFtpClient::parsePassiveResponse(const QString &text, QString &host, quint16 &port)
@@ -643,7 +644,7 @@ bool C64UFtpClient::parsePassiveResponse(const QString &text, QString &host, qui
 
     int p1 = match.captured(5).toInt();
     int p2 = match.captured(6).toInt();
-    port = static_cast<quint16>(p1 * 256 + p2);
+    port = static_cast<quint16>((p1 * PassivePortMultiplier) + p2);
 
     return true;
 }
@@ -690,7 +691,7 @@ QList<FtpEntry> C64UFtpClient::parseDirectoryListing(const QByteArray &data)
 void C64UFtpClient::list(const QString &path)
 {
     if (!loggedIn_) {
-        emit error("Not logged in");
+        emit error(tr("Cannot list directory: not connected to server"));
         return;
     }
     dataBuffer_.clear();  // Clear buffer at start of list operation
@@ -701,26 +702,35 @@ void C64UFtpClient::list(const QString &path)
 
 void C64UFtpClient::changeDirectory(const QString &path)
 {
-    if (!loggedIn_) return;
+    if (!loggedIn_) {
+        emit error(tr("Cannot change directory: not connected to server"));
+        return;
+    }
     queueCommand(Command::Cwd, path);
 }
 
 void C64UFtpClient::makeDirectory(const QString &path)
 {
-    if (!loggedIn_) return;
+    if (!loggedIn_) {
+        emit error(tr("Cannot create directory: not connected to server"));
+        return;
+    }
     queueCommand(Command::Mkd, path);
 }
 
 void C64UFtpClient::removeDirectory(const QString &path)
 {
-    if (!loggedIn_) return;
+    if (!loggedIn_) {
+        emit error(tr("Cannot remove directory: not connected to server"));
+        return;
+    }
     queueCommand(Command::Rmd, path);
 }
 
 void C64UFtpClient::download(const QString &remotePath, const QString &localPath)
 {
     if (!loggedIn_) {
-        emit error("Not logged in");
+        emit error(tr("Cannot download file: not connected to server"));
         return;
     }
 
@@ -729,7 +739,7 @@ void C64UFtpClient::download(const QString &remotePath, const QString &localPath
     // other operations are queued before it executes
     auto file = std::make_shared<QFile>(localPath);
     if (!file->open(QIODevice::WriteOnly)) {
-        emit error("Failed to open local file for writing: " + localPath);
+        emit error(tr("Cannot save file '%1': unable to create local file").arg(localPath));
         return;
     }
 
@@ -742,7 +752,7 @@ void C64UFtpClient::download(const QString &remotePath, const QString &localPath
 void C64UFtpClient::downloadToMemory(const QString &remotePath)
 {
     if (!loggedIn_) {
-        emit error("Not logged in");
+        emit error(tr("Cannot download file: not connected to server"));
         return;
     }
 
@@ -756,13 +766,13 @@ void C64UFtpClient::downloadToMemory(const QString &remotePath)
 void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
 {
     if (!loggedIn_) {
-        emit error("Not logged in");
+        emit error(tr("Cannot upload file: not connected to server"));
         return;
     }
 
     transferFile_ = std::make_shared<QFile>(localPath);
     if (!transferFile_->open(QIODevice::ReadOnly)) {
-        emit error("Failed to open local file for reading: " + localPath);
+        emit error(tr("Cannot read file '%1': file not found or access denied").arg(localPath));
         transferFile_.reset();
         return;
     }
@@ -775,13 +785,19 @@ void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
 
 void C64UFtpClient::remove(const QString &path)
 {
-    if (!loggedIn_) return;
+    if (!loggedIn_) {
+        emit error(tr("Cannot delete file: not connected to server"));
+        return;
+    }
     queueCommand(Command::Dele, path);
 }
 
 void C64UFtpClient::rename(const QString &oldPath, const QString &newPath)
 {
-    if (!loggedIn_) return;
+    if (!loggedIn_) {
+        emit error(tr("Cannot rename file: not connected to server"));
+        return;
+    }
     queueCommand(Command::RnFr, oldPath, oldPath);  // Store oldPath for signal
     queueCommand(Command::RnTo, newPath);
 }

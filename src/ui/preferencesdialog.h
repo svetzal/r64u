@@ -33,7 +33,7 @@ private:
     QCheckBox *autoConnectCheck_ = nullptr;
 
     // Application settings
-    QLineEdit *downloadPathEdit_ = nullptr;
+    QLineEdit *localDirEdit_ = nullptr;
     QComboBox *defaultDriveCombo_ = nullptr;
     QComboBox *mountModeCombo_ = nullptr;
 

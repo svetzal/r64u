@@ -246,7 +246,7 @@ void C64URestClient::onReplyFinished(QNetworkReply *reply)
                 }
             } else {
                 // Not JSON, include raw response
-                errorMsg += " - Response: " + QString::fromUtf8(errorData).left(200);
+                errorMsg += " - Response: " + QString::fromUtf8(errorData).left(ErrorResponsePreviewLength);
             }
         }
         qDebug() << "REST error for" << operation << ":" << errorMsg;

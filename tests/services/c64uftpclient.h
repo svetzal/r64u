@@ -85,6 +85,10 @@ public:
     QStringList mockGetListRequests() const { return listRequests_; }
     QStringList mockGetDownloadRequests() const { return downloadRequests_; }
     QStringList mockGetMkdirRequests() const { return mkdirRequests_; }
+    QStringList mockGetUploadRequests() const { return uploadRequests_; }
+
+    // Simulate an error on next operation
+    void mockSetNextOperationFails(const QString &errorMessage);
 
     void mockReset();
 
@@ -129,6 +133,11 @@ private:
     QStringList listRequests_;
     QStringList downloadRequests_;
     QStringList mkdirRequests_;
+    QStringList uploadRequests_;
+
+    // Error simulation
+    bool nextOpFails_ = false;
+    QString nextOpError_;
 };
 
 #endif // MOCKFTPCLIENT_H
