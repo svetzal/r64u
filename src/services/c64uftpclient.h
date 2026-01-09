@@ -18,16 +18,7 @@
 #include <memory>
 #include <optional>
 
-/**
- * @brief Represents a single entry in an FTP directory listing.
- */
-struct FtpEntry {
-    QString name;           ///< Name of the file or directory
-    bool isDirectory = false;  ///< True if this entry is a directory
-    qint64 size = 0;        ///< Size in bytes (0 for directories)
-    QString permissions;    ///< Unix-style permission string
-    QDateTime modified;     ///< Last modification timestamp
-};
+#include "ftpentry.h"
 
 /**
  * @brief Asynchronous FTP client for Ultimate 64/II+ devices.

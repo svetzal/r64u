@@ -6,8 +6,9 @@
 #include <QString>
 #include <QSet>
 
+#include "services/ftpentry.h"  // For FtpEntry definition (needed by Qt MOC)
+
 class C64UFtpClient;
-struct FtpEntry;
 
 struct TransferItem {
     enum class Direction { Upload, Download };

@@ -10,14 +10,7 @@
 #include <QList>
 #include <QDateTime>
 
-// FtpEntry struct - same as in real client
-struct FtpEntry {
-    QString name;
-    bool isDirectory = false;
-    qint64 size = 0;
-    QString permissions;
-    QDateTime modified;
-};
+#include "services/ftpentry.h"  // Use the real FtpEntry definition
 
 /**
  * Mock replacement for C64UFtpClient.
