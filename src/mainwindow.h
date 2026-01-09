@@ -21,6 +21,11 @@ class LocalFileProxyModel;
 class TransferQueue;
 class FileDetailsPanel;
 class ConfigFileLoader;
+class VideoDisplayWidget;
+class VideoStreamReceiver;
+class AudioStreamReceiver;
+class AudioPlaybackService;
+class StreamControlClient;
 
 class MainWindow : public QMainWindow
 {
@@ -111,6 +116,14 @@ private slots:
     void onAllTransfersCompleted();
     void onShowTransferProgress();
 
+    // View mode streaming slots
+    void onStartStreaming();
+    void onStopStreaming();
+    void onVideoFrameReady();
+    void onVideoFormatDetected(int format);
+    void onStreamCommandSucceeded(const QString &command);
+    void onStreamCommandFailed(const QString &command, const QString &error);
+
 private:
     void setupUi();
     void setupMenuBar();
@@ -167,6 +180,18 @@ private:
 
     // View mode widgets
     QWidget *viewWidget_ = nullptr;
+    VideoDisplayWidget *videoDisplayWidget_ = nullptr;
+    QToolBar *viewPanelToolBar_ = nullptr;
+    QAction *startStreamAction_ = nullptr;
+    QAction *stopStreamAction_ = nullptr;
+    QLabel *streamStatusLabel_ = nullptr;
+
+    // View mode services
+    StreamControlClient *streamControl_ = nullptr;
+    VideoStreamReceiver *videoReceiver_ = nullptr;
+    AudioStreamReceiver *audioReceiver_ = nullptr;
+    AudioPlaybackService *audioPlayback_ = nullptr;
+    bool isStreaming_ = false;
 
     // Transfer progress UI
     QWidget *transferProgressWidget_ = nullptr;

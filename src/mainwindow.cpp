@@ -1,8 +1,13 @@
 #include "mainwindow.h"
 #include "ui/preferencesdialog.h"
 #include "ui/filedetailspanel.h"
+#include "ui/videodisplaywidget.h"
 #include "services/deviceconnection.h"
 #include "services/configfileloader.h"
+#include "services/streamcontrolclient.h"
+#include "services/videostreamreceiver.h"
+#include "services/audiostreamreceiver.h"
+#include "services/audioplaybackservice.h"
 #include "models/remotefilemodel.h"
 #include "models/localfileproxymodel.h"
 #include "models/transferqueue.h"
@@ -541,16 +546,59 @@ void MainWindow::setupViewMode()
     viewWidget_ = new QWidget();
     auto *layout = new QVBoxLayout(viewWidget_);
     layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
 
-    // Placeholder label - will be replaced with VideoDisplayWidget in W82
-    auto *placeholderLabel = new QLabel(tr("Video streaming view will be displayed here.\n\n"
-                                           "Use the Start/Stop buttons to control streaming\n"
-                                           "once connected to a C64 Ultimate device."));
-    placeholderLabel->setAlignment(Qt::AlignCenter);
-    placeholderLabel->setStyleSheet("QLabel { color: #666; font-size: 14px; }");
-    layout->addWidget(placeholderLabel);
+    // Create toolbar for View panel
+    viewPanelToolBar_ = new QToolBar();
+    viewPanelToolBar_->setMovable(false);
+    viewPanelToolBar_->setIconSize(QSize(16, 16));
+
+    startStreamAction_ = viewPanelToolBar_->addAction(tr("Start Stream"));
+    startStreamAction_->setToolTip(tr("Start video and audio streaming"));
+    connect(startStreamAction_, &QAction::triggered, this, &MainWindow::onStartStreaming);
+
+    stopStreamAction_ = viewPanelToolBar_->addAction(tr("Stop Stream"));
+    stopStreamAction_->setToolTip(tr("Stop streaming"));
+    stopStreamAction_->setEnabled(false);
+    connect(stopStreamAction_, &QAction::triggered, this, &MainWindow::onStopStreaming);
+
+    viewPanelToolBar_->addSeparator();
+
+    streamStatusLabel_ = new QLabel(tr("Not streaming"));
+    viewPanelToolBar_->addWidget(streamStatusLabel_);
+
+    layout->addWidget(viewPanelToolBar_);
+
+    // Create video display widget
+    videoDisplayWidget_ = new VideoDisplayWidget();
+    videoDisplayWidget_->setMinimumSize(384, 272);
+    layout->addWidget(videoDisplayWidget_, 1);
 
     stackedWidget_->addWidget(viewWidget_);
+
+    // Create streaming services
+    streamControl_ = new StreamControlClient(this);
+    videoReceiver_ = new VideoStreamReceiver(this);
+    audioReceiver_ = new AudioStreamReceiver(this);
+    audioPlayback_ = new AudioPlaybackService(this);
+
+    // Connect video receiver to display
+    connect(videoReceiver_, &VideoStreamReceiver::frameReady,
+            videoDisplayWidget_, &VideoDisplayWidget::displayFrame);
+    connect(videoReceiver_, &VideoStreamReceiver::formatDetected,
+            this, [this](VideoStreamReceiver::VideoFormat format) {
+        onVideoFormatDetected(static_cast<int>(format));
+    });
+
+    // Connect audio receiver to playback
+    connect(audioReceiver_, &AudioStreamReceiver::samplesReady,
+            audioPlayback_, &AudioPlaybackService::writeSamples);
+
+    // Connect stream control signals
+    connect(streamControl_, &StreamControlClient::commandSucceeded,
+            this, &MainWindow::onStreamCommandSucceeded);
+    connect(streamControl_, &StreamControlClient::commandFailed,
+            this, &MainWindow::onStreamCommandFailed);
 }
 
 void MainWindow::setupConnections()
@@ -756,6 +804,14 @@ void MainWindow::updateActions()
     localDeleteAction_->setEnabled(hasLocalSelection);
     localRenameAction_->setEnabled(hasLocalSelection);
     refreshAction_->setEnabled(connected);
+
+    // View mode streaming actions
+    if (startStreamAction_) {
+        startStreamAction_->setEnabled(connected && !isStreaming_);
+    }
+    if (stopStreamAction_) {
+        stopStreamAction_->setEnabled(isStreaming_);
+    }
 }
 
 void MainWindow::loadSettings()
@@ -1169,6 +1225,10 @@ void MainWindow::onConnectionStateChanged()
         break;
     case DeviceConnection::ConnectionState::Disconnected:
         statusBar()->showMessage(tr("Disconnected"), 3000);
+        // Stop streaming if active
+        if (isStreaming_) {
+            onStopStreaming();
+        }
         break;
     }
 }
@@ -1778,4 +1838,124 @@ void MainWindow::setCurrentExploreRemoteDir(const QString &path)
     // Enable/disable up button based on whether we can go up
     bool canGoUp = (path != "/" && !path.isEmpty());
     exploreRemoteUpButton_->setEnabled(canGoUp);
+}
+
+// View mode streaming slots
+
+void MainWindow::onStartStreaming()
+{
+    if (!deviceConnection_->isConnected()) {
+        QMessageBox::warning(this, tr("Not Connected"),
+                           tr("Please connect to a C64 Ultimate device first."));
+        return;
+    }
+
+    // Get local IP address to receive streams
+    QString localHost = deviceConnection_->restClient()->host();
+    // Use the same network interface as the connection
+    // For now, we'll let the device send to our address
+
+    // Configure stream control client
+    streamControl_->setHost(deviceConnection_->restClient()->host());
+
+    // Start UDP receivers
+    if (!videoReceiver_->bind()) {
+        QMessageBox::warning(this, tr("Stream Error"),
+                           tr("Failed to bind video receiver port."));
+        return;
+    }
+
+    if (!audioReceiver_->bind()) {
+        videoReceiver_->close();
+        QMessageBox::warning(this, tr("Stream Error"),
+                           tr("Failed to bind audio receiver port."));
+        return;
+    }
+
+    // Start audio playback
+    if (!audioPlayback_->start()) {
+        videoReceiver_->close();
+        audioReceiver_->close();
+        QMessageBox::warning(this, tr("Stream Error"),
+                           tr("Failed to start audio playback."));
+        return;
+    }
+
+    // Send stream start commands to the device
+    // Use localhost for now - in reality we'd need to detect our network IP
+    QString targetHost = "127.0.0.1";  // TODO: Detect actual IP
+
+    streamControl_->startAllStreams(targetHost,
+                                    VideoStreamReceiver::DefaultPort,
+                                    AudioStreamReceiver::DefaultPort);
+
+    isStreaming_ = true;
+    startStreamAction_->setEnabled(false);
+    stopStreamAction_->setEnabled(true);
+    streamStatusLabel_->setText(tr("Starting stream..."));
+}
+
+void MainWindow::onStopStreaming()
+{
+    if (!isStreaming_) {
+        return;
+    }
+
+    // Send stop commands
+    streamControl_->stopAllStreams();
+
+    // Stop receivers and playback
+    audioPlayback_->stop();
+    videoReceiver_->close();
+    audioReceiver_->close();
+
+    // Clear display
+    videoDisplayWidget_->clear();
+
+    isStreaming_ = false;
+    startStreamAction_->setEnabled(deviceConnection_->isConnected());
+    stopStreamAction_->setEnabled(false);
+    streamStatusLabel_->setText(tr("Not streaming"));
+}
+
+void MainWindow::onVideoFrameReady()
+{
+    // Frame rendering is handled by VideoDisplayWidget directly
+    // This slot can be used for frame counting or stats if needed
+}
+
+void MainWindow::onVideoFormatDetected(int format)
+{
+    auto videoFormat = static_cast<VideoStreamReceiver::VideoFormat>(format);
+    QString formatName;
+    switch (videoFormat) {
+    case VideoStreamReceiver::VideoFormat::PAL:
+        formatName = "PAL";
+        audioReceiver_->setAudioFormat(AudioStreamReceiver::AudioFormat::PAL);
+        break;
+    case VideoStreamReceiver::VideoFormat::NTSC:
+        formatName = "NTSC";
+        audioReceiver_->setAudioFormat(AudioStreamReceiver::AudioFormat::NTSC);
+        break;
+    default:
+        formatName = "Unknown";
+        break;
+    }
+
+    streamStatusLabel_->setText(tr("Streaming (%1)").arg(formatName));
+}
+
+void MainWindow::onStreamCommandSucceeded(const QString &command)
+{
+    statusBar()->showMessage(tr("Stream: %1").arg(command), 2000);
+}
+
+void MainWindow::onStreamCommandFailed(const QString &command, const QString &error)
+{
+    statusBar()->showMessage(tr("Stream failed: %1 - %2").arg(command, error), 5000);
+
+    // If we're trying to start and it failed, clean up
+    if (isStreaming_ && command.contains("start")) {
+        onStopStreaming();
+    }
 }
