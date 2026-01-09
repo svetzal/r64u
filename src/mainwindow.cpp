@@ -197,6 +197,10 @@ void MainWindow::setupToolBar()
     newFolderAction_->setToolTip(tr("Create new folder on C64U"));
     connect(newFolderAction_, &QAction::triggered, this, &MainWindow::onNewFolder);
 
+    remoteDeleteAction_ = mainToolBar_->addAction(tr("Delete Remote"));
+    remoteDeleteAction_->setToolTip(tr("Delete selected file or folder on C64U"));
+    connect(remoteDeleteAction_, &QAction::triggered, this, &MainWindow::onDelete);
+
     localNewFolderAction_ = mainToolBar_->addAction(tr("New Local Folder"));
     localNewFolderAction_->setToolTip(tr("Create new folder in local directory"));
     connect(localNewFolderAction_, &QAction::triggered, this, &MainWindow::onNewLocalFolder);
@@ -535,6 +539,7 @@ void MainWindow::switchToMode(Mode mode)
     uploadAction_->setVisible(!exploreMode);
     downloadAction_->setVisible(!exploreMode);
     newFolderAction_->setVisible(!exploreMode);
+    remoteDeleteAction_->setVisible(!exploreMode);
     localNewFolderAction_->setVisible(!exploreMode);
     localDeleteAction_->setVisible(!exploreMode);
     localRenameAction_->setVisible(!exploreMode);
@@ -632,6 +637,7 @@ void MainWindow::updateActions()
     uploadAction_->setEnabled(connected && hasLocalSelection);
     downloadAction_->setEnabled(connected && hasRemoteSelection);
     newFolderAction_->setEnabled(connected);
+    remoteDeleteAction_->setEnabled(connected && hasRemoteSelection);
     localNewFolderAction_->setEnabled(true);  // Always enabled in Transfer mode
     localDeleteAction_->setEnabled(hasLocalSelection);
     localRenameAction_->setEnabled(hasLocalSelection);

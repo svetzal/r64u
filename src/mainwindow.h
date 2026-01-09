@@ -159,7 +159,7 @@ private:
     QAction *uploadAction_ = nullptr;
     QAction *downloadAction_ = nullptr;
     QAction *newFolderAction_ = nullptr;
-    QAction *deleteAction_ = nullptr;
+    QAction *remoteDeleteAction_ = nullptr;
     QAction *localDeleteAction_ = nullptr;
     QAction *localRenameAction_ = nullptr;
     QAction *localNewFolderAction_ = nullptr;
