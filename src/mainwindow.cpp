@@ -201,6 +201,10 @@ void MainWindow::setupToolBar()
     localDeleteAction_->setToolTip(tr("Move selected local file to trash"));
     connect(localDeleteAction_, &QAction::triggered, this, &MainWindow::onLocalDelete);
 
+    localRenameAction_ = mainToolBar_->addAction(tr("Rename"));
+    localRenameAction_->setToolTip(tr("Rename selected local file or folder"));
+    connect(localRenameAction_, &QAction::triggered, this, &MainWindow::onLocalRename);
+
     mainToolBar_->addSeparator();
 
     auto *prefsAction = mainToolBar_->addAction(tr("Preferences"));
@@ -445,6 +449,7 @@ void MainWindow::setupTransferMode()
     localContextMenu_->addAction(tr("Upload to C64U"), this, &MainWindow::onUpload);
     localContextMenu_->addSeparator();
     localContextMenu_->addAction(tr("New Folder"), this, &MainWindow::onNewLocalFolder);
+    localContextMenu_->addAction(tr("Rename"), this, &MainWindow::onLocalRename);
     localContextMenu_->addAction(tr("Delete"), this, &MainWindow::onLocalDelete);
 }
 
@@ -527,6 +532,7 @@ void MainWindow::switchToMode(Mode mode)
     downloadAction_->setVisible(!exploreMode);
     newFolderAction_->setVisible(!exploreMode);
     localDeleteAction_->setVisible(!exploreMode);
+    localRenameAction_->setVisible(!exploreMode);
 
     // Switch stacked widget
     stackedWidget_->setCurrentIndex(exploreMode ? 0 : 1);
@@ -622,6 +628,7 @@ void MainWindow::updateActions()
     downloadAction_->setEnabled(connected && hasRemoteSelection);
     newFolderAction_->setEnabled(connected);
     localDeleteAction_->setEnabled(hasLocalSelection);
+    localRenameAction_->setEnabled(hasLocalSelection);
     refreshAction_->setEnabled(connected);
 }
 
@@ -1310,6 +1317,69 @@ void MainWindow::onLocalDelete()
         }
         QMessageBox::warning(this, tr("Delete Failed"), errorMessage);
         statusBar()->showMessage(tr("Failed to delete: %1").arg(itemName), 3000);
+    }
+}
+
+void MainWindow::onLocalRename()
+{
+    QString localPath = selectedLocalPath();
+    if (localPath.isEmpty()) {
+        return;
+    }
+
+    QFileInfo fileInfo(localPath);
+    QString oldName = fileInfo.fileName();
+    QString itemType = fileInfo.isDir() ? tr("folder") : tr("file");
+
+    bool ok;
+    QString newName = QInputDialog::getText(this, tr("Rename %1").arg(itemType),
+        tr("New name:"), QLineEdit::Normal, oldName, &ok);
+
+    if (!ok || newName.isEmpty()) {
+        return;
+    }
+
+    // Check if the name changed
+    if (newName == oldName) {
+        return;
+    }
+
+    // Validate the new name - check for invalid characters
+    if (newName.contains('/') || newName.contains('\\')) {
+        QMessageBox::warning(this, tr("Invalid Name"),
+            tr("The name cannot contain '/' or '\\' characters."));
+        return;
+    }
+
+    // Construct the new path
+    QString newPath = fileInfo.absolutePath() + "/" + newName;
+
+    // Check if target already exists
+    if (QFileInfo::exists(newPath)) {
+        QMessageBox::warning(this, tr("Rename Failed"),
+            tr("A %1 with the name '%2' already exists.").arg(itemType).arg(newName));
+        return;
+    }
+
+    // Perform the rename
+    QDir dir;
+    bool success = dir.rename(localPath, newPath);
+
+    if (success) {
+        statusBar()->showMessage(tr("Renamed: %1 → %2").arg(oldName).arg(newName), 3000);
+        // QFileSystemModel automatically detects changes via QFileSystemWatcher
+        // so no explicit refresh is needed
+    } else {
+        QString errorMessage;
+        if (!fileInfo.exists()) {
+            errorMessage = tr("The %1 no longer exists.").arg(itemType);
+        } else if (!fileInfo.isWritable()) {
+            errorMessage = tr("Permission denied. You don't have permission to rename this %1.").arg(itemType);
+        } else {
+            errorMessage = tr("Failed to rename the %1. Please check that you have the necessary permissions.").arg(itemType);
+        }
+        QMessageBox::warning(this, tr("Rename Failed"), errorMessage);
+        statusBar()->showMessage(tr("Failed to rename: %1").arg(oldName), 3000);
     }
 }
 

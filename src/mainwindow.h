@@ -92,6 +92,7 @@ private slots:
     void onLocalContextMenu(const QPoint &pos);
     void onNewLocalFolder();
     void onLocalDelete();
+    void onLocalRename();
     void onLocalParentFolder();
     void onRemoteParentFolder();
     void setCurrentLocalDir(const QString &path);
@@ -160,6 +161,7 @@ private:
     QAction *newFolderAction_ = nullptr;
     QAction *deleteAction_ = nullptr;
     QAction *localDeleteAction_ = nullptr;
+    QAction *localRenameAction_ = nullptr;
     QAction *refreshAction_ = nullptr;
 
     // Context menus
