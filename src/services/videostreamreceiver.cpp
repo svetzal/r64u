@@ -6,6 +6,7 @@
 #include "videostreamreceiver.h"
 #include <QNetworkDatagram>
 #include <QVariant>
+#include <QDebug>
 
 VideoStreamReceiver::VideoStreamReceiver(QObject *parent)
     : QObject(parent)
@@ -30,6 +31,7 @@ VideoStreamReceiver::~VideoStreamReceiver()
 
 bool VideoStreamReceiver::bind(quint16 port)
 {
+    qDebug() << "VideoStreamReceiver: Binding to port" << port;
     if (socket_->state() != QAbstractSocket::UnconnectedState) {
         close();
     }
@@ -38,11 +40,13 @@ bool VideoStreamReceiver::bind(quint16 port)
     socket_->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, QVariant(2 * 1024 * 1024));
 
     if (!socket_->bind(QHostAddress::Any, port)) {
+        qDebug() << "VideoStreamReceiver: Failed to bind:" << socket_->errorString();
         emit socketError(QString("Failed to bind to port %1: %2")
                          .arg(port)
                          .arg(socket_->errorString()));
         return false;
     }
+    qDebug() << "VideoStreamReceiver: Bound successfully to port" << socket_->localPort();
 
     // Reset state
     frameInProgress_ = false;
@@ -78,14 +82,23 @@ quint16 VideoStreamReceiver::port() const
 
 void VideoStreamReceiver::onReadyRead()
 {
+    static int packetLogCounter = 0;
     while (socket_->hasPendingDatagrams()) {
         QNetworkDatagram datagram = socket_->receiveDatagram();
         if (datagram.isValid()) {
             QByteArray packet = datagram.data();
+            // Log first few packets and then periodically
+            if (packetLogCounter < 5 || packetLogCounter % 1000 == 0) {
+                qDebug() << "VideoStreamReceiver: Received packet size:" << packet.size()
+                         << "from:" << datagram.senderAddress().toString()
+                         << "expected size:" << PacketSize;
+            }
+            packetLogCounter++;
             if (packet.size() == PacketSize) {
                 processPacket(packet);
+            } else {
+                qDebug() << "VideoStreamReceiver: Ignoring malformed packet, size:" << packet.size();
             }
-            // Ignore malformed packets (wrong size)
         }
     }
 }
@@ -199,6 +212,14 @@ void VideoStreamReceiver::completeFrame()
 
     // Extract only the used portion of the frame buffer
     QByteArray frameData = frameBuffer_.left(frameSize);
+
+    // Log first few frames and then periodically
+    if (totalFramesCompleted_ <= 3 || totalFramesCompleted_ % 50 == 0) {
+        qDebug() << "VideoStreamReceiver: Frame" << totalFramesCompleted_ << "complete"
+                 << "format:" << (videoFormat_ == VideoFormat::PAL ? "PAL" :
+                                  videoFormat_ == VideoFormat::NTSC ? "NTSC" : "Unknown")
+                 << "height:" << frameHeight << "size:" << frameSize;
+    }
 
     emit frameReady(frameData, currentFrameNum_, videoFormat_);
 
