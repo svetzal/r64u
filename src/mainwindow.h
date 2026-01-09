@@ -11,10 +11,12 @@
 #include <QFileSystemModel>
 #include <QMenu>
 #include <QProgressBar>
+#include <QPushButton>
 
 class PreferencesDialog;
 class DeviceConnection;
 class RemoteFileModel;
+class LocalFileProxyModel;
 class TransferQueue;
 class TransferQueueWidget;
 class FileDetailsPanel;
@@ -89,6 +91,9 @@ private slots:
     void onRemoteTransferDoubleClicked(const QModelIndex &index);
     void onLocalContextMenu(const QPoint &pos);
     void onNewLocalFolder();
+    void onLocalDelete();
+    void onLocalParentFolder();
+    void onRemoteParentFolder();
     void setCurrentLocalDir(const QString &path);
     void setCurrentRemoteTransferDir(const QString &path);
 
@@ -135,6 +140,9 @@ private:
     QTreeView *localTreeView_ = nullptr;
     QTreeView *remoteTransferTreeView_ = nullptr;
     QFileSystemModel *localFileModel_ = nullptr;
+    LocalFileProxyModel *localFileProxyModel_ = nullptr;
+    QPushButton *localUpButton_ = nullptr;
+    QPushButton *remoteUpButton_ = nullptr;
     TransferQueueWidget *transferQueueWidget_ = nullptr;
 
     // Toolbar
@@ -151,6 +159,7 @@ private:
     QAction *downloadAction_ = nullptr;
     QAction *newFolderAction_ = nullptr;
     QAction *deleteAction_ = nullptr;
+    QAction *localDeleteAction_ = nullptr;
     QAction *refreshAction_ = nullptr;
 
     // Context menus

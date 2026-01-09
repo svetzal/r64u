@@ -5,6 +5,7 @@
 #include "services/deviceconnection.h"
 #include "services/configfileloader.h"
 #include "models/remotefilemodel.h"
+#include "models/localfileproxymodel.h"
 #include "models/transferqueue.h"
 
 #include <QMenuBar>
@@ -17,6 +18,7 @@
 #include <QSettings>
 #include <QCloseEvent>
 #include <QInputDialog>
+#include <QFile>
 #include <QFileInfo>
 #include <QTimer>
 #include <QDir>
@@ -195,6 +197,10 @@ void MainWindow::setupToolBar()
     newFolderAction_->setToolTip(tr("Create new folder on C64U"));
     connect(newFolderAction_, &QAction::triggered, this, &MainWindow::onNewFolder);
 
+    localDeleteAction_ = mainToolBar_->addAction(tr("Delete"));
+    localDeleteAction_->setToolTip(tr("Move selected local file to trash"));
+    connect(localDeleteAction_, &QAction::triggered, this, &MainWindow::onLocalDelete);
+
     mainToolBar_->addSeparator();
 
     auto *prefsAction = mainToolBar_->addAction(tr("Preferences"));
@@ -291,11 +297,24 @@ void MainWindow::setupTransferMode()
     remoteLabel->setStyleSheet("font-weight: bold;");
     remoteLayout->addWidget(remoteLabel);
 
+    // Navigation bar with up button and current directory
+    auto *remoteNavLayout = new QHBoxLayout();
+    remoteNavLayout->setContentsMargins(0, 0, 0, 0);
+    remoteNavLayout->setSpacing(4);
+
+    remoteUpButton_ = new QPushButton(tr("↑ Up"));
+    remoteUpButton_->setToolTip(tr("Go to parent folder"));
+    remoteUpButton_->setMaximumWidth(60);
+    connect(remoteUpButton_, &QPushButton::clicked, this, &MainWindow::onRemoteParentFolder);
+    remoteNavLayout->addWidget(remoteUpButton_);
+
     // Current remote directory indicator
     remoteCurrentDirLabel_ = new QLabel(tr("Upload to: /"));
     remoteCurrentDirLabel_->setStyleSheet("color: #0066cc; padding: 2px; background-color: #f0f8ff; border-radius: 3px;");
     remoteCurrentDirLabel_->setWordWrap(true);
-    remoteLayout->addWidget(remoteCurrentDirLabel_);
+    remoteNavLayout->addWidget(remoteCurrentDirLabel_, 1);  // stretch factor 1
+
+    remoteLayout->addLayout(remoteNavLayout);
 
     remoteTransferTreeView_ = new QTreeView();
     remoteTransferTreeView_->setModel(remoteFileModel_);
@@ -313,6 +332,8 @@ void MainWindow::setupTransferMode()
     });
     connect(remoteTransferTreeView_, &QTreeView::doubleClicked,
             this, &MainWindow::onRemoteTransferDoubleClicked);
+    connect(remoteTransferTreeView_->selectionModel(), &QItemSelectionModel::selectionChanged,
+            this, &MainWindow::updateActions);
 
     remoteLayout->addWidget(remoteTransferTreeView_);
     transferSplitter_->addWidget(remoteWidget);
@@ -326,11 +347,24 @@ void MainWindow::setupTransferMode()
     localLabel->setStyleSheet("font-weight: bold;");
     localLayout->addWidget(localLabel);
 
+    // Navigation bar with up button and current directory
+    auto *localNavLayout = new QHBoxLayout();
+    localNavLayout->setContentsMargins(0, 0, 0, 0);
+    localNavLayout->setSpacing(4);
+
+    localUpButton_ = new QPushButton(tr("↑ Up"));
+    localUpButton_->setToolTip(tr("Go to parent folder"));
+    localUpButton_->setMaximumWidth(60);
+    connect(localUpButton_, &QPushButton::clicked, this, &MainWindow::onLocalParentFolder);
+    localNavLayout->addWidget(localUpButton_);
+
     // Current local directory indicator
     localCurrentDirLabel_ = new QLabel(tr("Download to: ~"));
     localCurrentDirLabel_->setStyleSheet("color: #006600; padding: 2px; background-color: #f0fff0; border-radius: 3px;");
     localCurrentDirLabel_->setWordWrap(true);
-    localLayout->addWidget(localCurrentDirLabel_);
+    localNavLayout->addWidget(localCurrentDirLabel_, 1);  // stretch factor 1
+
+    localLayout->addLayout(localNavLayout);
 
     localTreeView_ = new QTreeView();
     localTreeView_->setAlternatingRowColors(true);
@@ -340,8 +374,12 @@ void MainWindow::setupTransferMode()
     localFileModel_ = new QFileSystemModel(this);
     QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
     localFileModel_->setRootPath(homePath);
-    localTreeView_->setModel(localFileModel_);
-    localTreeView_->setRootIndex(localFileModel_->index(homePath));
+
+    // Use proxy model to show file sizes in bytes instead of KB/MB
+    localFileProxyModel_ = new LocalFileProxyModel(this);
+    localFileProxyModel_->setSourceModel(localFileModel_);
+    localTreeView_->setModel(localFileProxyModel_);
+    localTreeView_->setRootIndex(localFileProxyModel_->mapFromSource(localFileModel_->index(homePath)));
     localTreeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
 
     // Initialize current directories
@@ -352,6 +390,8 @@ void MainWindow::setupTransferMode()
             this, &MainWindow::onLocalDoubleClicked);
     connect(localTreeView_, &QTreeView::customContextMenuRequested,
             this, &MainWindow::onLocalContextMenu);
+    connect(localTreeView_->selectionModel(), &QItemSelectionModel::selectionChanged,
+            this, &MainWindow::updateActions);
 
     localLayout->addWidget(localTreeView_);
     transferSplitter_->addWidget(localWidget);
@@ -390,10 +430,11 @@ void MainWindow::setupTransferMode()
     // Setup local context menu
     localContextMenu_ = new QMenu(this);
     localContextMenu_->addAction(tr("Set as Download Destination"), this, [this]() {
-        QModelIndex index = localTreeView_->currentIndex();
-        if (index.isValid()) {
-            QString path = localFileModel_->filePath(index);
-            if (localFileModel_->isDir(index)) {
+        QModelIndex proxyIndex = localTreeView_->currentIndex();
+        if (proxyIndex.isValid()) {
+            QModelIndex sourceIndex = localFileProxyModel_->mapToSource(proxyIndex);
+            QString path = localFileModel_->filePath(sourceIndex);
+            if (localFileModel_->isDir(sourceIndex)) {
                 setCurrentLocalDir(path);
             } else {
                 setCurrentLocalDir(QFileInfo(path).path());
@@ -404,6 +445,7 @@ void MainWindow::setupTransferMode()
     localContextMenu_->addAction(tr("Upload to C64U"), this, &MainWindow::onUpload);
     localContextMenu_->addSeparator();
     localContextMenu_->addAction(tr("New Folder"), this, &MainWindow::onNewLocalFolder);
+    localContextMenu_->addAction(tr("Delete"), this, &MainWindow::onLocalDelete);
 }
 
 void MainWindow::setupConnections()
@@ -461,7 +503,7 @@ void MainWindow::setupConnections()
     connect(transferQueue_, &TransferQueue::transferCompleted,
             this, [this](const QString &fileName) {
         statusBar()->showMessage(tr("Transfer complete: %1").arg(fileName), 3000);
-        remoteFileModel_->refresh();
+        // Don't refresh - it resets the directory tree. User can manually refresh if needed.
     });
     connect(transferQueue_, &TransferQueue::transferFailed,
             this, [this](const QString &fileName, const QString &error) {
@@ -484,6 +526,7 @@ void MainWindow::switchToMode(Mode mode)
     uploadAction_->setVisible(!exploreMode);
     downloadAction_->setVisible(!exploreMode);
     newFolderAction_->setVisible(!exploreMode);
+    localDeleteAction_->setVisible(!exploreMode);
 
     // Switch stacked widget
     stackedWidget_->setCurrentIndex(exploreMode ? 0 : 1);
@@ -546,22 +589,28 @@ void MainWindow::updateStatusBar()
 void MainWindow::updateActions()
 {
     bool connected = deviceConnection_->isConnected();
-    QString selectedPath = selectedRemotePath();
-    bool hasSelection = !selectedPath.isEmpty();
-    bool isDir = isSelectedDirectory();
 
-    // Determine file type for enabling actions
+    // Check remote selection
+    QString selectedRemote = selectedRemotePath();
+    bool hasRemoteSelection = !selectedRemote.isEmpty();
+
+    // Check local selection (for Transfer mode)
+    QString selectedLocal = selectedLocalPath();
+    bool hasLocalSelection = !selectedLocal.isEmpty();
+
+    // Determine file type for enabling actions (use mode-aware view)
+    QTreeView *remoteView = (currentMode_ == Mode::ExploreRun) ? remoteTreeView_ : remoteTransferTreeView_;
     RemoteFileModel::FileType fileType = RemoteFileModel::FileType::Unknown;
-    if (hasSelection) {
-        QModelIndex index = remoteTreeView_->currentIndex();
+    if (hasRemoteSelection) {
+        QModelIndex index = remoteView->currentIndex();
         fileType = remoteFileModel_->fileType(index);
     }
 
-    bool canPlay = hasSelection && (fileType == RemoteFileModel::FileType::SidMusic ||
-                                     fileType == RemoteFileModel::FileType::ModMusic);
-    bool canRun = hasSelection && (fileType == RemoteFileModel::FileType::Program ||
-                                    fileType == RemoteFileModel::FileType::Cartridge);
-    bool canMount = hasSelection && fileType == RemoteFileModel::FileType::DiskImage;
+    bool canPlay = hasRemoteSelection && (fileType == RemoteFileModel::FileType::SidMusic ||
+                                           fileType == RemoteFileModel::FileType::ModMusic);
+    bool canRun = hasRemoteSelection && (fileType == RemoteFileModel::FileType::Program ||
+                                          fileType == RemoteFileModel::FileType::Cartridge);
+    bool canMount = hasRemoteSelection && fileType == RemoteFileModel::FileType::DiskImage;
 
     // Update action states
     connectAction_->setText(connected ? tr("Disconnect") : tr("Connect"));
@@ -569,9 +618,10 @@ void MainWindow::updateActions()
     runAction_->setEnabled(connected && canRun);
     mountAction_->setEnabled(connected && canMount);
     resetAction_->setEnabled(connected);
-    uploadAction_->setEnabled(connected);
-    downloadAction_->setEnabled(connected && hasSelection);  // Allow downloading directories now
+    uploadAction_->setEnabled(connected && hasLocalSelection);
+    downloadAction_->setEnabled(connected && hasRemoteSelection);
     newFolderAction_->setEnabled(connected);
+    localDeleteAction_->setEnabled(hasLocalSelection);
     refreshAction_->setEnabled(connected);
 }
 
@@ -598,6 +648,24 @@ void MainWindow::loadSettings()
     // Restore window geometry
     restoreGeometry(settings.value("window/geometry").toByteArray());
     restoreState(settings.value("window/state").toByteArray());
+
+    // Restore directories
+    QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    QString savedLocalDir = settings.value("directories/local", homePath).toString();
+    QString savedRemoteDir = settings.value("directories/remote", "/").toString();
+
+    // Set local directory (updates model, label, tree view root, and up button state)
+    if (QDir(savedLocalDir).exists()) {
+        setCurrentLocalDir(savedLocalDir);
+    }
+
+    // Set remote transfer directory (will be used when connected)
+    currentRemoteTransferDir_ = savedRemoteDir;
+    remoteCurrentDirLabel_->setText(tr("Upload to: %1").arg(savedRemoteDir));
+
+    // Initialize remote up button state (disabled until connected, then based on path)
+    bool canGoUpRemote = (savedRemoteDir != "/" && !savedRemoteDir.isEmpty());
+    remoteUpButton_->setEnabled(canGoUpRemote && deviceConnection_->isConnected());
 }
 
 void MainWindow::saveSettings()
@@ -605,6 +673,10 @@ void MainWindow::saveSettings()
     QSettings settings;
     settings.setValue("window/geometry", saveGeometry());
     settings.setValue("window/state", saveState());
+
+    // Save directories
+    settings.setValue("directories/local", currentLocalDir_);
+    settings.setValue("directories/remote", currentRemoteTransferDir_);
 }
 
 QString MainWindow::selectedRemotePath() const
@@ -629,9 +701,10 @@ bool MainWindow::isSelectedDirectory() const
 
 QString MainWindow::selectedLocalPath() const
 {
-    QModelIndex index = localTreeView_->currentIndex();
-    if (index.isValid()) {
-        return localFileModel_->filePath(index);
+    QModelIndex proxyIndex = localTreeView_->currentIndex();
+    if (proxyIndex.isValid()) {
+        QModelIndex sourceIndex = localFileProxyModel_->mapToSource(proxyIndex);
+        return localFileModel_->filePath(sourceIndex);
     }
     return QString();
 }
@@ -929,8 +1002,8 @@ void MainWindow::onConnectionStateChanged()
         break;
     case DeviceConnection::ConnectionState::Connected:
         statusBar()->showMessage(tr("Connected"), 3000);
-        // Refresh file listing
-        remoteFileModel_->setRootPath("/");
+        // Navigate to saved remote directory (or "/" if none saved)
+        setCurrentRemoteTransferDir(currentRemoteTransferDir_.isEmpty() ? "/" : currentRemoteTransferDir_);
         break;
     case DeviceConnection::ConnectionState::Reconnecting:
         statusBar()->showMessage(tr("Reconnecting..."));
@@ -1141,13 +1214,14 @@ void MainWindow::onConfigLoadFailed(const QString &path, const QString &error)
 
 // Transfer mode slots
 
-void MainWindow::onLocalDoubleClicked(const QModelIndex &index)
+void MainWindow::onLocalDoubleClicked(const QModelIndex &proxyIndex)
 {
-    if (!index.isValid()) return;
+    if (!proxyIndex.isValid()) return;
 
-    QString path = localFileModel_->filePath(index);
+    QModelIndex sourceIndex = localFileProxyModel_->mapToSource(proxyIndex);
+    QString path = localFileModel_->filePath(sourceIndex);
 
-    if (localFileModel_->isDir(index)) {
+    if (localFileModel_->isDir(sourceIndex)) {
         // Set as current download destination
         setCurrentLocalDir(path);
     }
@@ -1199,9 +1273,79 @@ void MainWindow::onNewLocalFolder()
     }
 }
 
+void MainWindow::onLocalDelete()
+{
+    QString localPath = selectedLocalPath();
+    if (localPath.isEmpty()) {
+        return;
+    }
+
+    QFileInfo fileInfo(localPath);
+    QString itemName = fileInfo.fileName();
+    QString itemType = fileInfo.isDir() ? tr("folder") : tr("file");
+
+    int result = QMessageBox::question(this, tr("Move to Trash"),
+        tr("Are you sure you want to move the %1 '%2' to the trash?").arg(itemType).arg(itemName),
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (result != QMessageBox::Yes) {
+        return;
+    }
+
+    QString pathInTrash;
+    bool success = QFile::moveToTrash(localPath, &pathInTrash);
+
+    if (success) {
+        statusBar()->showMessage(tr("Moved to trash: %1").arg(itemName), 3000);
+        // QFileSystemModel automatically detects changes via QFileSystemWatcher
+        // so no explicit refresh is needed
+    } else {
+        QString errorMessage;
+        if (!fileInfo.exists()) {
+            errorMessage = tr("The %1 no longer exists.").arg(itemType);
+        } else if (!fileInfo.isWritable()) {
+            errorMessage = tr("Permission denied. You don't have permission to delete this %1.").arg(itemType);
+        } else {
+            errorMessage = tr("Failed to move the %1 to trash. The system may not support trash functionality.").arg(itemType);
+        }
+        QMessageBox::warning(this, tr("Delete Failed"), errorMessage);
+        statusBar()->showMessage(tr("Failed to delete: %1").arg(itemName), 3000);
+    }
+}
+
+void MainWindow::onLocalParentFolder()
+{
+    QDir dir(currentLocalDir_);
+    if (dir.cdUp()) {
+        setCurrentLocalDir(dir.absolutePath());
+    }
+}
+
+void MainWindow::onRemoteParentFolder()
+{
+    if (currentRemoteTransferDir_.isEmpty() || currentRemoteTransferDir_ == "/") {
+        return;  // Already at root
+    }
+
+    // Get parent path
+    QString parentPath = currentRemoteTransferDir_;
+    int lastSlash = parentPath.lastIndexOf('/');
+    if (lastSlash > 0) {
+        parentPath = parentPath.left(lastSlash);
+    } else {
+        parentPath = "/";
+    }
+
+    setCurrentRemoteTransferDir(parentPath);
+}
+
 void MainWindow::setCurrentLocalDir(const QString &path)
 {
     currentLocalDir_ = path;
+
+    // Update tree view to show this folder as root
+    localFileModel_->setRootPath(path);
+    localTreeView_->setRootIndex(localFileProxyModel_->mapFromSource(localFileModel_->index(path)));
 
     // Shorten path for display by replacing home with ~
     QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
@@ -1212,11 +1356,24 @@ void MainWindow::setCurrentLocalDir(const QString &path)
 
     localCurrentDirLabel_->setText(tr("Download to: %1").arg(displayPath));
     statusBar()->showMessage(tr("Download destination: %1").arg(displayPath), 2000);
+
+    // Enable/disable up button based on whether we can go up
+    QDir dir(path);
+    bool canGoUp = dir.cdUp();
+    localUpButton_->setEnabled(canGoUp);
 }
 
 void MainWindow::setCurrentRemoteTransferDir(const QString &path)
 {
     currentRemoteTransferDir_ = path;
+
+    // Update tree view to show this folder as root
+    remoteFileModel_->setRootPath(path);
+
     remoteCurrentDirLabel_->setText(tr("Upload to: %1").arg(path));
     statusBar()->showMessage(tr("Upload destination: %1").arg(path), 2000);
+
+    // Enable/disable up button based on whether we can go up
+    bool canGoUp = (path != "/" && !path.isEmpty());
+    remoteUpButton_->setEnabled(canGoUp);
 }
