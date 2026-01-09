@@ -166,6 +166,13 @@ void MainWindow::setupToolBar()
 
     mainToolBar_->addSeparator();
 
+    // Machine actions (not file-specific)
+    resetAction_ = mainToolBar_->addAction(tr("Reset"));
+    resetAction_->setToolTip(tr("Reset the C64"));
+    connect(resetAction_, &QAction::triggered, this, &MainWindow::onReset);
+
+    mainToolBar_->addSeparator();
+
     auto *prefsAction = mainToolBar_->addAction(tr("Preferences"));
     prefsAction->setToolTip(tr("Open preferences dialog"));
     connect(prefsAction, &QAction::triggered, this, &MainWindow::onPreferences);
@@ -230,12 +237,6 @@ void MainWindow::setupExploreRunMode()
     mountAction_ = exploreRemotePanelToolBar_->addAction(tr("Mount"));
     mountAction_->setToolTip(tr("Mount selected disk image"));
     connect(mountAction_, &QAction::triggered, this, &MainWindow::onMount);
-
-    exploreRemotePanelToolBar_->addSeparator();
-
-    resetAction_ = exploreRemotePanelToolBar_->addAction(tr("Reset"));
-    resetAction_->setToolTip(tr("Reset the C64"));
-    connect(resetAction_, &QAction::triggered, this, &MainWindow::onReset);
 
     exploreRemotePanelToolBar_->addSeparator();
 
