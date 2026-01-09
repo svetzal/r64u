@@ -45,6 +45,7 @@ MainWindow::MainWindow(QWidget *parent)
     setupStatusBar();
     setupExploreRunMode();
     setupTransferMode();
+    setupViewMode();
     setupConnections();
 
     switchToMode(Mode::ExploreRun);
@@ -105,6 +106,12 @@ void MainWindow::setupMenuBar()
         modeCombo_->setCurrentIndex(1);
     });
 
+    auto *viewModeAction = viewMenu->addAction(tr("&View Mode"));
+    viewModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_3));
+    connect(viewModeAction, &QAction::triggered, this, [this]() {
+        modeCombo_->setCurrentIndex(2);
+    });
+
     viewMenu->addSeparator();
 
     refreshAction_ = viewMenu->addAction(tr("&Refresh"));
@@ -147,6 +154,7 @@ void MainWindow::setupToolBar()
     modeCombo_ = new QComboBox();
     modeCombo_->addItem(tr("Explore/Run"));
     modeCombo_->addItem(tr("Transfer"));
+    modeCombo_->addItem(tr("View"));
     connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onModeChanged);
     mainToolBar_->addWidget(modeCombo_);
@@ -528,6 +536,23 @@ void MainWindow::setupTransferMode()
     localContextMenu_->addAction(tr("Delete"), this, &MainWindow::onLocalDelete);
 }
 
+void MainWindow::setupViewMode()
+{
+    viewWidget_ = new QWidget();
+    auto *layout = new QVBoxLayout(viewWidget_);
+    layout->setContentsMargins(0, 0, 0, 0);
+
+    // Placeholder label - will be replaced with VideoDisplayWidget in W82
+    auto *placeholderLabel = new QLabel(tr("Video streaming view will be displayed here.\n\n"
+                                           "Use the Start/Stop buttons to control streaming\n"
+                                           "once connected to a C64 Ultimate device."));
+    placeholderLabel->setAlignment(Qt::AlignCenter);
+    placeholderLabel->setStyleSheet("QLabel { color: #666; font-size: 14px; }");
+    layout->addWidget(placeholderLabel);
+
+    stackedWidget_->addWidget(viewWidget_);
+}
+
 void MainWindow::setupConnections()
 {
     // Device connection signals
@@ -606,13 +631,23 @@ void MainWindow::switchToMode(Mode mode)
 {
     currentMode_ = mode;
 
-    bool exploreMode = (mode == Mode::ExploreRun);
-
     // Mode-specific actions are on panel toolbars which are part of the mode widgets,
     // so they automatically become visible/invisible when switching modes via stacked widget
 
-    // Switch stacked widget
-    stackedWidget_->setCurrentIndex(exploreMode ? 0 : 1);
+    // Switch stacked widget based on mode
+    int pageIndex = 0;
+    switch (mode) {
+    case Mode::ExploreRun:
+        pageIndex = 0;
+        break;
+    case Mode::Transfer:
+        pageIndex = 1;
+        break;
+    case Mode::View:
+        pageIndex = 2;
+        break;
+    }
+    stackedWidget_->setCurrentIndex(pageIndex);
 
     updateWindowTitle();
     updateActions();
@@ -632,8 +667,19 @@ void MainWindow::updateWindowTitle()
         }
     }
 
-    title += QString(" - %1").arg(
-        currentMode_ == Mode::ExploreRun ? tr("Explore/Run") : tr("Transfer"));
+    QString modeName;
+    switch (currentMode_) {
+    case Mode::ExploreRun:
+        modeName = tr("Explore/Run");
+        break;
+    case Mode::Transfer:
+        modeName = tr("Transfer");
+        break;
+    case Mode::View:
+        modeName = tr("View");
+        break;
+    }
+    title += QString(" - %1").arg(modeName);
 
     setWindowTitle(title);
 }
@@ -827,7 +873,22 @@ QString MainWindow::currentRemoteDirectory() const
 
 void MainWindow::onModeChanged(int index)
 {
-    switchToMode(index == 0 ? Mode::ExploreRun : Mode::Transfer);
+    Mode mode = Mode::ExploreRun;
+    switch (index) {
+    case 0:
+        mode = Mode::ExploreRun;
+        break;
+    case 1:
+        mode = Mode::Transfer;
+        break;
+    case 2:
+        mode = Mode::View;
+        break;
+    default:
+        mode = Mode::ExploreRun;
+        break;
+    }
+    switchToMode(mode);
 }
 
 void MainWindow::onPreferences()

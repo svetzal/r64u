@@ -29,7 +29,8 @@ class MainWindow : public QMainWindow
 public:
     enum class Mode {
         ExploreRun,
-        Transfer
+        Transfer,
+        View
     };
 
     explicit MainWindow(QWidget *parent = nullptr);
@@ -117,6 +118,7 @@ private:
     void setupStatusBar();
     void setupExploreRunMode();
     void setupTransferMode();
+    void setupViewMode();
     void setupConnections();
     void switchToMode(Mode mode);
     void updateWindowTitle();
@@ -162,6 +164,9 @@ private:
     QPushButton *remoteUpButton_ = nullptr;
     QToolBar *remotePanelToolBar_ = nullptr;
     QToolBar *localPanelToolBar_ = nullptr;
+
+    // View mode widgets
+    QWidget *viewWidget_ = nullptr;
 
     // Transfer progress UI
     QWidget *transferProgressWidget_ = nullptr;
