@@ -27,6 +27,7 @@
 #include <QTimer>
 #include <QDir>
 #include <QNetworkInterface>
+#include <QHostInfo>
 
 #include "services/credentialstore.h"
 
@@ -1858,10 +1859,33 @@ void MainWindow::onStartStreaming()
     QString deviceHost = deviceConnection_->restClient()->host();
     streamControl_->setHost(deviceHost);
 
+    // Resolve device hostname to IP address if needed
+    QHostAddress deviceAddr(deviceHost);
+    if (deviceAddr.isNull()) {
+        // deviceHost is a hostname, need to resolve it
+        QHostInfo hostInfo = QHostInfo::fromName(deviceHost);
+        if (hostInfo.error() != QHostInfo::NoError || hostInfo.addresses().isEmpty()) {
+            QMessageBox::warning(this, tr("Network Error"),
+                               tr("Could not resolve device hostname: %1").arg(deviceHost));
+            return;
+        }
+        // Find first IPv4 address
+        for (const QHostAddress &addr : hostInfo.addresses()) {
+            if (addr.protocol() == QAbstractSocket::IPv4Protocol) {
+                deviceAddr = addr;
+                break;
+            }
+        }
+        if (deviceAddr.isNull()) {
+            QMessageBox::warning(this, tr("Network Error"),
+                               tr("Could not find IPv4 address for device: %1").arg(deviceHost));
+            return;
+        }
+    }
+
     // Find our local IP address that can reach the device
     // Look for an interface on the same subnet as the C64 device
     QString targetHost;
-    QHostAddress deviceAddr(deviceHost);
 
     for (const QNetworkInterface &iface : QNetworkInterface::allInterfaces()) {
         if (!(iface.flags() & QNetworkInterface::IsUp) ||
@@ -1890,8 +1914,10 @@ void MainWindow::onStartStreaming()
 
     if (targetHost.isEmpty()) {
         QMessageBox::warning(this, tr("Network Error"),
-                           tr("Could not determine local IP address for streaming. "
-                              "Make sure you're on the same network as the C64 device."));
+                           tr("Could not determine local IP address for streaming.\n\n"
+                              "Device IP: %1\n"
+                              "Make sure you're on the same network as the C64 device.")
+                           .arg(deviceAddr.toString()));
         return;
     }
 
