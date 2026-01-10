@@ -18,14 +18,27 @@ jobs:
       matrix:
         include:
           - os: ubuntu-20.04
-            name: Linux
+            name: Linux-x64
             artifact: r64u-linux-x86_64
+            qt_arch: linux_gcc_64
+            linuxdeploy_arch: x86_64
+          - os: ubuntu-22.04-arm64
+            name: Linux-ARM
+            artifact: r64u-linux-arm64
+            qt_arch: linux_gcc_arm64
+            linuxdeploy_arch: aarch64
           - os: macos-14
             name: macOS-ARM
             artifact: r64u-macos-arm64
+            qt_arch: clang_64
           - os: windows-latest
-            name: Windows
+            name: Windows-x64
             artifact: r64u-windows-x64
+            qt_arch: win64_msvc2022_64
+          - os: windows-11-arm64
+            name: Windows-ARM
+            artifact: r64u-windows-arm64
+            qt_arch: win64_msvc2022_arm64
 
     runs-on: ${{ matrix.os }}
     name: Build (${{ matrix.name }})
@@ -38,6 +51,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
+          arch: ${{ matrix.qt_arch }}
           modules: 'qtmultimedia'
           cache: true
 
@@ -53,7 +67,7 @@ jobs:
             dpkg-dev fakeroot imagemagick
 
       - name: Install Windows dependencies (NSIS)
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && contains(matrix.artifact, 'x64')
         shell: pwsh
         run: |
           choco install nsis -y --no-progress
@@ -272,16 +286,17 @@ jobs:
           fi
           cp AppDir/usr/share/icons/hicolor/256x256/apps/r64u.png AppDir/r64u.png
 
-          # Download linuxdeploy
-          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          # Download linuxdeploy (architecture-specific)
+          ARCH=${{ matrix.linuxdeploy_arch }}
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${ARCH}.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${ARCH}.AppImage
           chmod +x linuxdeploy*.AppImage
 
           # Build AppImage
           export QMAKE="$QT_ROOT_DIR/bin/qmake"
           echo "Using QMAKE: $QMAKE"
           export OUTPUT=r64u-${{ matrix.artifact }}.AppImage
-          ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
+          ./linuxdeploy-${ARCH}.AppImage --appdir AppDir --plugin qt --output appimage
 
           ls -la *.AppImage
 
@@ -310,8 +325,8 @@ jobs:
             windeployqt --release --no-translations $installedExe
           }
 
-      - name: Create NSIS Installer (Windows)
-        if: runner.os == 'Windows'
+      - name: Create NSIS Installer (Windows x64)
+        if: runner.os == 'Windows' && contains(matrix.artifact, 'x64')
         shell: pwsh
         continue-on-error: true
         run: |
@@ -385,8 +400,8 @@ jobs:
           path: "r64u-*.AppImage"
           if-no-files-found: error
 
-      - name: Upload NSIS Installer (Windows)
-        if: runner.os == 'Windows'
+      - name: Upload NSIS Installer (Windows x64)
+        if: runner.os == 'Windows' && contains(matrix.artifact, 'x64')
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}-nsis
