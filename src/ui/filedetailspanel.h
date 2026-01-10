@@ -8,6 +8,7 @@
 #include <QStyleHints>
 
 #include "services/diskimagereader.h"
+#include "services/sidfileparser.h"
 
 class FileDetailsPanel : public QWidget
 {
@@ -19,6 +20,7 @@ public:
     void showFileDetails(const QString &path, qint64 size, const QString &type);
     void showTextContent(const QString &content);
     void showDiskDirectory(const QByteArray &diskImageData, const QString &filename);
+    void showSidDetails(const QByteArray &sidData, const QString &filename);
     void showLoading(const QString &path);
     void showError(const QString &message);
     void clear();
@@ -26,6 +28,7 @@ public:
     bool isTextFile(const QString &path) const;
     bool isHtmlFile(const QString &path) const;
     bool isDiskImageFile(const QString &path) const;
+    bool isSidFile(const QString &path) const;
 
 signals:
     void contentRequested(const QString &path);

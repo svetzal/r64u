@@ -51,6 +51,7 @@ set(SOURCES
     src/services/keyboardinputservice.cpp
     src/services/diskimagereader.cpp
     src/services/petsciiconverter.cpp
+    src/services/sidfileparser.cpp
     src/models/remotefilemodel.cpp
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
@@ -74,6 +75,7 @@ set(HEADERS
     src/services/keyboardinputservice.h
     src/services/diskimagereader.h
     src/services/petsciiconverter.h
+    src/services/sidfileparser.h
     src/models/remotefilemodel.h
     src/models/localfileproxymodel.h
     src/models/transferqueue.h

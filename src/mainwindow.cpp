@@ -1564,6 +1564,8 @@ void MainWindow::onFileContentReceived(const QString &remotePath, const QByteArr
     // Check if this is a disk image file
     if (fileDetailsPanel_->isDiskImageFile(remotePath)) {
         fileDetailsPanel_->showDiskDirectory(data, remotePath);
+    } else if (fileDetailsPanel_->isSidFile(remotePath)) {
+        fileDetailsPanel_->showSidDetails(data, remotePath);
     } else {
         // Display the content in the file details panel as text
         QString content = QString::fromUtf8(data);

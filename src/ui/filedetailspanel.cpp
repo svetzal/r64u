@@ -118,6 +118,12 @@ void FileDetailsPanel::showFileDetails(const QString &path, qint64 size, const Q
         textBrowser_->setPlainText(tr("Loading disk directory..."));
         stack_->setCurrentWidget(textPage_);
         emit contentRequested(path);
+    } else if (isSidFile(path)) {
+        // Show text page with loading state for SID details
+        textFileNameLabel_->setText(fileName);
+        textBrowser_->setPlainText(tr("Loading SID info..."));
+        stack_->setCurrentWidget(textPage_);
+        emit contentRequested(path);
     } else if (isTextFile(path)) {
         // Show text page with loading state
         textFileNameLabel_->setText(fileName);
@@ -211,6 +217,11 @@ bool FileDetailsPanel::isDiskImageFile(const QString &path) const
     return DiskImageReader::isDiskImage(path);
 }
 
+bool FileDetailsPanel::isSidFile(const QString &path) const
+{
+    return SidFileParser::isSidFile(path);
+}
+
 void FileDetailsPanel::showDiskDirectory(const QByteArray &diskImageData, const QString &filename)
 {
     DiskImageReader reader;
@@ -229,6 +240,31 @@ void FileDetailsPanel::showDiskDirectory(const QByteArray &diskImageData, const 
 
     // Note: No extra line height for disk directories - PETSCII graphics
     // require characters to touch vertically with no gaps
+
+    stack_->setCurrentWidget(textPage_);
+}
+
+void FileDetailsPanel::showSidDetails(const QByteArray &sidData, const QString &filename)
+{
+    SidFileParser::SidInfo info = SidFileParser::parse(sidData);
+
+    if (!info.valid) {
+        showError(tr("Unable to parse SID file"));
+        return;
+    }
+
+    QString details = SidFileParser::formatForDisplay(info);
+
+    QFileInfo fi(filename);
+    textFileNameLabel_->setText(fi.fileName());
+    textBrowser_->setPlainText(details);
+
+    // Apply line height for better readability
+    QTextBlockFormat blockFormat;
+    blockFormat.setLineHeight(140, QTextBlockFormat::ProportionalHeight);
+    QTextCursor cursor = textBrowser_->textCursor();
+    cursor.select(QTextCursor::Document);
+    cursor.mergeBlockFormat(blockFormat);
 
     stack_->setCurrentWidget(textPage_);
 }
