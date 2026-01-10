@@ -882,6 +882,12 @@ void MainWindow::switchToMode(Mode mode)
     }
     stackedWidget_->setCurrentIndex(pageIndex);
 
+    // Auto-load config when switching to Config mode if connected and empty
+    if (mode == Mode::Config && deviceConnection_->isConnected() &&
+        configCategoryList_->count() == 0) {
+        onConfigRefresh();
+    }
+
     updateWindowTitle();
     updateActions();
 }
