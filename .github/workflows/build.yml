@@ -27,6 +27,10 @@ jobs:
             artifact: r64u-linux-arm64
             qt_arch: linux_gcc_arm64
             linuxdeploy_arch: aarch64
+          - os: macos-13
+            name: macOS-Intel
+            artifact: r64u-macos-x86_64
+            qt_arch: clang_64
           - os: macos-14
             name: macOS-ARM
             artifact: r64u-macos-arm64
