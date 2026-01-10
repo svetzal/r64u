@@ -289,7 +289,9 @@ private:
     QAction *contextMountAAction_ = nullptr;
     QAction *contextMountBAction_ = nullptr;
     QMenu *transferContextMenu_ = nullptr;
+    QAction *transferSetDestAction_ = nullptr;
     QMenu *localContextMenu_ = nullptr;
+    QAction *localSetDestAction_ = nullptr;
 
     // Transfer mode current directories
     QString currentLocalDir_;

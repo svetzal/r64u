@@ -421,6 +421,9 @@ void MainWindow::setupTransferMode()
             this, [this](const QPoint &pos) {
         QModelIndex index = remoteTransferTreeView_->indexAt(pos);
         if (index.isValid()) {
+            // Only enable "Set as Destination" for directories
+            bool isDir = remoteFileModel_->isDirectory(index);
+            transferSetDestAction_->setEnabled(isDir);
             transferContextMenu_->exec(remoteTransferTreeView_->viewport()->mapToGlobal(pos));
         }
     });
@@ -540,15 +543,11 @@ void MainWindow::setupTransferMode()
 
     // Setup transfer context menu (for remote files)
     transferContextMenu_ = new QMenu(this);
-    transferContextMenu_->addAction(tr("Set as Upload Destination"), this, [this]() {
+    transferSetDestAction_ = transferContextMenu_->addAction(tr("Set as Upload Destination"), this, [this]() {
         QModelIndex index = remoteTransferTreeView_->currentIndex();
-        if (index.isValid()) {
+        if (index.isValid() && remoteFileModel_->isDirectory(index)) {
             QString path = remoteFileModel_->filePath(index);
-            if (remoteFileModel_->isDirectory(index)) {
-                setCurrentRemoteTransferDir(path);
-            } else {
-                setCurrentRemoteTransferDir(QFileInfo(path).path());
-            }
+            setCurrentRemoteTransferDir(path);
         }
     });
     transferContextMenu_->addSeparator();
@@ -560,15 +559,13 @@ void MainWindow::setupTransferMode()
 
     // Setup local context menu
     localContextMenu_ = new QMenu(this);
-    localContextMenu_->addAction(tr("Set as Download Destination"), this, [this]() {
+    localSetDestAction_ = localContextMenu_->addAction(tr("Set as Download Destination"), this, [this]() {
         QModelIndex proxyIndex = localTreeView_->currentIndex();
         if (proxyIndex.isValid()) {
             QModelIndex sourceIndex = localFileProxyModel_->mapToSource(proxyIndex);
-            QString path = localFileModel_->filePath(sourceIndex);
             if (localFileModel_->isDir(sourceIndex)) {
+                QString path = localFileModel_->filePath(sourceIndex);
                 setCurrentLocalDir(path);
-            } else {
-                setCurrentLocalDir(QFileInfo(path).path());
             }
         }
     });
@@ -1879,8 +1876,12 @@ void MainWindow::onRemoteTransferDoubleClicked(const QModelIndex &index)
 
 void MainWindow::onLocalContextMenu(const QPoint &pos)
 {
-    QModelIndex index = localTreeView_->indexAt(pos);
-    if (index.isValid()) {
+    QModelIndex proxyIndex = localTreeView_->indexAt(pos);
+    if (proxyIndex.isValid()) {
+        // Only enable "Set as Destination" for directories
+        QModelIndex sourceIndex = localFileProxyModel_->mapToSource(proxyIndex);
+        bool isDir = localFileModel_->isDir(sourceIndex);
+        localSetDestAction_->setEnabled(isDir);
         localContextMenu_->exec(localTreeView_->viewport()->mapToGlobal(pos));
     }
 }
