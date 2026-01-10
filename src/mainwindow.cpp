@@ -339,12 +339,12 @@ void MainWindow::setupExploreRunMode()
 
     // Setup context menu
     remoteContextMenu_ = new QMenu(this);
-    remoteContextMenu_->addAction(tr("Play"), this, &MainWindow::onPlay);
-    remoteContextMenu_->addAction(tr("Run"), this, &MainWindow::onRun);
-    remoteContextMenu_->addAction(tr("Load Config"), this, &MainWindow::onLoadConfig);
+    contextPlayAction_ = remoteContextMenu_->addAction(tr("Play"), this, &MainWindow::onPlay);
+    contextRunAction_ = remoteContextMenu_->addAction(tr("Run"), this, &MainWindow::onRun);
+    contextLoadConfigAction_ = remoteContextMenu_->addAction(tr("Load Config"), this, &MainWindow::onLoadConfig);
     remoteContextMenu_->addSeparator();
-    remoteContextMenu_->addAction(tr("Mount to Drive A"), this, &MainWindow::onMountToDriveA);
-    remoteContextMenu_->addAction(tr("Mount to Drive B"), this, &MainWindow::onMountToDriveB);
+    contextMountAAction_ = remoteContextMenu_->addAction(tr("Mount to Drive A"), this, &MainWindow::onMountToDriveA);
+    contextMountBAction_ = remoteContextMenu_->addAction(tr("Mount to Drive B"), this, &MainWindow::onMountToDriveB);
     remoteContextMenu_->addSeparator();
     remoteContextMenu_->addAction(tr("Download"), this, &MainWindow::onDownload);
     remoteContextMenu_->addSeparator();
@@ -1646,6 +1646,24 @@ void MainWindow::onRemoteContextMenu(const QPoint &pos)
 {
     QModelIndex index = remoteTreeView_->indexAt(pos);
     if (index.isValid()) {
+        // Get file type and enable/disable context menu actions accordingly
+        RemoteFileModel::FileType fileType = remoteFileModel_->fileType(index);
+        bool connected = deviceConnection_->isConnected();
+
+        bool canPlay = fileType == RemoteFileModel::FileType::SidMusic ||
+                       fileType == RemoteFileModel::FileType::ModMusic;
+        bool canRun = fileType == RemoteFileModel::FileType::Program ||
+                      fileType == RemoteFileModel::FileType::Cartridge ||
+                      fileType == RemoteFileModel::FileType::DiskImage;
+        bool canMount = fileType == RemoteFileModel::FileType::DiskImage;
+        bool canLoadConfig = fileType == RemoteFileModel::FileType::Config;
+
+        contextPlayAction_->setEnabled(connected && canPlay);
+        contextRunAction_->setEnabled(connected && canRun);
+        contextLoadConfigAction_->setEnabled(connected && canLoadConfig);
+        contextMountAAction_->setEnabled(connected && canMount);
+        contextMountBAction_->setEnabled(connected && canMount);
+
         remoteContextMenu_->exec(remoteTreeView_->viewport()->mapToGlobal(pos));
     }
 }

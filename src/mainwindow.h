@@ -283,6 +283,11 @@ private:
 
     // Context menus
     QMenu *remoteContextMenu_ = nullptr;
+    QAction *contextPlayAction_ = nullptr;
+    QAction *contextRunAction_ = nullptr;
+    QAction *contextLoadConfigAction_ = nullptr;
+    QAction *contextMountAAction_ = nullptr;
+    QAction *contextMountBAction_ = nullptr;
     QMenu *transferContextMenu_ = nullptr;
     QMenu *localContextMenu_ = nullptr;
 
