@@ -480,15 +480,15 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
             // Transfer starting - don't clear buffer here as data may have already arrived
             // (C64U server sometimes sends data before 150 response)
             downloading_ = true;
-            qDebug() << "FTP: 150 received, dataBuffer_ size:" << dataBuffer_.size();
+            qDebug() << "FTP: 150 received, listBuffer_ size:" << listBuffer_.size();
         } else if (code == FtpReplyTransferComplete) {
             // Transfer complete on server side, but data may still be in flight
             QString path = currentArg_.isEmpty() ? currentDir_ : currentArg_;
             if (dataSocket_->state() == QAbstractSocket::UnconnectedState) {
                 // Data socket already closed, process immediately
                 qDebug() << "FTP: 226 received, data socket already closed, processing";
-                qDebug() << "FTP: LIST complete, total data:" << dataBuffer_.size() << "bytes";
-                QList<FtpEntry> entries = parseDirectoryListing(dataBuffer_);
+                qDebug() << "FTP: LIST complete, total data:" << listBuffer_.size() << "bytes";
+                QList<FtpEntry> entries = parseDirectoryListing(listBuffer_);
                 qDebug() << "FTP: Parsed" << entries.size() << "entries";
                 emit directoryListed(path, entries);
                 processNextCommand();
@@ -522,8 +522,8 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                 qDebug() << "FTP: RETR 226 received, data socket already closed, processing"
                          << "isMemory:" << currentRetrIsMemory_ << "file:" << currentRetrFile_.get();
                 if (currentRetrIsMemory_) {
-                    emit downloadToMemoryFinished(currentArg_, dataBuffer_);
-                    dataBuffer_.clear();
+                    emit downloadToMemoryFinished(currentArg_, retrBuffer_);
+                    retrBuffer_.clear();
                 } else if (currentRetrFile_) {
                     currentRetrFile_->close();
                     emit downloadFinished(currentArg_, currentLocalPath_);
@@ -551,7 +551,7 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
         } else if (code >= FtpReplyErrorThreshold) {
             emit error(tr("Download failed for '%1': %2").arg(currentArg_, text));
             if (currentRetrIsMemory_) {
-                dataBuffer_.clear();
+                retrBuffer_.clear();
             } else if (currentRetrFile_) {
                 currentRetrFile_->close();
                 currentRetrFile_.reset();
@@ -644,7 +644,7 @@ void C64UFtpClient::onDataReadyRead()
     qDebug() << "FTP: Data received:" << data.size() << "bytes";
 
     if (currentCommand_ == Command::List) {
-        dataBuffer_.append(data);
+        listBuffer_.append(data);
     } else if (currentCommand_ == Command::Retr) {
         // Check pending state first (226 may have arrived but data still coming)
         // then fall back to current RETR state (set when RETR was dequeued)
@@ -652,8 +652,8 @@ void C64UFtpClient::onDataReadyRead()
         QFile *file = pendingRetr_ ? pendingRetr_->file.get() : currentRetrFile_.get();
 
         if (isMemory) {
-            dataBuffer_.append(data);
-            emit downloadProgress(currentArg_, dataBuffer_.size(), transferSize_);
+            retrBuffer_.append(data);
+            emit downloadProgress(currentArg_, retrBuffer_.size(), transferSize_);
         } else if (file) {
             file->write(data);
             emit downloadProgress(currentArg_, file->size(), transferSize_);
@@ -672,9 +672,9 @@ void C64UFtpClient::onDataDisconnected()
 
     // If we received 226 and were waiting for data socket to close, process now
     if (pendingList_) {
-        qDebug() << "FTP: Processing pending LIST, total data:" << dataBuffer_.size() << "bytes";
-        qDebug() << "FTP: Data buffer contents:" << dataBuffer_;
-        QList<FtpEntry> entries = parseDirectoryListing(dataBuffer_);
+        qDebug() << "FTP: Processing pending LIST, total data:" << listBuffer_.size() << "bytes";
+        qDebug() << "FTP: Data buffer contents:" << listBuffer_;
+        QList<FtpEntry> entries = parseDirectoryListing(listBuffer_);
         qDebug() << "FTP: Parsed" << entries.size() << "entries";
         emit directoryListed(pendingList_->path, entries);
         pendingList_.reset();  // Clear all pending LIST state with one call
@@ -685,8 +685,8 @@ void C64UFtpClient::onDataDisconnected()
         // Use the SAVED state, not the current global state (which may have been
         // corrupted by other operations like downloadToMemory for file preview)
         if (pendingRetr_->isMemory) {
-            emit downloadToMemoryFinished(pendingRetr_->remotePath, dataBuffer_);
-            dataBuffer_.clear();
+            emit downloadToMemoryFinished(pendingRetr_->remotePath, retrBuffer_);
+            retrBuffer_.clear();
         } else if (pendingRetr_->file) {
             pendingRetr_->file->close();
             emit downloadFinished(pendingRetr_->remotePath, pendingRetr_->localPath);
@@ -781,7 +781,7 @@ void C64UFtpClient::list(const QString &path)
         emit error(tr("Cannot list directory: not connected to server"));
         return;
     }
-    dataBuffer_.clear();  // Clear buffer at start of list operation
+    listBuffer_.clear();  // Clear buffer at start of list operation
     queueCommand(Command::Type, "A");  // ASCII mode for listing
     queueCommand(Command::Pasv);
     queueCommand(Command::List, path);
@@ -843,7 +843,7 @@ void C64UFtpClient::downloadToMemory(const QString &remotePath)
         return;
     }
 
-    dataBuffer_.clear();
+    retrBuffer_.clear();
     transferSize_ = 0;
     queueCommand(Command::Type, "I");  // Binary mode
     queueCommand(Command::Pasv);
@@ -925,7 +925,8 @@ void C64UFtpClient::abort()
         pendingRetr_->file->close();
     }
     pendingRetr_.reset();
-    dataBuffer_.clear();
+    listBuffer_.clear();
+    retrBuffer_.clear();
 
     sendCommand("ABOR");
     setState(State::Ready);

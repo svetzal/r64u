@@ -452,8 +452,9 @@ private:
     QQueue<PendingCommand> commandQueue_;
     QString responseBuffer_;
 
-    // Data transfer state
-    QByteArray dataBuffer_;
+    // Data transfer state - separate buffers for LIST and RETR to prevent corruption
+    QByteArray listBuffer_;   // Buffer for LIST (directory listing) data
+    QByteArray retrBuffer_;   // Buffer for RETR (file download to memory) data
     qint64 transferSize_ = 0;
     bool downloading_ = false;
     std::shared_ptr<QFile> transferFile_;  // For uploads (STOR command)
