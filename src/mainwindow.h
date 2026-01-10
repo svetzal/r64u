@@ -55,6 +55,11 @@ private slots:
     void onEjectDriveA();
     void onEjectDriveB();
     void onReset();
+    void onReboot();
+    void onPause();
+    void onResume();
+    void onMenuButton();
+    void onPowerOff();
     void onUpload();
     void onDownload();
     void onNewFolder();
@@ -214,6 +219,11 @@ private:
     QAction *runAction_ = nullptr;
     QAction *mountAction_ = nullptr;
     QAction *resetAction_ = nullptr;
+    QAction *rebootAction_ = nullptr;
+    QAction *pauseAction_ = nullptr;
+    QAction *resumeAction_ = nullptr;
+    QAction *menuAction_ = nullptr;
+    QAction *powerOffAction_ = nullptr;
     QAction *uploadAction_ = nullptr;
     QAction *downloadAction_ = nullptr;
     QAction *newFolderAction_ = nullptr;

@@ -193,6 +193,26 @@ void MainWindow::setupToolBar()
     resetAction_->setToolTip(tr("Reset the C64"));
     connect(resetAction_, &QAction::triggered, this, &MainWindow::onReset);
 
+    rebootAction_ = mainToolBar_->addAction(tr("Reboot"));
+    rebootAction_->setToolTip(tr("Reboot the Ultimate device"));
+    connect(rebootAction_, &QAction::triggered, this, &MainWindow::onReboot);
+
+    pauseAction_ = mainToolBar_->addAction(tr("Pause"));
+    pauseAction_->setToolTip(tr("Pause C64 execution"));
+    connect(pauseAction_, &QAction::triggered, this, &MainWindow::onPause);
+
+    resumeAction_ = mainToolBar_->addAction(tr("Resume"));
+    resumeAction_->setToolTip(tr("Resume C64 execution"));
+    connect(resumeAction_, &QAction::triggered, this, &MainWindow::onResume);
+
+    menuAction_ = mainToolBar_->addAction(tr("Menu"));
+    menuAction_->setToolTip(tr("Press Ultimate menu button"));
+    connect(menuAction_, &QAction::triggered, this, &MainWindow::onMenuButton);
+
+    powerOffAction_ = mainToolBar_->addAction(tr("Power Off"));
+    powerOffAction_->setToolTip(tr("Power off the Ultimate device"));
+    connect(powerOffAction_, &QAction::triggered, this, &MainWindow::onPowerOff);
+
     mainToolBar_->addSeparator();
 
     auto *prefsAction = mainToolBar_->addAction(tr("Preferences"));
@@ -827,6 +847,11 @@ void MainWindow::updateActions()
     runAction_->setEnabled(connected && canRun);
     mountAction_->setEnabled(connected && canMount);
     resetAction_->setEnabled(connected);
+    rebootAction_->setEnabled(connected);
+    pauseAction_->setEnabled(connected);
+    resumeAction_->setEnabled(connected);
+    menuAction_->setEnabled(connected);
+    powerOffAction_->setEnabled(connected);
     uploadAction_->setEnabled(connected && hasLocalSelection);
     downloadAction_->setEnabled(connected && hasRemoteSelection);
     newFolderAction_->setEnabled(connected);
@@ -1089,6 +1114,36 @@ void MainWindow::onReset()
 {
     deviceConnection_->restClient()->resetMachine();
     statusBar()->showMessage(tr("Reset sent"), 3000);
+}
+
+void MainWindow::onReboot()
+{
+    deviceConnection_->restClient()->rebootMachine();
+    statusBar()->showMessage(tr("Reboot sent"), 3000);
+}
+
+void MainWindow::onPause()
+{
+    deviceConnection_->restClient()->pauseMachine();
+    statusBar()->showMessage(tr("Pause sent"), 3000);
+}
+
+void MainWindow::onResume()
+{
+    deviceConnection_->restClient()->resumeMachine();
+    statusBar()->showMessage(tr("Resume sent"), 3000);
+}
+
+void MainWindow::onMenuButton()
+{
+    deviceConnection_->restClient()->pressMenuButton();
+    statusBar()->showMessage(tr("Menu button pressed"), 3000);
+}
+
+void MainWindow::onPowerOff()
+{
+    deviceConnection_->restClient()->powerOffMachine();
+    statusBar()->showMessage(tr("Power off sent"), 3000);
 }
 
 void MainWindow::onUpload()
