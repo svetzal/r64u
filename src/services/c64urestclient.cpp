@@ -2,6 +2,7 @@
 
 #include <QJsonDocument>
 #include <QUrlQuery>
+#include <QTimer>
 
 C64URestClient::C64URestClient(QObject *parent)
     : QObject(parent)
@@ -198,36 +199,58 @@ void C64URestClient::typeText(const QString &text)
 {
     // C64 keyboard buffer is at $0277 (10 bytes max)
     // Character count is at $C6
-    // Limit to 10 characters per call
+    // For text longer than 10 chars, we need to send in chunks with delays
     constexpr int KeyboardBufferSize = 10;
-    QString chunk = text.left(KeyboardBufferSize);
 
-    if (chunk.isEmpty()) {
+    if (text.isEmpty()) {
         return;
     }
 
     // Convert ASCII to PETSCII (simple conversion for printable chars)
-    QByteArray petscii;
-    for (QChar c : chunk) {
-        char ch = c.toLatin1();
-        // Convert lowercase to uppercase (PETSCII uses uppercase)
-        if (ch >= 'a' && ch <= 'z') {
-            ch = ch - 'a' + 'A';
+    auto toPetscii = [](const QString &str) -> QByteArray {
+        QByteArray petscii;
+        for (QChar c : str) {
+            char ch = c.toLatin1();
+            // Convert lowercase to uppercase (PETSCII uses uppercase)
+            if (ch >= 'a' && ch <= 'z') {
+                ch = ch - 'a' + 'A';
+            }
+            // Convert newline to RETURN (CHR$(13))
+            else if (ch == '\n') {
+                ch = 13;
+            }
+            petscii.append(ch);
         }
-        // Convert newline to RETURN (CHR$(13))
-        else if (ch == '\n') {
-            ch = 13;
-        }
-        petscii.append(ch);
+        return petscii;
+    };
+
+    // If text fits in buffer, send it directly
+    if (text.length() <= KeyboardBufferSize) {
+        QByteArray petscii = toPetscii(text);
+        writeMem("0277", petscii);
+        QByteArray count;
+        count.append(static_cast<char>(petscii.size()));
+        writeMem("c6", count);
+        return;
     }
 
-    // Write the text to keyboard buffer at $0277
-    writeMem("0277", petscii);
+    // For longer text, send first chunk now, schedule rest with delays
+    QString remaining = text;
+    QString chunk = remaining.left(KeyboardBufferSize);
+    remaining = remaining.mid(KeyboardBufferSize);
 
-    // Write the character count to $C6
+    QByteArray petscii = toPetscii(chunk);
+    writeMem("0277", petscii);
     QByteArray count;
     count.append(static_cast<char>(petscii.size()));
     writeMem("c6", count);
+
+    // Schedule remaining chunks with 200ms delays to let C64 consume buffer
+    if (!remaining.isEmpty()) {
+        QTimer::singleShot(200, this, [this, remaining]() {
+            typeText(remaining);
+        });
+    }
 }
 
 // File operations
