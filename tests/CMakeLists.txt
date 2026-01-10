@@ -40,3 +40,27 @@ if(BUILD_COVERAGE)
     add_coverage_target(transferqueue test_transferqueue)
     add_dependencies(coverage coverage_transferqueue)
 endif()
+
+# ConfigurationModel tests
+add_executable(test_configurationmodel
+    test_configurationmodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/configurationmodel.cpp
+)
+
+target_include_directories(test_configurationmodel PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_configurationmodel PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+# Register test with CTest
+add_test(NAME ConfigurationModelTest COMMAND test_configurationmodel)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(configurationmodel test_configurationmodel)
+    add_dependencies(coverage coverage_configurationmodel)
+endif()

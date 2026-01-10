@@ -55,6 +55,7 @@ set(SOURCES
     src/models/remotefilemodel.cpp
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
+    src/models/configurationmodel.cpp
 )
 
 set(HEADERS
@@ -79,6 +80,7 @@ set(HEADERS
     src/models/remotefilemodel.h
     src/models/localfileproxymodel.h
     src/models/transferqueue.h
+    src/models/configurationmodel.h
 )
 
 # Platform-specific credential storage
