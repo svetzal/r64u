@@ -1267,9 +1267,10 @@ void MainWindow::runDiskImage(const QString &path)
     // 1. Mount the disk to Drive A
     // 2. Reset the machine
     // 3. Wait for C64 to boot (3 seconds)
-    // 4. Type LOAD"*",8,1<RETURN>
-    // 5. Wait for load (3 seconds - adjust as needed)
-    // 6. Type RUN<RETURN>
+    // 4. Type LOAD"*",8,1 (exactly 10 chars, fits in buffer)
+    // 5. Wait for buffer to be consumed, then send RETURN
+    // 6. Wait for load (5 seconds)
+    // 7. Type RUN + RETURN
 
     statusBar()->showMessage(tr("Mounting and running: %1").arg(path));
 
@@ -1280,15 +1281,23 @@ void MainWindow::runDiskImage(const QString &path)
     QTimer::singleShot(500, this, [this]() {
         deviceConnection_->restClient()->resetMachine();
 
-        // Step 3: Wait for C64 to boot, then type LOAD command
+        // Step 3: Wait for C64 to boot
         QTimer::singleShot(3000, this, [this]() {
             statusBar()->showMessage(tr("Loading..."));
-            deviceConnection_->restClient()->typeText("LOAD\"*\",8,1\n");
 
-            // Step 4: Wait for load, then type RUN
-            QTimer::singleShot(3000, this, [this]() {
-                deviceConnection_->restClient()->typeText("RUN\n");
-                statusBar()->showMessage(tr("Running disk image"), 3000);
+            // Step 4: Type LOAD"*",8,1 (10 chars exactly, no newline)
+            deviceConnection_->restClient()->typeText("LOAD\"*\",8,1");
+
+            // Step 5: Wait 500ms for buffer to be consumed, then send RETURN
+            QTimer::singleShot(500, this, [this]() {
+                deviceConnection_->restClient()->typeText("\n");
+
+                // Step 6: Wait for load to complete (5 seconds)
+                QTimer::singleShot(5000, this, [this]() {
+                    // Step 7: Type RUN + RETURN
+                    deviceConnection_->restClient()->typeText("RUN\n");
+                    statusBar()->showMessage(tr("Running disk image"), 3000);
+                });
             });
         });
     });
