@@ -16,6 +16,7 @@
 #include <QButtonGroup>
 #include <QRadioButton>
 #include <QListWidget>
+#include <QToolButton>
 
 #include "services/c64urestclient.h"
 
@@ -301,8 +302,10 @@ private:
 
     // Status bar
     QLabel *driveALabel_ = nullptr;
+    QToolButton *driveAEjectButton_ = nullptr;
     QProgressBar *transferProgress_ = nullptr;
     QLabel *driveBLabel_ = nullptr;
+    QToolButton *driveBEjectButton_ = nullptr;
     QLabel *connectionLabel_ = nullptr;
 
     // Dialogs

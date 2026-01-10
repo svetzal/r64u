@@ -5,6 +5,27 @@ All notable changes to r64u will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-01-10
+
+### Added
+- **Config mode** - Full device configuration management with category browser and item editor
+- Config item metadata with dropdown options for enum types and min/max ranges for numeric values
+- **Run disk images** - Run D64/D71/D81 files directly (mounts disk, resets, injects LOAD/RUN commands)
+- Eject buttons in status bar for quick disk ejection when mounted
+- Context menu in Explore/Run mode with Play, Run, Load Config, and Mount options
+
+### Changed
+- Config items sorted alphabetically for easier navigation
+- Config category list styled to match tree views (alternating colors, better spacing)
+- Text input fields in Config panel limited to reasonable width
+- Context menu items enable/disable based on file type (matching toolbar behavior)
+- "Set as Destination" only available for directories in Transfer mode
+
+### Fixed
+- Config mode now switches correctly (was showing Explore/Run panel)
+- Config panel reliably loads items when category is selected
+- Keyboard buffer injection properly handles commands longer than 10 characters
+
 ## [0.6.1] - 2026-01-10
 
 ### Added
@@ -125,6 +146,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - macOS code signing and notarization
 - Multi-platform builds (macOS, Linux, Windows)
 
+[0.7.0]: https://github.com/svetzal/r64u/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/svetzal/r64u/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/svetzal/r64u/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/svetzal/r64u/compare/v0.5.0...v0.5.1

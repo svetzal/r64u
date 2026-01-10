@@ -236,13 +236,30 @@ void MainWindow::setupStatusBar()
     driveBLabel_ = new QLabel(tr("Drive B: [none]"));
     connectionLabel_ = new QLabel(tr("Disconnected"));
 
+    // Eject buttons for drives
+    driveAEjectButton_ = new QToolButton();
+    driveAEjectButton_->setText(tr("⏏"));
+    driveAEjectButton_->setToolTip(tr("Eject Drive A"));
+    driveAEjectButton_->setAutoRaise(true);
+    driveAEjectButton_->setVisible(false);
+    connect(driveAEjectButton_, &QToolButton::clicked, this, &MainWindow::onEjectDriveA);
+
+    driveBEjectButton_ = new QToolButton();
+    driveBEjectButton_->setText(tr("⏏"));
+    driveBEjectButton_->setToolTip(tr("Eject Drive B"));
+    driveBEjectButton_->setAutoRaise(true);
+    driveBEjectButton_->setVisible(false);
+    connect(driveBEjectButton_, &QToolButton::clicked, this, &MainWindow::onEjectDriveB);
+
     transferProgress_ = new QProgressBar();
     transferProgress_->setMaximumWidth(150);
     transferProgress_->setVisible(false);
 
     statusBar()->addWidget(driveALabel_);
+    statusBar()->addWidget(driveAEjectButton_);
     statusBar()->addWidget(new QLabel(" | "));
     statusBar()->addWidget(driveBLabel_);
+    statusBar()->addWidget(driveBEjectButton_);
     statusBar()->addPermanentWidget(transferProgress_);
     statusBar()->addPermanentWidget(connectionLabel_);
 }
@@ -732,6 +749,12 @@ void MainWindow::setupConfigMode()
     configCategoryList_ = new QListWidget();
     configCategoryList_->setMinimumWidth(150);
     configCategoryList_->setMaximumWidth(250);
+    configCategoryList_->setAlternatingRowColors(true);
+    configCategoryList_->setSpacing(2);
+    // Match the styling of tree views with slightly more padding
+    configCategoryList_->setStyleSheet(
+        "QListWidget::item { padding: 4px 8px; }"
+    );
     connect(configCategoryList_, &QListWidget::currentItemChanged,
             this, &MainWindow::onConfigCategorySelected);
     configSplitter_->addWidget(configCategoryList_);
@@ -935,22 +958,27 @@ void MainWindow::updateStatusBar()
         QList<DriveInfo> drives = deviceConnection_->driveInfo();
         for (const DriveInfo &drive : drives) {
             QString label;
-            if (drive.imageFile.isEmpty()) {
-                label = tr("Drive %1: [none]").arg(drive.name.toUpper());
-            } else {
+            bool hasDisk = !drive.imageFile.isEmpty();
+            if (hasDisk) {
                 label = tr("Drive %1: %2").arg(drive.name.toUpper()).arg(drive.imageFile);
+            } else {
+                label = tr("Drive %1: [none]").arg(drive.name.toUpper());
             }
 
             if (drive.name.toLower() == "a") {
                 driveALabel_->setText(label);
+                driveAEjectButton_->setVisible(hasDisk);
             } else if (drive.name.toLower() == "b") {
                 driveBLabel_->setText(label);
+                driveBEjectButton_->setVisible(hasDisk);
             }
         }
     } else {
         connectionLabel_->setText(tr("Disconnected"));
         driveALabel_->setText(tr("Drive A: [none]"));
+        driveAEjectButton_->setVisible(false);
         driveBLabel_->setText(tr("Drive B: [none]"));
+        driveBEjectButton_->setVisible(false);
     }
 }
 

@@ -57,10 +57,6 @@ void ConfigItemsPanel::setupUi()
 
 void ConfigItemsPanel::setCategory(const QString &category)
 {
-    if (currentCategory_ == category) {
-        return;
-    }
-
     currentCategory_ = category;
     refresh();
 }
@@ -175,6 +171,8 @@ QWidget* ConfigItemsPanel::createEditorWidget(const QString &itemName,
         // Use spinbox for doubles that are integers, line edit otherwise
         auto *lineEdit = new QLineEdit();
         lineEdit->setText(value.toString());
+        // Limit width to approximately 30 characters
+        lineEdit->setMaximumWidth((lineEdit->fontMetrics().averageCharWidth() * 21) + 14);
         connect(lineEdit, &QLineEdit::editingFinished, this,
                 [this, itemName, lineEdit]() {
             QString text = lineEdit->text();
@@ -222,6 +220,8 @@ QWidget* ConfigItemsPanel::createEditorWidget(const QString &itemName,
     // Default: string line edit
     auto *lineEdit = new QLineEdit();
     lineEdit->setText(value.toString());
+    // Limit width to approximately 30 characters
+    lineEdit->setMaximumWidth((lineEdit->fontMetrics().averageCharWidth() * 21) + 14);
     connect(lineEdit, &QLineEdit::editingFinished, this,
             [this, itemName, lineEdit]() {
         emit itemChanged(currentCategory_, itemName, lineEdit->text());
