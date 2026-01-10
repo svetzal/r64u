@@ -298,10 +298,11 @@ QString DiskImageReader::petsciiToString(const QByteArray &data) const
             break;
         }
 
-        // C64 Pro font uses "Direct PETSCII" mapping at U+E0xx
-        // Simply add U+E000 to the PETSCII code
+        // C64 Pro font uses Screencode/CharROM mapping at U+EExx
+        // Convert PETSCII to screen code, then add U+EE00
         // Reference: https://style64.org/petscii/
-        result += QChar(0xE000 + petscii);
+        quint8 screenCode = petsciiToScreenCode(petscii);
+        result += QChar(0xEE00 + screenCode);
     }
 
     return result;
@@ -370,48 +371,48 @@ QString DiskImageReader::asciiToC64Font(const QString &text)
 
     for (QChar ch : text) {
         ushort code = ch.unicode();
-        quint8 petscii;
+        quint8 screenCode;
 
         if (code >= 'A' && code <= 'Z') {
-            // Uppercase letters: PETSCII $41-$5A (same as ASCII)
-            petscii = static_cast<quint8>(code);
+            // Uppercase letters: screen codes 1-26
+            screenCode = code - 'A' + 1;
         } else if (code >= 'a' && code <= 'z') {
-            // Lowercase letters: treat as uppercase PETSCII $41-$5A
-            petscii = static_cast<quint8>(code - 'a' + 'A');
+            // Lowercase letters: treat as uppercase, screen codes 1-26
+            screenCode = code - 'a' + 1;
         } else if (code >= '0' && code <= '9') {
-            // Numbers: PETSCII $30-$39 (same as ASCII)
-            petscii = static_cast<quint8>(code);
+            // Numbers: screen codes $30-$39
+            screenCode = code - '0' + 0x30;
         } else if (code == ' ') {
-            petscii = 0x20;
+            screenCode = 0x20;
         } else if (code == '"') {
-            petscii = 0x22;
+            screenCode = 0x22;
         } else if (code == '*') {
-            petscii = 0x2A;
+            screenCode = 0x2A;
         } else if (code == '<') {
-            petscii = 0x3C;
+            screenCode = 0x3C;
         } else if (code == '.') {
-            petscii = 0x2E;
+            screenCode = 0x2E;
         } else if (code == ',') {
-            petscii = 0x2C;
+            screenCode = 0x2C;
         } else if (code == '!') {
-            petscii = 0x21;
+            screenCode = 0x21;
         } else if (code == '?') {
-            petscii = 0x3F;
+            screenCode = 0x3F;
         } else if (code == '\n') {
             // Keep newline as-is for line breaking
             result += ch;
             continue;
-        } else if (code >= 0xE000 && code <= 0xE0FF) {
+        } else if (code >= 0xEE00 && code <= 0xEEFF) {
             // Already a C64 Pro font character, keep as-is
             result += ch;
             continue;
         } else {
             // Default: space for unknown characters
-            petscii = 0x20;
+            screenCode = 0x20;
         }
 
-        // C64 Pro font uses "Direct PETSCII" mapping at U+E0xx
-        result += QChar(0xE000 + petscii);
+        // C64 Pro font uses Screencode/CharROM mapping at U+EExx
+        result += QChar(0xEE00 + screenCode);
     }
 
     return result;
@@ -421,8 +422,8 @@ QString DiskImageReader::formatDirectoryListing(const DiskDirectory &dir)
 {
     QString result;
 
-    // Use C64 font space character for padding
-    QChar c64Space(0xE000 + 0x20);
+    // Use C64 font space character for padding (screen code $20 at U+EE20)
+    QChar c64Space(0xEE00 + 0x20);
 
     // Header line: disk name and ID (like: 0 "DISK NAME       " ID 2A)
     // Format: 0 "diskname" id,dostype
