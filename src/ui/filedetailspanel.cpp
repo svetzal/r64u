@@ -227,12 +227,8 @@ void FileDetailsPanel::showDiskDirectory(const QByteArray &diskImageData, const 
     textFileNameLabel_->setText(fi.fileName());
     textBrowser_->setPlainText(listing);
 
-    // Apply line height after content is set
-    QTextBlockFormat blockFormat;
-    blockFormat.setLineHeight(150, QTextBlockFormat::ProportionalHeight);
-    QTextCursor cursor = textBrowser_->textCursor();
-    cursor.select(QTextCursor::Document);
-    cursor.mergeBlockFormat(blockFormat);
+    // Note: No extra line height for disk directories - PETSCII graphics
+    // require characters to touch vertically with no gaps
 
     stack_->setCurrentWidget(textPage_);
 }
