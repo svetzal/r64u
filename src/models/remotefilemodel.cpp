@@ -261,6 +261,22 @@ void RemoteFileModel::refresh(const QModelIndex &index)
     fetchMore(parentIndex);
 }
 
+void RemoteFileModel::clear()
+{
+    beginResetModel();
+
+    // Clear all children but keep the root node structure
+    if (rootNode_) {
+        qDeleteAll(rootNode_->children);
+        rootNode_->children.clear();
+        rootNode_->fetched = false;
+        rootNode_->fetching = false;
+    }
+    pendingFetches_.clear();
+
+    endResetModel();
+}
+
 RemoteFileModel::FileType RemoteFileModel::detectFileType(const QString &filename)
 {
     QString ext = filename.section('.', -1).toLower();

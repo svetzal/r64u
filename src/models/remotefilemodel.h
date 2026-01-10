@@ -59,6 +59,7 @@ public:
 
     void refresh();
     void refresh(const QModelIndex &index);
+    void clear();
 
     static FileType detectFileType(const QString &filename);
     static QIcon iconForFileType(FileType type);

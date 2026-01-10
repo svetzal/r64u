@@ -1239,6 +1239,8 @@ void MainWindow::onConnectionStateChanged()
         break;
     case DeviceConnection::ConnectionState::Disconnected:
         statusBar()->showMessage(tr("Disconnected"), 3000);
+        // Clear remote file model to prevent browsing stale cached listings
+        remoteFileModel_->clear();
         // Stop streaming if active
         if (isStreaming_) {
             onStopStreaming();
