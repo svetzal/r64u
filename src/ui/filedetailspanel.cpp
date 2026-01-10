@@ -4,6 +4,9 @@
 #include <QHBoxLayout>
 #include <QFileInfo>
 #include <QFont>
+#include <QGuiApplication>
+#include <QTextBlockFormat>
+#include <QTextCursor>
 
 FileDetailsPanel::FileDetailsPanel(QWidget *parent)
     : QWidget(parent)
@@ -69,24 +72,29 @@ void FileDetailsPanel::setupUi()
     textBrowser_->setReadOnly(true);
     textBrowser_->setOpenExternalLinks(false);
     textBrowser_->setOpenLinks(false);
-    QFont monoFont("Menlo, Monaco, Consolas, monospace");
-    monoFont.setStyleHint(QFont::Monospace);
-    monoFont.setPointSize(11);
-    textBrowser_->setFont(monoFont);
+
+    // Apply C64 styling
+    applyC64TextStyle();
+
+    // Connect to system theme changes
+    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
+            this, &FileDetailsPanel::onColorSchemeChanged);
 
     textLayout->addWidget(textFileNameLabel_);
     textLayout->addWidget(textBrowser_);
 
     stack_->addWidget(textPage_);
 
-    // HTML page (page 3) - shown for HTML files with JavaScript support
+    // HTML page (page 3) - shown for HTML files (basic HTML rendering)
     htmlPage_ = new QWidget();
     auto *htmlLayout = new QVBoxLayout(htmlPage_);
     htmlLayout->setContentsMargins(0, 0, 0, 0);
 
-    webView_ = new QWebEngineView();
+    htmlBrowser_ = new QTextBrowser();
+    htmlBrowser_->setReadOnly(true);
+    htmlBrowser_->setOpenExternalLinks(true);
 
-    htmlLayout->addWidget(webView_);
+    htmlLayout->addWidget(htmlBrowser_);
 
     stack_->addWidget(htmlPage_);
 
@@ -101,8 +109,14 @@ void FileDetailsPanel::showFileDetails(const QString &path, qint64 size, const Q
 
     if (isHtmlFile(path)) {
         // Show HTML page with loading state
-        webView_->setHtml(tr("<p style='color:gray'>Loading...</p>"));
+        htmlBrowser_->setHtml(tr("<p style='color:gray'>Loading...</p>"));
         stack_->setCurrentWidget(htmlPage_);
+        emit contentRequested(path);
+    } else if (isDiskImageFile(path)) {
+        // Show text page with loading state for disk directory
+        textFileNameLabel_->setText(fileName);
+        textBrowser_->setPlainText(tr("Loading disk directory..."));
+        stack_->setCurrentWidget(textPage_);
         emit contentRequested(path);
     } else if (isTextFile(path)) {
         // Show text page with loading state
@@ -133,9 +147,16 @@ void FileDetailsPanel::showFileDetails(const QString &path, qint64 size, const Q
 void FileDetailsPanel::showTextContent(const QString &content)
 {
     if (isHtmlFile(currentPath_)) {
-        webView_->setHtml(content);
+        htmlBrowser_->setHtml(content);
     } else {
         textBrowser_->setPlainText(content);
+
+        // Apply line height after content is set (must be done after setPlainText)
+        QTextBlockFormat blockFormat;
+        blockFormat.setLineHeight(150, QTextBlockFormat::ProportionalHeight);
+        QTextCursor cursor = textBrowser_->textCursor();
+        cursor.select(QTextCursor::Document);
+        cursor.mergeBlockFormat(blockFormat);
     }
 }
 
@@ -153,7 +174,7 @@ void FileDetailsPanel::showError(const QString &message)
     if (stack_->currentWidget() == textPage_) {
         textBrowser_->setPlainText(tr("Error: %1").arg(message));
     } else if (stack_->currentWidget() == htmlPage_) {
-        webView_->setHtml(tr("<p style='color:red'>Error: %1</p>").arg(message));
+        htmlBrowser_->setHtml(tr("<p style='color:red'>Error: %1</p>").arg(message));
     } else {
         statusLabel_->setText(tr("Error: %1").arg(message));
         statusLabel_->show();
@@ -183,4 +204,82 @@ bool FileDetailsPanel::isHtmlFile(const QString &path) const
 {
     QString lower = path.toLower();
     return lower.endsWith(".html") || lower.endsWith(".htm");
+}
+
+bool FileDetailsPanel::isDiskImageFile(const QString &path) const
+{
+    return DiskImageReader::isDiskImage(path);
+}
+
+void FileDetailsPanel::showDiskDirectory(const QByteArray &diskImageData, const QString &filename)
+{
+    DiskImageReader reader;
+    DiskImageReader::DiskDirectory dir = reader.parse(diskImageData, filename);
+
+    if (dir.format == DiskImageReader::Format::Unknown) {
+        showError(tr("Unable to parse disk image"));
+        return;
+    }
+
+    QString listing = DiskImageReader::formatDirectoryListing(dir);
+
+    QFileInfo fi(filename);
+    textFileNameLabel_->setText(fi.fileName());
+    textBrowser_->setPlainText(listing);
+
+    // Apply line height after content is set
+    QTextBlockFormat blockFormat;
+    blockFormat.setLineHeight(150, QTextBlockFormat::ProportionalHeight);
+    QTextCursor cursor = textBrowser_->textCursor();
+    cursor.select(QTextCursor::Document);
+    cursor.mergeBlockFormat(blockFormat);
+
+    stack_->setCurrentWidget(textPage_);
+}
+
+void FileDetailsPanel::applyC64TextStyle()
+{
+    // Set C64 Pro Mono font
+    QFont c64Font("C64 Pro Mono");
+    c64Font.setStyleHint(QFont::Monospace);
+    c64Font.setPointSize(12);
+    textBrowser_->setFont(c64Font);
+
+    // Determine color scheme based on system theme
+    Qt::ColorScheme scheme = QGuiApplication::styleHints()->colorScheme();
+    bool isDarkMode = (scheme == Qt::ColorScheme::Dark);
+
+    // C64 color constants
+    const QString c64Blue = "#4040E8";
+    const QString c64LightBlue = "#887ECB";
+
+    QString stylesheet;
+    if (isDarkMode) {
+        // Dark mode: blue text on black background
+        stylesheet = QString(
+            "QTextBrowser {"
+            "  background-color: #000000;"
+            "  color: %1;"
+            "  border: 1px solid %1;"
+            "  padding: 8px;"
+            "}"
+        ).arg(c64LightBlue);
+    } else {
+        // Light mode: white text on blue background (classic C64 look)
+        stylesheet = QString(
+            "QTextBrowser {"
+            "  background-color: %1;"
+            "  color: #FFFFFF;"
+            "  border: 1px solid #2020A8;"
+            "  padding: 8px;"
+            "}"
+        ).arg(c64Blue);
+    }
+
+    textBrowser_->setStyleSheet(stylesheet);
+}
+
+void FileDetailsPanel::onColorSchemeChanged(Qt::ColorScheme /*scheme*/)
+{
+    applyC64TextStyle();
 }

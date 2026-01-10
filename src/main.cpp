@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QCommandLineParser>
+#include <QFontDatabase>
 #include "mainwindow.h"
 #include "utils/logging.h"
 
@@ -30,6 +31,17 @@ int main(int argc, char *argv[])
 
     if (r64u::verboseLogging) {
         qDebug() << "Verbose logging enabled";
+    }
+
+    // Load C64 font from resources
+    int fontId = QFontDatabase::addApplicationFont(":/fonts/C64_Pro_Mono.ttf");
+    if (fontId == -1) {
+        qWarning() << "Failed to load C64 Pro Mono font";
+    } else if (r64u::verboseLogging) {
+        QStringList families = QFontDatabase::applicationFontFamilies(fontId);
+        if (!families.isEmpty()) {
+            qDebug() << "Loaded C64 font:" << families.first();
+        }
     }
 
     MainWindow window;

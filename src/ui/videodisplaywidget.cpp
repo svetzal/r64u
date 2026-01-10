@@ -6,6 +6,7 @@
 #include "videodisplaywidget.h"
 #include "utils/logging.h"
 #include <QPainter>
+#include <QKeyEvent>
 
 // Standard VIC-II color palette
 // Values from: https://www.pepto.de/projects/colorvic/
@@ -43,6 +44,9 @@ VideoDisplayWidget::VideoDisplayWidget(QWidget *parent)
 
     // Enable smooth scaling
     setAttribute(Qt::WA_OpaquePaintEvent);
+
+    // Enable keyboard focus
+    setFocusPolicy(Qt::StrongFocus);
 }
 
 QSize VideoDisplayWidget::sizeHint() const
@@ -177,4 +181,33 @@ QRect VideoDisplayWidget::calculateDisplayRect() const
     int y = (height() - displayHeight) / 2;
 
     return {x, y, displayWidth, displayHeight};
+}
+
+void VideoDisplayWidget::keyPressEvent(QKeyEvent *event)
+{
+    // Emit signal for parent to handle
+    emit keyPressed(event);
+
+    // Don't call base implementation - we handle all keys
+    event->accept();
+}
+
+void VideoDisplayWidget::focusInEvent(QFocusEvent *event)
+{
+    QWidget::focusInEvent(event);
+    // Could add visual focus indicator here if desired
+    update();
+}
+
+void VideoDisplayWidget::focusOutEvent(QFocusEvent *event)
+{
+    QWidget::focusOutEvent(event);
+    update();
+}
+
+void VideoDisplayWidget::mousePressEvent(QMouseEvent *event)
+{
+    // Click to focus
+    setFocus(Qt::MouseFocusReason);
+    QWidget::mousePressEvent(event);
 }

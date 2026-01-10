@@ -4,8 +4,10 @@
 #include <QWidget>
 #include <QStackedWidget>
 #include <QTextBrowser>
-#include <QWebEngineView>
 #include <QLabel>
+#include <QStyleHints>
+
+#include "services/diskimagereader.h"
 
 class FileDetailsPanel : public QWidget
 {
@@ -16,18 +18,24 @@ public:
 
     void showFileDetails(const QString &path, qint64 size, const QString &type);
     void showTextContent(const QString &content);
+    void showDiskDirectory(const QByteArray &diskImageData, const QString &filename);
     void showLoading(const QString &path);
     void showError(const QString &message);
     void clear();
 
     bool isTextFile(const QString &path) const;
     bool isHtmlFile(const QString &path) const;
+    bool isDiskImageFile(const QString &path) const;
 
 signals:
     void contentRequested(const QString &path);
 
+private slots:
+    void onColorSchemeChanged(Qt::ColorScheme scheme);
+
 private:
     void setupUi();
+    void applyC64TextStyle();
 
     QStackedWidget *stack_ = nullptr;
     QWidget *emptyPage_ = nullptr;
@@ -45,7 +53,7 @@ private:
     QTextBrowser *textBrowser_ = nullptr;
 
     // HTML page widgets
-    QWebEngineView *webView_ = nullptr;
+    QTextBrowser *htmlBrowser_ = nullptr;
 
     // Loading/error states
     QLabel *statusLabel_ = nullptr;

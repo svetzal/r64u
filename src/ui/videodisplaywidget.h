@@ -96,8 +96,18 @@ signals:
      */
     void formatChanged(VideoStreamReceiver::VideoFormat format);
 
+    /**
+     * @brief Emitted when a key is pressed while the widget has focus.
+     * @param event The key event.
+     */
+    void keyPressed(QKeyEvent *event);
+
 protected:
     void paintEvent(QPaintEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+    void focusInEvent(QFocusEvent *event) override;
+    void focusOutEvent(QFocusEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
 
 private:
     void convertFrameToRgb(const QByteArray &frameData, int height);

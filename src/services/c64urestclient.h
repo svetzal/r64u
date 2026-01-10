@@ -226,6 +226,13 @@ public:
      * @brief Simulates pressing the menu button.
      */
     void pressMenuButton();
+
+    /**
+     * @brief Writes data to C64 memory via DMA.
+     * @param address Hexadecimal memory address (e.g., "0277").
+     * @param data Data bytes to write.
+     */
+    void writeMem(const QString &address, const QByteArray &data);
     /// @}
 
     /// @name File Operations

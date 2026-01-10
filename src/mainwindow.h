@@ -26,6 +26,7 @@ class VideoStreamReceiver;
 class AudioStreamReceiver;
 class AudioPlaybackService;
 class StreamControlClient;
+class KeyboardInputService;
 
 class MainWindow : public QMainWindow
 {
@@ -191,6 +192,7 @@ private:
     VideoStreamReceiver *videoReceiver_ = nullptr;
     AudioStreamReceiver *audioReceiver_ = nullptr;
     AudioPlaybackService *audioPlayback_ = nullptr;
+    KeyboardInputService *keyboardInput_ = nullptr;
     bool isStreaming_ = false;
 
     // Transfer progress UI

@@ -19,13 +19,13 @@ jobs:
         include:
           - os: ubuntu-22.04
             name: Linux
-            artifact: r64u-linux
-          - os: macos-latest
-            name: macOS
-            artifact: r64u-macos
+            artifact: r64u-linux-x86_64
+          - os: macos-14
+            name: macOS-ARM
+            artifact: r64u-macos-arm64
           - os: windows-latest
             name: Windows
-            artifact: r64u-windows
+            artifact: r64u-windows-x64
 
     runs-on: ${{ matrix.os }}
     name: Build (${{ matrix.name }})
@@ -38,34 +38,57 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
-          modules: 'qtwebengine qtwebchannel qtpositioning qtserialport'
+          modules: 'qtmultimedia'
           cache: true
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-dev libxkbcommon-dev libxkbcommon-x11-0 \
-            libfuse2 libxcb-cursor0 \
-            libnss3 libnss3-dev libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
-            libcups2 libcups2-dev libdrm2 libxcomposite1 libxdamage1 libxrandr2 libgbm1 \
-            libasound2 libpango-1.0-0 libcairo2 libatspi2.0-0 libxshmfence1
+          sudo apt-get install -y \
+            libgl1-mesa-dev libxkbcommon-dev libxkbcommon-x11-0 \
+            libfuse2 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+            libxcb-keysyms1 libxcb-render-util0 libxcb-shape0 \
+            libasound2 libpulse0 \
+            rpm rpmbuild dpkg-dev fakeroot imagemagick
 
-      - name: Configure CMake
-        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+      - name: Install Windows dependencies (NSIS)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # NSIS is pre-installed on GitHub runners, verify it
+          makensis /VERSION
+
+      # =========================================================================
+      # Configure and Build
+      # =========================================================================
+      - name: Configure CMake (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DCMAKE_INSTALL_PREFIX=/usr
+
+      - name: Configure CMake (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
 
       - name: Build
         run: cmake --build build --config ${{ env.BUILD_TYPE }}
 
-      - name: Bundle Qt Frameworks (macOS)
+      # =========================================================================
+      # macOS Packaging
+      # =========================================================================
+      - name: Deploy Qt (macOS)
         if: runner.os == 'macOS'
         run: |
-          APP_PATH="build/r64u.app"
-          macdeployqt "$APP_PATH" -verbose=2
+          macdeployqt build/r64u.app -verbose=2
 
-          # Remove Headers and .prl files that can cause signing issues
-          find "$APP_PATH/Contents/Frameworks" -name "Headers" -exec rm -rf {} + 2>/dev/null || true
-          find "$APP_PATH/Contents/Frameworks" -name "*.prl" -delete
+          # Clean up for code signing
+          find build/r64u.app/Contents/Frameworks -name "Headers" -exec rm -rf {} + 2>/dev/null || true
+          find build/r64u.app/Contents/Frameworks -name "*.prl" -delete 2>/dev/null || true
 
       - name: Import Code Signing Certificate
         id: codesign
@@ -82,7 +105,6 @@ jobs:
 
           echo "has_certificate=true" >> $GITHUB_OUTPUT
 
-          # Create temporary keychain
           KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
           KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
 
@@ -90,13 +112,10 @@ jobs:
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-          # Import certificate
           echo "$MACOS_CERTIFICATE" | base64 --decode > $RUNNER_TEMP/certificate.p12
           security import $RUNNER_TEMP/certificate.p12 -P "$MACOS_CERTIFICATE_PWD" \
             -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
           security list-keychain -d user -s "$KEYCHAIN_PATH"
-
-          # Allow codesign to access the key
           security set-key-partition-list -S apple-tool:,apple:,codesign: \
             -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
@@ -107,39 +126,21 @@ jobs:
         run: |
           APP_PATH="build/r64u.app"
 
-          # Sign nested helper apps first (e.g., QtWebEngineProcess.app inside frameworks)
-          find "$APP_PATH/Contents/Frameworks" -name "*.app" -type d | while read helper_app; do
-            echo "Signing helper app: $helper_app"
-            codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$helper_app"
+          # Sign frameworks and plugins
+          find "$APP_PATH/Contents/Frameworks" -name "*.framework" -type d | while read f; do
+            codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$f" || true
+          done
+          find "$APP_PATH/Contents/PlugIns" -name "*.dylib" -type f | while read f; do
+            codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$f" || true
+          done
+          find "$APP_PATH/Contents/Frameworks" -name "*.dylib" -type f | while read f; do
+            codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$f" || true
           done
 
-          # Sign Qt frameworks (after their nested apps are signed)
-          find "$APP_PATH/Contents/Frameworks" -name "*.framework" -type d | while read framework; do
-            echo "Signing framework: $framework"
-            codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$framework"
-          done
-
-          # Sign Qt plugins
-          find "$APP_PATH/Contents/PlugIns" -name "*.dylib" -type f | while read plugin; do
-            codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$plugin"
-          done
-
-          # Sign any other dylibs in Frameworks
-          find "$APP_PATH/Contents/Frameworks" -name "*.dylib" -type f | while read dylib; do
-            codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$dylib"
-          done
-
-          # Sign the main executable
+          # Sign main executable and bundle
           codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$APP_PATH/Contents/MacOS/r64u"
-
-          # Sign the app bundle itself
           codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$APP_PATH"
-
-          # Verify signature
           codesign --verify --verbose=4 "$APP_PATH"
-
-          # Check with spctl
-          spctl -a -vvv "$APP_PATH" || echo "spctl check completed"
 
       - name: Notarize App Bundle
         if: runner.os == 'macOS' && steps.codesign.outputs.has_certificate == 'true' && startsWith(github.ref, 'refs/tags/v')
@@ -148,94 +149,192 @@ jobs:
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          APP_PATH="build/r64u.app"
-
-          # Create zip for notarization
-          ditto -c -k --keepParent "$APP_PATH" $RUNNER_TEMP/r64u-notarize.zip
-
-          # Submit for notarization and wait
+          ditto -c -k --keepParent build/r64u.app $RUNNER_TEMP/r64u-notarize.zip
           xcrun notarytool submit $RUNNER_TEMP/r64u-notarize.zip \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
             --wait
+          xcrun stapler staple build/r64u.app
 
-          # Staple the notarization ticket to the app
-          xcrun stapler staple "$APP_PATH"
-
-      - name: Package (macOS)
+      - name: Create DMG (macOS)
         if: runner.os == 'macOS'
         run: |
           cd build
-          ditto -c -k --sequesterRsrc --keepParent r64u.app r64u-macos.zip
+          cpack -G DragNDrop -C ${{ env.BUILD_TYPE }}
+          ls -la *.dmg
 
-      - name: Package (Linux AppImage)
+      # =========================================================================
+      # Linux Packaging
+      # =========================================================================
+      - name: Create DEB Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cd build
+          cpack -G DEB
+          ls -la *.deb || echo "No DEB created"
+
+      - name: Create RPM Package (Linux)
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        run: |
+          cd build
+          cpack -G RPM
+          ls -la *.rpm || echo "No RPM created"
+
+      - name: Create AppImage (Linux)
         if: runner.os == 'Linux'
         run: |
           # Create AppDir structure
           mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/lib
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
 
           # Copy executable
           cp build/r64u AppDir/usr/bin/
 
-          # Create desktop file
-          cat > AppDir/usr/share/applications/r64u.desktop << 'EOF'
-          [Desktop Entry]
-          Type=Application
-          Name=r64u
-          Comment=Remote access tool for Commodore 64 Ultimate devices
-          Exec=r64u
-          Icon=r64u
-          Categories=Utility;
-          EOF
-          cp AppDir/usr/share/applications/r64u.desktop AppDir/
+          # Copy desktop file
+          cp packaging/r64u.desktop AppDir/usr/share/applications/
+          cp packaging/r64u.desktop AppDir/
 
-          # Create a simple icon placeholder
-          convert -size 256x256 xc:'#4488CC' AppDir/usr/share/icons/hicolor/256x256/apps/r64u.png
+          # Create icon
+          if [ -f resources/icons/app.png ]; then
+            cp resources/icons/app.png AppDir/usr/share/icons/hicolor/256x256/apps/r64u.png
+          else
+            convert -size 256x256 xc:'#4488CC' -fill white -gravity center \
+              -pointsize 72 -annotate 0 'r64u' \
+              AppDir/usr/share/icons/hicolor/256x256/apps/r64u.png
+          fi
           cp AppDir/usr/share/icons/hicolor/256x256/apps/r64u.png AppDir/r64u.png
 
-          # Download linuxdeployqt
-          wget -q https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
-          chmod +x linuxdeployqt-continuous-x86_64.AppImage
+          # Download linuxdeploy
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
 
-          # Create AppImage
-          ./linuxdeployqt-continuous-x86_64.AppImage AppDir/usr/share/applications/r64u.desktop -appimage -verbose=2
+          # Build AppImage
+          export QMAKE=$(find $Qt6_DIR -name qmake -type f | head -1)
+          export OUTPUT=r64u-${{ matrix.artifact }}.AppImage
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
 
-          # Rename to standard name
-          mv r64u*.AppImage r64u-linux.AppImage || mv R64u*.AppImage r64u-linux.AppImage
+          ls -la *.AppImage
 
-      - name: Package (Windows)
+      # =========================================================================
+      # Windows Packaging
+      # =========================================================================
+      - name: Deploy Qt and Create Installers (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          cd build/Release
-          mkdir package
-          copy r64u.exe package/
-          windeployqt --release --no-translations package/r64u.exe
-          Compress-Archive -Path package/* -DestinationPath ../r64u-windows.zip
+          # Deploy Qt to the build output
+          $exePath = "build\Release\r64u.exe"
+          if (-not (Test-Path $exePath)) {
+            $exePath = "build\r64u.exe"
+          }
 
-      - name: Upload artifact (macOS)
+          Write-Host "Deploying Qt for: $exePath"
+          windeployqt --release --no-translations $exePath
+
+          # Create install directory structure for CPack
+          cmake --install build --config Release --prefix build/install
+
+          # Run windeployqt on installed exe too
+          $installedExe = "build\install\bin\r64u.exe"
+          if (Test-Path $installedExe) {
+            windeployqt --release --no-translations $installedExe
+          }
+
+      - name: Create NSIS Installer (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          cd build
+          cpack -G NSIS -C Release
+          Get-ChildItem *.exe -ErrorAction SilentlyContinue
+
+      - name: Create ZIP (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cd build
+
+          # Find the release directory with the exe
+          $releaseDir = if (Test-Path "Release") { "Release" } else { "." }
+
+          # Create a clean package directory
+          New-Item -ItemType Directory -Force -Path "package"
+          Copy-Item "$releaseDir\r64u.exe" "package\" -ErrorAction SilentlyContinue
+          Copy-Item "$releaseDir\*.dll" "package\" -ErrorAction SilentlyContinue
+
+          # Copy Qt plugins if they exist
+          if (Test-Path "$releaseDir\platforms") {
+            Copy-Item "$releaseDir\platforms" "package\" -Recurse
+          }
+          if (Test-Path "$releaseDir\styles") {
+            Copy-Item "$releaseDir\styles" "package\" -Recurse
+          }
+          if (Test-Path "$releaseDir\multimedia") {
+            Copy-Item "$releaseDir\multimedia" "package\" -Recurse
+          }
+          if (Test-Path "$releaseDir\imageformats") {
+            Copy-Item "$releaseDir\imageformats" "package\" -Recurse
+          }
+
+          Compress-Archive -Path "package\*" -DestinationPath "r64u-${{ matrix.artifact }}.zip" -Force
+          Get-ChildItem *.zip
+
+      # =========================================================================
+      # Upload Artifacts
+      # =========================================================================
+      - name: Upload DMG (macOS)
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: build/r64u-macos.zip
+          name: ${{ matrix.artifact }}-dmg
+          path: build/*.dmg
+          if-no-files-found: error
 
-      - name: Upload artifact (Linux)
+      - name: Upload DEB (Linux)
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: r64u-linux.AppImage
+          name: ${{ matrix.artifact }}-deb
+          path: build/*.deb
+          if-no-files-found: warn
 
-      - name: Upload artifact (Windows)
+      - name: Upload RPM (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}-rpm
+          path: build/*.rpm
+          if-no-files-found: warn
+
+      - name: Upload AppImage (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}-appimage
+          path: "*.AppImage"
+          if-no-files-found: error
+
+      - name: Upload NSIS Installer (Windows)
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: build/r64u-windows.zip
+          name: ${{ matrix.artifact }}-nsis
+          path: build/*.exe
+          if-no-files-found: warn
+
+      - name: Upload ZIP (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}-zip
+          path: build/*.zip
+          if-no-files-found: error
 
   release:
     needs: build
@@ -250,12 +349,20 @@ jobs:
         with:
           path: artifacts
 
+      - name: List all artifacts
+        run: |
+          echo "=== All artifacts ==="
+          find artifacts -type f -ls
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            artifacts/r64u-linux/r64u-linux.AppImage
-            artifacts/r64u-macos/r64u-macos.zip
-            artifacts/r64u-windows/r64u-windows.zip
+            artifacts/**/*.dmg
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
+            artifacts/**/*.rpm
+            artifacts/**/*.exe
+            artifacts/**/*.zip
           draft: false
           generate_release_notes: true

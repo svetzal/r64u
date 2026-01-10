@@ -8,6 +8,7 @@
 #include "services/videostreamreceiver.h"
 #include "services/audiostreamreceiver.h"
 #include "services/audioplaybackservice.h"
+#include "services/keyboardinputservice.h"
 #include "models/remotefilemodel.h"
 #include "models/localfileproxymodel.h"
 #include "models/transferqueue.h"
@@ -21,6 +22,7 @@
 #include <QMessageBox>
 #include <QSettings>
 #include <QCloseEvent>
+#include <QKeyEvent>
 #include <QInputDialog>
 #include <QFile>
 #include <QFileInfo>
@@ -602,6 +604,15 @@ void MainWindow::setupViewMode()
             this, &MainWindow::onStreamCommandSucceeded);
     connect(streamControl_, &StreamControlClient::commandFailed,
             this, &MainWindow::onStreamCommandFailed);
+
+    // Create keyboard input service
+    keyboardInput_ = new KeyboardInputService(deviceConnection_->restClient(), this);
+
+    // Connect video display keyboard events to keyboard service
+    connect(videoDisplayWidget_, &VideoDisplayWidget::keyPressed,
+            this, [this](QKeyEvent *event) {
+        keyboardInput_->handleKeyPress(event);
+    });
 }
 
 void MainWindow::setupConnections()
@@ -1458,10 +1469,14 @@ void MainWindow::onFileContentRequested(const QString &path)
 
 void MainWindow::onFileContentReceived(const QString &remotePath, const QByteArray &data)
 {
-    Q_UNUSED(remotePath)
-    // Display the content in the file details panel
-    QString content = QString::fromUtf8(data);
-    fileDetailsPanel_->showTextContent(content);
+    // Check if this is a disk image file
+    if (fileDetailsPanel_->isDiskImageFile(remotePath)) {
+        fileDetailsPanel_->showDiskDirectory(data, remotePath);
+    } else {
+        // Display the content in the file details panel as text
+        QString content = QString::fromUtf8(data);
+        fileDetailsPanel_->showTextContent(content);
+    }
 }
 
 void MainWindow::onLoadConfig()

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=r64u
+GenericName=C64 Ultimate Remote
+Comment=Remote access tool for Commodore 64 Ultimate devices
+Exec=r64u %F
+Icon=r64u
+Terminal=false
+Type=Application
+Categories=Utility;Network;
+Keywords=c64;commodore;ultimate;retro;emulator;
+StartupWMClass=r64u
+MimeType=application/x-d64;application/x-d71;application/x-d81;application/x-sid;

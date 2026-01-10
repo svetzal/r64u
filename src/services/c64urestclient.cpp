@@ -178,6 +178,19 @@ void C64URestClient::pressMenuButton()
     sendPutRequest("/v1/machine:menu_button", "menuButton");
 }
 
+void C64URestClient::writeMem(const QString &address, const QByteArray &data)
+{
+    // Convert data to hex string
+    QString hexData;
+    for (char byte : data) {
+        hexData += QString("%1").arg(static_cast<quint8>(byte), 2, 16, QChar('0'));
+    }
+
+    QString endpoint = QString("/v1/machine:writemem?address=%1&data=%2")
+                           .arg(address, hexData);
+    sendPutRequest(endpoint, "writeMem");
+}
+
 // File operations
 
 void C64URestClient::getFileInfo(const QString &path)
