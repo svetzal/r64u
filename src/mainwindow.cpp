@@ -175,10 +175,14 @@ void MainWindow::setupToolBar()
     connectAction_ = mainToolBar_->addAction(tr("Connect"));
     connectAction_->setToolTip(tr("Connect to C64U device"));
     connect(connectAction_, &QAction::triggered, this, [this]() {
-        if (deviceConnection_->isConnected()) {
-            onDisconnect();
-        } else {
+        // Check actual state, not just isConnected()
+        // In Connecting/Reconnecting states, clicking should cancel
+        DeviceConnection::ConnectionState state = deviceConnection_->state();
+        if (state == DeviceConnection::ConnectionState::Disconnected) {
             onConnect();
+        } else {
+            // Connected, Connecting, or Reconnecting - disconnect/cancel
+            onDisconnect();
         }
     });
 
@@ -803,8 +807,22 @@ void MainWindow::updateActions()
                                           fileType == RemoteFileModel::FileType::Cartridge);
     bool canMount = hasRemoteSelection && fileType == RemoteFileModel::FileType::DiskImage;
 
-    // Update action states
-    connectAction_->setText(connected ? tr("Disconnect") : tr("Connect"));
+    // Update action states based on actual connection state
+    DeviceConnection::ConnectionState state = deviceConnection_->state();
+    switch (state) {
+    case DeviceConnection::ConnectionState::Disconnected:
+        connectAction_->setText(tr("Connect"));
+        break;
+    case DeviceConnection::ConnectionState::Connecting:
+        connectAction_->setText(tr("Cancel"));
+        break;
+    case DeviceConnection::ConnectionState::Connected:
+        connectAction_->setText(tr("Disconnect"));
+        break;
+    case DeviceConnection::ConnectionState::Reconnecting:
+        connectAction_->setText(tr("Cancel"));
+        break;
+    }
     playAction_->setEnabled(connected && canPlay);
     runAction_->setEnabled(connected && canRun);
     mountAction_->setEnabled(connected && canMount);
