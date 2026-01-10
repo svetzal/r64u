@@ -235,6 +235,16 @@ void C64URestClient::getConfigCategoryItems(const QString &category)
     sendGetRequest(endpoint, "configCategoryItems:" + category);
 }
 
+void C64URestClient::setConfigItem(const QString &category, const QString &item,
+                                   const QVariant &value)
+{
+    QString endpoint = "/v1/configs/" + QUrl::toPercentEncoding(category) + "/" +
+                       QUrl::toPercentEncoding(item) + "?value=" +
+                       QUrl::toPercentEncoding(value.toString());
+    // Encode category:item in operation name for response routing
+    sendPutRequest(endpoint, "setConfigItem:" + category + ":" + item);
+}
+
 void C64URestClient::updateConfigsBatch(const QJsonObject &configs)
 {
     QJsonDocument doc(configs);
@@ -327,6 +337,16 @@ void C64URestClient::onReplyFinished(QNetworkReply *reply)
     } else if (operation.startsWith("configCategoryItems:")) {
         QString category = operation.mid(20);  // Length of "configCategoryItems:"
         handleConfigCategoryItemsResponse(category, json);
+    } else if (operation.startsWith("setConfigItem:")) {
+        // Parse category:item from operation name
+        QString catItem = operation.mid(14);  // Length of "setConfigItem:"
+        int colonPos = catItem.indexOf(':');
+        if (colonPos > 0) {
+            QString category = catItem.left(colonPos);
+            QString item = catItem.mid(colonPos + 1);
+            emit configItemSet(category, item);
+        }
+        emit operationSucceeded(operation);
     } else if (operation == "updateConfigs") {
         emit configsUpdated();
         emit operationSucceeded(operation);

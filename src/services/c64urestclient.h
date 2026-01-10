@@ -284,6 +284,17 @@ public:
     void getConfigCategoryItems(const QString &category);
 
     /**
+     * @brief Sets a single configuration item value.
+     * @param category Configuration category name.
+     * @param item Configuration item name.
+     * @param value New value for the item.
+     *
+     * Emits configItemSet() on success.
+     */
+    void setConfigItem(const QString &category, const QString &item,
+                       const QVariant &value);
+
+    /**
      * @brief Updates multiple configuration values.
      * @param configs JSON object with configuration key-value pairs.
      *
@@ -358,6 +369,13 @@ signals:
      */
     void configCategoryItemsReceived(const QString &category,
                                      const QHash<QString, QVariant> &items);
+
+    /**
+     * @brief Emitted when a single configuration item is set.
+     * @param category Category name.
+     * @param item Item name.
+     */
+    void configItemSet(const QString &category, const QString &item);
 
     /**
      * @brief Emitted when configuration update completes.
