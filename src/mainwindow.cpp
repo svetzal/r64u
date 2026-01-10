@@ -980,7 +980,8 @@ void MainWindow::updateActions()
     bool canPlay = hasRemoteSelection && (fileType == RemoteFileModel::FileType::SidMusic ||
                                            fileType == RemoteFileModel::FileType::ModMusic);
     bool canRun = hasRemoteSelection && (fileType == RemoteFileModel::FileType::Program ||
-                                          fileType == RemoteFileModel::FileType::Cartridge);
+                                          fileType == RemoteFileModel::FileType::Cartridge ||
+                                          fileType == RemoteFileModel::FileType::DiskImage);
     bool canMount = hasRemoteSelection && fileType == RemoteFileModel::FileType::DiskImage;
 
     // Update action states based on actual connection state
