@@ -203,8 +203,9 @@ jobs:
           echo "$SUBMIT_OUTPUT"
 
           # Extract submission ID and check status
-          SUBMISSION_ID=$(echo "$SUBMIT_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
-          STATUS=$(echo "$SUBMIT_OUTPUT" | grep "status:" | awk '{print $2}')
+          # Use sed to reliably extract values after the colon, handling any leading whitespace
+          SUBMISSION_ID=$(echo "$SUBMIT_OUTPUT" | grep "id:" | head -1 | sed 's/.*id:[[:space:]]*//')
+          STATUS=$(echo "$SUBMIT_OUTPUT" | grep "status:" | tail -1 | sed 's/.*status:[[:space:]]*//')
 
           echo "Submission ID: $SUBMISSION_ID"
           echo "Status: $STATUS"
