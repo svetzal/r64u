@@ -298,13 +298,10 @@ QString DiskImageReader::petsciiToString(const QByteArray &data) const
             break;
         }
 
-        // Convert PETSCII to C64 screen code, then to Unicode PUA
-        // C64 Pro font maps screen codes to U+E000 + screen_code
-        quint8 screenCode = petsciiToScreenCode(petscii);
-
-        // Map to Unicode Private Use Area where C64 Pro font has glyphs
-        // U+E000 is the base for C64 Pro font character mapping
-        result += QChar(0xE000 + screenCode);
+        // C64 Pro font uses "Direct PETSCII" mapping at U+E0xx
+        // Simply add U+E000 to the PETSCII code
+        // Reference: https://style64.org/petscii/
+        result += QChar(0xE000 + petscii);
     }
 
     return result;
@@ -373,33 +370,33 @@ QString DiskImageReader::asciiToC64Font(const QString &text)
 
     for (QChar ch : text) {
         ushort code = ch.unicode();
-        quint8 screenCode;
+        quint8 petscii;
 
         if (code >= 'A' && code <= 'Z') {
-            // Uppercase letters: screen code 1-26
-            screenCode = code - 'A' + 1;
+            // Uppercase letters: PETSCII $41-$5A (same as ASCII)
+            petscii = static_cast<quint8>(code);
         } else if (code >= 'a' && code <= 'z') {
-            // Lowercase letters: treat as uppercase for C64 uppercase mode
-            screenCode = code - 'a' + 1;
+            // Lowercase letters: treat as uppercase PETSCII $41-$5A
+            petscii = static_cast<quint8>(code - 'a' + 'A');
         } else if (code >= '0' && code <= '9') {
-            // Numbers: screen code $30-$39
-            screenCode = code - '0' + 0x30;
+            // Numbers: PETSCII $30-$39 (same as ASCII)
+            petscii = static_cast<quint8>(code);
         } else if (code == ' ') {
-            screenCode = 0x20;
+            petscii = 0x20;
         } else if (code == '"') {
-            screenCode = 0x22;
+            petscii = 0x22;
         } else if (code == '*') {
-            screenCode = 0x2A;
+            petscii = 0x2A;
         } else if (code == '<') {
-            screenCode = 0x3C;
+            petscii = 0x3C;
         } else if (code == '.') {
-            screenCode = 0x2E;
+            petscii = 0x2E;
         } else if (code == ',') {
-            screenCode = 0x2C;
+            petscii = 0x2C;
         } else if (code == '!') {
-            screenCode = 0x21;
+            petscii = 0x21;
         } else if (code == '?') {
-            screenCode = 0x3F;
+            petscii = 0x3F;
         } else if (code == '\n') {
             // Keep newline as-is for line breaking
             result += ch;
@@ -410,10 +407,11 @@ QString DiskImageReader::asciiToC64Font(const QString &text)
             continue;
         } else {
             // Default: space for unknown characters
-            screenCode = 0x20;
+            petscii = 0x20;
         }
 
-        result += QChar(0xE000 + screenCode);
+        // C64 Pro font uses "Direct PETSCII" mapping at U+E0xx
+        result += QChar(0xE000 + petscii);
     }
 
     return result;
