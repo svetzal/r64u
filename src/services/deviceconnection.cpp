@@ -32,6 +32,61 @@ DeviceConnection::DeviceConnection(QObject *parent)
 
 DeviceConnection::~DeviceConnection() = default;
 
+bool DeviceConnection::isValidTransition(ConnectionState from, ConnectionState to)
+{
+    // Same state is always valid (no-op)
+    if (from == to) {
+        return true;
+    }
+
+    switch (from) {
+    case ConnectionState::Disconnected:
+        // Can only start connecting from disconnected
+        return to == ConnectionState::Connecting;
+
+    case ConnectionState::Connecting:
+        // From connecting: can succeed, fail, or start reconnecting
+        return to == ConnectionState::Connected ||
+               to == ConnectionState::Disconnected ||
+               to == ConnectionState::Reconnecting;
+
+    case ConnectionState::Connected:
+        // From connected: can disconnect or start reconnecting
+        return to == ConnectionState::Disconnected ||
+               to == ConnectionState::Reconnecting;
+
+    case ConnectionState::Reconnecting:
+        // From reconnecting: can succeed, give up, or retry (via Connecting)
+        return to == ConnectionState::Connected ||
+               to == ConnectionState::Disconnected ||
+               to == ConnectionState::Connecting;
+    }
+
+    return false;
+}
+
+bool DeviceConnection::tryTransitionTo(ConnectionState newState)
+{
+    if (!isValidTransition(state_, newState)) {
+        qWarning() << "DeviceConnection: Invalid state transition from"
+                   << static_cast<int>(state_) << "to" << static_cast<int>(newState);
+        return false;
+    }
+
+    if (state_ != newState) {
+        state_ = newState;
+        emit stateChanged(newState);
+    }
+    return true;
+}
+
+void DeviceConnection::resetProtocolFlags()
+{
+    connectingInProgress_ = false;
+    restConnected_ = false;
+    ftpConnected_ = false;
+}
+
 void DeviceConnection::setHost(const QString &host)
 {
     host_ = host;
@@ -54,16 +109,9 @@ void DeviceConnection::setAutoReconnect(bool enabled)
     }
 }
 
-void DeviceConnection::setState(ConnectionState state)
-{
-    if (state_ != state) {
-        state_ = state;
-        emit stateChanged(state);
-    }
-}
-
 void DeviceConnection::connectToDevice()
 {
+    // Guard: only allow connecting from Disconnected or Reconnecting states
     if (state_ == ConnectionState::Connecting ||
         state_ == ConnectionState::Connected) {
         return;
@@ -77,10 +125,14 @@ void DeviceConnection::connectToDevice()
     stopReconnect();
     reconnectAttempts_ = 0;
 
-    setState(ConnectionState::Connecting);
+    if (!tryTransitionTo(ConnectionState::Connecting)) {
+        emit connectionError(tr("Cannot start connection from current state"));
+        return;
+    }
+
+    // Reset protocol flags atomically before starting connections
+    resetProtocolFlags();
     connectingInProgress_ = true;
-    restConnected_ = false;
-    ftpConnected_ = false;
 
     // Start REST connection by fetching device info
     restClient_->getInfo();
@@ -92,16 +144,21 @@ void DeviceConnection::connectToDevice()
 void DeviceConnection::disconnectFromDevice()
 {
     stopReconnect();
-    connectingInProgress_ = false;
 
+    // Disconnect FTP first
     ftpClient_->disconnect();
 
-    restConnected_ = false;
-    ftpConnected_ = false;
+    // Reset all protocol flags atomically
+    resetProtocolFlags();
     deviceInfo_ = DeviceInfo();
     driveInfo_.clear();
 
-    setState(ConnectionState::Disconnected);
+    // Transition to disconnected (valid from any state)
+    // Force the transition even if state machine disagrees, as this is user-initiated
+    if (state_ != ConnectionState::Disconnected) {
+        state_ = ConnectionState::Disconnected;
+        emit stateChanged(ConnectionState::Disconnected);
+    }
     emit disconnected();
 }
 
@@ -142,19 +199,27 @@ void DeviceConnection::onRestDrivesReceived(const QList<DriveInfo> &drives)
 void DeviceConnection::onRestConnectionError(const QString &error)
 {
     if (connectingInProgress_) {
-        connectingInProgress_ = false;
+        // Guard: only handle if we're still in a connecting state
+        if (state_ != ConnectionState::Connecting && state_ != ConnectionState::Reconnecting) {
+            return;
+        }
+
+        resetProtocolFlags();
         ftpClient_->disconnect();
 
         if (state_ == ConnectionState::Reconnecting) {
+            // Continue reconnection attempts
             startReconnect();
         } else {
-            setState(ConnectionState::Disconnected);
+            // Initial connection failed
+            tryTransitionTo(ConnectionState::Disconnected);
             emit connectionError(tr("REST connection failed: %1").arg(error));
         }
     } else if (state_ == ConnectionState::Connected && autoReconnect_) {
         // Connection lost, try to reconnect
-        setState(ConnectionState::Reconnecting);
-        startReconnect();
+        if (tryTransitionTo(ConnectionState::Reconnecting)) {
+            startReconnect();
+        }
     }
 }
 
@@ -177,20 +242,28 @@ void DeviceConnection::onFtpConnected()
 void DeviceConnection::onFtpDisconnected()
 {
     if (state_ == ConnectionState::Connected && autoReconnect_) {
-        setState(ConnectionState::Reconnecting);
-        startReconnect();
+        if (tryTransitionTo(ConnectionState::Reconnecting)) {
+            startReconnect();
+        }
     }
 }
 
 void DeviceConnection::onFtpError(const QString &message)
 {
     if (connectingInProgress_) {
-        connectingInProgress_ = false;
+        // Guard: only handle if we're still in a connecting state
+        if (state_ != ConnectionState::Connecting && state_ != ConnectionState::Reconnecting) {
+            return;
+        }
+
+        resetProtocolFlags();
 
         if (state_ == ConnectionState::Reconnecting) {
+            // Continue reconnection attempts
             startReconnect();
         } else {
-            setState(ConnectionState::Disconnected);
+            // Initial connection failed
+            tryTransitionTo(ConnectionState::Disconnected);
             emit connectionError(tr("FTP connection failed: %1").arg(message));
         }
     }
@@ -198,31 +271,42 @@ void DeviceConnection::onFtpError(const QString &message)
 
 void DeviceConnection::checkBothConnected()
 {
+    // Guard: only check if we're in a connecting state
+    if (state_ != ConnectionState::Connecting && state_ != ConnectionState::Reconnecting) {
+        return;
+    }
+
     if (restConnected_ && ftpConnected_) {
         connectingInProgress_ = false;
         reconnectAttempts_ = 0;
-        setState(ConnectionState::Connected);
-        emit connected();
+        if (tryTransitionTo(ConnectionState::Connected)) {
+            emit connected();
+        }
     }
 }
 
 void DeviceConnection::startReconnect()
 {
     if (!autoReconnect_) {
-        setState(ConnectionState::Disconnected);
+        tryTransitionTo(ConnectionState::Disconnected);
         return;
     }
 
     reconnectAttempts_++;
 
     if (reconnectAttempts_ > MaxReconnectAttempts) {
-        setState(ConnectionState::Disconnected);
+        tryTransitionTo(ConnectionState::Disconnected);
         emit connectionError(tr("Failed to reconnect after %1 attempts")
                              .arg(MaxReconnectAttempts));
         return;
     }
 
-    setState(ConnectionState::Reconnecting);
+    // Ensure we're in reconnecting state before starting timer
+    if (state_ != ConnectionState::Reconnecting) {
+        if (!tryTransitionTo(ConnectionState::Reconnecting)) {
+            return;
+        }
+    }
     reconnectTimer_->start(ReconnectIntervalMs);
 }
 
@@ -233,13 +317,14 @@ void DeviceConnection::stopReconnect()
 
 void DeviceConnection::onReconnectTimer()
 {
+    // Guard: only attempt reconnect if still in reconnecting state
     if (state_ != ConnectionState::Reconnecting) {
         return;
     }
 
+    // Reset protocol flags and start new connection attempt
+    resetProtocolFlags();
     connectingInProgress_ = true;
-    restConnected_ = false;
-    ftpConnected_ = false;
 
     restClient_->getInfo();
     ftpClient_->connectToHost();

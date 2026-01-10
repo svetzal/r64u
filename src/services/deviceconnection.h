@@ -236,7 +236,37 @@ private slots:
     void onReconnectTimer();
 
 private:
-    void setState(ConnectionState state);
+    /**
+     * @brief Attempts to transition to a new state with guards.
+     * @param newState The desired new state.
+     * @return True if the transition was valid and completed, false otherwise.
+     *
+     * Valid state transitions:
+     * - Disconnected -> Connecting (via connectToDevice)
+     * - Connecting -> Connected (when both protocols succeed)
+     * - Connecting -> Disconnected (on failure or cancel)
+     * - Connecting -> Reconnecting (if auto-reconnect during initial connect fails)
+     * - Connected -> Disconnected (via disconnectFromDevice)
+     * - Connected -> Reconnecting (on connection loss with auto-reconnect)
+     * - Reconnecting -> Connecting (when reconnect attempt starts)
+     * - Reconnecting -> Connected (when reconnect succeeds)
+     * - Reconnecting -> Disconnected (on max attempts or cancel)
+     */
+    bool tryTransitionTo(ConnectionState newState);
+
+    /**
+     * @brief Checks if a state transition is valid.
+     * @param from Current state.
+     * @param to Desired state.
+     * @return True if the transition is allowed.
+     */
+    [[nodiscard]] static bool isValidTransition(ConnectionState from, ConnectionState to);
+
+    /**
+     * @brief Resets protocol connection flags atomically.
+     */
+    void resetProtocolFlags();
+
     void checkBothConnected();
     void startReconnect();
     void stopReconnect();
