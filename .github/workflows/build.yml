@@ -17,12 +17,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux builds disabled - runners stuck in queue
-          # - os: ubuntu-20.04
-          #   name: Linux-x64
-          #   artifact: r64u-linux-x86_64
-          #   qt_arch: linux_gcc_64
-          #   linuxdeploy_arch: x86_64
+          # Linux x64 build
+          - os: ubuntu-22.04
+            name: Linux-x64
+            artifact: r64u-linux-x86_64
+            qt_arch: linux_gcc_64
+            linuxdeploy_arch: x86_64
+          # Linux ARM disabled - runners stuck in queue
           # - os: ubuntu-22.04-arm64
           #   name: Linux-ARM
           #   artifact: r64u-linux-arm64
