@@ -112,50 +112,12 @@ char PetsciiConverter::toAscii(quint8 petscii)
 
 QString PetsciiConverter::toDisplayString(const QByteArray &data)
 {
-    // PETSCII to Unicode lookup table for C64 Pro font display
-    // Maps each PETSCII byte to a Unicode code point
-    // Based on Ultimate64/Ultimate-II Control Library mappings
-    static const ushort petsciiToUnicode[256] = {
-        // 0x00-0x1F: Control codes (non-printable, map to space)
-        ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '\n', ' ', ' ',
-        ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-
-        // 0x20-0x3F: Space, punctuation, numbers (direct ASCII)
-        ' ', '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/',
-        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?',
-
-        // 0x40-0x5F: @, uppercase A-Z, special chars
-        '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
-        'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', 0x00A3, ']', 0x2191, 0x2190,
-
-        // 0x60-0x7F: Graphics characters (PETSCII graphics set)
-        0x2500, 0x2660, 0x2502, 0x2500, 0x2500, 0x2500, 0x2500, 0x2500,  // 60-67
-        0x2500, 0x256E, 0x2570, 0x256F, 0x2500, 0x2572, 0x2571, 0x2500,  // 68-6F
-        0x256D, 0x2022, 0x2500, 0x2665, 0x2500, 0x256D, 0x2573, 0x25CB,  // 70-77
-        0x2663, 0x2500, 0x2666, 0x253C, 0x2502, 0x03C0, 0x25E5, 0x2500,  // 78-7F
-
-        // 0x80-0x9F: Control codes (colors, etc.) - display as spaces
-        ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-        ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-
-        // 0xA0-0xBF: Shifted graphics (reverse video versions)
-        0x00A0, 0x258C, 0x2584, 0x2580, 0x2581, 0x258E, 0x2592, 0x2590,  // A0-A7
-        0x25E4, 0x256E, 0x2570, 0x256F, 0x2597, 0x2514, 0x2510, 0x2582,  // A8-AF
-        0x250C, 0x2534, 0x252C, 0x2524, 0x251C, 0x256D, 0x2580, 0x25CB,  // B0-B7
-        0x25CF, 0x2583, 0x2713, 0x2596, 0x259D, 0x2518, 0x2598, 0x259A,  // B8-BF
-
-        // 0xC0-0xDF: Lowercase letters and some graphics
-        ' ',  // C0
-        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',  // C1-CF
-        'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',  // D0-DA
-        0x253C, 0x2502, 0x2502, 0x2500, ' ',  // DB-DF
-
-        // 0xE0-0xFF: Shifted graphics (same as 0xA0-0xBF range)
-        0x00A0, 0x258C, 0x2584, 0x2580, 0x2581, 0x258E, 0x2592, 0x2590,  // E0-E7
-        0x25E4, 0x256E, 0x2570, 0x256F, 0x2597, 0x2514, 0x2510, 0x2582,  // E8-EF
-        0x250C, 0x2534, 0x252C, 0x2524, 0x251C, 0x256D, 0x2580, 0x25CB,  // F0-F7
-        0x25CF, 0x2583, 0x2713, 0x2596, 0x259D, 0x2518, 0x2598, 0x03C0   // F8-FF (last is pi)
-    };
+    // C64 Pro font uses Private Use Area mapping:
+    // PETSCII byte XX -> Unicode U+E0XX (Upper/Graph mode, Reverse Off)
+    // Reference: https://style64.org/petscii/
+    //
+    // The font provides complete PETSCII rendering including all graphics
+    // characters at codepoints U+E000 through U+E0FF.
 
     QString result;
     result.reserve(data.size());
@@ -168,10 +130,9 @@ QString PetsciiConverter::toDisplayString(const QByteArray &data)
             break;
         }
 
-        ushort unicode = petsciiToUnicode[petscii];
-        if (unicode != 0) {
-            result += QChar(unicode);
-        }
+        // Map PETSCII to C64 Pro font's Private Use Area
+        // U+E000 + petscii gives the correct glyph
+        result += QChar(0xE000 + petscii);
     }
 
     return result;

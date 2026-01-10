@@ -145,27 +145,40 @@ jobs:
           codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$APP_PATH"
           codesign --verify --verbose=4 "$APP_PATH"
 
-      - name: Notarize App Bundle
-        if: runner.os == 'macOS' && steps.codesign.outputs.has_certificate == 'true' && startsWith(github.ref, 'refs/tags/v')
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          ditto -c -k --keepParent build/r64u.app $RUNNER_TEMP/r64u-notarize.zip
-          xcrun notarytool submit $RUNNER_TEMP/r64u-notarize.zip \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_APP_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --wait
-          xcrun stapler staple build/r64u.app
-
       - name: Create DMG (macOS)
         if: runner.os == 'macOS'
         run: |
           cd build
           cpack -G DragNDrop -C ${{ env.BUILD_TYPE }}
           ls -la *.dmg
+
+      - name: Sign DMG (macOS)
+        if: runner.os == 'macOS' && steps.codesign.outputs.has_certificate == 'true'
+        env:
+          SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        run: |
+          DMG_FILE=$(ls build/*.dmg | head -1)
+          echo "Signing DMG: $DMG_FILE"
+          codesign --force --sign "$SIGNING_IDENTITY" --timestamp "$DMG_FILE"
+          codesign --verify --verbose=2 "$DMG_FILE"
+
+      - name: Notarize DMG (macOS)
+        if: runner.os == 'macOS' && steps.codesign.outputs.has_certificate == 'true' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          DMG_FILE=$(ls build/*.dmg | head -1)
+          echo "Notarizing DMG: $DMG_FILE"
+          xcrun notarytool submit "$DMG_FILE" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          echo "Stapling notarization to DMG..."
+          xcrun stapler staple "$DMG_FILE"
+          xcrun stapler validate "$DMG_FILE"
 
       # =========================================================================
       # Linux Packaging

@@ -1,0 +1,9 @@
+#pragma once
+
+// Auto-generated version header - DO NOT EDIT
+// Edit version in CMakeLists.txt instead
+
+#define R64U_VERSION "@PROJECT_VERSION@"
+#define R64U_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
+#define R64U_VERSION_MINOR @PROJECT_VERSION_MINOR@
+#define R64U_VERSION_PATCH @PROJECT_VERSION_PATCH@

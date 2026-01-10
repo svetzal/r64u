@@ -3,13 +3,14 @@
 #include <QFontDatabase>
 #include "mainwindow.h"
 #include "utils/logging.h"
+#include "version.h"
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
     app.setApplicationName("r64u");
-    app.setApplicationVersion("0.3.0");
+    app.setApplicationVersion(R64U_VERSION);
     app.setOrganizationName("r64u");
     app.setOrganizationDomain("example.com");
 

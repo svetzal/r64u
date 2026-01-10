@@ -1,9 +1,16 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(r64u
-    VERSION 0.5.0
+    VERSION 0.5.1
     DESCRIPTION "Remote access tool for Commodore 64 Ultimate devices"
     LANGUAGES CXX
+)
+
+# Generate version header from CMake project version
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/version.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/version.h
+    @ONLY
 )
 
 set(CMAKE_CXX_STANDARD 17)
@@ -130,6 +137,7 @@ endif()
 
 target_include_directories(r64u PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_BINARY_DIR}/generated
 )
 
 target_link_libraries(r64u PRIVATE

@@ -3,6 +3,6 @@
         <file>icons/app.png</file>
     </qresource>
     <qresource prefix="/fonts">
-        <file alias="C64_Pro_Mono.ttf">../fonts/C64_Pro_Mono-STYLE.ttf</file>
+        <file alias="C64_Pro_Mono.ttf">fonts/C64_Pro_Mono-STYLE.ttf</file>
     </qresource>
 </RCC>
