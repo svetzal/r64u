@@ -29,6 +29,7 @@ class AudioStreamReceiver;
 class AudioPlaybackService;
 class StreamControlClient;
 class KeyboardInputService;
+class ConfigurationModel;
 
 class MainWindow : public QMainWindow
 {
@@ -38,7 +39,8 @@ public:
     enum class Mode {
         ExploreRun,
         Transfer,
-        View
+        View,
+        Config
     };
 
     explicit MainWindow(QWidget *parent = nullptr);
@@ -133,6 +135,19 @@ private slots:
     void onStreamCommandFailed(const QString &command, const QString &error);
     void onScalingModeChanged(int id);
 
+    // Config mode slots
+    void onConfigSaveToFlash();
+    void onConfigLoadFromFlash();
+    void onConfigResetToDefaults();
+    void onConfigRefresh();
+    void onConfigCategoriesReceived(const QStringList &categories);
+    void onConfigCategoryItemsReceived(const QString &category,
+                                       const QHash<QString, QVariant> &items);
+    void onConfigSavedToFlash();
+    void onConfigLoadedFromFlash();
+    void onConfigResetComplete();
+    void onConfigDirtyStateChanged(bool isDirty);
+
 private:
     void setupUi();
     void setupMenuBar();
@@ -141,6 +156,7 @@ private:
     void setupExploreRunMode();
     void setupTransferMode();
     void setupViewMode();
+    void setupConfigMode();
     void setupConnections();
     void switchToMode(Mode mode);
     void updateWindowTitle();
@@ -206,6 +222,19 @@ private:
     AudioPlaybackService *audioPlayback_ = nullptr;
     KeyboardInputService *keyboardInput_ = nullptr;
     bool isStreaming_ = false;
+
+    // Config mode widgets
+    QWidget *configWidget_ = nullptr;
+    QToolBar *configToolBar_ = nullptr;
+    QAction *configSaveToFlashAction_ = nullptr;
+    QAction *configLoadFromFlashAction_ = nullptr;
+    QAction *configResetToDefaultsAction_ = nullptr;
+    QAction *configRefreshAction_ = nullptr;
+    QLabel *configUnsavedIndicator_ = nullptr;
+    QLabel *configPlaceholderLabel_ = nullptr;
+
+    // Config mode model
+    ConfigurationModel *configModel_ = nullptr;
 
     // Transfer progress UI
     QWidget *transferProgressWidget_ = nullptr;

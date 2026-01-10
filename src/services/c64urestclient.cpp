@@ -223,11 +223,38 @@ void C64URestClient::createD81(const QString &path, const QString &diskName)
 
 // Configuration management
 
+void C64URestClient::getConfigCategories()
+{
+    sendGetRequest("/v1/configs", "configCategories");
+}
+
+void C64URestClient::getConfigCategoryItems(const QString &category)
+{
+    QString endpoint = "/v1/configs/" + QUrl::toPercentEncoding(category);
+    // Encode category in operation name for response routing
+    sendGetRequest(endpoint, "configCategoryItems:" + category);
+}
+
 void C64URestClient::updateConfigsBatch(const QJsonObject &configs)
 {
     QJsonDocument doc(configs);
     QByteArray data = doc.toJson(QJsonDocument::Compact);
     sendPostRequest("/v1/configs", "updateConfigs", data, "application/json");
+}
+
+void C64URestClient::saveConfigToFlash()
+{
+    sendPutRequest("/v1/configs:save_to_flash", "saveConfigToFlash");
+}
+
+void C64URestClient::loadConfigFromFlash()
+{
+    sendPutRequest("/v1/configs:load_from_flash", "loadConfigFromFlash");
+}
+
+void C64URestClient::resetConfigToDefaults()
+{
+    sendPutRequest("/v1/configs:reset_to_default", "resetConfigToDefaults");
 }
 
 // Response handling
@@ -295,8 +322,22 @@ void C64URestClient::onReplyFinished(QNetworkReply *reply)
         handleDrivesResponse(json);
     } else if (operation == "fileInfo") {
         handleFileInfoResponse(json);
+    } else if (operation == "configCategories") {
+        handleConfigCategoriesResponse(json);
+    } else if (operation.startsWith("configCategoryItems:")) {
+        QString category = operation.mid(20);  // Length of "configCategoryItems:"
+        handleConfigCategoryItemsResponse(category, json);
     } else if (operation == "updateConfigs") {
         emit configsUpdated();
+        emit operationSucceeded(operation);
+    } else if (operation == "saveConfigToFlash") {
+        emit configSavedToFlash();
+        emit operationSucceeded(operation);
+    } else if (operation == "loadConfigFromFlash") {
+        emit configLoadedFromFlash();
+        emit operationSucceeded(operation);
+    } else if (operation == "resetConfigToDefaults") {
+        emit configResetToDefaults();
         emit operationSucceeded(operation);
     } else {
         handleGenericResponse(operation, json);
@@ -354,6 +395,46 @@ void C64URestClient::handleFileInfoResponse(const QJsonObject &json)
     qint64 size = files["size"].toInteger();
     QString extension = files["extension"].toString();
     emit fileInfoReceived(path, size, extension);
+}
+
+void C64URestClient::handleConfigCategoriesResponse(const QJsonObject &json)
+{
+    QStringList categories;
+    QJsonArray categoriesArray = json["categories"].toArray();
+    for (const QJsonValue &val : categoriesArray) {
+        categories.append(val.toString());
+    }
+    emit configCategoriesReceived(categories);
+}
+
+void C64URestClient::handleConfigCategoryItemsResponse(const QString &category,
+                                                        const QJsonObject &json)
+{
+    QHash<QString, QVariant> items;
+
+    // The response has the category name as the key containing item key-value pairs
+    QJsonObject categoryObj = json[category].toObject();
+    for (auto it = categoryObj.begin(); it != categoryObj.end(); ++it) {
+        QString itemName = it.key();
+        QJsonValue itemValue = it.value();
+
+        // Convert JSON value to appropriate QVariant type
+        if (itemValue.isBool()) {
+            items[itemName] = itemValue.toBool();
+        } else if (itemValue.isDouble()) {
+            // Check if it's an integer
+            double d = itemValue.toDouble();
+            if (d == qRound(d)) {
+                items[itemName] = static_cast<int>(d);
+            } else {
+                items[itemName] = d;
+            }
+        } else {
+            items[itemName] = itemValue.toString();
+        }
+    }
+
+    emit configCategoryItemsReceived(category, items);
 }
 
 void C64URestClient::handleGenericResponse(const QString &operation, const QJsonObject &json)

@@ -269,12 +269,50 @@ public:
     /// @{
 
     /**
+     * @brief Gets all configuration categories.
+     *
+     * Emits configCategoriesReceived() on success.
+     */
+    void getConfigCategories();
+
+    /**
+     * @brief Gets all items in a configuration category.
+     * @param category Category name.
+     *
+     * Emits configCategoryItemsReceived() on success.
+     */
+    void getConfigCategoryItems(const QString &category);
+
+    /**
      * @brief Updates multiple configuration values.
      * @param configs JSON object with configuration key-value pairs.
      *
      * Emits configsUpdated() on success.
      */
     void updateConfigsBatch(const QJsonObject &configs);
+
+    /**
+     * @brief Saves configuration to flash.
+     *
+     * Persists current settings to non-volatile storage.
+     * Emits configSavedToFlash() on success.
+     */
+    void saveConfigToFlash();
+
+    /**
+     * @brief Loads configuration from flash.
+     *
+     * Reverts to last saved settings from non-volatile storage.
+     * Emits configLoadedFromFlash() on success.
+     */
+    void loadConfigFromFlash();
+
+    /**
+     * @brief Resets configuration to factory defaults.
+     *
+     * Emits configResetToDefaults() on success.
+     */
+    void resetConfigToDefaults();
     /// @}
 
 signals:
@@ -308,9 +346,38 @@ signals:
     void fileInfoReceived(const QString &path, qint64 size, const QString &extension);
 
     /**
+     * @brief Emitted when configuration categories are received.
+     * @param categories List of category names.
+     */
+    void configCategoriesReceived(const QStringList &categories);
+
+    /**
+     * @brief Emitted when configuration category items are received.
+     * @param category Category name.
+     * @param items Map of item names to values.
+     */
+    void configCategoryItemsReceived(const QString &category,
+                                     const QHash<QString, QVariant> &items);
+
+    /**
      * @brief Emitted when configuration update completes.
      */
     void configsUpdated();
+
+    /**
+     * @brief Emitted when configuration is saved to flash.
+     */
+    void configSavedToFlash();
+
+    /**
+     * @brief Emitted when configuration is loaded from flash.
+     */
+    void configLoadedFromFlash();
+
+    /**
+     * @brief Emitted when configuration is reset to defaults.
+     */
+    void configResetToDefaults();
     /// @}
 
     /// @name Operation Signals
@@ -352,6 +419,9 @@ private:
     void handleInfoResponse(const QJsonObject &json);
     void handleDrivesResponse(const QJsonObject &json);
     void handleFileInfoResponse(const QJsonObject &json);
+    void handleConfigCategoriesResponse(const QJsonObject &json);
+    void handleConfigCategoryItemsResponse(const QString &category,
+                                           const QJsonObject &json);
     void handleGenericResponse(const QString &operation, const QJsonObject &json);
 
     [[nodiscard]] QStringList extractErrors(const QJsonObject &json) const;

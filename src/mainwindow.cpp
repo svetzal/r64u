@@ -12,6 +12,7 @@
 #include "models/remotefilemodel.h"
 #include "models/localfileproxymodel.h"
 #include "models/transferqueue.h"
+#include "models/configurationmodel.h"
 
 #include <QMenuBar>
 #include <QStatusBar>
@@ -56,6 +57,7 @@ MainWindow::MainWindow(QWidget *parent)
     setupExploreRunMode();
     setupTransferMode();
     setupViewMode();
+    setupConfigMode();
     setupConnections();
 
     switchToMode(Mode::ExploreRun);
@@ -122,6 +124,12 @@ void MainWindow::setupMenuBar()
         modeCombo_->setCurrentIndex(2);
     });
 
+    auto *configModeAction = viewMenu->addAction(tr("&Config Mode"));
+    configModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_4));
+    connect(configModeAction, &QAction::triggered, this, [this]() {
+        modeCombo_->setCurrentIndex(3);
+    });
+
     viewMenu->addSeparator();
 
     refreshAction_ = viewMenu->addAction(tr("&Refresh"));
@@ -165,6 +173,7 @@ void MainWindow::setupToolBar()
     modeCombo_->addItem(tr("Explore/Run"));
     modeCombo_->addItem(tr("Transfer"));
     modeCombo_->addItem(tr("View"));
+    modeCombo_->addItem(tr("Config"));
     connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onModeChanged);
     mainToolBar_->addWidget(modeCombo_);
@@ -671,6 +680,67 @@ void MainWindow::setupViewMode()
     });
 }
 
+void MainWindow::setupConfigMode()
+{
+    // Create the configuration model
+    configModel_ = new ConfigurationModel(this);
+
+    configWidget_ = new QWidget();
+    auto *layout = new QVBoxLayout(configWidget_);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
+
+    // Create toolbar for Config mode
+    configToolBar_ = new QToolBar();
+    configToolBar_->setMovable(false);
+    configToolBar_->setIconSize(QSize(16, 16));
+
+    configSaveToFlashAction_ = configToolBar_->addAction(tr("Save to Flash"));
+    configSaveToFlashAction_->setToolTip(tr("Persist current settings to non-volatile storage"));
+    connect(configSaveToFlashAction_, &QAction::triggered,
+            this, &MainWindow::onConfigSaveToFlash);
+
+    configLoadFromFlashAction_ = configToolBar_->addAction(tr("Load from Flash"));
+    configLoadFromFlashAction_->setToolTip(tr("Revert to last saved settings"));
+    connect(configLoadFromFlashAction_, &QAction::triggered,
+            this, &MainWindow::onConfigLoadFromFlash);
+
+    configResetToDefaultsAction_ = configToolBar_->addAction(tr("Reset to Defaults"));
+    configResetToDefaultsAction_->setToolTip(tr("Reset all settings to factory defaults"));
+    connect(configResetToDefaultsAction_, &QAction::triggered,
+            this, &MainWindow::onConfigResetToDefaults);
+
+    configToolBar_->addSeparator();
+
+    configRefreshAction_ = configToolBar_->addAction(tr("Refresh"));
+    configRefreshAction_->setToolTip(tr("Reload all configuration from device"));
+    connect(configRefreshAction_, &QAction::triggered,
+            this, &MainWindow::onConfigRefresh);
+
+    configToolBar_->addSeparator();
+
+    // Unsaved changes indicator
+    configUnsavedIndicator_ = new QLabel();
+    configUnsavedIndicator_->setStyleSheet("QLabel { color: orange; font-weight: bold; }");
+    configUnsavedIndicator_->setVisible(false);
+    configToolBar_->addWidget(configUnsavedIndicator_);
+
+    layout->addWidget(configToolBar_);
+
+    // Placeholder for category list and item editor (to be added in separate tasks)
+    configPlaceholderLabel_ = new QLabel(tr("Configuration panels will be added here.\n\n"
+                                            "Use the toolbar above to manage device settings."));
+    configPlaceholderLabel_->setAlignment(Qt::AlignCenter);
+    configPlaceholderLabel_->setStyleSheet("QLabel { color: gray; }");
+    layout->addWidget(configPlaceholderLabel_, 1);
+
+    stackedWidget_->addWidget(configWidget_);
+
+    // Connect model signals
+    connect(configModel_, &ConfigurationModel::dirtyStateChanged,
+            this, &MainWindow::onConfigDirtyStateChanged);
+}
+
 void MainWindow::setupConnections()
 {
     // Device connection signals
@@ -688,6 +758,18 @@ void MainWindow::setupConnections()
             this, &MainWindow::onOperationSucceeded);
     connect(deviceConnection_->restClient(), &C64URestClient::operationFailed,
             this, &MainWindow::onOperationFailed);
+
+    // REST client config signals
+    connect(deviceConnection_->restClient(), &C64URestClient::configCategoriesReceived,
+            this, &MainWindow::onConfigCategoriesReceived);
+    connect(deviceConnection_->restClient(), &C64URestClient::configCategoryItemsReceived,
+            this, &MainWindow::onConfigCategoryItemsReceived);
+    connect(deviceConnection_->restClient(), &C64URestClient::configSavedToFlash,
+            this, &MainWindow::onConfigSavedToFlash);
+    connect(deviceConnection_->restClient(), &C64URestClient::configLoadedFromFlash,
+            this, &MainWindow::onConfigLoadedFromFlash);
+    connect(deviceConnection_->restClient(), &C64URestClient::configResetToDefaults,
+            this, &MainWindow::onConfigResetComplete);
 
     // Model signals
     connect(remoteFileModel_, &RemoteFileModel::loadingStarted,
@@ -764,6 +846,9 @@ void MainWindow::switchToMode(Mode mode)
     case Mode::View:
         pageIndex = 2;
         break;
+    case Mode::Config:
+        pageIndex = 3;
+        break;
     }
     stackedWidget_->setCurrentIndex(pageIndex);
 
@@ -795,6 +880,9 @@ void MainWindow::updateWindowTitle()
         break;
     case Mode::View:
         modeName = tr("View");
+        break;
+    case Mode::Config:
+        modeName = tr("Config");
         break;
     }
     title += QString(" - %1").arg(modeName);
@@ -2194,4 +2282,109 @@ void MainWindow::onScalingModeChanged(int id)
     // Save immediately so preference is persisted
     QSettings settings;
     settings.setValue("view/scalingMode", id);
+}
+
+// Config mode slots
+
+void MainWindow::onConfigSaveToFlash()
+{
+    if (!deviceConnection_->isConnected()) {
+        statusBar()->showMessage(tr("Not connected"), 3000);
+        return;
+    }
+
+    statusBar()->showMessage(tr("Saving configuration to flash..."));
+    deviceConnection_->restClient()->saveConfigToFlash();
+}
+
+void MainWindow::onConfigLoadFromFlash()
+{
+    if (!deviceConnection_->isConnected()) {
+        statusBar()->showMessage(tr("Not connected"), 3000);
+        return;
+    }
+
+    statusBar()->showMessage(tr("Loading configuration from flash..."));
+    deviceConnection_->restClient()->loadConfigFromFlash();
+}
+
+void MainWindow::onConfigResetToDefaults()
+{
+    if (!deviceConnection_->isConnected()) {
+        statusBar()->showMessage(tr("Not connected"), 3000);
+        return;
+    }
+
+    // Show confirmation dialog
+    int reply = QMessageBox::warning(
+        this,
+        tr("Reset to Defaults"),
+        tr("This will reset all configuration settings to factory defaults.\n\n"
+           "Are you sure you want to continue?"),
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No
+    );
+
+    if (reply == QMessageBox::Yes) {
+        statusBar()->showMessage(tr("Resetting configuration to defaults..."));
+        deviceConnection_->restClient()->resetConfigToDefaults();
+    }
+}
+
+void MainWindow::onConfigRefresh()
+{
+    if (!deviceConnection_->isConnected()) {
+        statusBar()->showMessage(tr("Not connected"), 3000);
+        return;
+    }
+
+    statusBar()->showMessage(tr("Refreshing configuration..."));
+    deviceConnection_->restClient()->getConfigCategories();
+}
+
+void MainWindow::onConfigCategoriesReceived(const QStringList &categories)
+{
+    configModel_->setCategories(categories);
+    statusBar()->showMessage(tr("Loaded %1 configuration categories").arg(categories.size()), 3000);
+
+    // Optionally load items for each category
+    for (const QString &category : categories) {
+        deviceConnection_->restClient()->getConfigCategoryItems(category);
+    }
+}
+
+void MainWindow::onConfigCategoryItemsReceived(const QString &category,
+                                               const QHash<QString, QVariant> &items)
+{
+    configModel_->setCategoryItems(category, items);
+}
+
+void MainWindow::onConfigSavedToFlash()
+{
+    configModel_->clearDirtyFlags();
+    statusBar()->showMessage(tr("Configuration saved to flash"), 3000);
+}
+
+void MainWindow::onConfigLoadedFromFlash()
+{
+    // Reload categories to get fresh data
+    onConfigRefresh();
+    statusBar()->showMessage(tr("Configuration loaded from flash"), 3000);
+}
+
+void MainWindow::onConfigResetComplete()
+{
+    // Reload categories to get fresh data
+    onConfigRefresh();
+    statusBar()->showMessage(tr("Configuration reset to defaults"), 3000);
+}
+
+void MainWindow::onConfigDirtyStateChanged(bool isDirty)
+{
+    if (isDirty) {
+        configUnsavedIndicator_->setText(tr("Unsaved changes"));
+        configUnsavedIndicator_->setVisible(true);
+    } else {
+        configUnsavedIndicator_->setVisible(false);
+    }
 }
