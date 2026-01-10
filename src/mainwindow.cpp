@@ -846,12 +846,14 @@ void MainWindow::updateActions()
     playAction_->setEnabled(connected && canPlay);
     runAction_->setEnabled(connected && canRun);
     mountAction_->setEnabled(connected && canMount);
-    resetAction_->setEnabled(connected);
-    rebootAction_->setEnabled(connected);
-    pauseAction_->setEnabled(connected);
-    resumeAction_->setEnabled(connected);
-    menuAction_->setEnabled(connected);
-    powerOffAction_->setEnabled(connected);
+    // System control actions only require REST API, not FTP
+    bool restConnected = deviceConnection_->isRestConnected();
+    resetAction_->setEnabled(restConnected);
+    rebootAction_->setEnabled(restConnected);
+    pauseAction_->setEnabled(restConnected);
+    resumeAction_->setEnabled(restConnected);
+    menuAction_->setEnabled(restConnected);
+    powerOffAction_->setEnabled(restConnected);
     uploadAction_->setEnabled(connected && hasLocalSelection);
     downloadAction_->setEnabled(connected && hasRemoteSelection);
     newFolderAction_->setEnabled(connected);

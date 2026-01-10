@@ -115,6 +115,15 @@ public:
      * @return True if both REST and FTP connections are established.
      */
     [[nodiscard]] bool isConnected() const { return state_ == ConnectionState::Connected; }
+
+    /**
+     * @brief Checks if the REST API is reachable.
+     * @return True if REST connection is established (regardless of FTP state).
+     *
+     * This is useful for enabling actions that only require the REST API,
+     * such as system control commands (reset, reboot, pause, etc.).
+     */
+    [[nodiscard]] bool isRestConnected() const { return restConnected_; }
     /// @}
 
     /// @name Device Information
