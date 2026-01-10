@@ -134,14 +134,14 @@ void DiskImageReader::parseBam(const QByteArray &data, Format format, DiskDirect
         return;
     }
 
-    // Extract disk name (16 bytes, PETSCII, padded with $A0)
-    dir.diskName = petsciiToString(bam.mid(nameOffset, 16));
+    // Extract disk name (16 bytes, raw PETSCII, padded with $A0)
+    dir.diskName = trimPetsciiPadding(bam.mid(nameOffset, 16));
 
-    // Extract disk ID (2 bytes)
-    dir.diskId = petsciiToString(bam.mid(idOffset, 2));
+    // Extract disk ID (2 bytes, raw PETSCII)
+    dir.diskId = bam.mid(idOffset, 2);
 
-    // Extract DOS type (2 bytes)
-    dir.dosType = petsciiToString(bam.mid(dosTypeOffset, 2));
+    // Extract DOS type (2 bytes, raw PETSCII)
+    dir.dosType = bam.mid(dosTypeOffset, 2);
 
     // Count free blocks
     dir.freeBlocks = countFreeBlocks(data, format);
@@ -271,8 +271,8 @@ DiskImageReader::DirectoryEntry DiskImageReader::parseEntry(const QByteArray &en
     entry.firstTrack = static_cast<quint8>(entryData[3]);
     entry.firstSector = static_cast<quint8>(entryData[4]);
 
-    // Offset 5-20: Filename (16 bytes PETSCII)
-    entry.filename = petsciiToString(entryData.mid(5, 16));
+    // Offset 5-20: Filename (16 bytes raw PETSCII)
+    entry.filename = trimPetsciiPadding(entryData.mid(5, 16));
 
     // Offset 29-30: File size in blocks (little-endian)
     entry.sizeInBlocks = static_cast<quint8>(entryData[29]) |
@@ -281,162 +281,18 @@ DiskImageReader::DirectoryEntry DiskImageReader::parseEntry(const QByteArray &en
     return entry;
 }
 
-QString DiskImageReader::petsciiToString(const QByteArray &data) const
+QByteArray DiskImageReader::trimPetsciiPadding(const QByteArray &data) const
 {
-    // Delegate to the generic PetsciiConverter
-    // stopAtPadding=true for filenames and disk names (padded with $A0)
-    return PetsciiConverter::toAscii(data, true);
-}
-
-QChar DiskImageReader::screenCodeToUnicode(quint8 screenCode) const
-{
-    // C64 screen code to Unicode mapping
-    // Based on Style64's suggested Unicode mappings
-    // Reference: https://style64.org/petscii/
-
-    // Screen codes 0x00-0x1F: @ A-Z [ £ ] ↑ ←
-    if (screenCode == 0x00) return QChar('@');
-    if (screenCode >= 0x01 && screenCode <= 0x1A) return QChar('A' + screenCode - 1);
-    if (screenCode == 0x1B) return QChar('[');
-    if (screenCode == 0x1C) return QChar(0x00A3); // £
-    if (screenCode == 0x1D) return QChar(']');
-    if (screenCode == 0x1E) return QChar(0x2191); // ↑
-    if (screenCode == 0x1F) return QChar(0x2190); // ←
-
-    // Screen codes 0x20-0x3F: space and ASCII punctuation/numbers
-    if (screenCode >= 0x20 && screenCode <= 0x3F) {
-        return QChar(screenCode); // Direct ASCII mapping
+    // Trim trailing $A0 (shift-space) padding and $00 (null) bytes
+    int len = data.size();
+    while (len > 0) {
+        quint8 byte = static_cast<quint8>(data[len - 1]);
+        if (byte != 0xA0 && byte != 0x00) {
+            break;
+        }
+        len--;
     }
-
-    // Screen codes 0x40-0x5F: Graphics characters
-    // These map to Unicode box drawing and block elements
-    static const ushort graphics1[] = {
-        0x2500, // 40: horizontal line ─
-        0x2660, // 41: spade ♠
-        0x2502, // 42: vertical line │
-        0x2500, // 43: horizontal line ─
-        0x2500, // 44: horizontal line (lower) ─
-        0x2500, // 45: horizontal line (upper) ─
-        0x2500, // 46: horizontal line ─
-        0x2500, // 47: horizontal line ─
-        0x2500, // 48: horizontal line ─
-        0x256E, // 49: round corner ╮
-        0x2570, // 4A: round corner ╰
-        0x256F, // 4B: round corner ╯
-        0x2500, // 4C: horizontal line ─
-        0x2572, // 4D: diagonal ╲
-        0x2571, // 4E: diagonal ╱
-        0x2500, // 4F: horizontal line ─
-        0x256D, // 50: round corner ╭
-        0x2022, // 51: bullet •
-        0x2500, // 52: horizontal line ─
-        0x2665, // 53: heart ♥
-        0x2500, // 54: horizontal line ─
-        0x256D, // 55: round corner ╭
-        0x2573, // 56: cross ╳
-        0x25CB, // 57: circle ○
-        0x2663, // 58: club ♣
-        0x2500, // 59: horizontal line ─
-        0x2666, // 5A: diamond ♦
-        0x253C, // 5B: cross ┼
-        0x2502, // 5C: vertical line │
-        0x03C0, // 5D: pi π
-        0x25E5, // 5E: upper right triangle ◥
-        0x2500, // 5F: horizontal line ─
-    };
-    if (screenCode >= 0x40 && screenCode <= 0x5F) {
-        return QChar(graphics1[screenCode - 0x40]);
-    }
-
-    // Screen codes 0x60-0x7F: More graphics (block elements)
-    // Reference: https://www.pagetable.com/c64ref/charset/
-    static const ushort graphics2[] = {
-        0x00A0, // 60: non-breaking space
-        0x258C, // 61: left half block ▌
-        0x2584, // 62: lower half block ▄
-        0x2580, // 63: upper half block ▀
-        0x2581, // 64: lower one eighth block ▁
-        0x258E, // 65: left one quarter block ▎
-        0x2592, // 66: medium shade ▒
-        0x2590, // 67: right half block ▐
-        0x25E4, // 68: upper left triangle ◤
-        0x256E, // 69: round corner down-left ╮
-        0x2570, // 6A: round corner up-right ╰
-        0x256F, // 6B: round corner up-left ╯
-        0x2597, // 6C: quadrant lower right ▗
-        0x2514, // 6D: corner └
-        0x2510, // 6E: corner ┐
-        0x2582, // 6F: lower one quarter block ▂
-        0x250C, // 70: corner ┌
-        0x2534, // 71: tee ┴
-        0x252C, // 72: tee ┬
-        0x2524, // 73: right tee ┤
-        0x251C, // 74: left tee ├
-        0x256D, // 75: round corner down-right ╭
-        0x2580, // 76: upper half block ▀
-        0x25CB, // 77: circle ○
-        0x25CF, // 78: filled circle ●
-        0x2583, // 79: lower three eighths block ▃
-        0x2713, // 7A: check mark ✓
-        0x2596, // 7B: quadrant lower left ▖
-        0x259D, // 7C: quadrant upper right ▝
-        0x2518, // 7D: corner ┘
-        0x2598, // 7E: quadrant upper left ▘
-        0x259A, // 7F: quadrant upper left and lower right ▚
-    };
-    if (screenCode >= 0x60 && screenCode <= 0x7F) {
-        return QChar(graphics2[screenCode - 0x60]);
-    }
-
-    // Screen codes 0x80-0xFF: Reverse video versions
-    // For now, map to the same as non-reverse (0x00-0x7F)
-    if (screenCode >= 0x80) {
-        return screenCodeToUnicode(screenCode - 0x80);
-    }
-
-    return QChar(' '); // Fallback
-}
-
-quint8 DiskImageReader::petsciiToScreenCode(quint8 petscii) const
-{
-    // PETSCII to C64 screen code conversion
-    // Reference: https://sta.c64.org/cbm64pet.html
-
-    if (petscii <= 0x1F) {
-        // $00-$1F: Control codes - map to reverse @ and letters
-        return petscii + 0x80;
-    } else if (petscii <= 0x3F) {
-        // $20-$3F: Space, punctuation, numbers - same as screen code
-        return petscii;
-    } else if (petscii <= 0x5F) {
-        // $40-$5F: @ and uppercase A-Z, [, £, ], ↑, ←
-        // Screen code = PETSCII - $40
-        return petscii - 0x40;
-    } else if (petscii <= 0x7F) {
-        // $60-$7F: Graphics characters (horizontal line, etc.)
-        // Screen code = PETSCII - $20
-        return petscii - 0x20;
-    } else if (petscii <= 0x9F) {
-        // $80-$9F: Control codes (colors, etc.) - not printable
-        // Map to space
-        return 0x20;
-    } else if (petscii <= 0xBF) {
-        // $A0-$BF: Shifted space and graphics - reverse video versions
-        // Screen code = PETSCII - $40
-        return petscii - 0x40;
-    } else if (petscii <= 0xDF) {
-        // $C0-$DF: Lowercase letters and some symbols
-        // In uppercase mode (default): these show as graphics
-        // Screen code = PETSCII - $80
-        return petscii - 0x80;
-    } else if (petscii <= 0xFE) {
-        // $E0-$FE: More shifted graphics
-        // Screen code = PETSCII - $80
-        return petscii - 0x80;
-    } else {
-        // $FF: Pi symbol
-        return 0x5E; // Pi is at screen code $5E
-    }
+    return data.left(len);
 }
 
 QString DiskImageReader::fileTypeString(FileType type)
@@ -466,19 +322,19 @@ QString DiskImageReader::formatDirectoryListing(const DiskDirectory &dir)
 {
     QString result;
 
-    // Use regular space for padding (font renders ASCII correctly)
-    QChar c64Space(' ');
+    // Convert raw PETSCII to displayable strings using PetsciiConverter
+    QString diskName = PetsciiConverter::toDisplayString(dir.diskName);
+    QString diskId = PetsciiConverter::toDisplayString(dir.diskId);
+    QString dosType = PetsciiConverter::toDisplayString(dir.dosType);
 
-    // Header line: disk name and ID (like: 0 "DISK NAME       " ID 2A)
-    // Format: 0 "diskname" id,dostype
-    // Pad the disk name with C64 spaces (filenames are already in C64 font)
-    QString paddedName = dir.diskName;
-    while (paddedName.length() < 16) {
-        paddedName += c64Space;
+    // Pad disk name to 16 characters
+    while (diskName.length() < 16) {
+        diskName += QChar(' ');
     }
 
-    result += asciiToC64Font(QString("0 \"")) + paddedName + asciiToC64Font(QString("\" "));
-    result += dir.diskId + asciiToC64Font(QString(" ")) + dir.dosType;
+    // Header line: 0 "DISK NAME       " ID 2A
+    result += QString("0 \"") + diskName + QString("\" ");
+    result += diskId + QString(" ") + dosType;
     result += QChar('\n');
 
     // File entries
@@ -488,33 +344,32 @@ QString DiskImageReader::formatDirectoryListing(const DiskDirectory &dir)
             continue;
         }
 
-        // Format: blocks "filename" type
         // Blocks are left-justified in a 5-character field
-        QString blocksStr = asciiToC64Font(QString::number(entry.sizeInBlocks).leftJustified(5, ' '));
+        QString blocksStr = QString::number(entry.sizeInBlocks).leftJustified(5, ' ');
 
-        // Filename is quoted and padded to 16 characters with C64 spaces
-        QString paddedFilename = entry.filename;
-        while (paddedFilename.length() < 16) {
-            paddedFilename += c64Space;
+        // Convert filename from PETSCII and pad to 16 characters
+        QString filename = PetsciiConverter::toDisplayString(entry.filename);
+        while (filename.length() < 16) {
+            filename += QChar(' ');
         }
-        QString quotedName = asciiToC64Font(QString("\"")) + paddedFilename + asciiToC64Font(QString("\""));
+        QString quotedName = QString("\"") + filename + QString("\"");
 
         // Type string with optional modifiers
         QString typeStr;
         if (!entry.isClosed) {
-            typeStr += asciiToC64Font(QString("*")); // Splat file (not properly closed)
+            typeStr += QString("*"); // Splat file (not properly closed)
         }
-        typeStr += asciiToC64Font(fileTypeString(entry.type));
+        typeStr += fileTypeString(entry.type);
         if (entry.isLocked) {
-            typeStr += asciiToC64Font(QString("<")); // Locked file
+            typeStr += QString("<"); // Locked file
         }
 
-        result += blocksStr + quotedName + asciiToC64Font(QString(" ")) + typeStr;
+        result += blocksStr + quotedName + QString(" ") + typeStr;
         result += QChar('\n');
     }
 
     // Footer: blocks free
-    result += asciiToC64Font(QString("%1 BLOCKS FREE.").arg(dir.freeBlocks));
+    result += QString("%1 BLOCKS FREE.").arg(dir.freeBlocks);
     result += QChar('\n');
 
     return result;

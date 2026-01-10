@@ -40,9 +40,12 @@ public:
 
     /**
      * @brief Represents a single directory entry
+     *
+     * Filenames are stored as raw PETSCII bytes to preserve C64-native
+     * encoding. Use PetsciiConverter::toDisplayString() for display.
      */
     struct DirectoryEntry {
-        QString filename;           // 16-character PETSCII filename
+        QByteArray filename;        // 16-byte raw PETSCII filename
         FileType type;              // File type
         quint16 sizeInBlocks;       // Size in 254-byte blocks
         bool isClosed;              // True if file is properly closed
@@ -53,11 +56,14 @@ public:
 
     /**
      * @brief Represents a complete disk directory
+     *
+     * All text fields are stored as raw PETSCII bytes to preserve C64-native
+     * encoding. Use PetsciiConverter::toDisplayString() for display.
      */
     struct DiskDirectory {
-        QString diskName;           // 16-character disk name
-        QString diskId;             // 2-character disk ID
-        QString dosType;            // DOS type (e.g., "2A", "3D")
+        QByteArray diskName;        // 16-byte raw PETSCII disk name
+        QByteArray diskId;          // 2-byte raw PETSCII disk ID
+        QByteArray dosType;         // 2-byte raw PETSCII DOS type (e.g., "2A", "3D")
         quint16 freeBlocks;         // Number of free blocks
         QVector<DirectoryEntry> entries;
         Format format;
@@ -134,19 +140,9 @@ private:
     DirectoryEntry parseEntry(const QByteArray &entryData) const;
 
     /**
-     * @brief Convert PETSCII bytes to QString for C64 Pro font display
+     * @brief Trim PETSCII padding ($A0) from end of byte array
      */
-    QString petsciiToString(const QByteArray &data) const;
-
-    /**
-     * @brief Convert a single PETSCII byte to C64 screen code
-     */
-    quint8 petsciiToScreenCode(quint8 petscii) const;
-
-    /**
-     * @brief Convert C64 screen code to Unicode character
-     */
-    QChar screenCodeToUnicode(quint8 screenCode) const;
+    QByteArray trimPetsciiPadding(const QByteArray &data) const;
 
     /**
      * @brief Count free blocks from BAM bitmap

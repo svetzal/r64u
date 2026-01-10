@@ -20,15 +20,22 @@ class PetsciiConverter
 {
 public:
     /**
-     * @brief Convert PETSCII bytes to a displayable QString
+     * @brief Convert PETSCII bytes to plain ASCII (graphics become spaces)
      * @param data Raw PETSCII bytes
      * @param stopAtPadding If true, stop at $A0 (shift-space padding character)
-     * @return QString with ASCII/Unicode representation
-     *
-     * Graphics characters are converted to spaces. Use toUnicode() for
-     * full Unicode block/line drawing character support.
+     * @return QString with ASCII representation (graphics as spaces)
      */
     static QString toAscii(const QByteArray &data, bool stopAtPadding = true);
+
+    /**
+     * @brief Convert PETSCII bytes to displayable Unicode for C64 Pro font
+     * @param data Raw PETSCII bytes
+     * @return QString with Unicode characters that render correctly in C64 Pro font
+     *
+     * This method maps PETSCII graphics characters to their Unicode equivalents
+     * (box drawing, block elements) that the C64 Pro font can display.
+     */
+    static QString toDisplayString(const QByteArray &data);
 
     /**
      * @brief Convert a single PETSCII byte to ASCII
