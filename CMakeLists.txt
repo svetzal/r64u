@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(r64u
-    VERSION 0.5.2
+    VERSION 0.5.1
     DESCRIPTION "Remote access tool for Commodore 64 Ultimate devices"
     LANGUAGES CXX
 )
@@ -206,16 +206,9 @@ if(APPLE)
     set(CPACK_BUNDLE_NAME "${CPACK_PACKAGE_NAME}")
     set(CPACK_BUNDLE_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/resources/Info.plist.in")
 
-    # Qt deployment - copy frameworks into bundle
-    # Note: Run macdeployqt before cpack, or use qt_generate_deploy_app_script()
-    if(Qt6_VERSION VERSION_GREATER_EQUAL "6.3")
-        qt_generate_deploy_app_script(
-            TARGET r64u
-            OUTPUT_SCRIPT deploy_script
-            NO_UNSUPPORTED_PLATFORM_ERROR
-        )
-        install(SCRIPT ${deploy_script})
-    endif()
+    # Qt deployment is handled by macdeployqt in the CI workflow BEFORE signing.
+    # Do NOT use qt_generate_deploy_app_script here as it runs during CPack install
+    # and would overwrite signed binaries with unsigned ones, breaking notarization.
 endif()
 
 # -----------------------------------------------------------------------------
