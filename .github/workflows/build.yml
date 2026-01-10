@@ -217,7 +217,8 @@ jobs:
           chmod +x linuxdeploy*.AppImage
 
           # Build AppImage
-          export QMAKE=$(find $Qt6_DIR -name qmake -type f | head -1)
+          export QMAKE="$QT_ROOT_DIR/bin/qmake"
+          echo "Using QMAKE: $QMAKE"
           export OUTPUT=r64u-${{ matrix.artifact }}.AppImage
           ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
 
