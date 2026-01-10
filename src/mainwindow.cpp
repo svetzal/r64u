@@ -1172,6 +1172,9 @@ void MainWindow::onModeChanged(int index)
     case 2:
         mode = Mode::View;
         break;
+    case 3:
+        mode = Mode::Config;
+        break;
     default:
         mode = Mode::ExploreRun;
         break;
