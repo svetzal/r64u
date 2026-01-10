@@ -367,19 +367,20 @@ QChar DiskImageReader::screenCodeToUnicode(quint8 screenCode) const
     }
 
     // Screen codes 0x60-0x7F: More graphics (block elements)
+    // Reference: https://www.pagetable.com/c64ref/charset/
     static const ushort graphics2[] = {
         0x00A0, // 60: non-breaking space
         0x258C, // 61: left half block ▌
         0x2584, // 62: lower half block ▄
-        0x2594, // 63: upper one eighth block ▔
+        0x2580, // 63: upper half block ▀
         0x2581, // 64: lower one eighth block ▁
         0x258E, // 65: left one quarter block ▎
         0x2592, // 66: medium shade ▒
-        0x2595, // 67: right one eighth block ▕
-        0x2500, // 68: horizontal line ─
-        0x25E4, // 69: upper left triangle ◤
-        0x2500, // 6A: horizontal line ─
-        0x251C, // 6B: left tee ├
+        0x2590, // 67: right half block ▐
+        0x25E4, // 68: upper left triangle ◤
+        0x256E, // 69: round corner down-left ╮
+        0x2570, // 6A: round corner up-right ╰
+        0x256F, // 6B: round corner up-left ╯
         0x2597, // 6C: quadrant lower right ▗
         0x2514, // 6D: corner └
         0x2510, // 6E: corner ┐
@@ -388,11 +389,11 @@ QChar DiskImageReader::screenCodeToUnicode(quint8 screenCode) const
         0x2534, // 71: tee ┴
         0x252C, // 72: tee ┬
         0x2524, // 73: right tee ┤
-        0x258E, // 74: left one quarter block ▎
-        0x258D, // 75: left three eighths block ▍
-        0x2500, // 76: horizontal line ─
-        0x2500, // 77: horizontal line ─
-        0x2500, // 78: horizontal line ─
+        0x251C, // 74: left tee ├
+        0x256D, // 75: round corner down-right ╭
+        0x2580, // 76: upper half block ▀
+        0x25CB, // 77: circle ○
+        0x25CF, // 78: filled circle ●
         0x2583, // 79: lower three eighths block ▃
         0x2713, // 7A: check mark ✓
         0x2596, // 7B: quadrant lower left ▖
