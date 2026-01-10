@@ -15,6 +15,7 @@
 #include <QTimer>
 #include <QButtonGroup>
 #include <QRadioButton>
+#include <QListWidget>
 
 class PreferencesDialog;
 class DeviceConnection;
@@ -30,6 +31,7 @@ class AudioPlaybackService;
 class StreamControlClient;
 class KeyboardInputService;
 class ConfigurationModel;
+class ConfigItemsPanel;
 
 class MainWindow : public QMainWindow
 {
@@ -147,6 +149,7 @@ private slots:
     void onConfigLoadedFromFlash();
     void onConfigResetComplete();
     void onConfigDirtyStateChanged(bool isDirty);
+    void onConfigCategorySelected(QListWidgetItem *current, QListWidgetItem *previous);
 
 private:
     void setupUi();
@@ -231,7 +234,9 @@ private:
     QAction *configResetToDefaultsAction_ = nullptr;
     QAction *configRefreshAction_ = nullptr;
     QLabel *configUnsavedIndicator_ = nullptr;
-    QLabel *configPlaceholderLabel_ = nullptr;
+    QSplitter *configSplitter_ = nullptr;
+    QListWidget *configCategoryList_ = nullptr;
+    ConfigItemsPanel *configItemsPanel_ = nullptr;
 
     // Config mode model
     ConfigurationModel *configModel_ = nullptr;

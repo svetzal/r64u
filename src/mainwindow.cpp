@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui/preferencesdialog.h"
 #include "ui/filedetailspanel.h"
+#include "ui/configitemspanel.h"
 #include "ui/videodisplaywidget.h"
 #include "services/deviceconnection.h"
 #include "services/configfileloader.h"
@@ -727,18 +728,43 @@ void MainWindow::setupConfigMode()
 
     layout->addWidget(configToolBar_);
 
-    // Placeholder for category list and item editor (to be added in separate tasks)
-    configPlaceholderLabel_ = new QLabel(tr("Configuration panels will be added here.\n\n"
-                                            "Use the toolbar above to manage device settings."));
-    configPlaceholderLabel_->setAlignment(Qt::AlignCenter);
-    configPlaceholderLabel_->setStyleSheet("QLabel { color: gray; }");
-    layout->addWidget(configPlaceholderLabel_, 1);
+    // Create splitter with category list on left, items panel on right
+    configSplitter_ = new QSplitter(Qt::Horizontal);
+
+    // Category list
+    configCategoryList_ = new QListWidget();
+    configCategoryList_->setMinimumWidth(150);
+    configCategoryList_->setMaximumWidth(250);
+    connect(configCategoryList_, &QListWidget::currentItemChanged,
+            this, &MainWindow::onConfigCategorySelected);
+    configSplitter_->addWidget(configCategoryList_);
+
+    // Config items panel
+    configItemsPanel_ = new ConfigItemsPanel(configModel_);
+    configSplitter_->addWidget(configItemsPanel_);
+
+    // Set splitter sizes (category list gets ~25%, items panel gets ~75%)
+    configSplitter_->setSizes({200, 600});
+
+    layout->addWidget(configSplitter_, 1);
 
     stackedWidget_->addWidget(configWidget_);
 
     // Connect model signals
     connect(configModel_, &ConfigurationModel::dirtyStateChanged,
             this, &MainWindow::onConfigDirtyStateChanged);
+    connect(configModel_, &ConfigurationModel::categoriesChanged,
+            this, [this]() {
+        // Update category list when categories change
+        configCategoryList_->clear();
+        for (const QString &category : configModel_->categories()) {
+            configCategoryList_->addItem(category);
+        }
+        // Select first category if available
+        if (configCategoryList_->count() > 0) {
+            configCategoryList_->setCurrentRow(0);
+        }
+    });
 }
 
 void MainWindow::setupConnections()
@@ -2386,5 +2412,23 @@ void MainWindow::onConfigDirtyStateChanged(bool isDirty)
         configUnsavedIndicator_->setVisible(true);
     } else {
         configUnsavedIndicator_->setVisible(false);
+    }
+}
+
+void MainWindow::onConfigCategorySelected(QListWidgetItem *current, QListWidgetItem *previous)
+{
+    Q_UNUSED(previous)
+
+    if (!current) {
+        configItemsPanel_->setCategory(QString());
+        return;
+    }
+
+    QString category = current->text();
+    configItemsPanel_->setCategory(category);
+
+    // Load items for this category if not already loaded
+    if (configModel_->itemCount(category) == 0 && deviceConnection_->isConnected()) {
+        deviceConnection_->restClient()->getConfigCategoryItems(category);
     }
 }

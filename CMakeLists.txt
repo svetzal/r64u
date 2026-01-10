@@ -37,6 +37,7 @@ set(SOURCES
     src/main.cpp
     src/mainwindow.cpp
     src/ui/preferencesdialog.cpp
+    src/ui/configitemspanel.cpp
     src/ui/transferqueuewidget.cpp
     src/ui/filedetailspanel.cpp
     src/ui/videodisplaywidget.cpp
@@ -61,6 +62,7 @@ set(SOURCES
 set(HEADERS
     src/mainwindow.h
     src/ui/preferencesdialog.h
+    src/ui/configitemspanel.h
     src/ui/transferqueuewidget.h
     src/ui/filedetailspanel.h
     src/ui/videodisplaywidget.h
