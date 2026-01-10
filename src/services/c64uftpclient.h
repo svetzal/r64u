@@ -14,6 +14,7 @@
 #include <QQueue>
 #include <QFile>
 #include <QDateTime>
+#include <QTimer>
 
 #include <memory>
 #include <optional>
@@ -53,6 +54,7 @@ public:
     /// @name FTP Protocol Constants
     /// @{
     static constexpr quint16 DefaultPort = 21;  ///< Default FTP control port
+    static constexpr int ConnectionTimeoutMs = 15000;  ///< Connection timeout in milliseconds
     static constexpr int FtpReplyCodeLength = 3;  ///< Length of FTP reply code
     static constexpr int FtpReplyTextOffset = 4;  ///< Offset to reply text after code
     static constexpr int CrLfLength = 2;  ///< Length of CRLF line ending
@@ -365,6 +367,7 @@ private slots:
     void onControlDisconnected();
     void onControlReadyRead();
     void onControlError(QAbstractSocket::SocketError error);
+    void onConnectionTimeout();
 
     void onDataConnected();
     void onDataReadyRead();
@@ -429,6 +432,7 @@ private:
     // Network connections
     QTcpSocket *controlSocket_ = nullptr;
     QTcpSocket *dataSocket_ = nullptr;
+    QTimer *connectionTimer_ = nullptr;
 
     // Configuration
     QString host_;

@@ -73,6 +73,8 @@ class C64URestClient : public QObject
 public:
     /// Maximum characters to include from error response body
     static constexpr int ErrorResponsePreviewLength = 200;
+    /// Request timeout in milliseconds
+    static constexpr int RequestTimeoutMs = 15000;
 
     /**
      * @brief Constructs a REST client.

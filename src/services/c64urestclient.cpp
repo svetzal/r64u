@@ -38,6 +38,9 @@ QNetworkRequest C64URestClient::createRequest(const QString &endpoint) const
 
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
+    // Set request timeout
+    request.setTransferTimeout(RequestTimeoutMs);
+
     if (!password_.isEmpty()) {
         request.setRawHeader("X-Password", password_.toUtf8());
     }
