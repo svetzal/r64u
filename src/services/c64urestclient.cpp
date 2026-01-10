@@ -194,6 +194,42 @@ void C64URestClient::writeMem(const QString &address, const QByteArray &data)
     sendPutRequest(endpoint, "writeMem");
 }
 
+void C64URestClient::typeText(const QString &text)
+{
+    // C64 keyboard buffer is at $0277 (10 bytes max)
+    // Character count is at $C6
+    // Limit to 10 characters per call
+    constexpr int KeyboardBufferSize = 10;
+    QString chunk = text.left(KeyboardBufferSize);
+
+    if (chunk.isEmpty()) {
+        return;
+    }
+
+    // Convert ASCII to PETSCII (simple conversion for printable chars)
+    QByteArray petscii;
+    for (QChar c : chunk) {
+        char ch = c.toLatin1();
+        // Convert lowercase to uppercase (PETSCII uses uppercase)
+        if (ch >= 'a' && ch <= 'z') {
+            ch = ch - 'a' + 'A';
+        }
+        // Convert newline to RETURN (CHR$(13))
+        else if (ch == '\n') {
+            ch = 13;
+        }
+        petscii.append(ch);
+    }
+
+    // Write the text to keyboard buffer at $0277
+    writeMem("0277", petscii);
+
+    // Write the character count to $C6
+    QByteArray count;
+    count.append(static_cast<char>(petscii.size()));
+    writeMem("c6", count);
+}
+
 // File operations
 
 void C64URestClient::getFileInfo(const QString &path)

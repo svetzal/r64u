@@ -249,6 +249,16 @@ public:
      * @param data Data bytes to write.
      */
     void writeMem(const QString &address, const QByteArray &data);
+
+    /**
+     * @brief Types text into the C64 via keyboard buffer injection.
+     * @param text Text to type (ASCII, converted to PETSCII).
+     *
+     * Writes to the C64 keyboard buffer at $0277 and sets the
+     * character count at $C6. Limited to 10 characters at a time.
+     * For longer text, call multiple times with delays.
+     */
+    void typeText(const QString &text);
     /// @}
 
     /// @name File Operations

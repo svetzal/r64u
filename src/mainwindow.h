@@ -177,6 +177,7 @@ private:
     QString selectedLocalPath() const;
     QString currentRemoteDirectory() const;
     bool isSelectedDirectory() const;
+    void runDiskImage(const QString &path);
 
     Mode currentMode_ = Mode::ExploreRun;
 

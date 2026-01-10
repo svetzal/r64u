@@ -247,7 +247,7 @@ HTTP status codes:
 | `/v1/configs` GET | Yes | `getConfigCategories()`, `getConfigCategoryItems()`, `getConfigItem()` |
 | `/v1/configs` PUT/POST | Yes | `setConfigItem()`, `updateConfigsBatch()` |
 | `/v1/configs:*` | Yes | `saveConfigToFlash()`, `loadConfigFromFlash()`, `resetConfigToDefaults()` |
-| `/v1/machine:*` | Yes | All machine control implemented |
+| `/v1/machine:*` | Yes | All machine control + `typeText()` for keyboard buffer |
 | `/v1/runners:*` | Partial | PUT methods only (no uploads) |
 | `/v1/drives` | Yes | Full drive control |
 | `/v1/streams:*` | Yes | Via StreamControlClient |

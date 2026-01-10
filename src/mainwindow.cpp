@@ -1250,7 +1250,42 @@ void MainWindow::onRun()
     } else if (type == RemoteFileModel::FileType::Cartridge) {
         deviceConnection_->restClient()->runCrt(path);
         statusBar()->showMessage(tr("Running CRT: %1").arg(path), 3000);
+    } else if (type == RemoteFileModel::FileType::DiskImage) {
+        runDiskImage(path);
     }
+}
+
+void MainWindow::runDiskImage(const QString &path)
+{
+    // Multi-step async process to run a disk image:
+    // 1. Mount the disk to Drive A
+    // 2. Reset the machine
+    // 3. Wait for C64 to boot (3 seconds)
+    // 4. Type LOAD"*",8,1<RETURN>
+    // 5. Wait for load (3 seconds - adjust as needed)
+    // 6. Type RUN<RETURN>
+
+    statusBar()->showMessage(tr("Mounting and running: %1").arg(path));
+
+    // Step 1: Mount the disk
+    deviceConnection_->restClient()->mountImage("a", path);
+
+    // Step 2: Reset after a brief delay to ensure mount completes
+    QTimer::singleShot(500, this, [this]() {
+        deviceConnection_->restClient()->resetMachine();
+
+        // Step 3: Wait for C64 to boot, then type LOAD command
+        QTimer::singleShot(3000, this, [this]() {
+            statusBar()->showMessage(tr("Loading..."));
+            deviceConnection_->restClient()->typeText("LOAD\"*\",8,1\n");
+
+            // Step 4: Wait for load, then type RUN
+            QTimer::singleShot(3000, this, [this]() {
+                deviceConnection_->restClient()->typeText("RUN\n");
+                statusBar()->showMessage(tr("Running disk image"), 3000);
+            });
+        });
+    });
 }
 
 void MainWindow::onMount()
