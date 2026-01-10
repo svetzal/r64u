@@ -298,14 +298,120 @@ QString DiskImageReader::petsciiToString(const QByteArray &data) const
             break;
         }
 
-        // C64 Pro font uses Screencode/CharROM mapping at U+EExx
-        // Convert PETSCII to screen code, then add U+EE00
-        // Reference: https://style64.org/petscii/
+        // Convert PETSCII to screen code, then to Unicode
         quint8 screenCode = petsciiToScreenCode(petscii);
-        result += QChar(0xEE00 + screenCode);
+        result += screenCodeToUnicode(screenCode);
     }
 
     return result;
+}
+
+QChar DiskImageReader::screenCodeToUnicode(quint8 screenCode) const
+{
+    // C64 screen code to Unicode mapping
+    // Based on Style64's suggested Unicode mappings
+    // Reference: https://style64.org/petscii/
+
+    // Screen codes 0x00-0x1F: @ A-Z [ £ ] ↑ ←
+    if (screenCode == 0x00) return QChar('@');
+    if (screenCode >= 0x01 && screenCode <= 0x1A) return QChar('A' + screenCode - 1);
+    if (screenCode == 0x1B) return QChar('[');
+    if (screenCode == 0x1C) return QChar(0x00A3); // £
+    if (screenCode == 0x1D) return QChar(']');
+    if (screenCode == 0x1E) return QChar(0x2191); // ↑
+    if (screenCode == 0x1F) return QChar(0x2190); // ←
+
+    // Screen codes 0x20-0x3F: space and ASCII punctuation/numbers
+    if (screenCode >= 0x20 && screenCode <= 0x3F) {
+        return QChar(screenCode); // Direct ASCII mapping
+    }
+
+    // Screen codes 0x40-0x5F: Graphics characters
+    // These map to Unicode box drawing and block elements
+    static const ushort graphics1[] = {
+        0x2500, // 40: horizontal line ─
+        0x2660, // 41: spade ♠
+        0x2502, // 42: vertical line │
+        0x2500, // 43: horizontal line ─
+        0x2500, // 44: horizontal line (lower) ─
+        0x2500, // 45: horizontal line (upper) ─
+        0x2500, // 46: horizontal line ─
+        0x2500, // 47: horizontal line ─
+        0x2500, // 48: horizontal line ─
+        0x256E, // 49: round corner ╮
+        0x2570, // 4A: round corner ╰
+        0x256F, // 4B: round corner ╯
+        0x2500, // 4C: horizontal line ─
+        0x2572, // 4D: diagonal ╲
+        0x2571, // 4E: diagonal ╱
+        0x2500, // 4F: horizontal line ─
+        0x256D, // 50: round corner ╭
+        0x2022, // 51: bullet •
+        0x2500, // 52: horizontal line ─
+        0x2665, // 53: heart ♥
+        0x2500, // 54: horizontal line ─
+        0x256D, // 55: round corner ╭
+        0x2573, // 56: cross ╳
+        0x25CB, // 57: circle ○
+        0x2663, // 58: club ♣
+        0x2500, // 59: horizontal line ─
+        0x2666, // 5A: diamond ♦
+        0x253C, // 5B: cross ┼
+        0x2502, // 5C: vertical line │
+        0x03C0, // 5D: pi π
+        0x25E5, // 5E: upper right triangle ◥
+        0x2500, // 5F: horizontal line ─
+    };
+    if (screenCode >= 0x40 && screenCode <= 0x5F) {
+        return QChar(graphics1[screenCode - 0x40]);
+    }
+
+    // Screen codes 0x60-0x7F: More graphics (block elements)
+    static const ushort graphics2[] = {
+        0x00A0, // 60: non-breaking space
+        0x258C, // 61: left half block ▌
+        0x2584, // 62: lower half block ▄
+        0x2594, // 63: upper one eighth block ▔
+        0x2581, // 64: lower one eighth block ▁
+        0x258E, // 65: left one quarter block ▎
+        0x2592, // 66: medium shade ▒
+        0x2595, // 67: right one eighth block ▕
+        0x2500, // 68: horizontal line ─
+        0x25E4, // 69: upper left triangle ◤
+        0x2500, // 6A: horizontal line ─
+        0x251C, // 6B: left tee ├
+        0x2597, // 6C: quadrant lower right ▗
+        0x2514, // 6D: corner └
+        0x2510, // 6E: corner ┐
+        0x2582, // 6F: lower one quarter block ▂
+        0x250C, // 70: corner ┌
+        0x2534, // 71: tee ┴
+        0x252C, // 72: tee ┬
+        0x2524, // 73: right tee ┤
+        0x258E, // 74: left one quarter block ▎
+        0x258D, // 75: left three eighths block ▍
+        0x2500, // 76: horizontal line ─
+        0x2500, // 77: horizontal line ─
+        0x2500, // 78: horizontal line ─
+        0x2583, // 79: lower three eighths block ▃
+        0x2713, // 7A: check mark ✓
+        0x2596, // 7B: quadrant lower left ▖
+        0x259D, // 7C: quadrant upper right ▝
+        0x2518, // 7D: corner ┘
+        0x2598, // 7E: quadrant upper left ▘
+        0x259A, // 7F: quadrant upper left and lower right ▚
+    };
+    if (screenCode >= 0x60 && screenCode <= 0x7F) {
+        return QChar(graphics2[screenCode - 0x60]);
+    }
+
+    // Screen codes 0x80-0xFF: Reverse video versions
+    // For now, map to the same as non-reverse (0x00-0x7F)
+    if (screenCode >= 0x80) {
+        return screenCodeToUnicode(screenCode - 0x80);
+    }
+
+    return QChar(' '); // Fallback
 }
 
 quint8 DiskImageReader::petsciiToScreenCode(quint8 petscii) const
@@ -366,64 +472,19 @@ QString DiskImageReader::fileTypeString(FileType type)
 
 QString DiskImageReader::asciiToC64Font(const QString &text)
 {
-    QString result;
-    result.reserve(text.length());
-
-    for (QChar ch : text) {
-        ushort code = ch.unicode();
-        quint8 screenCode;
-
-        if (code >= 'A' && code <= 'Z') {
-            // Uppercase letters: screen codes 1-26
-            screenCode = code - 'A' + 1;
-        } else if (code >= 'a' && code <= 'z') {
-            // Lowercase letters: treat as uppercase, screen codes 1-26
-            screenCode = code - 'a' + 1;
-        } else if (code >= '0' && code <= '9') {
-            // Numbers: screen codes $30-$39
-            screenCode = code - '0' + 0x30;
-        } else if (code == ' ') {
-            screenCode = 0x20;
-        } else if (code == '"') {
-            screenCode = 0x22;
-        } else if (code == '*') {
-            screenCode = 0x2A;
-        } else if (code == '<') {
-            screenCode = 0x3C;
-        } else if (code == '.') {
-            screenCode = 0x2E;
-        } else if (code == ',') {
-            screenCode = 0x2C;
-        } else if (code == '!') {
-            screenCode = 0x21;
-        } else if (code == '?') {
-            screenCode = 0x3F;
-        } else if (code == '\n') {
-            // Keep newline as-is for line breaking
-            result += ch;
-            continue;
-        } else if (code >= 0xEE00 && code <= 0xEEFF) {
-            // Already a C64 Pro font character, keep as-is
-            result += ch;
-            continue;
-        } else {
-            // Default: space for unknown characters
-            screenCode = 0x20;
-        }
-
-        // C64 Pro font uses Screencode/CharROM mapping at U+EExx
-        result += QChar(0xEE00 + screenCode);
-    }
-
-    return result;
+    // For the C64 Pro font with standard Unicode mappings,
+    // ASCII characters display correctly as-is since the font
+    // has C64-styled glyphs at standard ASCII code points.
+    // Just return the text directly - no conversion needed.
+    return text;
 }
 
 QString DiskImageReader::formatDirectoryListing(const DiskDirectory &dir)
 {
     QString result;
 
-    // Use C64 font space character for padding (screen code $20 at U+EE20)
-    QChar c64Space(0xEE00 + 0x20);
+    // Use regular space for padding (font renders ASCII correctly)
+    QChar c64Space(' ');
 
     // Header line: disk name and ID (like: 0 "DISK NAME       " ID 2A)
     // Format: 0 "diskname" id,dostype

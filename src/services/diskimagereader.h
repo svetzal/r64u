@@ -2,6 +2,7 @@
 #define DISKIMAGEREADER_H
 
 #include <QByteArray>
+#include <QChar>
 #include <QString>
 #include <QVector>
 
@@ -141,6 +142,11 @@ private:
      * @brief Convert a single PETSCII byte to C64 screen code
      */
     quint8 petsciiToScreenCode(quint8 petscii) const;
+
+    /**
+     * @brief Convert C64 screen code to Unicode character
+     */
+    QChar screenCodeToUnicode(quint8 screenCode) const;
 
     /**
      * @brief Count free blocks from BAM bitmap
