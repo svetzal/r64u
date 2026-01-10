@@ -111,9 +111,12 @@ void DeviceConnection::setAutoReconnect(bool enabled)
 
 void DeviceConnection::connectToDevice()
 {
-    // Guard: only allow connecting from Disconnected or Reconnecting states
+    // Guard: only allow connecting from Disconnected state
+    // Block during Connecting, Connected, and Reconnecting to prevent
+    // multiple connection attempts in flight simultaneously
     if (state_ == ConnectionState::Connecting ||
-        state_ == ConnectionState::Connected) {
+        state_ == ConnectionState::Connected ||
+        state_ == ConnectionState::Reconnecting) {
         return;
     }
 
