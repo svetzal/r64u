@@ -192,6 +192,7 @@ jobs:
           mkdir -p AppDir/usr/bin
           mkdir -p AppDir/usr/lib
           mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/512x512/apps
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
 
           # Copy executable
@@ -201,9 +202,10 @@ jobs:
           cp packaging/r64u.desktop AppDir/usr/share/applications/
           cp packaging/r64u.desktop AppDir/
 
-          # Create icon
+          # Copy icon (512x512 source, also create 256x256 version)
           if [ -f resources/icons/app.png ]; then
-            cp resources/icons/app.png AppDir/usr/share/icons/hicolor/256x256/apps/r64u.png
+            cp resources/icons/app.png AppDir/usr/share/icons/hicolor/512x512/apps/r64u.png
+            convert resources/icons/app.png -resize 256x256 AppDir/usr/share/icons/hicolor/256x256/apps/r64u.png
           else
             convert -size 256x256 xc:'#4488CC' -fill white -gravity center \
               -pointsize 72 -annotate 0 'r64u' \

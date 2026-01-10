@@ -109,10 +109,14 @@ if(APPLE)
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
     )
 elseif(WIN32)
+    # Windows resource file for embedding the application icon
+    set(WIN_RESOURCES "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.rc")
+
     add_executable(r64u WIN32
         ${SOURCES}
         ${HEADERS}
         ${RESOURCES}
+        ${WIN_RESOURCES}
     )
 else()
     add_executable(r64u
@@ -264,7 +268,7 @@ if(UNIX AND NOT APPLE)
         DESTINATION share/applications
     )
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/app.png"
-        DESTINATION share/icons/hicolor/256x256/apps
+        DESTINATION share/icons/hicolor/512x512/apps
         RENAME r64u.png
         OPTIONAL
     )
