@@ -382,7 +382,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}-appimage
-          path: "*.AppImage"
+          path: "r64u-*.AppImage"
           if-no-files-found: error
 
       - name: Upload NSIS Installer (Windows)
