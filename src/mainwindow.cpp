@@ -1144,8 +1144,23 @@ void MainWindow::onMenuButton()
 
 void MainWindow::onPowerOff()
 {
+    int reply = QMessageBox::question(
+        this,
+        tr("Power Off Device"),
+        tr("Are you sure you want to power off the Ultimate device?\n\n"
+           "You will lose connection and need physical access to turn it back on."),
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No);
+
+    if (reply != QMessageBox::Yes) {
+        return;
+    }
+
     deviceConnection_->restClient()->powerOffMachine();
     statusBar()->showMessage(tr("Power off sent"), 3000);
+
+    // Device will be unreachable after power off, so disconnect
+    deviceConnection_->disconnectFromDevice();
 }
 
 void MainWindow::onUpload()
