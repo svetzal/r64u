@@ -286,68 +286,157 @@ QString DiskImageReader::petsciiToString(const QByteArray &data) const
     result.reserve(data.size());
 
     for (int i = 0; i < data.size(); i++) {
-        quint8 c = static_cast<quint8>(data[i]);
+        quint8 petscii = static_cast<quint8>(data[i]);
 
         // $A0 is shift-space (padding character) - stop here
-        if (c == 0xA0) {
+        if (petscii == 0xA0) {
             break;
         }
 
-        // Convert PETSCII to Unicode
-        // PETSCII uppercase letters are same positions as ASCII uppercase
-        // Lowercase in PETSCII is $C1-$DA, but we display uppercase
-        if (c >= 0x41 && c <= 0x5A) {
-            // A-Z (uppercase in PETSCII default mode)
-            result += QChar(c);
-        } else if (c >= 0xC1 && c <= 0xDA) {
-            // PETSCII lowercase letters - convert to uppercase for display
-            result += QChar(c - 0xC1 + 'A');
-        } else if (c >= 0x30 && c <= 0x39) {
-            // 0-9
-            result += QChar(c);
-        } else if (c >= 0x20 && c <= 0x3F) {
-            // Space and various punctuation
-            result += QChar(c);
-        } else if (c == 0x00) {
-            // Null - end of string
+        // Null - end of string
+        if (petscii == 0x00) {
             break;
-        } else {
-            // Other characters - use space or the character as-is if printable
-            if (c >= 0x20 && c < 0x7F) {
-                result += QChar(c);
-            } else {
-                result += ' ';
-            }
         }
+
+        // Convert PETSCII to C64 screen code, then to Unicode PUA
+        // C64 Pro font maps screen codes to U+E000 + screen_code
+        quint8 screenCode = petsciiToScreenCode(petscii);
+
+        // Map to Unicode Private Use Area where C64 Pro font has glyphs
+        // U+E000 is the base for C64 Pro font character mapping
+        result += QChar(0xE000 + screenCode);
     }
 
     return result;
 }
 
+quint8 DiskImageReader::petsciiToScreenCode(quint8 petscii) const
+{
+    // PETSCII to C64 screen code conversion
+    // Reference: https://sta.c64.org/cbm64pet.html
+
+    if (petscii <= 0x1F) {
+        // $00-$1F: Control codes - map to reverse @ and letters
+        return petscii + 0x80;
+    } else if (petscii <= 0x3F) {
+        // $20-$3F: Space, punctuation, numbers - same as screen code
+        return petscii;
+    } else if (petscii <= 0x5F) {
+        // $40-$5F: @ and uppercase A-Z, [, £, ], ↑, ←
+        // Screen code = PETSCII - $40
+        return petscii - 0x40;
+    } else if (petscii <= 0x7F) {
+        // $60-$7F: Graphics characters (horizontal line, etc.)
+        // Screen code = PETSCII - $20
+        return petscii - 0x20;
+    } else if (petscii <= 0x9F) {
+        // $80-$9F: Control codes (colors, etc.) - not printable
+        // Map to space
+        return 0x20;
+    } else if (petscii <= 0xBF) {
+        // $A0-$BF: Shifted space and graphics - reverse video versions
+        // Screen code = PETSCII - $40
+        return petscii - 0x40;
+    } else if (petscii <= 0xDF) {
+        // $C0-$DF: Lowercase letters and some symbols
+        // In uppercase mode (default): these show as graphics
+        // Screen code = PETSCII - $80
+        return petscii - 0x80;
+    } else if (petscii <= 0xFE) {
+        // $E0-$FE: More shifted graphics
+        // Screen code = PETSCII - $80
+        return petscii - 0x80;
+    } else {
+        // $FF: Pi symbol
+        return 0x5E; // Pi is at screen code $5E
+    }
+}
+
 QString DiskImageReader::fileTypeString(FileType type)
 {
     switch (type) {
-    case FileType::DEL: return "DEL";
-    case FileType::SEQ: return "SEQ";
-    case FileType::PRG: return "PRG";
-    case FileType::USR: return "USR";
-    case FileType::REL: return "REL";
-    case FileType::CBM: return "CBM";
-    case FileType::DIR: return "DIR";
-    default: return "???";
+    case FileType::DEL: return QStringLiteral("DEL");
+    case FileType::SEQ: return QStringLiteral("SEQ");
+    case FileType::PRG: return QStringLiteral("PRG");
+    case FileType::USR: return QStringLiteral("USR");
+    case FileType::REL: return QStringLiteral("REL");
+    case FileType::CBM: return QStringLiteral("CBM");
+    case FileType::DIR: return QStringLiteral("DIR");
+    default: return QStringLiteral("???");
     }
+}
+
+QString DiskImageReader::asciiToC64Font(const QString &text)
+{
+    QString result;
+    result.reserve(text.length());
+
+    for (QChar ch : text) {
+        ushort code = ch.unicode();
+        quint8 screenCode;
+
+        if (code >= 'A' && code <= 'Z') {
+            // Uppercase letters: screen code 1-26
+            screenCode = code - 'A' + 1;
+        } else if (code >= 'a' && code <= 'z') {
+            // Lowercase letters: treat as uppercase for C64 uppercase mode
+            screenCode = code - 'a' + 1;
+        } else if (code >= '0' && code <= '9') {
+            // Numbers: screen code $30-$39
+            screenCode = code - '0' + 0x30;
+        } else if (code == ' ') {
+            screenCode = 0x20;
+        } else if (code == '"') {
+            screenCode = 0x22;
+        } else if (code == '*') {
+            screenCode = 0x2A;
+        } else if (code == '<') {
+            screenCode = 0x3C;
+        } else if (code == '.') {
+            screenCode = 0x2E;
+        } else if (code == ',') {
+            screenCode = 0x2C;
+        } else if (code == '!') {
+            screenCode = 0x21;
+        } else if (code == '?') {
+            screenCode = 0x3F;
+        } else if (code == '\n') {
+            // Keep newline as-is for line breaking
+            result += ch;
+            continue;
+        } else if (code >= 0xE000 && code <= 0xE0FF) {
+            // Already a C64 Pro font character, keep as-is
+            result += ch;
+            continue;
+        } else {
+            // Default: space for unknown characters
+            screenCode = 0x20;
+        }
+
+        result += QChar(0xE000 + screenCode);
+    }
+
+    return result;
 }
 
 QString DiskImageReader::formatDirectoryListing(const DiskDirectory &dir)
 {
     QString result;
 
+    // Use C64 font space character for padding
+    QChar c64Space(0xE000 + 0x20);
+
     // Header line: disk name and ID (like: 0 "DISK NAME       " ID 2A)
     // Format: 0 "diskname" id,dostype
-    result += QString("0 \"%1\" %2 %3\n")
-              .arg(dir.diskName.leftJustified(16, ' '))
-              .arg(dir.diskId)
-              .arg(dir.dosType);
+    // Pad the disk name with C64 spaces (filenames are already in C64 font)
+    QString paddedName = dir.diskName;
+    while (paddedName.length() < 16) {
+        paddedName += c64Space;
+    }
+
+    result += asciiToC64Font(QString("0 \"")) + paddedName + asciiToC64Font(QString("\" "));
+    result += dir.diskId + asciiToC64Font(QString(" ")) + dir.dosType;
+    result += QChar('\n');
 
     // File entries
     for (const DirectoryEntry &entry : dir.entries) {
@@ -358,26 +447,32 @@ QString DiskImageReader::formatDirectoryListing(const DiskDirectory &dir)
 
         // Format: blocks "filename" type
         // Blocks are left-justified in a 5-character field
-        QString blocksStr = QString::number(entry.sizeInBlocks).leftJustified(5, ' ');
+        QString blocksStr = asciiToC64Font(QString::number(entry.sizeInBlocks).leftJustified(5, ' '));
 
-        // Filename is quoted and padded to 16 characters
-        QString quotedName = QString("\"%1\"").arg(entry.filename.leftJustified(16, ' '));
+        // Filename is quoted and padded to 16 characters with C64 spaces
+        QString paddedFilename = entry.filename;
+        while (paddedFilename.length() < 16) {
+            paddedFilename += c64Space;
+        }
+        QString quotedName = asciiToC64Font(QString("\"")) + paddedFilename + asciiToC64Font(QString("\""));
 
         // Type string with optional modifiers
         QString typeStr;
         if (!entry.isClosed) {
-            typeStr += '*'; // Splat file (not properly closed)
+            typeStr += asciiToC64Font(QString("*")); // Splat file (not properly closed)
         }
-        typeStr += fileTypeString(entry.type);
+        typeStr += asciiToC64Font(fileTypeString(entry.type));
         if (entry.isLocked) {
-            typeStr += '<'; // Locked file
+            typeStr += asciiToC64Font(QString("<")); // Locked file
         }
 
-        result += QString("%1%2 %3\n").arg(blocksStr, quotedName, typeStr);
+        result += blocksStr + quotedName + asciiToC64Font(QString(" ")) + typeStr;
+        result += QChar('\n');
     }
 
     // Footer: blocks free
-    result += QString("%1 BLOCKS FREE.\n").arg(dir.freeBlocks);
+    result += asciiToC64Font(QString("%1 BLOCKS FREE.").arg(dir.freeBlocks));
+    result += QChar('\n');
 
     return result;
 }

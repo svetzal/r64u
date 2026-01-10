@@ -91,6 +91,11 @@ public:
      */
     static QString fileTypeString(FileType type);
 
+    /**
+     * @brief Convert ASCII text to C64 Pro font Unicode (PUA)
+     */
+    static QString asciiToC64Font(const QString &text);
+
 private:
     /**
      * @brief Detect format from data size and optional filename
@@ -128,9 +133,14 @@ private:
     DirectoryEntry parseEntry(const QByteArray &entryData) const;
 
     /**
-     * @brief Convert PETSCII bytes to QString, stripping $A0 padding
+     * @brief Convert PETSCII bytes to QString for C64 Pro font display
      */
     QString petsciiToString(const QByteArray &data) const;
+
+    /**
+     * @brief Convert a single PETSCII byte to C64 screen code
+     */
+    quint8 petsciiToScreenCode(quint8 petscii) const;
 
     /**
      * @brief Count free blocks from BAM bitmap
