@@ -235,6 +235,14 @@ void C64URestClient::getConfigCategoryItems(const QString &category)
     sendGetRequest(endpoint, "configCategoryItems:" + category);
 }
 
+void C64URestClient::getConfigItem(const QString &category, const QString &item)
+{
+    QString endpoint = "/v1/configs/" + QUrl::toPercentEncoding(category) + "/" +
+                       QUrl::toPercentEncoding(item);
+    // Encode category:item in operation name for response routing
+    sendGetRequest(endpoint, "getConfigItem:" + category + ":" + item);
+}
+
 void C64URestClient::setConfigItem(const QString &category, const QString &item,
                                    const QVariant &value)
 {
@@ -337,6 +345,19 @@ void C64URestClient::onReplyFinished(QNetworkReply *reply)
     } else if (operation.startsWith("configCategoryItems:")) {
         QString category = operation.mid(20);  // Length of "configCategoryItems:"
         handleConfigCategoryItemsResponse(category, json);
+    } else if (operation.startsWith("getConfigItem:")) {
+        // Parse category:item from operation name
+        QString catItem = operation.mid(14);  // Length of "getConfigItem:"
+        int colonPos = catItem.indexOf(':');
+        if (colonPos > 0) {
+            QString category = catItem.left(colonPos);
+            QString item = catItem.mid(colonPos + 1);
+            // Parse value from response - expects {"category": {"item": value}}
+            QJsonObject categoryObj = json[category].toObject();
+            QVariant value = categoryObj[item].toVariant();
+            emit configItemReceived(category, item, value);
+        }
+        emit operationSucceeded(operation);
     } else if (operation.startsWith("setConfigItem:")) {
         // Parse category:item from operation name
         QString catItem = operation.mid(14);  // Length of "setConfigItem:"

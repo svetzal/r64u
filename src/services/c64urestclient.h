@@ -284,6 +284,15 @@ public:
     void getConfigCategoryItems(const QString &category);
 
     /**
+     * @brief Gets a single configuration item value.
+     * @param category Category name.
+     * @param item Item name.
+     *
+     * Emits configItemReceived() on success.
+     */
+    void getConfigItem(const QString &category, const QString &item);
+
+    /**
      * @brief Sets a single configuration item value.
      * @param category Configuration category name.
      * @param item Configuration item name.
@@ -369,6 +378,15 @@ signals:
      */
     void configCategoryItemsReceived(const QString &category,
                                      const QHash<QString, QVariant> &items);
+
+    /**
+     * @brief Emitted when a single configuration item value is received.
+     * @param category Category name.
+     * @param item Item name.
+     * @param value The item's current value.
+     */
+    void configItemReceived(const QString &category, const QString &item,
+                            const QVariant &value);
 
     /**
      * @brief Emitted when a single configuration item is set.

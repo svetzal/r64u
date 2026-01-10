@@ -244,9 +244,9 @@ HTTP status codes:
 |----------|-------------|-------|
 | `/v1/version` | Yes | `getVersion()` |
 | `/v1/info` | Yes | `getInfo()` |
-| `/v1/configs` GET | **No** | Not yet implemented |
-| `/v1/configs` POST | Yes | `updateConfigsBatch()` |
-| `/v1/configs:*` | **No** | Flash operations not implemented |
+| `/v1/configs` GET | Yes | `getConfigCategories()`, `getConfigCategoryItems()`, `getConfigItem()` |
+| `/v1/configs` PUT/POST | Yes | `setConfigItem()`, `updateConfigsBatch()` |
+| `/v1/configs:*` | Yes | `saveConfigToFlash()`, `loadConfigFromFlash()`, `resetConfigToDefaults()` |
 | `/v1/machine:*` | Yes | All machine control implemented |
 | `/v1/runners:*` | Partial | PUT methods only (no uploads) |
 | `/v1/drives` | Yes | Full drive control |
