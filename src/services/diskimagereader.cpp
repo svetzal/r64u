@@ -298,9 +298,22 @@ QString DiskImageReader::petsciiToString(const QByteArray &data) const
             break;
         }
 
-        // Convert PETSCII to screen code, then to Unicode
-        quint8 screenCode = petsciiToScreenCode(petscii);
-        result += screenCodeToUnicode(screenCode);
+        // Simple conversion: map printable PETSCII to ASCII equivalent
+        // Graphics characters will show as placeholders for now
+        // TODO: Implement proper PETSCII to Unicode mapping with tests
+        if (petscii >= 0x41 && petscii <= 0x5A) {
+            // Uppercase letters A-Z
+            result += QChar(petscii);
+        } else if (petscii >= 0xC1 && petscii <= 0xDA) {
+            // Lowercase PETSCII letters -> uppercase ASCII
+            result += QChar(petscii - 0x80);
+        } else if (petscii >= 0x20 && petscii <= 0x3F) {
+            // Space, punctuation, numbers (same as ASCII)
+            result += QChar(petscii);
+        } else {
+            // Graphics and other characters - show as space for now
+            result += QChar(' ');
+        }
     }
 
     return result;
