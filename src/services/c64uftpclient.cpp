@@ -233,6 +233,29 @@ void C64UFtpClient::onControlConnected()
 void C64UFtpClient::onControlDisconnected()
 {
     qDebug() << "FTP: Control socket disconnected";
+
+    // Clear command queue to prevent stale commands executing on reconnection
+    while (!commandQueue_.isEmpty()) {
+        PendingCommand cmd = std::move(commandQueue_.head());
+        commandQueue_.dequeue();
+        if (cmd.transferFile) {
+            cmd.transferFile->close();
+        }
+    }
+
+    // Clear any pending transfer state
+    if (currentRetrFile_) {
+        currentRetrFile_->close();
+        currentRetrFile_.reset();
+    }
+    currentRetrIsMemory_ = false;
+    pendingList_.reset();
+    if (pendingRetr_ && pendingRetr_->file) {
+        pendingRetr_->file->close();
+    }
+    pendingRetr_.reset();
+
+    loggedIn_ = false;
     setState(State::Disconnected);
     emit disconnected();
 }
@@ -240,6 +263,29 @@ void C64UFtpClient::onControlDisconnected()
 void C64UFtpClient::onControlError(QAbstractSocket::SocketError socketError)
 {
     qDebug() << "FTP: Control socket error:" << socketError << controlSocket_->errorString();
+
+    // Clear command queue to prevent stale commands executing on reconnection
+    while (!commandQueue_.isEmpty()) {
+        PendingCommand cmd = std::move(commandQueue_.head());
+        commandQueue_.dequeue();
+        if (cmd.transferFile) {
+            cmd.transferFile->close();
+        }
+    }
+
+    // Clear any pending transfer state
+    if (currentRetrFile_) {
+        currentRetrFile_->close();
+        currentRetrFile_.reset();
+    }
+    currentRetrIsMemory_ = false;
+    pendingList_.reset();
+    if (pendingRetr_ && pendingRetr_->file) {
+        pendingRetr_->file->close();
+    }
+    pendingRetr_.reset();
+
+    loggedIn_ = false;
     emit error(controlSocket_->errorString());
     setState(State::Disconnected);
 }
