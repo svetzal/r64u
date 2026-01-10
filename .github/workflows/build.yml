@@ -129,21 +129,42 @@ jobs:
         run: |
           APP_PATH="build/r64u.app"
 
-          # Sign frameworks and plugins
-          find "$APP_PATH/Contents/Frameworks" -name "*.framework" -type d | while read f; do
-            codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$f" || true
-          done
-          find "$APP_PATH/Contents/PlugIns" -name "*.dylib" -type f | while read f; do
-            codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$f" || true
-          done
-          find "$APP_PATH/Contents/Frameworks" -name "*.dylib" -type f | while read f; do
-            codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$f" || true
+          # Sign all executables and libraries inside frameworks first (deepest first)
+          echo "Signing framework executables..."
+          find "$APP_PATH/Contents/Frameworks" -type f \( -name "*.dylib" -o -perm +111 \) | while read f; do
+            echo "  Signing: $f"
+            codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$f"
           done
 
-          # Sign main executable and bundle
+          # Sign frameworks themselves
+          echo "Signing frameworks..."
+          find "$APP_PATH/Contents/Frameworks" -name "*.framework" -type d | while read f; do
+            echo "  Signing: $f"
+            codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$f"
+          done
+
+          # Sign plugins
+          echo "Signing plugins..."
+          find "$APP_PATH/Contents/PlugIns" -type f \( -name "*.dylib" -o -perm +111 \) | while read f; do
+            echo "  Signing: $f"
+            codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$f"
+          done
+
+          # Sign main executable
+          echo "Signing main executable..."
           codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$APP_PATH/Contents/MacOS/r64u"
+
+          # Sign the bundle itself
+          echo "Signing app bundle..."
           codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$APP_PATH"
+
+          # Verify the signature
+          echo "Verifying signature..."
           codesign --verify --verbose=4 "$APP_PATH"
+
+          # Check for any unsigned code (would cause notarization to fail)
+          echo "Checking for unsigned code..."
+          find "$APP_PATH" -type f \( -name "*.dylib" -o -name "*.so" -o -perm +111 \) -exec codesign -vv {} \; 2>&1 | grep -i "not signed" && echo "WARNING: Found unsigned code!" || echo "All code appears to be signed"
 
       - name: Create DMG (macOS)
         if: runner.os == 'macOS'
@@ -171,11 +192,35 @@ jobs:
         run: |
           DMG_FILE=$(ls build/*.dmg | head -1)
           echo "Notarizing DMG: $DMG_FILE"
-          xcrun notarytool submit "$DMG_FILE" \
+
+          # Submit and capture output to get submission ID
+          SUBMIT_OUTPUT=$(xcrun notarytool submit "$DMG_FILE" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait
+            --wait 2>&1)
+
+          echo "$SUBMIT_OUTPUT"
+
+          # Extract submission ID and check status
+          SUBMISSION_ID=$(echo "$SUBMIT_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
+          STATUS=$(echo "$SUBMIT_OUTPUT" | grep "status:" | awk '{print $2}')
+
+          echo "Submission ID: $SUBMISSION_ID"
+          echo "Status: $STATUS"
+
+          if [ "$STATUS" != "Accepted" ]; then
+            echo "Notarization failed with status: $STATUS"
+            echo "Fetching notarization log..."
+            xcrun notarytool log "$SUBMISSION_ID" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_APP_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" \
+              notarization_log.json || true
+            cat notarization_log.json || true
+            exit 1
+          fi
+
           echo "Stapling notarization to DMG..."
           xcrun stapler staple "$DMG_FILE"
           xcrun stapler validate "$DMG_FILE"
