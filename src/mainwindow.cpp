@@ -2387,9 +2387,33 @@ void MainWindow::onConfigCategoriesReceived(const QStringList &categories)
 }
 
 void MainWindow::onConfigCategoryItemsReceived(const QString &category,
-                                               const QHash<QString, QVariant> &items)
+                                               const QHash<QString, ConfigItemMetadata> &items)
 {
-    configModel_->setCategoryItems(category, items);
+    // Convert REST metadata to model's ConfigItemInfo format
+    QHash<QString, ConfigItemInfo> infoItems;
+    for (auto it = items.begin(); it != items.end(); ++it) {
+        const ConfigItemMetadata &meta = it.value();
+        ConfigItemInfo info;
+        info.value = meta.current;
+        info.defaultValue = meta.defaultValue;
+        info.isDirty = false;
+
+        // Use values array if available, otherwise use presets
+        if (!meta.values.isEmpty()) {
+            info.options = meta.values;
+        } else if (!meta.presets.isEmpty()) {
+            info.options = meta.presets;
+        }
+
+        // Store numeric range
+        if (meta.hasRange) {
+            info.minValue = meta.min;
+            info.maxValue = meta.max;
+        }
+
+        infoItems[it.key()] = info;
+    }
+    configModel_->setCategoryItemsWithInfo(category, infoItems);
 }
 
 void MainWindow::onConfigSavedToFlash()

@@ -17,6 +17,8 @@
 #include <QRadioButton>
 #include <QListWidget>
 
+#include "services/c64urestclient.h"
+
 class PreferencesDialog;
 class DeviceConnection;
 class RemoteFileModel;
@@ -144,7 +146,7 @@ private slots:
     void onConfigRefresh();
     void onConfigCategoriesReceived(const QStringList &categories);
     void onConfigCategoryItemsReceived(const QString &category,
-                                       const QHash<QString, QVariant> &items);
+                                       const QHash<QString, ConfigItemMetadata> &items);
     void onConfigSavedToFlash();
     void onConfigLoadedFromFlash();
     void onConfigResetComplete();

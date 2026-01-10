@@ -80,7 +80,9 @@ private:
     void clearItems();
     void populateItems();
     QWidget* createEditorWidget(const QString &itemName, const QVariant &value,
-                                const QStringList &options);
+                                const QStringList &options,
+                                const QVariant &minValue = QVariant(),
+                                const QVariant &maxValue = QVariant());
     void updateLabelStyle(const QString &itemName, bool isDirty);
 
     ConfigurationModel *model_ = nullptr;

@@ -109,7 +109,8 @@ void ConfigItemsPanel::populateItems()
         }
 
         // Create appropriate editor widget
-        QWidget *editor = createEditorWidget(itemName, info.value, info.options);
+        QWidget *editor = createEditorWidget(itemName, info.value, info.options,
+                                              info.minValue, info.maxValue);
         itemEditors_[itemName] = editor;
 
         formLayout_->addRow(label, editor);
@@ -118,7 +119,9 @@ void ConfigItemsPanel::populateItems()
 
 QWidget* ConfigItemsPanel::createEditorWidget(const QString &itemName,
                                                const QVariant &value,
-                                               const QStringList &options)
+                                               const QStringList &options,
+                                               const QVariant &minValue,
+                                               const QVariant &maxValue)
 {
     // If options are provided, use combo box
     if (!options.isEmpty()) {
@@ -152,7 +155,12 @@ QWidget* ConfigItemsPanel::createEditorWidget(const QString &itemName,
 
     if (type == QMetaType::Int || type == QMetaType::LongLong) {
         auto *spinBox = new QSpinBox();
-        spinBox->setRange(-999999, 999999);
+        // Use min/max from metadata if available
+        if (minValue.isValid() && maxValue.isValid()) {
+            spinBox->setRange(minValue.toInt(), maxValue.toInt());
+        } else {
+            spinBox->setRange(-999999, 999999);
+        }
         spinBox->setValue(value.toInt());
         connect(spinBox, &QSpinBox::valueChanged, this,
                 [this, itemName](int val) {

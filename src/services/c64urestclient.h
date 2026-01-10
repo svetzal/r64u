@@ -29,6 +29,20 @@ struct DeviceInfo {
 };
 
 /**
+ * @brief Metadata for a configuration item including available options.
+ */
+struct ConfigItemMetadata {
+    QVariant current;           ///< Current value
+    QVariant defaultValue;      ///< Default value
+    QStringList values;         ///< Available options for enum types
+    QStringList presets;        ///< Preset options for file-type items
+    int min = 0;                ///< Minimum value for numeric types
+    int max = 0;                ///< Maximum value for numeric types
+    QString format;             ///< Format string (e.g., "%d" or "%d00 ms")
+    bool hasRange = false;      ///< True if min/max are valid
+};
+
+/**
  * @brief Information about a single drive on the device.
  */
 struct DriveInfo {
@@ -374,10 +388,10 @@ signals:
     /**
      * @brief Emitted when configuration category items are received.
      * @param category Category name.
-     * @param items Map of item names to values.
+     * @param items Map of item names to metadata including current values and options.
      */
     void configCategoryItemsReceived(const QString &category,
-                                     const QHash<QString, QVariant> &items);
+                                     const QHash<QString, ConfigItemMetadata> &items);
 
     /**
      * @brief Emitted when a single configuration item value is received.

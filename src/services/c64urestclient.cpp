@@ -230,7 +230,8 @@ void C64URestClient::getConfigCategories()
 
 void C64URestClient::getConfigCategoryItems(const QString &category)
 {
-    QString endpoint = "/v1/configs/" + QUrl::toPercentEncoding(category);
+    // Use wildcard to get full item details including available options
+    QString endpoint = "/v1/configs/" + QUrl::toPercentEncoding(category) + "/*";
     // Encode category in operation name for response routing
     sendGetRequest(endpoint, "configCategoryItems:" + category);
 }
@@ -451,28 +452,75 @@ void C64URestClient::handleConfigCategoriesResponse(const QJsonObject &json)
 void C64URestClient::handleConfigCategoryItemsResponse(const QString &category,
                                                         const QJsonObject &json)
 {
-    QHash<QString, QVariant> items;
+    QHash<QString, ConfigItemMetadata> items;
 
-    // The response has the category name as the key containing item key-value pairs
+    // The response has the category name as the key containing item objects
     QJsonObject categoryObj = json[category].toObject();
     for (auto it = categoryObj.begin(); it != categoryObj.end(); ++it) {
         QString itemName = it.key();
-        QJsonValue itemValue = it.value();
+        QJsonObject itemObj = it.value().toObject();
 
-        // Convert JSON value to appropriate QVariant type
-        if (itemValue.isBool()) {
-            items[itemName] = itemValue.toBool();
-        } else if (itemValue.isDouble()) {
-            // Check if it's an integer
-            double d = itemValue.toDouble();
+        ConfigItemMetadata meta;
+
+        // Parse current value
+        QJsonValue currentVal = itemObj["current"];
+        if (currentVal.isBool()) {
+            meta.current = currentVal.toBool();
+        } else if (currentVal.isDouble()) {
+            double d = currentVal.toDouble();
             if (d == qRound(d)) {
-                items[itemName] = static_cast<int>(d);
+                meta.current = static_cast<int>(d);
             } else {
-                items[itemName] = d;
+                meta.current = d;
             }
         } else {
-            items[itemName] = itemValue.toString();
+            meta.current = currentVal.toString();
         }
+
+        // Parse default value
+        QJsonValue defaultVal = itemObj["default"];
+        if (defaultVal.isBool()) {
+            meta.defaultValue = defaultVal.toBool();
+        } else if (defaultVal.isDouble()) {
+            double d = defaultVal.toDouble();
+            if (d == qRound(d)) {
+                meta.defaultValue = static_cast<int>(d);
+            } else {
+                meta.defaultValue = d;
+            }
+        } else {
+            meta.defaultValue = defaultVal.toString();
+        }
+
+        // Parse values (enum options)
+        if (itemObj.contains("values")) {
+            QJsonArray valuesArray = itemObj["values"].toArray();
+            for (const QJsonValue &val : valuesArray) {
+                meta.values.append(val.toString());
+            }
+        }
+
+        // Parse presets (file options)
+        if (itemObj.contains("presets")) {
+            QJsonArray presetsArray = itemObj["presets"].toArray();
+            for (const QJsonValue &val : presetsArray) {
+                meta.presets.append(val.toString());
+            }
+        }
+
+        // Parse numeric range
+        if (itemObj.contains("min") && itemObj.contains("max")) {
+            meta.min = itemObj["min"].toInt();
+            meta.max = itemObj["max"].toInt();
+            meta.hasRange = true;
+        }
+
+        // Parse format string
+        if (itemObj.contains("format")) {
+            meta.format = itemObj["format"].toString();
+        }
+
+        items[itemName] = meta;
     }
 
     emit configCategoryItemsReceived(category, items);
