@@ -149,6 +149,7 @@ jobs:
           SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: |
           APP_PATH="build/r64u.app"
+          ENTITLEMENTS="resources/r64u.entitlements"
 
           # Sign all executables and libraries inside frameworks first (deepest first)
           echo "Signing framework executables..."
@@ -171,17 +172,21 @@ jobs:
             codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$f"
           done
 
-          # Sign main executable
-          echo "Signing main executable..."
-          codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$APP_PATH/Contents/MacOS/r64u"
+          # Sign main executable with entitlements
+          echo "Signing main executable with entitlements..."
+          codesign --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$SIGNING_IDENTITY" --timestamp "$APP_PATH/Contents/MacOS/r64u"
 
-          # Sign the bundle itself
-          echo "Signing app bundle..."
-          codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$APP_PATH"
+          # Sign the bundle itself with entitlements
+          echo "Signing app bundle with entitlements..."
+          codesign --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$SIGNING_IDENTITY" --timestamp "$APP_PATH"
 
           # Verify the signature
           echo "Verifying signature..."
           codesign --verify --verbose=4 "$APP_PATH"
+
+          # Display entitlements for verification
+          echo "Embedded entitlements:"
+          codesign -d --entitlements :- "$APP_PATH" 2>/dev/null || echo "Could not display entitlements"
 
           # Check for any unsigned code (would cause notarization to fail)
           echo "Checking for unsigned code..."

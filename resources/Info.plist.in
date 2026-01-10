@@ -32,5 +32,27 @@
     <string>NSApplication</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+
+    <!-- Usage descriptions for macOS TCC (Transparency, Consent, and Control) -->
+    <key>NSNetworkVolumesUsageDescription</key>
+    <string>r64u needs network access to communicate with your Ultimate 64 or 1541 Ultimate II+ device over FTP and REST APIs.</string>
+
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>r64u needs access to your Downloads folder to transfer files to and from your Commodore 64 device.</string>
+
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>r64u needs access to your Documents folder to browse and transfer files to your Commodore 64 device.</string>
+
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>r64u needs access to your Desktop folder to browse and transfer files to your Commodore 64 device.</string>
+
+    <key>NSRemovableVolumesUsageDescription</key>
+    <string>r64u needs access to removable volumes to browse and transfer files to your Commodore 64 device.</string>
+
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>r64u needs local network access to discover and communicate with your Ultimate 64 or 1541 Ultimate II+ device.</string>
+
+    <key>NSMicrophoneUsageDescription</key>
+    <string>r64u uses the microphone for audio streaming features with your Commodore 64 device.</string>
 </dict>
 </plist>
