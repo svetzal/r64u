@@ -280,10 +280,8 @@ if(UNIX AND NOT APPLE)
     set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${CPACK_PACKAGE_HOMEPAGE_URL}")
     set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 
-    # DEB dependencies - Qt6 packages on Ubuntu/Debian
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "libqt6core6 (>= 6.2), libqt6gui6 (>= 6.2), libqt6widgets6 (>= 6.2), libqt6network6 (>= 6.2), libqt6multimedia6 (>= 6.2)"
-    )
+    # Auto-detect shared library dependencies (handles Ubuntu 22.04 vs 24.04 package name differences)
+    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 
     # RPM specific settings
     set(CPACK_RPM_PACKAGE_LICENSE "MIT")
@@ -291,10 +289,8 @@ if(UNIX AND NOT APPLE)
     set(CPACK_RPM_PACKAGE_URL "${CPACK_PACKAGE_HOMEPAGE_URL}")
     set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
 
-    # RPM dependencies - Qt6 packages on Fedora/RHEL
-    set(CPACK_RPM_PACKAGE_REQUIRES
-        "qt6-qtbase >= 6.2, qt6-qtmultimedia >= 6.2"
-    )
+    # Auto-detect shared library dependencies
+    set(CPACK_RPM_PACKAGE_AUTOREQ ON)
 
     # AppImage configuration (requires linuxdeployqt or linuxdeploy)
     # Note: AppImage is typically built outside of CPack using linuxdeploy
