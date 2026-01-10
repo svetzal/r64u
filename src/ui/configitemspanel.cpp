@@ -95,6 +95,7 @@ void ConfigItemsPanel::clearItems()
 void ConfigItemsPanel::populateItems()
 {
     QStringList items = model_->itemNames(currentCategory_);
+    items.sort(Qt::CaseInsensitive);
 
     for (const QString &itemName : items) {
         ConfigItemInfo info = model_->itemInfo(currentCategory_, itemName);
