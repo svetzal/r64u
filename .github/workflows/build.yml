@@ -50,13 +50,16 @@ jobs:
             libfuse2 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
             libxcb-keysyms1 libxcb-render-util0 libxcb-shape0 \
             libasound2 libpulse0 \
-            rpm rpmbuild dpkg-dev fakeroot imagemagick
+            rpm-build dpkg-dev fakeroot imagemagick
 
       - name: Install Windows dependencies (NSIS)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          # NSIS is pre-installed on GitHub runners, verify it
+          # Install NSIS
+          choco install nsis -y
+          # Refresh PATH
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
           makensis /VERSION
 
       # =========================================================================
