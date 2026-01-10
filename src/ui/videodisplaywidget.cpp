@@ -4,8 +4,8 @@
  */
 
 #include "videodisplaywidget.h"
+#include "utils/logging.h"
 #include <QPainter>
-#include <QDebug>
 
 // Standard VIC-II color palette
 // Values from: https://www.pepto.de/projects/colorvic/
@@ -66,14 +66,14 @@ void VideoDisplayWidget::displayFrame(const QByteArray &frameData,
     static int frameCount = 0;
     frameCount++;
     if (frameCount <= 3 || frameCount % 50 == 0) {
-        qDebug() << "VideoDisplayWidget::displayFrame: frame" << frameCount
+        LOG_VERBOSE() << "VideoDisplayWidget::displayFrame: frame" << frameCount
                  << "data size:" << frameData.size()
                  << "format:" << static_cast<int>(format);
     }
 
     // Handle format change
     if (format != videoFormat_ && format != VideoStreamReceiver::VideoFormat::Unknown) {
-        qDebug() << "VideoDisplayWidget: Format changed to"
+        LOG_VERBOSE() << "VideoDisplayWidget: Format changed to"
                  << (format == VideoStreamReceiver::VideoFormat::PAL ? "PAL" : "NTSC");
         videoFormat_ = format;
         int height = (format == VideoStreamReceiver::VideoFormat::NTSC)
