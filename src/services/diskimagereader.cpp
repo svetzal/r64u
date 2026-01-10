@@ -282,6 +282,45 @@ DiskImageReader::DirectoryEntry DiskImageReader::parseEntry(const QByteArray &en
 
 QString DiskImageReader::petsciiToString(const QByteArray &data) const
 {
+    // PETSCII to ASCII lookup table
+    // Based on Ultimate64/Ultimate-II Control Library for Amiga OS 3.x
+    // Graphics characters are mapped to spaces for display
+    static const char petsciiToAscii[256] = {
+        // 0x00-0x1F: Control codes
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '\n', 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+        // 0x20-0x3F: Space, punctuation, numbers
+        ' ', '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/',
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?',
+
+        // 0x40-0x5F: @, PETSCII uppercase A-Z, special chars
+        '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
+        'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\\', ']', '^', '_',
+
+        // 0x60-0x7F: Graphics characters (display as spaces for now)
+        ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+        ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+
+        // 0x80-0x9F: Control codes (display as spaces)
+        ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+        ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+
+        // 0xA0-0xBF: Graphics characters (display as spaces)
+        ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+        ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+
+        // 0xC0-0xDF: PETSCII lowercase letters and symbols
+        ' ',  // 0xC0
+        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',  // 0xC1-0xCF
+        'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',  // 0xD0-0xDA
+        ' ', ' ', ' ', ' ', ' ',  // 0xDB-0xDF
+
+        // 0xE0-0xFF: Graphics characters (display as spaces)
+        ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+        ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '
+    };
+
     QString result;
     result.reserve(data.size());
 
@@ -298,22 +337,11 @@ QString DiskImageReader::petsciiToString(const QByteArray &data) const
             break;
         }
 
-        // Simple conversion: map printable PETSCII to ASCII equivalent
-        // Graphics characters will show as placeholders for now
-        // TODO: Implement proper PETSCII to Unicode mapping with tests
-        if (petscii >= 0x41 && petscii <= 0x5A) {
-            // Uppercase letters A-Z
-            result += QChar(petscii);
-        } else if (petscii >= 0xC1 && petscii <= 0xDA) {
-            // Lowercase PETSCII letters -> uppercase ASCII
-            result += QChar(petscii - 0x80);
-        } else if (petscii >= 0x20 && petscii <= 0x3F) {
-            // Space, punctuation, numbers (same as ASCII)
-            result += QChar(petscii);
-        } else {
-            // Graphics and other characters - show as space for now
-            result += QChar(' ');
+        char ascii = petsciiToAscii[petscii];
+        if (ascii != 0) {
+            result += QChar(ascii);
         }
+        // Skip null mappings (control codes)
     }
 
     return result;
