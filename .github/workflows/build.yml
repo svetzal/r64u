@@ -28,7 +28,7 @@ jobs:
           #   artifact: r64u-linux-arm64
           #   qt_arch: linux_gcc_arm64
           #   linuxdeploy_arch: aarch64
-          - os: macos-15-large
+          - os: macos-13
             name: macOS-Intel
             artifact: r64u-macos-x86_64
             qt_arch: clang_64
@@ -40,10 +40,11 @@ jobs:
             name: Windows-x64
             artifact: r64u-windows-x64
             qt_arch: win64_msvc2022_64
-          - os: windows-11-arm64
-            name: Windows-ARM
-            artifact: r64u-windows-arm64
-            qt_arch: win64_msvc2022_arm64
+          # Windows ARM disabled - runners stuck in queue
+          # - os: windows-11-arm64
+          #   name: Windows-ARM
+          #   artifact: r64u-windows-arm64
+          #   qt_arch: win64_msvc2022_arm64
 
     runs-on: ${{ matrix.os }}
     name: Build (${{ matrix.name }})
