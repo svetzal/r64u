@@ -150,6 +150,9 @@ private slots:
     void onConfigResetComplete();
     void onConfigDirtyStateChanged(bool isDirty);
     void onConfigCategorySelected(QListWidgetItem *current, QListWidgetItem *previous);
+    void onConfigItemEdited(const QString &category, const QString &item,
+                            const QVariant &value);
+    void onConfigItemSetResult(const QString &category, const QString &item);
 
 private:
     void setupUi();

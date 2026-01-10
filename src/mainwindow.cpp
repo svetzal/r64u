@@ -741,6 +741,8 @@ void MainWindow::setupConfigMode()
 
     // Config items panel
     configItemsPanel_ = new ConfigItemsPanel(configModel_);
+    connect(configItemsPanel_, &ConfigItemsPanel::itemChanged,
+            this, &MainWindow::onConfigItemEdited);
     configSplitter_->addWidget(configItemsPanel_);
 
     // Set splitter sizes (category list gets ~25%, items panel gets ~75%)
@@ -796,6 +798,8 @@ void MainWindow::setupConnections()
             this, &MainWindow::onConfigLoadedFromFlash);
     connect(deviceConnection_->restClient(), &C64URestClient::configResetToDefaults,
             this, &MainWindow::onConfigResetComplete);
+    connect(deviceConnection_->restClient(), &C64URestClient::configItemSet,
+            this, &MainWindow::onConfigItemSetResult);
 
     // Model signals
     connect(remoteFileModel_, &RemoteFileModel::loadingStarted,
@@ -2431,4 +2435,23 @@ void MainWindow::onConfigCategorySelected(QListWidgetItem *current, QListWidgetI
     if (configModel_->itemCount(category) == 0 && deviceConnection_->isConnected()) {
         deviceConnection_->restClient()->getConfigCategoryItems(category);
     }
+}
+
+void MainWindow::onConfigItemEdited(const QString &category, const QString &item,
+                                     const QVariant &value)
+{
+    if (!deviceConnection_->isConnected()) {
+        statusBar()->showMessage(tr("Not connected - changes are local only"), 3000);
+        return;
+    }
+
+    // Send update to device immediately
+    statusBar()->showMessage(tr("Updating %1...").arg(item));
+    deviceConnection_->restClient()->setConfigItem(category, item, value);
+}
+
+void MainWindow::onConfigItemSetResult(const QString &category, const QString &item)
+{
+    Q_UNUSED(category)
+    statusBar()->showMessage(tr("%1 updated").arg(item), 2000);
 }
