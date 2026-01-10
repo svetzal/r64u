@@ -596,6 +596,38 @@ void MainWindow::setupViewMode()
     streamStatusLabel_ = new QLabel(tr("Not streaming"));
     viewPanelToolBar_->addWidget(streamStatusLabel_);
 
+    // Add spacer to push scaling mode to the right
+    auto *spacer = new QWidget();
+    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    viewPanelToolBar_->addWidget(spacer);
+
+    // Add scaling mode radio buttons
+    auto *scalingLabel = new QLabel(tr("Scale:"));
+    viewPanelToolBar_->addWidget(scalingLabel);
+
+    scalingModeGroup_ = new QButtonGroup(this);
+
+    sharpRadio_ = new QRadioButton(tr("Sharp"));
+    sharpRadio_->setToolTip(tr("Nearest-neighbor scaling - crisp pixels"));
+    smoothRadio_ = new QRadioButton(tr("Smooth"));
+    smoothRadio_->setToolTip(tr("Bilinear interpolation - smooth but fuzzy"));
+    integerRadio_ = new QRadioButton(tr("Integer"));
+    integerRadio_->setToolTip(tr("Integer scaling with letterboxing - pixel-perfect"));
+
+    scalingModeGroup_->addButton(sharpRadio_, static_cast<int>(VideoDisplayWidget::ScalingMode::Sharp));
+    scalingModeGroup_->addButton(smoothRadio_, static_cast<int>(VideoDisplayWidget::ScalingMode::Smooth));
+    scalingModeGroup_->addButton(integerRadio_, static_cast<int>(VideoDisplayWidget::ScalingMode::Integer));
+
+    viewPanelToolBar_->addWidget(sharpRadio_);
+    viewPanelToolBar_->addWidget(smoothRadio_);
+    viewPanelToolBar_->addWidget(integerRadio_);
+
+    // Default to Integer (will be overridden by loadSettings)
+    integerRadio_->setChecked(true);
+
+    connect(scalingModeGroup_, QOverload<int>::of(&QButtonGroup::idClicked),
+            this, &MainWindow::onScalingModeChanged);
+
     layout->addWidget(viewPanelToolBar_);
 
     // Create video display widget
@@ -923,6 +955,25 @@ void MainWindow::loadSettings()
     // Initialize explore remote up button state (disabled until connected)
     bool canGoUpExploreRemote = (savedExploreRemoteDir != "/" && !savedExploreRemoteDir.isEmpty());
     exploreRemoteUpButton_->setEnabled(canGoUpExploreRemote && deviceConnection_->isConnected());
+
+    // Load video scaling mode (default to Integer)
+    int scalingMode = settings.value("view/scalingMode",
+        static_cast<int>(VideoDisplayWidget::ScalingMode::Integer)).toInt();
+    auto mode = static_cast<VideoDisplayWidget::ScalingMode>(scalingMode);
+    videoDisplayWidget_->setScalingMode(mode);
+
+    // Update the radio buttons to match
+    switch (mode) {
+    case VideoDisplayWidget::ScalingMode::Sharp:
+        sharpRadio_->setChecked(true);
+        break;
+    case VideoDisplayWidget::ScalingMode::Smooth:
+        smoothRadio_->setChecked(true);
+        break;
+    case VideoDisplayWidget::ScalingMode::Integer:
+        integerRadio_->setChecked(true);
+        break;
+    }
 }
 
 void MainWindow::saveSettings()
@@ -935,6 +986,10 @@ void MainWindow::saveSettings()
     settings.setValue("directories/local", currentLocalDir_);
     settings.setValue("directories/remote", currentRemoteTransferDir_);
     settings.setValue("directories/exploreRemote", currentExploreRemoteDir_);
+
+    // Save video scaling mode
+    settings.setValue("view/scalingMode",
+        static_cast<int>(videoDisplayWidget_->scalingMode()));
 }
 
 QString MainWindow::selectedRemotePath() const
@@ -2129,4 +2184,14 @@ void MainWindow::onStreamCommandFailed(const QString &command, const QString &er
     if (isStreaming_ && command.contains("start")) {
         onStopStreaming();
     }
+}
+
+void MainWindow::onScalingModeChanged(int id)
+{
+    auto mode = static_cast<VideoDisplayWidget::ScalingMode>(id);
+    videoDisplayWidget_->setScalingMode(mode);
+
+    // Save immediately so preference is persisted
+    QSettings settings;
+    settings.setValue("view/scalingMode", id);
 }

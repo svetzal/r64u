@@ -102,6 +102,15 @@ void VideoDisplayWidget::clear()
     update();
 }
 
+void VideoDisplayWidget::setScalingMode(ScalingMode mode)
+{
+    if (scalingMode_ != mode) {
+        scalingMode_ = mode;
+        emit scalingModeChanged(mode);
+        update();
+    }
+}
+
 void VideoDisplayWidget::paintEvent(QPaintEvent * /*event*/)
 {
     QPainter painter(this);
@@ -112,14 +121,24 @@ void VideoDisplayWidget::paintEvent(QPaintEvent * /*event*/)
         return;
     }
 
-    // Calculate display rectangle maintaining aspect ratio
+    // Calculate display rectangle based on scaling mode
     QRect displayRect = calculateDisplayRect();
 
     // Fill background outside video area
     painter.fillRect(rect(), Qt::black);
 
-    // Draw scaled image with smooth transformation
-    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+    // Apply scaling mode
+    switch (scalingMode_) {
+    case ScalingMode::Smooth:
+        painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+        break;
+    case ScalingMode::Sharp:
+    case ScalingMode::Integer:
+    default:
+        painter.setRenderHint(QPainter::SmoothPixmapTransform, false);
+        break;
+    }
+
     painter.drawImage(displayRect, displayImage_);
 }
 
@@ -157,23 +176,36 @@ QRect VideoDisplayWidget::calculateDisplayRect() const
         return rect();
     }
 
-    // Calculate aspect ratio preserving rectangle
-    qreal imageAspect = static_cast<qreal>(displayImage_.width()) /
-                        static_cast<qreal>(displayImage_.height());
-    qreal widgetAspect = static_cast<qreal>(width()) /
-                         static_cast<qreal>(height());
+    int imageWidth = displayImage_.width();
+    int imageHeight = displayImage_.height();
 
     int displayWidth;
     int displayHeight;
 
-    if (widgetAspect > imageAspect) {
-        // Widget is wider than image - fit to height
-        displayHeight = height();
-        displayWidth = static_cast<int>(displayHeight * imageAspect);
+    if (scalingMode_ == ScalingMode::Integer) {
+        // Integer scaling: find largest integer multiplier that fits
+        int scaleX = width() / imageWidth;
+        int scaleY = height() / imageHeight;
+        int scale = qMax(1, qMin(scaleX, scaleY));
+
+        displayWidth = imageWidth * scale;
+        displayHeight = imageHeight * scale;
     } else {
-        // Widget is taller than image - fit to width
-        displayWidth = width();
-        displayHeight = static_cast<int>(displayWidth / imageAspect);
+        // Aspect ratio preserving scaling (Sharp and Smooth modes)
+        qreal imageAspect = static_cast<qreal>(imageWidth) /
+                            static_cast<qreal>(imageHeight);
+        qreal widgetAspect = static_cast<qreal>(width()) /
+                             static_cast<qreal>(height());
+
+        if (widgetAspect > imageAspect) {
+            // Widget is wider than image - fit to height
+            displayHeight = height();
+            displayWidth = static_cast<int>(displayHeight * imageAspect);
+        } else {
+            // Widget is taller than image - fit to width
+            displayWidth = width();
+            displayHeight = static_cast<int>(displayWidth / imageAspect);
+        }
     }
 
     // Center the image

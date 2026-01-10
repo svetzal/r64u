@@ -37,6 +37,16 @@ class VideoDisplayWidget : public QWidget
     Q_OBJECT
 
 public:
+    /**
+     * @brief Video scaling mode for upscaling the display.
+     */
+    enum class ScalingMode {
+        Sharp,      ///< Nearest-neighbor (no interpolation) - crisp pixels
+        Smooth,     ///< Bilinear interpolation - smooth but fuzzy
+        Integer     ///< Integer scaling with letterboxing - pixel-perfect
+    };
+    Q_ENUM(ScalingMode)
+
     /// Frame width in pixels
     static constexpr int FrameWidth = 384;
 
@@ -60,6 +70,18 @@ public:
      * @return The video format (PAL, NTSC, or Unknown).
      */
     [[nodiscard]] VideoStreamReceiver::VideoFormat videoFormat() const { return videoFormat_; }
+
+    /**
+     * @brief Returns the current scaling mode.
+     * @return The scaling mode.
+     */
+    [[nodiscard]] ScalingMode scalingMode() const { return scalingMode_; }
+
+    /**
+     * @brief Sets the scaling mode.
+     * @param mode The scaling mode to use.
+     */
+    void setScalingMode(ScalingMode mode);
 
     /**
      * @brief Returns the recommended size for the widget.
@@ -102,6 +124,12 @@ signals:
      */
     void keyPressed(QKeyEvent *event);
 
+    /**
+     * @brief Emitted when the scaling mode changes.
+     * @param mode The new scaling mode.
+     */
+    void scalingModeChanged(ScalingMode mode);
+
 protected:
     void paintEvent(QPaintEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
@@ -119,6 +147,7 @@ private:
     // Display state
     QImage displayImage_;
     VideoStreamReceiver::VideoFormat videoFormat_ = VideoStreamReceiver::VideoFormat::Unknown;
+    ScalingMode scalingMode_ = ScalingMode::Integer;
     bool hasFrame_ = false;
 };
 

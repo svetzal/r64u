@@ -13,6 +13,8 @@
 #include <QProgressBar>
 #include <QPushButton>
 #include <QTimer>
+#include <QButtonGroup>
+#include <QRadioButton>
 
 class PreferencesDialog;
 class DeviceConnection;
@@ -129,6 +131,7 @@ private slots:
     void onVideoFormatDetected(int format);
     void onStreamCommandSucceeded(const QString &command);
     void onStreamCommandFailed(const QString &command, const QString &error);
+    void onScalingModeChanged(int id);
 
 private:
     void setupUi();
@@ -191,6 +194,10 @@ private:
     QAction *startStreamAction_ = nullptr;
     QAction *stopStreamAction_ = nullptr;
     QLabel *streamStatusLabel_ = nullptr;
+    QButtonGroup *scalingModeGroup_ = nullptr;
+    QRadioButton *sharpRadio_ = nullptr;
+    QRadioButton *smoothRadio_ = nullptr;
+    QRadioButton *integerRadio_ = nullptr;
 
     // View mode services
     StreamControlClient *streamControl_ = nullptr;

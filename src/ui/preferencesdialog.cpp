@@ -92,6 +92,21 @@ void PreferencesDialog::setupUi()
 
     mainLayout->addWidget(driveGroup);
 
+    // View settings group
+    auto *viewGroup = new QGroupBox(tr("Video Display"));
+    auto *viewLayout = new QFormLayout(viewGroup);
+
+    scalingModeCombo_ = new QComboBox();
+    scalingModeCombo_->addItem(tr("Sharp (Nearest Neighbor)"),
+        static_cast<int>(VideoDisplayWidget::ScalingMode::Sharp));
+    scalingModeCombo_->addItem(tr("Smooth (Bilinear)"),
+        static_cast<int>(VideoDisplayWidget::ScalingMode::Smooth));
+    scalingModeCombo_->addItem(tr("Integer (Pixel Perfect)"),
+        static_cast<int>(VideoDisplayWidget::ScalingMode::Integer));
+    viewLayout->addRow(tr("Scaling Mode:"), scalingModeCombo_);
+
+    mainLayout->addWidget(viewGroup);
+
     // Buttons
     mainLayout->addStretch();
 
@@ -132,6 +147,14 @@ void PreferencesDialog::loadSettings()
     if (mountIndex >= 0) {
         mountModeCombo_->setCurrentIndex(mountIndex);
     }
+
+    // Load view settings (default to Integer)
+    int scalingMode = settings.value("view/scalingMode",
+        static_cast<int>(VideoDisplayWidget::ScalingMode::Integer)).toInt();
+    int scalingIndex = scalingModeCombo_->findData(scalingMode);
+    if (scalingIndex >= 0) {
+        scalingModeCombo_->setCurrentIndex(scalingIndex);
+    }
 }
 
 void PreferencesDialog::saveSettings()
@@ -156,6 +179,9 @@ void PreferencesDialog::saveSettings()
     settings.setValue("drive/defaultDrive", defaultDriveCombo_->currentIndex());
     settings.setValue("drive/mountMode",
         mountModeCombo_->currentData().toString());
+
+    // Save view settings
+    settings.setValue("view/scalingMode", scalingModeCombo_->currentData().toInt());
 }
 
 void PreferencesDialog::onAccept()

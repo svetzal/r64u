@@ -5,6 +5,16 @@ All notable changes to r64u will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-01-10
+
+### Added
+- **Video scaling modes** - Three display scaling options for video streaming: Sharp (nearest-neighbor), Smooth (bilinear), and Integer (pixel-perfect with letterboxing)
+- Scaling mode preference in Preferences dialog under Video Display
+- Radio buttons on View mode toolbar for live scaling mode switching
+
+### Changed
+- Default video scaling mode is now Integer (pixel-perfect) for the sharpest retro display
+
 ## [0.6.0] - 2026-01-10
 
 ### Added
@@ -115,6 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - macOS code signing and notarization
 - Multi-platform builds (macOS, Linux, Windows)
 
+[0.6.1]: https://github.com/svetzal/r64u/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/svetzal/r64u/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/svetzal/r64u/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/svetzal/r64u/compare/v0.4.0...v0.5.0

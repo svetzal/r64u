@@ -7,6 +7,7 @@
 #include <QComboBox>
 
 #include "../services/c64urestclient.h"
+#include "videodisplaywidget.h"
 
 class PreferencesDialog : public QDialog
 {
@@ -36,6 +37,9 @@ private:
     QLineEdit *localDirEdit_ = nullptr;
     QComboBox *defaultDriveCombo_ = nullptr;
     QComboBox *mountModeCombo_ = nullptr;
+
+    // View settings
+    QComboBox *scalingModeCombo_ = nullptr;
 
     // Test connection
     C64URestClient *testClient_ = nullptr;
