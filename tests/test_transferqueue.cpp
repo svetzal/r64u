@@ -2,7 +2,7 @@
 #include <QTemporaryDir>
 #include <QSignalSpy>
 
-#include "services/c64uftpclient.h"
+#include "mocks/mockftpclient.h"
 #include "models/transferqueue.h"
 
 class TestTransferQueue : public QObject
@@ -10,14 +10,14 @@ class TestTransferQueue : public QObject
     Q_OBJECT
 
 private:
-    C64UFtpClient *mockFtp;
+    MockFtpClient *mockFtp;
     TransferQueue *queue;
     QTemporaryDir tempDir;
 
 private slots:
     void init()
     {
-        mockFtp = new C64UFtpClient(this);
+        mockFtp = new MockFtpClient(this);
         queue = new TransferQueue(this);
         queue->setFtpClient(mockFtp);
         queue->setAutoOverwrite(true);  // Skip overwrite confirmations in tests

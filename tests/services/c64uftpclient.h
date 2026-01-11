@@ -4,63 +4,55 @@
 // This mock replaces C64UFtpClient for testing.
 // It provides the same interface but allows controlling responses.
 
-#include <QObject>
 #include <QQueue>
 #include <QMap>
 #include <QList>
 #include <QDateTime>
 
-#include "services/ftpentry.h"  // Use the real FtpEntry definition
+#include "services/iftpclient.h"
 
 /**
  * Mock replacement for C64UFtpClient.
- * Named C64UFtpClient so TransferQueue can use it directly.
+ * Named C64UFtpClient so it shadows the production implementation at link time.
+ * Inherits from IFtpClient to maintain interface compatibility.
  */
-class C64UFtpClient : public QObject
+class C64UFtpClient : public IFtpClient
 {
     Q_OBJECT
 
 public:
-    enum class State {
-        Disconnected,
-        Connecting,
-        Connected,
-        LoggingIn,
-        Ready,
-        Busy
-    };
-    Q_ENUM(State)
+    // State enum is inherited from IFtpClient
 
     explicit C64UFtpClient(QObject *parent = nullptr);
     ~C64UFtpClient() override = default;
 
-    // State
-    void setHost(const QString &host, quint16 port = 21);
-    QString host() const { return host_; }
-    void setCredentials(const QString &user, const QString &password);
-    State state() const { return state_; }
-    bool isConnected() const { return connected_; }
-    bool isLoggedIn() const { return connected_; }
+    // State - IFtpClient implementations
+    void setHost(const QString &host, quint16 port = 21) override;
+    QString host() const override { return host_; }
+    void setCredentials(const QString &user, const QString &password) override;
+    State state() const override { return state_; }
+    bool isConnected() const override { return connected_; }
+    bool isLoggedIn() const override { return connected_; }
 
-    // Connection
-    void connectToHost();
-    void disconnect();
+    // Connection - IFtpClient implementations
+    void connectToHost() override;
+    void disconnect() override;
 
-    // Directory operations
-    void list(const QString &path = QString());
-    void changeDirectory(const QString &path);
-    void makeDirectory(const QString &path);
-    void removeDirectory(const QString &path);
-    QString currentDirectory() const { return currentDir_; }
+    // Directory operations - IFtpClient implementations
+    void list(const QString &path = QString()) override;
+    void changeDirectory(const QString &path) override;
+    void makeDirectory(const QString &path) override;
+    void removeDirectory(const QString &path) override;
+    QString currentDirectory() const override { return currentDir_; }
 
-    // File operations
-    void download(const QString &remotePath, const QString &localPath);
-    void downloadToMemory(const QString &remotePath);
-    void upload(const QString &localPath, const QString &remotePath);
-    void remove(const QString &path);
-    void rename(const QString &oldPath, const QString &newPath);
+    // File operations - IFtpClient implementations
+    void download(const QString &remotePath, const QString &localPath) override;
+    void downloadToMemory(const QString &remotePath) override;
+    void upload(const QString &localPath, const QString &remotePath) override;
+    void remove(const QString &path) override;
+    void rename(const QString &oldPath, const QString &newPath) override;
 
-    void abort();
+    void abort() override;
 
     // === Mock control methods ===
 
@@ -85,25 +77,7 @@ public:
 
     void mockReset();
 
-signals:
-    void stateChanged(C64UFtpClient::State state);
-    void connected();
-    void disconnected();
-    void error(const QString &message);
-
-    void directoryListed(const QString &path, const QList<FtpEntry> &entries);
-    void directoryChanged(const QString &path);
-    void directoryCreated(const QString &path);
-
-    void downloadProgress(const QString &file, qint64 received, qint64 total);
-    void downloadFinished(const QString &remotePath, const QString &localPath);
-    void downloadToMemoryFinished(const QString &remotePath, const QByteArray &data);
-
-    void uploadProgress(const QString &file, qint64 sent, qint64 total);
-    void uploadFinished(const QString &localPath, const QString &remotePath);
-
-    void fileRemoved(const QString &path);
-    void fileRenamed(const QString &oldPath, const QString &newPath);
+    // Signals are inherited from IFtpClient
 
 private:
     struct PendingOp {

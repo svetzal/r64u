@@ -1,38 +1,38 @@
-#include "c64uftpclient.h"
+#include "mockftpclient.h"
 #include <QFile>
 #include <QDir>
 #include <QFileInfo>
 
-C64UFtpClient::C64UFtpClient(QObject *parent)
+MockFtpClient::MockFtpClient(QObject *parent)
     : IFtpClient(parent)
 {
 }
 
-void C64UFtpClient::setHost(const QString &host, quint16 port)
+void MockFtpClient::setHost(const QString &host, quint16 port)
 {
     Q_UNUSED(port)
     host_ = host;
 }
 
-void C64UFtpClient::setCredentials(const QString &user, const QString &password)
+void MockFtpClient::setCredentials(const QString &user, const QString &password)
 {
     Q_UNUSED(user)
     Q_UNUSED(password)
 }
 
-void C64UFtpClient::connectToHost()
+void MockFtpClient::connectToHost()
 {
     // In mock, use mockSetConnected() to control this
 }
 
-void C64UFtpClient::disconnect()
+void MockFtpClient::disconnect()
 {
     connected_ = false;
     state_ = State::Disconnected;
     emit disconnected();
 }
 
-void C64UFtpClient::list(const QString &path)
+void MockFtpClient::list(const QString &path)
 {
     listRequests_.append(path);
 
@@ -42,13 +42,13 @@ void C64UFtpClient::list(const QString &path)
     pendingOps_.enqueue(op);
 }
 
-void C64UFtpClient::changeDirectory(const QString &path)
+void MockFtpClient::changeDirectory(const QString &path)
 {
     currentDir_ = path;
     emit directoryChanged(path);
 }
 
-void C64UFtpClient::makeDirectory(const QString &path)
+void MockFtpClient::makeDirectory(const QString &path)
 {
     mkdirRequests_.append(path);
 
@@ -58,12 +58,12 @@ void C64UFtpClient::makeDirectory(const QString &path)
     pendingOps_.enqueue(op);
 }
 
-void C64UFtpClient::removeDirectory(const QString &path)
+void MockFtpClient::removeDirectory(const QString &path)
 {
     Q_UNUSED(path)
 }
 
-void C64UFtpClient::download(const QString &remotePath, const QString &localPath)
+void MockFtpClient::download(const QString &remotePath, const QString &localPath)
 {
     downloadRequests_.append(remotePath);
 
@@ -74,7 +74,7 @@ void C64UFtpClient::download(const QString &remotePath, const QString &localPath
     pendingOps_.enqueue(op);
 }
 
-void C64UFtpClient::downloadToMemory(const QString &remotePath)
+void MockFtpClient::downloadToMemory(const QString &remotePath)
 {
     PendingOp op;
     op.type = PendingOp::DownloadToMemory;
@@ -82,7 +82,7 @@ void C64UFtpClient::downloadToMemory(const QString &remotePath)
     pendingOps_.enqueue(op);
 }
 
-void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
+void MockFtpClient::upload(const QString &localPath, const QString &remotePath)
 {
     uploadRequests_.append(localPath);
 
@@ -93,24 +93,33 @@ void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
     pendingOps_.enqueue(op);
 }
 
-void C64UFtpClient::remove(const QString &path)
+void MockFtpClient::remove(const QString &path)
 {
-    emit fileRemoved(path);
+    deleteRequests_.append(path);
+
+    PendingOp op;
+    op.type = PendingOp::Delete;
+    op.path = path;
+    pendingOps_.enqueue(op);
 }
 
-void C64UFtpClient::rename(const QString &oldPath, const QString &newPath)
+void MockFtpClient::rename(const QString &oldPath, const QString &newPath)
 {
-    emit fileRenamed(oldPath, newPath);
+    PendingOp op;
+    op.type = PendingOp::Rename;
+    op.path = oldPath;
+    op.newPath = newPath;
+    pendingOps_.enqueue(op);
 }
 
-void C64UFtpClient::abort()
+void MockFtpClient::abort()
 {
     pendingOps_.clear();
 }
 
 // === Mock control methods ===
 
-void C64UFtpClient::mockSetConnected(bool connected)
+void MockFtpClient::mockSetConnected(bool connected)
 {
     connected_ = connected;
     state_ = connected ? State::Ready : State::Disconnected;
@@ -121,23 +130,23 @@ void C64UFtpClient::mockSetConnected(bool connected)
     }
 }
 
-void C64UFtpClient::mockSetDirectoryListing(const QString &path, const QList<FtpEntry> &entries)
+void MockFtpClient::mockSetDirectoryListing(const QString &path, const QList<FtpEntry> &entries)
 {
     mockListings_[path] = entries;
 }
 
-void C64UFtpClient::mockSetDownloadData(const QString &remotePath, const QByteArray &data)
+void MockFtpClient::mockSetDownloadData(const QString &remotePath, const QByteArray &data)
 {
     mockDownloadData_[remotePath] = data;
 }
 
-void C64UFtpClient::mockSetNextOperationFails(const QString &errorMessage)
+void MockFtpClient::mockSetNextOperationFails(const QString &errorMessage)
 {
     nextOpFails_ = true;
     nextOpError_ = errorMessage;
 }
 
-void C64UFtpClient::mockProcessNextOperation()
+void MockFtpClient::mockProcessNextOperation()
 {
     if (pendingOps_.isEmpty()) {
         return;
@@ -187,17 +196,39 @@ void C64UFtpClient::mockProcessNextOperation()
         emit directoryCreated(op.path);
         break;
     }
+    case PendingOp::Delete: {
+        emit fileRemoved(op.path);
+        break;
+    }
+    case PendingOp::Rename: {
+        emit fileRenamed(op.path, op.newPath);
+        break;
+    }
     }
 }
 
-void C64UFtpClient::mockProcessAllOperations()
+void MockFtpClient::mockProcessAllOperations()
 {
     while (!pendingOps_.isEmpty()) {
         mockProcessNextOperation();
     }
 }
 
-void C64UFtpClient::mockReset()
+void MockFtpClient::mockSimulateConnect()
+{
+    connected_ = true;
+    state_ = State::Ready;
+    emit connected();
+}
+
+void MockFtpClient::mockSimulateDisconnect()
+{
+    connected_ = false;
+    state_ = State::Disconnected;
+    emit disconnected();
+}
+
+void MockFtpClient::mockReset()
 {
     connected_ = false;
     state_ = State::Disconnected;
@@ -208,6 +239,7 @@ void C64UFtpClient::mockReset()
     downloadRequests_.clear();
     mkdirRequests_.clear();
     uploadRequests_.clear();
+    deleteRequests_.clear();
     nextOpFails_ = false;
     nextOpError_.clear();
 }

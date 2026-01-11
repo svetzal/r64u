@@ -8,7 +8,7 @@
 
 #include "services/ftpentry.h"  // For FtpEntry definition (needed by Qt MOC)
 
-class C64UFtpClient;
+class IFtpClient;
 
 enum class OperationType { Upload, Download, Delete };
 
@@ -48,7 +48,7 @@ public:
 
     explicit TransferQueue(QObject *parent = nullptr);
 
-    void setFtpClient(C64UFtpClient *client);
+    void setFtpClient(IFtpClient *client);
 
     // Queue operations
     void enqueueUpload(const QString &localPath, const QString &remotePath);
@@ -120,7 +120,7 @@ private:
     void onDirectoryListedForFolderCheck(const QString &path, const QList<FtpEntry> &entries);
     void startRecursiveUpload();  // Actually starts the upload after confirmation
 
-    C64UFtpClient *ftpClient_ = nullptr;
+    IFtpClient *ftpClient_ = nullptr;
     QList<TransferItem> items_;
     bool processing_ = false;
     int currentIndex_ = -1;

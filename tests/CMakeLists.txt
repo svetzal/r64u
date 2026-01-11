@@ -3,26 +3,35 @@ enable_testing()
 
 find_package(Qt6 REQUIRED COMPONENTS Test)
 
-# Mock FTP client - placed at services/c64uftpclient.h to shadow the real one
-set(MOCK_SOURCES
+# Mock FTP client - implements IFtpClient for runtime injection
+set(MOCK_FTP_SOURCES
+    mocks/mockftpclient.cpp
+)
+
+set(MOCK_FTP_HEADERS
+    mocks/mockftpclient.h
+)
+
+# Legacy mock that shadows C64UFtpClient at link time (for ConfigFileLoader tests)
+set(LEGACY_MOCK_SOURCES
     services/c64uftpclient.cpp
 )
 
-set(MOCK_HEADERS
+set(LEGACY_MOCK_HEADERS
     services/c64uftpclient.h
 )
 
-# TransferQueue tests
-# The mock is at tests/services/c64uftpclient.h which shadows src/services/c64uftpclient.h
+# TransferQueue tests - uses new MockFtpClient via interface injection
 add_executable(test_transferqueue
     test_transferqueue.cpp
-    ${MOCK_SOURCES}
-    ${MOCK_HEADERS}
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
 )
 
 target_include_directories(test_transferqueue PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - so services/c64uftpclient.h shadows src/services/
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/mockftpclient.h
     ${CMAKE_SOURCE_DIR}/src
 )
 
@@ -113,11 +122,12 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_sidfileparser)
 endif()
 
-# ConfigFileLoader tests
+# ConfigFileLoader tests - uses legacy mock that shadows C64UFtpClient
 add_executable(test_configfileloader
     test_configfileloader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/configfileloader.cpp
-    services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${LEGACY_MOCK_SOURCES}
     services/c64urestclient.cpp
 )
 

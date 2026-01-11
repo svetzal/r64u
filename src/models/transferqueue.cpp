@@ -1,5 +1,5 @@
 #include "transferqueue.h"
-#include "../services/c64uftpclient.h"
+#include "../services/iftpclient.h"
 
 #include <QFileInfo>
 #include <QDir>
@@ -13,7 +13,7 @@ TransferQueue::TransferQueue(QObject *parent)
 {
 }
 
-void TransferQueue::setFtpClient(C64UFtpClient *client)
+void TransferQueue::setFtpClient(IFtpClient *client)
 {
     if (ftpClient_) {
         disconnect(ftpClient_, nullptr, this, nullptr);
@@ -22,21 +22,21 @@ void TransferQueue::setFtpClient(C64UFtpClient *client)
     ftpClient_ = client;
 
     if (ftpClient_) {
-        connect(ftpClient_, &C64UFtpClient::uploadProgress,
+        connect(ftpClient_, &IFtpClient::uploadProgress,
                 this, &TransferQueue::onUploadProgress);
-        connect(ftpClient_, &C64UFtpClient::uploadFinished,
+        connect(ftpClient_, &IFtpClient::uploadFinished,
                 this, &TransferQueue::onUploadFinished);
-        connect(ftpClient_, &C64UFtpClient::downloadProgress,
+        connect(ftpClient_, &IFtpClient::downloadProgress,
                 this, &TransferQueue::onDownloadProgress);
-        connect(ftpClient_, &C64UFtpClient::downloadFinished,
+        connect(ftpClient_, &IFtpClient::downloadFinished,
                 this, &TransferQueue::onDownloadFinished);
-        connect(ftpClient_, &C64UFtpClient::error,
+        connect(ftpClient_, &IFtpClient::error,
                 this, &TransferQueue::onFtpError);
-        connect(ftpClient_, &C64UFtpClient::directoryCreated,
+        connect(ftpClient_, &IFtpClient::directoryCreated,
                 this, &TransferQueue::onDirectoryCreated);
-        connect(ftpClient_, &C64UFtpClient::directoryListed,
+        connect(ftpClient_, &IFtpClient::directoryListed,
                 this, &TransferQueue::onDirectoryListed);
-        connect(ftpClient_, &C64UFtpClient::fileRemoved,
+        connect(ftpClient_, &IFtpClient::fileRemoved,
                 this, &TransferQueue::onFileRemoved);
     }
 }

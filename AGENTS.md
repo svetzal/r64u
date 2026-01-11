@@ -2,6 +2,53 @@
 
 This project uses **Stride** for task management. Configuration is in `.stride.md` and `.stride_auth.md`.
 
+## C++/Qt Development
+
+**Use the `cpp-qt-craftsperson` agent** for all C++/Qt coding and testing tasks. This agent ensures:
+- Memory safety and proper RAII patterns
+- Modern C++ compliance (C++17/20)
+- Qt best practices (signals/slots, object ownership, threading)
+- CMake configuration quality
+- Comprehensive testing with Qt Test
+
+Invoke proactively after implementing features, before committing code, or when reviewing C++/Qt changes.
+
+## Bug Fixing Workflow
+
+**Always create a failing test before fixing a bug.** This ensures:
+- The bug is reproducible and understood
+- The fix actually addresses the problem
+- The bug cannot regress in the future
+
+**Workflow:**
+1. **Reproduce** - Understand and document the bug behavior
+2. **Write a failing test** - Create a test that demonstrates the bug (test should FAIL)
+3. **Verify the test fails** - Run the test to confirm it captures the bug
+4. **Fix the bug** - Implement the minimal fix
+5. **Verify the test passes** - Run the test to confirm the fix works
+6. **Run all tests** - Ensure no regressions
+
+**Example:**
+```cpp
+// Test written BEFORE the fix - this should fail initially
+void TestTransferQueue::testConnectionLostMidTransfer()
+{
+    // Setup: start a download
+    queue->enqueueDownload("/remote/file.txt", localPath);
+    mockFtp->mockProcessNextOperation();  // Start transfer
+
+    // Simulate connection loss mid-transfer
+    mockFtp->mockSimulateDisconnect();
+
+    // Bug: item stays InProgress forever instead of failing
+    // This test will FAIL until we fix the bug
+    QCOMPARE(queue->data(index, StatusRole).toInt(),
+             static_cast<int>(TransferItem::Status::Failed));
+}
+```
+
+**If a test cannot be written** (e.g., pure UI timing issue), document why in the commit message and create a Stride task to add testability for that scenario.
+
 ## Build Environment
 
 Qt 6.10.1 is installed via the native Qt installer at `~/Qt/`.

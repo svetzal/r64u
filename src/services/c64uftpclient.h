@@ -9,7 +9,6 @@
 #ifndef C64UFTPCLIENT_H
 #define C64UFTPCLIENT_H
 
-#include <QObject>
 #include <QTcpSocket>
 #include <QQueue>
 #include <QFile>
@@ -19,7 +18,7 @@
 #include <memory>
 #include <optional>
 
-#include "ftpentry.h"
+#include "iftpclient.h"
 
 /**
  * @brief Asynchronous FTP client for Ultimate 64/II+ devices.
@@ -46,7 +45,7 @@
  * ftp->connectToHost();
  * @endcode
  */
-class C64UFtpClient : public QObject
+class C64UFtpClient : public IFtpClient
 {
     Q_OBJECT
 
@@ -77,18 +76,7 @@ public:
     static constexpr int FtpReplyFileExists = 553;  ///< File/directory already exists
     /// @}
 
-    /**
-     * @brief Connection state of the FTP client.
-     */
-    enum class State {
-        Disconnected,  ///< Not connected to any host
-        Connecting,    ///< TCP connection in progress
-        Connected,     ///< TCP connected, awaiting server greeting
-        LoggingIn,     ///< Authentication in progress
-        Ready,         ///< Logged in and ready for commands
-        Busy           ///< Command in progress
-    };
-    Q_ENUM(State)
+    // State enum is inherited from IFtpClient
 
     /**
      * @brief Constructs an FTP client.
@@ -106,38 +94,38 @@ public:
      * @param host Hostname or IP address of the FTP server.
      * @param port FTP control port (default: 21).
      */
-    void setHost(const QString &host, quint16 port = DefaultPort);
+    void setHost(const QString &host, quint16 port = DefaultPort) override;
 
     /**
      * @brief Returns the currently configured host.
      * @return The hostname or IP address.
      */
-    [[nodiscard]] QString host() const { return host_; }
+    [[nodiscard]] QString host() const override { return host_; }
 
     /**
      * @brief Sets login credentials.
      * @param user Username for FTP login.
      * @param password Password for FTP login.
      */
-    void setCredentials(const QString &user, const QString &password);
+    void setCredentials(const QString &user, const QString &password) override;
 
     /**
      * @brief Returns the current connection state.
      * @return The current State enum value.
      */
-    [[nodiscard]] State state() const { return state_; }
+    [[nodiscard]] State state() const override { return state_; }
 
     /**
      * @brief Checks if the client is connected and ready.
      * @return True if in Ready or Busy state.
      */
-    [[nodiscard]] bool isConnected() const { return state_ == State::Ready || state_ == State::Busy; }
+    [[nodiscard]] bool isConnected() const override { return state_ == State::Ready || state_ == State::Busy; }
 
     /**
      * @brief Checks if successfully logged in.
      * @return True if authentication completed successfully.
      */
-    [[nodiscard]] bool isLoggedIn() const { return loggedIn_; }
+    [[nodiscard]] bool isLoggedIn() const override { return loggedIn_; }
 
     /// @name Connection Management
     /// @{
@@ -149,7 +137,7 @@ public:
      * using the configured credentials. Emits connected() on success
      * or error() on failure.
      */
-    void connectToHost();
+    void connectToHost() override;
 
     /**
      * @brief Disconnects from the FTP server.
@@ -157,7 +145,7 @@ public:
      * Sends QUIT command and closes all connections.
      * Emits disconnected() when complete.
      */
-    void disconnect();
+    void disconnect() override;
     /// @}
 
     /// @name Directory Operations
@@ -169,7 +157,7 @@ public:
      *
      * Results are delivered via directoryListed() signal.
      */
-    void list(const QString &path = QString());
+    void list(const QString &path = QString()) override;
 
     /**
      * @brief Changes the current working directory.
@@ -177,7 +165,7 @@ public:
      *
      * Emits directoryChanged() on success.
      */
-    void changeDirectory(const QString &path);
+    void changeDirectory(const QString &path) override;
 
     /**
      * @brief Creates a new directory.
@@ -185,19 +173,19 @@ public:
      *
      * Emits directoryCreated() on success.
      */
-    void makeDirectory(const QString &path);
+    void makeDirectory(const QString &path) override;
 
     /**
      * @brief Removes an empty directory.
      * @param path Path of directory to remove.
      */
-    void removeDirectory(const QString &path);
+    void removeDirectory(const QString &path) override;
 
     /**
      * @brief Returns the current working directory.
      * @return The current directory path.
      */
-    [[nodiscard]] QString currentDirectory() const { return currentDir_; }
+    [[nodiscard]] QString currentDirectory() const override { return currentDir_; }
     /// @}
 
     /// @name File Operations
@@ -210,7 +198,7 @@ public:
      *
      * Emits downloadProgress() during transfer and downloadFinished() on completion.
      */
-    void download(const QString &remotePath, const QString &localPath);
+    void download(const QString &remotePath, const QString &localPath) override;
 
     /**
      * @brief Downloads a file into memory.
@@ -219,7 +207,7 @@ public:
      * Useful for previewing files without saving to disk.
      * Emits downloadToMemoryFinished() with the file data.
      */
-    void downloadToMemory(const QString &remotePath);
+    void downloadToMemory(const QString &remotePath) override;
 
     /**
      * @brief Uploads a file to the remote server.
@@ -228,7 +216,7 @@ public:
      *
      * Emits uploadProgress() during transfer and uploadFinished() on completion.
      */
-    void upload(const QString &localPath, const QString &remotePath);
+    void upload(const QString &localPath, const QString &remotePath) override;
 
     /**
      * @brief Deletes a file from the remote server.
@@ -236,7 +224,7 @@ public:
      *
      * Emits fileRemoved() on success.
      */
-    void remove(const QString &path);
+    void remove(const QString &path) override;
 
     /**
      * @brief Renames or moves a file on the remote server.
@@ -245,7 +233,7 @@ public:
      *
      * Emits fileRenamed() on success.
      */
-    void rename(const QString &oldPath, const QString &newPath);
+    void rename(const QString &oldPath, const QString &newPath) override;
     /// @}
 
     /**
@@ -253,115 +241,9 @@ public:
      *
      * Cancels any ongoing transfer or command.
      */
-    void abort();
+    void abort() override;
 
-signals:
-    /// @name Connection Signals
-    /// @{
-
-    /**
-     * @brief Emitted when the connection state changes.
-     * @param state The new connection state.
-     */
-    void stateChanged(C64UFtpClient::State state);
-
-    /**
-     * @brief Emitted when successfully connected and logged in.
-     */
-    void connected();
-
-    /**
-     * @brief Emitted when disconnected from the server.
-     */
-    void disconnected();
-
-    /**
-     * @brief Emitted when an error occurs.
-     * @param message Human-readable error description.
-     */
-    void error(const QString &message);
-    /// @}
-
-    /// @name Directory Signals
-    /// @{
-
-    /**
-     * @brief Emitted when a directory listing completes.
-     * @param path The listed directory path.
-     * @param entries List of directory entries.
-     */
-    void directoryListed(const QString &path, const QList<FtpEntry> &entries);
-
-    /**
-     * @brief Emitted when the current directory changes.
-     * @param path The new current directory.
-     */
-    void directoryChanged(const QString &path);
-
-    /**
-     * @brief Emitted when a directory is created.
-     * @param path The path of the created directory.
-     */
-    void directoryCreated(const QString &path);
-    /// @}
-
-    /// @name Transfer Signals
-    /// @{
-
-    /**
-     * @brief Emitted during file download to report progress.
-     * @param file The remote file path.
-     * @param received Bytes received so far.
-     * @param total Total file size (0 if unknown).
-     */
-    void downloadProgress(const QString &file, qint64 received, qint64 total);
-
-    /**
-     * @brief Emitted when a file download completes.
-     * @param remotePath The remote file path.
-     * @param localPath The local file path where it was saved.
-     */
-    void downloadFinished(const QString &remotePath, const QString &localPath);
-
-    /**
-     * @brief Emitted when a download-to-memory completes.
-     * @param remotePath The remote file path.
-     * @param data The file contents.
-     */
-    void downloadToMemoryFinished(const QString &remotePath, const QByteArray &data);
-
-    /**
-     * @brief Emitted during file upload to report progress.
-     * @param file The local file path.
-     * @param sent Bytes sent so far.
-     * @param total Total file size.
-     */
-    void uploadProgress(const QString &file, qint64 sent, qint64 total);
-
-    /**
-     * @brief Emitted when a file upload completes.
-     * @param localPath The local file path.
-     * @param remotePath The remote destination path.
-     */
-    void uploadFinished(const QString &localPath, const QString &remotePath);
-    /// @}
-
-    /// @name File Operation Signals
-    /// @{
-
-    /**
-     * @brief Emitted when a file is deleted.
-     * @param path The path of the deleted file.
-     */
-    void fileRemoved(const QString &path);
-
-    /**
-     * @brief Emitted when a file is renamed.
-     * @param oldPath The original file path.
-     * @param newPath The new file path.
-     */
-    void fileRenamed(const QString &oldPath, const QString &newPath);
-    /// @}
+    // Signals are inherited from IFtpClient
 
 private slots:
     void onControlConnected();

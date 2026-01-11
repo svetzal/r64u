@@ -5,7 +5,7 @@
 #include <QDebug>
 
 C64UFtpClient::C64UFtpClient(QObject *parent)
-    : QObject(parent)
+    : IFtpClient(parent)
     , controlSocket_(new QTcpSocket(this))
     , dataSocket_(new QTcpSocket(this))
     , connectionTimer_(new QTimer(this))
