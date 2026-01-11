@@ -374,3 +374,34 @@ if(BUILD_COVERAGE)
     add_coverage_target(errorhandler test_errorhandler)
     add_dependencies(coverage coverage_errorhandler)
 endif()
+
+# FileBrowserSync integration tests
+add_executable(test_filebrowsersync
+    test_filebrowsersync.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
+)
+
+target_include_directories(test_filebrowsersync PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/mockftpclient.h
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_filebrowsersync PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+    Qt6::Widgets
+)
+
+# Register test with CTest
+add_test(NAME FileBrowserSyncTest COMMAND test_filebrowsersync)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(filebrowsersync test_filebrowsersync)
+    add_dependencies(coverage coverage_filebrowsersync)
+endif()
