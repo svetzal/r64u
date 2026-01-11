@@ -1,68 +1,56 @@
 #ifndef LOCALFILEBROWSERWIDGET_H
 #define LOCALFILEBROWSERWIDGET_H
 
-#include <QWidget>
-#include <QTreeView>
-#include <QToolBar>
-#include <QMenu>
+#include "filebrowserwidget.h"
 #include <QFileSystemModel>
 
 class LocalFileProxyModel;
-class PathNavigationWidget;
 
-class LocalFileBrowserWidget : public QWidget
+class LocalFileBrowserWidget : public FileBrowserWidget
 {
     Q_OBJECT
 
 public:
     explicit LocalFileBrowserWidget(QWidget *parent = nullptr);
 
-    void setCurrentDirectory(const QString &path);
-    QString currentDirectory() const { return currentDirectory_; }
-    QString selectedPath() const;
-    bool isSelectedDirectory() const;
+    [[nodiscard]] QString selectedPath() const override;
+    [[nodiscard]] bool isSelectedDirectory() const override;
     void setUploadEnabled(bool enabled);
+
+public slots:
+    void setCurrentDirectory(const QString &path) override;
 
 signals:
     void uploadRequested(const QString &localPath, bool isDirectory);
-    void currentDirectoryChanged(const QString &path);
-    void selectionChanged();
-    void statusMessage(const QString &message, int timeout = 0);
+
+protected slots:
+    void onNewFolder() override;
+    void onRename() override;
+    void onDelete() override;
 
 private slots:
-    void onDoubleClicked(const QModelIndex &index);
-    void onContextMenu(const QPoint &pos);
-    void onParentFolder();
     void onUpload();
-    void onNewFolder();
-    void onRename();
-    void onDelete();
+
+protected:
+    void setupUi() override;
+    void setupContextMenu() override;
+    void setupConnections() override;
+    void updateActions() override;
+
+    [[nodiscard]] QString labelText() const override { return tr("Local Files"); }
+    [[nodiscard]] QString navLabelText() const override { return tr("Download to:"); }
+    [[nodiscard]] QAbstractItemModel* model() const override;
+    [[nodiscard]] QString filePath(const QModelIndex &index) const override;
+    [[nodiscard]] bool isDirectory(const QModelIndex &index) const override;
+    void navigateToDirectory(const QString &path) override;
 
 private:
-    void setupUi();
-    void setupContextMenu();
-    void setupConnections();
-    void updateActions();
-
-    // State
-    QString currentDirectory_;
-
-    // UI widgets
-    QTreeView *treeView_ = nullptr;
+    // Model
     QFileSystemModel *fileModel_ = nullptr;
     LocalFileProxyModel *proxyModel_ = nullptr;
-    QToolBar *toolBar_ = nullptr;
-    PathNavigationWidget *navWidget_ = nullptr;
 
-    // Actions
+    // Local-specific action
     QAction *uploadAction_ = nullptr;
-    QAction *newFolderAction_ = nullptr;
-    QAction *renameAction_ = nullptr;
-    QAction *deleteAction_ = nullptr;
-
-    // Context menu
-    QMenu *contextMenu_ = nullptr;
-    QAction *setDestAction_ = nullptr;
 };
 
 #endif // LOCALFILEBROWSERWIDGET_H

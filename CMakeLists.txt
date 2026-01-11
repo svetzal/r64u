@@ -44,6 +44,7 @@ set(SOURCES
     src/ui/transferqueuewidget.cpp
     src/ui/filedetailspanel.cpp
     src/ui/videodisplaywidget.cpp
+    src/ui/filebrowserwidget.cpp
     src/ui/localfilebrowserwidget.cpp
     src/ui/remotefilebrowserwidget.cpp
     src/ui/transferprogresswidget.cpp
@@ -56,6 +57,7 @@ set(SOURCES
     src/services/deviceconnection.cpp
     src/services/configfileloader.cpp
     src/services/streamcontrolclient.cpp
+    src/services/streamingmanager.cpp
     src/services/videostreamreceiver.cpp
     src/services/audiostreamreceiver.cpp
     src/services/audioplaybackservice.cpp
@@ -79,6 +81,7 @@ set(HEADERS
     src/ui/transferqueuewidget.h
     src/ui/filedetailspanel.h
     src/ui/videodisplaywidget.h
+    src/ui/filebrowserwidget.h
     src/ui/localfilebrowserwidget.h
     src/ui/remotefilebrowserwidget.h
     src/ui/transferprogresswidget.h
@@ -92,6 +95,7 @@ set(HEADERS
     src/services/configfileloader.h
     src/services/credentialstore.h
     src/services/streamcontrolclient.h
+    src/services/streamingmanager.h
     src/services/videostreamreceiver.h
     src/services/audiostreamreceiver.h
     src/services/audioplaybackservice.h

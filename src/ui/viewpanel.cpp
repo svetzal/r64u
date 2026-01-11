@@ -1,18 +1,14 @@
 #include "viewpanel.h"
 #include "videodisplaywidget.h"
 #include "services/deviceconnection.h"
-#include "services/streamcontrolclient.h"
+#include "services/streamingmanager.h"
 #include "services/videostreamreceiver.h"
-#include "services/audiostreamreceiver.h"
-#include "services/audioplaybackservice.h"
 #include "services/keyboardinputservice.h"
 #include "utils/logging.h"
 
 #include <QVBoxLayout>
 #include <QMessageBox>
 #include <QSettings>
-#include <QUrl>
-#include <QNetworkInterface>
 #include <QKeyEvent>
 
 ViewPanel::ViewPanel(DeviceConnection *connection, QWidget *parent)
@@ -23,12 +19,7 @@ ViewPanel::ViewPanel(DeviceConnection *connection, QWidget *parent)
     setupConnections();
 }
 
-ViewPanel::~ViewPanel()
-{
-    if (isStreaming_) {
-        onStopStreaming();
-    }
-}
+ViewPanel::~ViewPanel() = default;
 
 void ViewPanel::setupUi()
 {
@@ -94,14 +85,8 @@ void ViewPanel::setupUi()
     videoDisplayWidget_->setMinimumSize(384, 272);
     layout->addWidget(videoDisplayWidget_, 1);
 
-    // Create streaming services (owned by this panel)
-    streamControl_ = new StreamControlClient(this);
-    videoReceiver_ = new VideoStreamReceiver(this);
-    audioReceiver_ = new AudioStreamReceiver(this);
-    audioPlayback_ = new AudioPlaybackService(this);
-
-    // Create keyboard input service
-    keyboardInput_ = new KeyboardInputService(deviceConnection_->restClient(), this);
+    // Create streaming manager (owns all streaming services)
+    streamingManager_ = new StreamingManager(deviceConnection_, this);
 }
 
 void ViewPanel::setupConnections()
@@ -110,36 +95,35 @@ void ViewPanel::setupConnections()
     connect(deviceConnection_, &DeviceConnection::stateChanged,
             this, &ViewPanel::onConnectionStateChanged);
 
-    // Connect video receiver to display
-    connect(videoReceiver_, &VideoStreamReceiver::frameReady,
+    // Connect streaming manager to display
+    connect(streamingManager_->videoReceiver(), &VideoStreamReceiver::frameReady,
             videoDisplayWidget_, &VideoDisplayWidget::displayFrame);
-    connect(videoReceiver_, &VideoStreamReceiver::formatDetected,
-            this, [this](VideoStreamReceiver::VideoFormat format) {
-        onVideoFormatDetected(static_cast<int>(format));
-    });
 
-    // Connect audio receiver to playback
-    connect(audioReceiver_, &AudioStreamReceiver::samplesReady,
-            audioPlayback_, &AudioPlaybackService::writeSamples);
-
-    // Connect stream control signals
-    connect(streamControl_, &StreamControlClient::commandSucceeded,
-            this, &ViewPanel::onStreamCommandSucceeded);
-    connect(streamControl_, &StreamControlClient::commandFailed,
-            this, &ViewPanel::onStreamCommandFailed);
+    // Connect streaming manager signals
+    connect(streamingManager_, &StreamingManager::streamingStarted,
+            this, &ViewPanel::onStreamingStarted);
+    connect(streamingManager_, &StreamingManager::streamingStopped,
+            this, &ViewPanel::onStreamingStopped);
+    connect(streamingManager_, &StreamingManager::videoFormatDetected,
+            this, &ViewPanel::onVideoFormatDetected);
+    connect(streamingManager_, &StreamingManager::error,
+            this, &ViewPanel::onStreamingError);
+    connect(streamingManager_, &StreamingManager::statusMessage,
+            this, &ViewPanel::statusMessage);
 
     // Connect video display keyboard events to keyboard service
     connect(videoDisplayWidget_, &VideoDisplayWidget::keyPressed,
             this, [this](QKeyEvent *event) {
-        keyboardInput_->handleKeyPress(event);
+        streamingManager_->keyboardInput()->handleKeyPress(event);
     });
 }
 
 void ViewPanel::updateActions()
 {
     bool connected = deviceConnection_->isConnected();
-    startStreamAction_->setEnabled(connected && !isStreaming_);
-    stopStreamAction_->setEnabled(isStreaming_);
+    bool isStreaming = streamingManager_->isStreaming();
+    startStreamAction_->setEnabled(connected && !isStreaming);
+    stopStreamAction_->setEnabled(isStreaming);
 }
 
 void ViewPanel::onConnectionStateChanged()
@@ -147,15 +131,15 @@ void ViewPanel::onConnectionStateChanged()
     updateActions();
 
     bool connected = deviceConnection_->isConnected();
-    if (!connected && isStreaming_) {
-        onStopStreaming();
+    if (!connected && streamingManager_->isStreaming()) {
+        streamingManager_->stopStreaming();
     }
 }
 
 void ViewPanel::stopStreamingIfActive()
 {
-    if (isStreaming_) {
-        onStopStreaming();
+    if (streamingManager_->isStreaming()) {
+        streamingManager_->stopStreaming();
     }
 }
 
@@ -201,131 +185,38 @@ void ViewPanel::onStartStreaming()
         return;
     }
 
-    // Clear any pending commands from previous sessions
-    streamControl_->clearPendingCommands();
-
-    // Extract just the host/IP from the REST client URL
-    QString deviceUrl = deviceConnection_->restClient()->host();
-    LOG_VERBOSE() << "ViewPanel::onStartStreaming: deviceUrl from restClient:" << deviceUrl;
-    QString deviceHost = QUrl(deviceUrl).host();
-    if (deviceHost.isEmpty()) {
-        // Maybe it's already just an IP address without scheme
-        deviceHost = deviceUrl;
+    if (!streamingManager_->startStreaming()) {
+        // Error already emitted by StreamingManager
+        updateActions();
     }
-    LOG_VERBOSE() << "ViewPanel::onStartStreaming: extracted deviceHost:" << deviceHost;
-    streamControl_->setHost(deviceHost);
+}
 
-    // Parse the device IP address
-    QHostAddress deviceAddr(deviceHost);
-    if (deviceAddr.isNull() || deviceAddr.protocol() != QAbstractSocket::IPv4Protocol) {
-        LOG_VERBOSE() << "ViewPanel::onStartStreaming: Invalid device IP - isNull:" << deviceAddr.isNull()
-                 << "protocol:" << deviceAddr.protocol();
-        QMessageBox::warning(this, tr("Network Error"),
-                           tr("Invalid device IP address: %1").arg(deviceHost));
-        return;
-    }
-    LOG_VERBOSE() << "ViewPanel::onStartStreaming: device IP address:" << deviceAddr.toString();
+void ViewPanel::onStopStreaming()
+{
+    streamingManager_->stopStreaming();
+}
 
-    // Find our local IP address that can reach the device
-    // Look for an interface on the same subnet as the C64 device
-    QString targetHost;
-
-    for (const QNetworkInterface &iface : QNetworkInterface::allInterfaces()) {
-        if (!(iface.flags() & QNetworkInterface::IsUp) ||
-            !(iface.flags() & QNetworkInterface::IsRunning) ||
-            (iface.flags() & QNetworkInterface::IsLoopBack)) {
-            continue;
-        }
-
-        for (const QNetworkAddressEntry &entry : iface.addressEntries()) {
-            if (entry.ip().protocol() != QAbstractSocket::IPv4Protocol) {
-                continue;
-            }
-
-            // Check if device is in same subnet
-            QHostAddress subnet = entry.netmask();
-            if ((entry.ip().toIPv4Address() & subnet.toIPv4Address()) ==
-                (deviceAddr.toIPv4Address() & subnet.toIPv4Address())) {
-                targetHost = entry.ip().toString();
-                break;
-            }
-        }
-        if (!targetHost.isEmpty()) {
-            break;
-        }
-    }
-
-    if (targetHost.isEmpty()) {
-        LOG_VERBOSE() << "ViewPanel::onStartStreaming: Could not find local IP on same subnet as device";
-        QMessageBox::warning(this, tr("Network Error"),
-                           tr("Could not determine local IP address for streaming.\n\n"
-                              "Device IP: %1\n"
-                              "Make sure you're on the same network as the C64 device.")
-                           .arg(deviceAddr.toString()));
-        return;
-    }
-
-    LOG_VERBOSE() << "ViewPanel::onStartStreaming: Local IP for streaming:" << targetHost;
-
-    // Start UDP receivers
-    if (!videoReceiver_->bind()) {
-        QMessageBox::warning(this, tr("Stream Error"),
-                           tr("Failed to bind video receiver port."));
-        return;
-    }
-
-    if (!audioReceiver_->bind()) {
-        videoReceiver_->close();
-        QMessageBox::warning(this, tr("Stream Error"),
-                           tr("Failed to bind audio receiver port."));
-        return;
-    }
-
-    // Start audio playback
-    if (!audioPlayback_->start()) {
-        videoReceiver_->close();
-        audioReceiver_->close();
-        QMessageBox::warning(this, tr("Stream Error"),
-                           tr("Failed to start audio playback."));
-        return;
-    }
-
-    // Send stream start commands to the device
-    LOG_VERBOSE() << "ViewPanel::onStartStreaming: Sending stream commands to device"
-             << deviceHost << "- target:" << targetHost
-             << "video port:" << VideoStreamReceiver::DefaultPort
-             << "audio port:" << AudioStreamReceiver::DefaultPort;
-    streamControl_->startAllStreams(targetHost,
-                                    VideoStreamReceiver::DefaultPort,
-                                    AudioStreamReceiver::DefaultPort);
-
-    isStreaming_ = true;
+void ViewPanel::onStreamingStarted(const QString &targetHost)
+{
     startStreamAction_->setEnabled(false);
     stopStreamAction_->setEnabled(true);
     streamStatusLabel_->setText(tr("Starting stream to %1...").arg(targetHost));
 }
 
-void ViewPanel::onStopStreaming()
+void ViewPanel::onStreamingStopped()
 {
-    if (!isStreaming_) {
-        return;
-    }
-
-    // Send stop commands
-    streamControl_->stopAllStreams();
-
-    // Stop receivers and playback
-    audioPlayback_->stop();
-    videoReceiver_->close();
-    audioReceiver_->close();
-
     // Clear display
     videoDisplayWidget_->clear();
 
-    isStreaming_ = false;
     startStreamAction_->setEnabled(deviceConnection_->isConnected());
     stopStreamAction_->setEnabled(false);
     streamStatusLabel_->setText(tr("Not streaming"));
+}
+
+void ViewPanel::onStreamingError(const QString &error)
+{
+    QMessageBox::warning(this, tr("Stream Error"), error);
+    updateActions();
 }
 
 void ViewPanel::onVideoFormatDetected(int format)
@@ -335,11 +226,9 @@ void ViewPanel::onVideoFormatDetected(int format)
     switch (videoFormat) {
     case VideoStreamReceiver::VideoFormat::PAL:
         formatName = "PAL";
-        audioReceiver_->setAudioFormat(AudioStreamReceiver::AudioFormat::PAL);
         break;
     case VideoStreamReceiver::VideoFormat::NTSC:
         formatName = "NTSC";
-        audioReceiver_->setAudioFormat(AudioStreamReceiver::AudioFormat::NTSC);
         break;
     default:
         formatName = "Unknown";
@@ -347,21 +236,6 @@ void ViewPanel::onVideoFormatDetected(int format)
     }
 
     streamStatusLabel_->setText(tr("Streaming (%1)").arg(formatName));
-}
-
-void ViewPanel::onStreamCommandSucceeded(const QString &command)
-{
-    emit statusMessage(tr("Stream: %1").arg(command), 2000);
-}
-
-void ViewPanel::onStreamCommandFailed(const QString &command, const QString &error)
-{
-    emit statusMessage(tr("Stream failed: %1 - %2").arg(command, error), 5000);
-
-    // If we're trying to start and it failed, clean up
-    if (isStreaming_ && command.contains("start")) {
-        onStopStreaming();
-    }
 }
 
 void ViewPanel::onScalingModeChanged(int id)

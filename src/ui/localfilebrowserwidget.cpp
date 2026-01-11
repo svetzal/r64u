@@ -2,19 +2,19 @@
 #include "pathnavigationwidget.h"
 #include "models/localfileproxymodel.h"
 
-#include <QVBoxLayout>
-#include <QLabel>
-#include <QHeaderView>
 #include <QStandardPaths>
 #include <QMessageBox>
 #include <QInputDialog>
 #include <QFileInfo>
 #include <QDir>
+#include <QTreeView>
+#include <QToolBar>
+#include <QMenu>
 
 LocalFileBrowserWidget::LocalFileBrowserWidget(QWidget *parent)
-    : QWidget(parent)
-    , currentDirectory_(QStandardPaths::writableLocation(QStandardPaths::HomeLocation))
+    : FileBrowserWidget(parent)
 {
+    currentDirectory_ = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
     setupUi();
     setupContextMenu();
     setupConnections();
@@ -22,24 +22,13 @@ LocalFileBrowserWidget::LocalFileBrowserWidget(QWidget *parent)
 
 void LocalFileBrowserWidget::setupUi()
 {
-    auto *layout = new QVBoxLayout(this);
-    layout->setContentsMargins(4, 4, 4, 4);
+    // Call base class to create standard UI structure
+    FileBrowserWidget::setupUi();
 
-    auto *label = new QLabel(tr("Local Files"));
-    label->setStyleSheet("font-weight: bold;");
-    layout->addWidget(label);
-
-    // Path navigation widget
-    navWidget_ = new PathNavigationWidget(tr("Download to:"));
+    // Set green style for nav widget
     navWidget_->setStyleGreen();
-    connect(navWidget_, &PathNavigationWidget::upClicked, this, &LocalFileBrowserWidget::onParentFolder);
-    layout->addWidget(navWidget_);
 
-    // Toolbar
-    toolBar_ = new QToolBar();
-    toolBar_->setIconSize(QSize(16, 16));
-    toolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-
+    // Add local-specific actions to toolbar
     uploadAction_ = toolBar_->addAction(tr("Upload"));
     uploadAction_->setToolTip(tr("Upload selected files to C64U"));
     connect(uploadAction_, &QAction::triggered, this, &LocalFileBrowserWidget::onUpload);
@@ -56,14 +45,7 @@ void LocalFileBrowserWidget::setupUi()
     deleteAction_->setToolTip(tr("Move selected local file to trash"));
     connect(deleteAction_, &QAction::triggered, this, &LocalFileBrowserWidget::onDelete);
 
-    layout->addWidget(toolBar_);
-
-    // Tree view
-    treeView_ = new QTreeView();
-    treeView_->setAlternatingRowColors(true);
-    treeView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    treeView_->setContextMenuPolicy(Qt::CustomContextMenu);
-
+    // Set up the model
     fileModel_ = new QFileSystemModel(this);
     fileModel_->setRootPath(currentDirectory_);
 
@@ -72,26 +54,17 @@ void LocalFileBrowserWidget::setupUi()
     proxyModel_->setSourceModel(fileModel_);
     treeView_->setModel(proxyModel_);
     treeView_->setRootIndex(proxyModel_->mapFromSource(fileModel_->index(currentDirectory_)));
-    treeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
 
-    connect(treeView_, &QTreeView::doubleClicked,
-            this, &LocalFileBrowserWidget::onDoubleClicked);
-    connect(treeView_, &QTreeView::customContextMenuRequested,
-            this, &LocalFileBrowserWidget::onContextMenu);
-    connect(treeView_->selectionModel(), &QItemSelectionModel::selectionChanged,
-            this, [this]() { updateActions(); emit selectionChanged(); });
-
-    layout->addWidget(treeView_);
-
-    // Initialize nav widget
-    navWidget_->setPath(currentDirectory_);
     updateActions();
 }
 
 void LocalFileBrowserWidget::setupContextMenu()
 {
-    contextMenu_ = new QMenu(this);
-    setDestAction_ = contextMenu_->addAction(tr("Set as Download Destination"), this, [this]() {
+    // Call base class to create menu
+    FileBrowserWidget::setupContextMenu();
+
+    // Connect the set destination action
+    connect(setDestAction_, &QAction::triggered, this, [this]() {
         QModelIndex proxyIndex = treeView_->currentIndex();
         if (proxyIndex.isValid()) {
             QModelIndex sourceIndex = proxyModel_->mapToSource(proxyIndex);
@@ -101,6 +74,8 @@ void LocalFileBrowserWidget::setupContextMenu()
             }
         }
     });
+
+    // Add local-specific menu items
     contextMenu_->addSeparator();
     contextMenu_->addAction(tr("Upload to C64U"), this, &LocalFileBrowserWidget::onUpload);
     contextMenu_->addSeparator();
@@ -111,7 +86,8 @@ void LocalFileBrowserWidget::setupContextMenu()
 
 void LocalFileBrowserWidget::setupConnections()
 {
-    // No external connections needed - all internal
+    // Call base class to set up standard connections
+    FileBrowserWidget::setupConnections();
 }
 
 void LocalFileBrowserWidget::updateActions()
@@ -122,31 +98,6 @@ void LocalFileBrowserWidget::updateActions()
     newFolderAction_->setEnabled(true);
     renameAction_->setEnabled(hasSelection);
     deleteAction_->setEnabled(hasSelection);
-}
-
-void LocalFileBrowserWidget::setCurrentDirectory(const QString &path)
-{
-    currentDirectory_ = path;
-
-    // Update tree view to show this folder as root
-    fileModel_->setRootPath(path);
-    treeView_->setRootIndex(proxyModel_->mapFromSource(fileModel_->index(path)));
-
-    // Shorten path for display by replacing home with ~
-    QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-    QString displayPath = path;
-    if (displayPath.startsWith(homePath)) {
-        displayPath = "~" + displayPath.mid(homePath.length());
-    }
-
-    navWidget_->setPath(displayPath);
-    emit currentDirectoryChanged(path);
-    emit statusMessage(tr("Download destination: %1").arg(displayPath), 2000);
-
-    // Enable/disable up button based on whether we can go up
-    QDir dir(path);
-    bool canGoUp = dir.cdUp();
-    navWidget_->setUpEnabled(canGoUp);
 }
 
 void LocalFileBrowserWidget::setUploadEnabled(bool enabled)
@@ -175,35 +126,57 @@ bool LocalFileBrowserWidget::isSelectedDirectory() const
     return false;
 }
 
-void LocalFileBrowserWidget::onDoubleClicked(const QModelIndex &proxyIndex)
+QAbstractItemModel* LocalFileBrowserWidget::model() const
 {
-    if (!proxyIndex.isValid()) return;
+    return proxyModel_;
+}
 
+QString LocalFileBrowserWidget::filePath(const QModelIndex &proxyIndex) const
+{
+    if (!proxyIndex.isValid()) {
+        return QString();
+    }
     QModelIndex sourceIndex = proxyModel_->mapToSource(proxyIndex);
-    QString path = fileModel_->filePath(sourceIndex);
-
-    if (fileModel_->isDir(sourceIndex)) {
-        setCurrentDirectory(path);
-    }
+    return fileModel_->filePath(sourceIndex);
 }
 
-void LocalFileBrowserWidget::onContextMenu(const QPoint &pos)
+bool LocalFileBrowserWidget::isDirectory(const QModelIndex &proxyIndex) const
 {
-    QModelIndex proxyIndex = treeView_->indexAt(pos);
-    if (proxyIndex.isValid()) {
-        QModelIndex sourceIndex = proxyModel_->mapToSource(proxyIndex);
-        bool isDir = fileModel_->isDir(sourceIndex);
-        setDestAction_->setEnabled(isDir);
-        contextMenu_->exec(treeView_->viewport()->mapToGlobal(pos));
+    if (!proxyIndex.isValid()) {
+        return false;
     }
+    QModelIndex sourceIndex = proxyModel_->mapToSource(proxyIndex);
+    return fileModel_->isDir(sourceIndex);
 }
 
-void LocalFileBrowserWidget::onParentFolder()
+void LocalFileBrowserWidget::navigateToDirectory(const QString &path)
 {
-    QDir dir(currentDirectory_);
-    if (dir.cdUp()) {
-        setCurrentDirectory(dir.absolutePath());
+    setCurrentDirectory(path);
+}
+
+void LocalFileBrowserWidget::setCurrentDirectory(const QString &path)
+{
+    currentDirectory_ = path;
+
+    // Update tree view to show this folder as root
+    fileModel_->setRootPath(path);
+    treeView_->setRootIndex(proxyModel_->mapFromSource(fileModel_->index(path)));
+
+    // Shorten path for display by replacing home with ~
+    QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    QString displayPath = path;
+    if (displayPath.startsWith(homePath)) {
+        displayPath = "~" + displayPath.mid(homePath.length());
     }
+
+    navWidget_->setPath(displayPath);
+    emit currentDirectoryChanged(path);
+    emit statusMessage(tr("Download destination: %1").arg(displayPath), 2000);
+
+    // Enable/disable up button based on whether we can go up
+    QDir dir(path);
+    bool canGoUp = dir.cdUp();
+    navWidget_->setUpEnabled(canGoUp);
 }
 
 void LocalFileBrowserWidget::onUpload()

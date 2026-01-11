@@ -9,11 +9,7 @@
 
 class DeviceConnection;
 class VideoDisplayWidget;
-class StreamControlClient;
-class VideoStreamReceiver;
-class AudioStreamReceiver;
-class AudioPlaybackService;
-class KeyboardInputService;
+class StreamingManager;
 
 class ViewPanel : public QWidget
 {
@@ -39,8 +35,9 @@ private slots:
     void onStartStreaming();
     void onStopStreaming();
     void onVideoFormatDetected(int format);
-    void onStreamCommandSucceeded(const QString &command);
-    void onStreamCommandFailed(const QString &command, const QString &error);
+    void onStreamingStarted(const QString &targetHost);
+    void onStreamingStopped();
+    void onStreamingError(const QString &error);
     void onScalingModeChanged(int id);
 
 private:
@@ -51,15 +48,8 @@ private:
     // Dependencies (not owned)
     DeviceConnection *deviceConnection_ = nullptr;
 
-    // Owned streaming services
-    StreamControlClient *streamControl_ = nullptr;
-    VideoStreamReceiver *videoReceiver_ = nullptr;
-    AudioStreamReceiver *audioReceiver_ = nullptr;
-    AudioPlaybackService *audioPlayback_ = nullptr;
-    KeyboardInputService *keyboardInput_ = nullptr;
-
-    // State
-    bool isStreaming_ = false;
+    // Owned streaming manager
+    StreamingManager *streamingManager_ = nullptr;
 
     // UI widgets
     QToolBar *toolBar_ = nullptr;
