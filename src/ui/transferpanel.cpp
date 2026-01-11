@@ -81,6 +81,15 @@ void TransferPanel::setupConnections()
 
     // Set up transfer queue for progress widget
     progressWidget_->setTransferQueue(transferQueue_);
+
+    // Suppress auto-refresh during queue operations to prevent constant reloading
+    connect(transferQueue_, &TransferQueue::operationStarted, this, [this]() {
+        remoteBrowser_->setSuppressAutoRefresh(true);
+    });
+    connect(transferQueue_, &TransferQueue::allOperationsCompleted, this, [this]() {
+        remoteBrowser_->setSuppressAutoRefresh(false);
+        remoteBrowser_->refresh();
+    });
 }
 
 void TransferPanel::setCurrentLocalDir(const QString &path)

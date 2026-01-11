@@ -26,6 +26,7 @@ public:
     void setDownloadEnabled(bool enabled);
     void onConnectionStateChanged(bool connected);
     void refresh();
+    void setSuppressAutoRefresh(bool suppress);
 
 signals:
     void downloadRequested(const QString &remotePath, bool isDirectory);
@@ -62,6 +63,7 @@ private:
     // State
     QString currentDirectory_;
     bool connected_ = false;
+    bool suppressAutoRefresh_ = false;
 
     // UI widgets
     QTreeView *treeView_ = nullptr;

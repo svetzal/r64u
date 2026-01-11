@@ -347,16 +347,26 @@ void RemoteFileBrowserWidget::onRefresh()
     }
 }
 
+void RemoteFileBrowserWidget::setSuppressAutoRefresh(bool suppress)
+{
+    suppressAutoRefresh_ = suppress;
+}
+
 void RemoteFileBrowserWidget::onDirectoryCreated(const QString &path)
 {
     emit statusMessage(tr("Folder created: %1").arg(QFileInfo(path).fileName()), 3000);
-    remoteFileModel_->refresh();
+    if (!suppressAutoRefresh_) {
+        remoteFileModel_->refresh();
+    }
 }
 
 void RemoteFileBrowserWidget::onFileRemoved(const QString &path)
 {
-    emit statusMessage(tr("Deleted: %1").arg(QFileInfo(path).fileName()), 3000);
-    remoteFileModel_->refresh();
+    // Don't emit status messages or refresh during bulk delete operations
+    if (!suppressAutoRefresh_) {
+        emit statusMessage(tr("Deleted: %1").arg(QFileInfo(path).fileName()), 3000);
+        remoteFileModel_->refresh();
+    }
 }
 
 void RemoteFileBrowserWidget::onFileRenamed(const QString &oldPath, const QString &newPath)
@@ -364,5 +374,7 @@ void RemoteFileBrowserWidget::onFileRenamed(const QString &oldPath, const QStrin
     QString oldName = QFileInfo(oldPath).fileName();
     QString newName = QFileInfo(newPath).fileName();
     emit statusMessage(tr("Renamed: %1 -> %2").arg(oldName).arg(newName), 3000);
-    remoteFileModel_->refresh();
+    if (!suppressAutoRefresh_) {
+        remoteFileModel_->refresh();
+    }
 }
