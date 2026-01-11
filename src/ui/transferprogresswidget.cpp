@@ -26,6 +26,10 @@ void TransferProgressWidget::setupUi()
     progressBar_->setValue(0);
     layout->addWidget(progressBar_, 1);
 
+    cancelButton_ = new QPushButton(tr("Cancel"));
+    cancelButton_->setMaximumWidth(80);
+    layout->addWidget(cancelButton_);
+
     // Initially hide the widget
     setVisible(false);
 
@@ -40,6 +44,7 @@ void TransferProgressWidget::setTransferQueue(TransferQueue *queue)
 {
     if (transferQueue_) {
         disconnect(transferQueue_, nullptr, this, nullptr);
+        disconnect(cancelButton_, nullptr, transferQueue_, nullptr);
     }
 
     transferQueue_ = queue;
@@ -53,10 +58,14 @@ void TransferProgressWidget::setTransferQueue(TransferQueue *queue)
                 this, &TransferProgressWidget::onOperationFailed);
         connect(transferQueue_, &TransferQueue::allOperationsCompleted,
                 this, &TransferProgressWidget::onAllOperationsCompleted);
+        connect(transferQueue_, &TransferQueue::operationsCancelled,
+                this, &TransferProgressWidget::onOperationsCancelled);
         connect(transferQueue_, &TransferQueue::queueChanged,
                 this, &TransferProgressWidget::onQueueChanged);
         connect(transferQueue_, &TransferQueue::deleteProgressUpdate,
                 this, &TransferProgressWidget::onDeleteProgressUpdate);
+        connect(cancelButton_, &QPushButton::clicked,
+                transferQueue_, &TransferQueue::cancelAll);
     }
 }
 
@@ -124,6 +133,23 @@ void TransferProgressWidget::onAllOperationsCompleted()
     statusLabel_->setText(tr("Ready"));
 
     emit statusMessage(tr("All operations completed"), 3000);
+}
+
+void TransferProgressWidget::onOperationsCancelled()
+{
+    delayTimer_->stop();
+    progressPending_ = false;
+
+    setVisible(false);
+
+    operationTotalCount_ = 0;
+    operationCompletedCount_ = 0;
+
+    progressBar_->setMaximum(100);
+    progressBar_->setValue(0);
+    statusLabel_->setText(tr("Ready"));
+
+    emit statusMessage(tr("Operations cancelled"), 3000);
 }
 
 void TransferProgressWidget::onShowProgress()

@@ -236,7 +236,7 @@ void TransferQueue::removeCompleted()
 
 void TransferQueue::cancelAll()
 {
-    if (ftpClient_ && processing_) {
+    if (ftpClient_ && (processing_ || processingDelete_)) {
         ftpClient_->abort();
     }
 
@@ -269,6 +269,7 @@ void TransferQueue::cancelAll()
 
     emit dataChanged(index(0), index(items_.size() - 1));
     emit queueChanged();
+    emit operationsCancelled();
 }
 
 int TransferQueue::pendingCount() const

@@ -81,6 +81,7 @@ signals:
     void operationCompleted(const QString &fileName);
     void operationFailed(const QString &fileName, const QString &error);
     void allOperationsCompleted();
+    void operationsCancelled();
     void queueChanged();
     void deleteProgressUpdate(const QString &fileName, int current, int total);
 

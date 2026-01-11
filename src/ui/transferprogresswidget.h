@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QProgressBar>
 #include <QLabel>
+#include <QPushButton>
 #include <QTimer>
 
 #include "models/transferqueue.h"
@@ -26,6 +27,7 @@ private slots:
     void onOperationFailed(const QString &fileName, const QString &error);
     void onQueueChanged();
     void onAllOperationsCompleted();
+    void onOperationsCancelled();
     void onShowProgress();
     void onDeleteProgressUpdate(const QString &fileName, int current, int total);
 
@@ -45,6 +47,7 @@ private:
     // UI widgets
     QProgressBar *progressBar_ = nullptr;
     QLabel *statusLabel_ = nullptr;
+    QPushButton *cancelButton_ = nullptr;
     QTimer *delayTimer_ = nullptr;
 };
 
