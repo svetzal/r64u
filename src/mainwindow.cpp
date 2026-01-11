@@ -80,28 +80,11 @@ MainWindow::~MainWindow()
 
 void MainWindow::setupUi()
 {
-    // Create container for mode selector and content
-    auto *centralContainer = new QWidget(this);
-    auto *centralLayout = new QVBoxLayout(centralContainer);
-    centralLayout->setContentsMargins(0, 0, 0, 0);
-    centralLayout->setSpacing(0);
-
-    // Mode tab bar
-    modeTabBar_ = new QTabBar();
-    modeTabBar_->setExpanding(false);  // Size tabs to fit their labels
-    modeTabBar_->addTab(tr("Explore/Run"));
-    modeTabBar_->addTab(tr("Transfer"));
-    modeTabBar_->addTab(tr("View"));
-    modeTabBar_->addTab(tr("Config"));
-    connect(modeTabBar_, &QTabBar::currentChanged,
+    // Create tabbed mode widget
+    modeTabWidget_ = new QTabWidget(this);
+    connect(modeTabWidget_, &QTabWidget::currentChanged,
             this, &MainWindow::onModeChanged);
-    centralLayout->addWidget(modeTabBar_, 0, Qt::AlignLeft);
-
-    // Main content area
-    stackedWidget_ = new QStackedWidget();
-    centralLayout->addWidget(stackedWidget_, 1);
-
-    setCentralWidget(centralContainer);
+    setCentralWidget(modeTabWidget_);
 }
 
 void MainWindow::setupMenuBar()
@@ -133,25 +116,25 @@ void MainWindow::setupMenuBar()
     auto *exploreAction = viewMenu->addAction(tr("&Explore/Run Mode"));
     exploreAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_1));
     connect(exploreAction, &QAction::triggered, this, [this]() {
-        modeTabBar_->setCurrentIndex(0);
+        modeTabWidget_->setCurrentIndex(0);
     });
 
     auto *transferAction = viewMenu->addAction(tr("&Transfer Mode"));
     transferAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_2));
     connect(transferAction, &QAction::triggered, this, [this]() {
-        modeTabBar_->setCurrentIndex(1);
+        modeTabWidget_->setCurrentIndex(1);
     });
 
     auto *viewModeAction = viewMenu->addAction(tr("&View Mode"));
     viewModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_3));
     connect(viewModeAction, &QAction::triggered, this, [this]() {
-        modeTabBar_->setCurrentIndex(2);
+        modeTabWidget_->setCurrentIndex(2);
     });
 
     auto *configModeAction = viewMenu->addAction(tr("&Config Mode"));
     configModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_4));
     connect(configModeAction, &QAction::triggered, this, [this]() {
-        modeTabBar_->setCurrentIndex(3);
+        modeTabWidget_->setCurrentIndex(3);
     });
 
     viewMenu->addSeparator();
@@ -347,7 +330,7 @@ void MainWindow::setupExploreRunMode()
 
     layout->addWidget(exploreRunSplitter_);
 
-    stackedWidget_->addWidget(exploreRunWidget_);
+    modeTabWidget_->addTab(exploreRunWidget_, tr("Explore/Run"));
 
     // Setup context menu
     remoteContextMenu_ = new QMenu(this);
@@ -536,7 +519,7 @@ void MainWindow::setupTransferMode()
     connect(transferProgressDelayTimer_, &QTimer::timeout,
             this, &MainWindow::onShowTransferProgress);
 
-    stackedWidget_->addWidget(transferWidget_);
+    modeTabWidget_->addTab(transferWidget_, tr("Transfer"));
 
     // Setup transfer context menu (for remote files)
     transferContextMenu_ = new QMenu(this);
@@ -639,7 +622,7 @@ void MainWindow::setupViewMode()
     videoDisplayWidget_->setMinimumSize(384, 272);
     layout->addWidget(videoDisplayWidget_, 1);
 
-    stackedWidget_->addWidget(viewWidget_);
+    modeTabWidget_->addTab(viewWidget_, tr("View"));
 
     // Create streaming services
     streamControl_ = new StreamControlClient(this);
@@ -750,7 +733,7 @@ void MainWindow::setupConfigMode()
 
     layout->addWidget(configSplitter_, 1);
 
-    stackedWidget_->addWidget(configWidget_);
+    modeTabWidget_->addTab(configWidget_, tr("Config"));
 
     // Connect model signals
     connect(configModel_, &ConfigurationModel::dirtyStateChanged,
@@ -880,7 +863,7 @@ void MainWindow::switchToMode(Mode mode)
         pageIndex = 3;
         break;
     }
-    stackedWidget_->setCurrentIndex(pageIndex);
+    modeTabWidget_->setCurrentIndex(pageIndex);
 
     // Auto-load config when switching to Config mode if connected and empty
     if (mode == Mode::Config && deviceConnection_->isConnected() &&

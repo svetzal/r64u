@@ -2,11 +2,10 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QStackedWidget>
+#include <QTabWidget>
 #include <QTreeView>
 #include <QSplitter>
 #include <QToolBar>
-#include <QTabBar>
 #include <QLabel>
 #include <QFileSystemModel>
 #include <QMenu>
@@ -192,7 +191,7 @@ private:
     ConfigFileLoader *configFileLoader_ = nullptr;
 
     // Central widget
-    QStackedWidget *stackedWidget_ = nullptr;
+    QTabWidget *modeTabWidget_ = nullptr;
 
     // Explore/Run mode widgets
     QWidget *exploreRunWidget_ = nullptr;
@@ -261,7 +260,6 @@ private:
 
     // Toolbar
     QToolBar *systemToolBar_ = nullptr;
-    QTabBar *modeTabBar_ = nullptr;
     QAction *connectAction_ = nullptr;
 
     // Mode-specific actions
