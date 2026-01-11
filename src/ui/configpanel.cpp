@@ -58,33 +58,14 @@ void ConfigPanel::setupUi()
 
     layout->addWidget(toolBar_);
 
-    // Create splitter with category list on left, items panel on right
-    splitter_ = new QSplitter(Qt::Horizontal);
+    // Create horizontal tab widget for categories
+    categoryTabs_ = new QTabWidget();
+    categoryTabs_->setTabPosition(QTabWidget::North);
+    categoryTabs_->setDocumentMode(true);  // Cleaner look on macOS
+    connect(categoryTabs_, &QTabWidget::currentChanged,
+            this, &ConfigPanel::onCategoryTabChanged);
 
-    // Category list
-    categoryList_ = new QListWidget();
-    categoryList_->setMinimumWidth(150);
-    categoryList_->setMaximumWidth(250);
-    categoryList_->setAlternatingRowColors(true);
-    categoryList_->setSpacing(2);
-    // Match the styling of tree views with slightly more padding
-    categoryList_->setStyleSheet(
-        "QListWidget::item { padding: 4px 8px; }"
-    );
-    connect(categoryList_, &QListWidget::currentItemChanged,
-            this, &ConfigPanel::onCategorySelected);
-    splitter_->addWidget(categoryList_);
-
-    // Config items panel
-    itemsPanel_ = new ConfigItemsPanel(configModel_);
-    connect(itemsPanel_, &ConfigItemsPanel::itemChanged,
-            this, &ConfigPanel::onItemEdited);
-    splitter_->addWidget(itemsPanel_);
-
-    // Set splitter sizes (category list gets ~25%, items panel gets ~75%)
-    splitter_->setSizes({200, 600});
-
-    layout->addWidget(splitter_, 1);
+    layout->addWidget(categoryTabs_, 1);
 }
 
 void ConfigPanel::setupConnections()
@@ -96,18 +77,6 @@ void ConfigPanel::setupConnections()
     // Connect model signals
     connect(configModel_, &ConfigurationModel::dirtyStateChanged,
             this, &ConfigPanel::onDirtyStateChanged);
-    connect(configModel_, &ConfigurationModel::categoriesChanged,
-            this, [this]() {
-        // Update category list when categories change
-        categoryList_->clear();
-        for (const QString &category : configModel_->categories()) {
-            categoryList_->addItem(category);
-        }
-        // Select first category if available
-        if (categoryList_->count() > 0) {
-            categoryList_->setCurrentRow(0);
-        }
-    });
 
     // Connect REST client signals
     connect(deviceConnection_->restClient(), &C64URestClient::configCategoriesReceived,
@@ -145,7 +114,7 @@ void ConfigPanel::onConnectionStateChanged()
 
 void ConfigPanel::refreshIfEmpty()
 {
-    if (deviceConnection_->isConnected() && categoryList_->count() == 0) {
+    if (deviceConnection_->isConnected() && categoryTabs_->count() == 0) {
         onRefresh();
     }
 }
@@ -208,13 +177,36 @@ void ConfigPanel::onRefresh()
 
 void ConfigPanel::onCategoriesReceived(const QStringList &categories)
 {
+    // Clear existing tabs and panels
+    categoryTabs_->clear();
+    itemsPanels_.clear();
+
     configModel_->setCategories(categories);
+
+    // Create a tab for each category
+    for (const QString &category : categories) {
+        ConfigItemsPanel *panel = getOrCreateItemsPanel(category);
+        categoryTabs_->addTab(panel, category);
+    }
+
     emit statusMessage(tr("Loaded %1 configuration categories").arg(categories.size()), 3000);
 
     // Load items for each category
     for (const QString &category : categories) {
         deviceConnection_->restClient()->getConfigCategoryItems(category);
     }
+}
+
+ConfigItemsPanel* ConfigPanel::getOrCreateItemsPanel(const QString &category)
+{
+    if (!itemsPanels_.contains(category)) {
+        auto *panel = new ConfigItemsPanel(configModel_);
+        panel->setCategory(category);
+        connect(panel, &ConfigItemsPanel::itemChanged,
+                this, &ConfigPanel::onItemEdited);
+        itemsPanels_[category] = panel;
+    }
+    return itemsPanels_[category];
 }
 
 void ConfigPanel::onCategoryItemsReceived(const QString &category,
@@ -277,17 +269,13 @@ void ConfigPanel::onDirtyStateChanged(bool isDirty)
     }
 }
 
-void ConfigPanel::onCategorySelected(QListWidgetItem *current, QListWidgetItem *previous)
+void ConfigPanel::onCategoryTabChanged(int index)
 {
-    Q_UNUSED(previous)
-
-    if (!current) {
-        itemsPanel_->setCategory(QString());
+    if (index < 0) {
         return;
     }
 
-    QString category = current->text();
-    itemsPanel_->setCategory(category);
+    QString category = categoryTabs_->tabText(index);
 
     // Load items for this category if not already loaded
     if (configModel_->itemCount(category) == 0 && deviceConnection_->isConnected()) {

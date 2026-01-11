@@ -3,9 +3,9 @@
 
 #include <QWidget>
 #include <QToolBar>
-#include <QSplitter>
-#include <QListWidget>
+#include <QTabWidget>
 #include <QLabel>
+#include <QHash>
 
 #include "services/c64urestclient.h"
 
@@ -39,7 +39,7 @@ private slots:
     void onLoadedFromFlash();
     void onResetComplete();
     void onDirtyStateChanged(bool isDirty);
-    void onCategorySelected(QListWidgetItem *current, QListWidgetItem *previous);
+    void onCategoryTabChanged(int index);
     void onItemEdited(const QString &category, const QString &item,
                       const QVariant &value);
     void onItemSetResult(const QString &category, const QString &item);
@@ -48,6 +48,7 @@ private:
     void setupUi();
     void setupConnections();
     void updateActions();
+    ConfigItemsPanel* getOrCreateItemsPanel(const QString &category);
 
     // Dependencies (not owned)
     DeviceConnection *deviceConnection_ = nullptr;
@@ -62,9 +63,8 @@ private:
     QAction *resetToDefaultsAction_ = nullptr;
     QAction *refreshAction_ = nullptr;
     QLabel *unsavedIndicator_ = nullptr;
-    QSplitter *splitter_ = nullptr;
-    QListWidget *categoryList_ = nullptr;
-    ConfigItemsPanel *itemsPanel_ = nullptr;
+    QTabWidget *categoryTabs_ = nullptr;
+    QHash<QString, ConfigItemsPanel*> itemsPanels_;
 };
 
 #endif // CONFIGPANEL_H
