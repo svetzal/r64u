@@ -54,16 +54,17 @@ void TestTransferQueue::testConnectionLostMidTransfer()
 Qt 6.10.1 is installed via the native Qt installer at `~/Qt/`.
 
 ```bash
-# Configure and build
-cmake -B build -DCMAKE_PREFIX_PATH=~/Qt/6.10.1/macos
-cmake --build build
+# Build and run all tests (preferred method)
+./build_test.sh
 
-# Run tests
-ctest --test-dir build --output-on-failure
+# Quick incremental build (skips cmake configure)
+./build_test.sh --quick
 
 # Run the app
 open build/r64u.app  # macOS
 ```
+
+The `build_test.sh` script handles configure, build, and test execution with formatted output and summary.
 
 ## Stride Workflow
 
@@ -150,18 +151,12 @@ This version automatically propagates to:
    )
    ```
 
-2. **Verify build succeeds**
+2. **Build and run tests**
    ```bash
-   cmake -B build -DCMAKE_PREFIX_PATH=~/Qt/6.10.1/macos
-   cmake --build build
+   ./build_test.sh
    ```
 
-3. **Run tests** (if any)
-   ```bash
-   ctest --test-dir build --output-on-failure
-   ```
-
-4. **Update CHANGELOG.md** (if maintained)
+3. **Update CHANGELOG.md** (if maintained)
 
 ### Creating a Release
 
