@@ -181,7 +181,7 @@ void ExplorePanel::setCurrentDirectory(const QString &path)
 
 void ExplorePanel::refresh()
 {
-    if (!deviceConnection_->isConnected()) return;
+    if (!deviceConnection_->canPerformOperations()) return;
 
     QModelIndex index = treeView_->currentIndex();
     if (index.isValid() && remoteFileModel_->isDirectory(index)) {
@@ -195,7 +195,7 @@ void ExplorePanel::refresh()
 
 void ExplorePanel::updateDriveInfo()
 {
-    if (deviceConnection_->isConnected()) {
+    if (deviceConnection_->canPerformOperations()) {
         QList<DriveInfo> drives = deviceConnection_->driveInfo();
         for (const DriveInfo &drive : drives) {
             bool hasDisk = !drive.imageFile.isEmpty();
@@ -231,17 +231,17 @@ void ExplorePanel::saveSettings()
 
 void ExplorePanel::onConnectionStateChanged()
 {
-    bool connected = deviceConnection_->isConnected();
+    bool canOperate = deviceConnection_->canPerformOperations();
 
     playAction_->setEnabled(false);
     runAction_->setEnabled(false);
     mountAction_->setEnabled(false);
-    refreshAction_->setEnabled(connected);
+    refreshAction_->setEnabled(canOperate);
 
     bool canGoUp = (currentDirectory_ != "/" && !currentDirectory_.isEmpty());
-    navWidget_->setUpEnabled(canGoUp && connected);
+    navWidget_->setUpEnabled(canGoUp && canOperate);
 
-    if (!connected) {
+    if (!canOperate) {
         fileDetailsPanel_->clear();
     }
 }
@@ -271,7 +271,7 @@ void ExplorePanel::onSelectionChanged()
     // Update toolbar actions
     QString selected = selectedPath();
     bool hasSelection = !selected.isEmpty();
-    bool connected = deviceConnection_->isConnected();
+    bool canOperate = deviceConnection_->canPerformOperations();
 
     RemoteFileModel::FileType fileType = RemoteFileModel::FileType::Unknown;
     if (hasSelection) {
@@ -286,9 +286,9 @@ void ExplorePanel::onSelectionChanged()
                                     fileType == RemoteFileModel::FileType::DiskImage);
     bool canMount = hasSelection && fileType == RemoteFileModel::FileType::DiskImage;
 
-    playAction_->setEnabled(connected && canPlay);
-    runAction_->setEnabled(connected && canRun);
-    mountAction_->setEnabled(connected && canMount);
+    playAction_->setEnabled(canOperate && canPlay);
+    runAction_->setEnabled(canOperate && canRun);
+    mountAction_->setEnabled(canOperate && canMount);
 
     // Update file details panel
     QModelIndex index = treeView_->currentIndex();
@@ -350,7 +350,7 @@ void ExplorePanel::onContextMenu(const QPoint &pos)
     if (index.isValid()) {
         // Get file type and enable/disable context menu actions accordingly
         RemoteFileModel::FileType fileType = remoteFileModel_->fileType(index);
-        bool connected = deviceConnection_->isConnected();
+        bool canOperate = deviceConnection_->canPerformOperations();
 
         bool canPlay = fileType == RemoteFileModel::FileType::SidMusic ||
                        fileType == RemoteFileModel::FileType::ModMusic;
@@ -360,12 +360,12 @@ void ExplorePanel::onContextMenu(const QPoint &pos)
         bool canMount = fileType == RemoteFileModel::FileType::DiskImage;
         bool canLoadConfig = fileType == RemoteFileModel::FileType::Config;
 
-        contextPlayAction_->setEnabled(connected && canPlay);
-        contextRunAction_->setEnabled(connected && canRun);
-        contextLoadConfigAction_->setEnabled(connected && canLoadConfig);
-        contextMountAAction_->setEnabled(connected && canMount);
-        contextMountBAction_->setEnabled(connected && canMount);
-        contextDownloadAction_->setEnabled(connected);
+        contextPlayAction_->setEnabled(canOperate && canPlay);
+        contextRunAction_->setEnabled(canOperate && canRun);
+        contextLoadConfigAction_->setEnabled(canOperate && canLoadConfig);
+        contextMountAAction_->setEnabled(canOperate && canMount);
+        contextMountBAction_->setEnabled(canOperate && canMount);
+        contextDownloadAction_->setEnabled(canOperate);
 
         contextMenu_->exec(treeView_->viewport()->mapToGlobal(pos));
     }
@@ -499,7 +499,7 @@ void ExplorePanel::onLoadConfig()
         return;
     }
 
-    if (!deviceConnection_->isConnected()) {
+    if (!deviceConnection_->canPerformOperations()) {
         emit statusMessage(tr("Not connected"), 3000);
         return;
     }
@@ -521,7 +521,7 @@ void ExplorePanel::onRefresh()
 
 void ExplorePanel::onFileContentRequested(const QString &path)
 {
-    if (!deviceConnection_->isConnected()) {
+    if (!deviceConnection_->canPerformOperations()) {
         fileDetailsPanel_->showError(tr("Not connected"));
         return;
     }

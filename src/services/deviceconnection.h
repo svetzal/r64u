@@ -134,6 +134,26 @@ public:
      * such as system control commands (reset, reboot, pause, etc.).
      */
     [[nodiscard]] bool isRestConnected() const { return restConnected_; }
+
+    /**
+     * @brief Checks if file operations can be performed.
+     * @return True only when state is Connected.
+     *
+     * Use this instead of isConnected() for guards in UI operation handlers.
+     * This explicitly prevents operations during Connecting or Reconnecting
+     * states, avoiding race conditions and providing clearer user feedback.
+     *
+     * @par Example usage:
+     * @code
+     * void onRefresh() {
+     *     if (!deviceConnection_->canPerformOperations()) {
+     *         return;  // Silent return or show "connecting..." message
+     *     }
+     *     // Proceed with refresh
+     * }
+     * @endcode
+     */
+    [[nodiscard]] bool canPerformOperations() const { return state_ == ConnectionState::Connected; }
     /// @}
 
     /// @name Device Information

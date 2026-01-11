@@ -120,9 +120,9 @@ void ViewPanel::setupConnections()
 
 void ViewPanel::updateActions()
 {
-    bool connected = deviceConnection_->isConnected();
+    bool canOperate = deviceConnection_->canPerformOperations();
     bool isStreaming = streamingManager_->isStreaming();
-    startStreamAction_->setEnabled(connected && !isStreaming);
+    startStreamAction_->setEnabled(canOperate && !isStreaming);
     stopStreamAction_->setEnabled(isStreaming);
 }
 
@@ -130,8 +130,8 @@ void ViewPanel::onConnectionStateChanged()
 {
     updateActions();
 
-    bool connected = deviceConnection_->isConnected();
-    if (!connected && streamingManager_->isStreaming()) {
+    bool canOperate = deviceConnection_->canPerformOperations();
+    if (!canOperate && streamingManager_->isStreaming()) {
         streamingManager_->stopStreaming();
     }
 }
@@ -179,7 +179,7 @@ int ViewPanel::scalingMode() const
 
 void ViewPanel::onStartStreaming()
 {
-    if (!deviceConnection_->isConnected()) {
+    if (!deviceConnection_->canPerformOperations()) {
         QMessageBox::warning(this, tr("Not Connected"),
                            tr("Please connect to a C64 Ultimate device first."));
         return;
@@ -208,7 +208,7 @@ void ViewPanel::onStreamingStopped()
     // Clear display
     videoDisplayWidget_->clear();
 
-    startStreamAction_->setEnabled(deviceConnection_->isConnected());
+    startStreamAction_->setEnabled(deviceConnection_->canPerformOperations());
     stopStreamAction_->setEnabled(false);
     streamStatusLabel_->setText(tr("Not streaming"));
 }

@@ -127,33 +127,33 @@ void ConfigPanel::setupConnections()
 
 void ConfigPanel::updateActions()
 {
-    bool connected = deviceConnection_->isConnected();
-    saveToFlashAction_->setEnabled(connected);
-    loadFromFlashAction_->setEnabled(connected);
-    resetToDefaultsAction_->setEnabled(connected);
-    refreshAction_->setEnabled(connected);
+    bool canOperate = deviceConnection_->canPerformOperations();
+    saveToFlashAction_->setEnabled(canOperate);
+    loadFromFlashAction_->setEnabled(canOperate);
+    resetToDefaultsAction_->setEnabled(canOperate);
+    refreshAction_->setEnabled(canOperate);
 }
 
 void ConfigPanel::onConnectionStateChanged()
 {
     updateActions();
 
-    bool connected = deviceConnection_->isConnected();
-    if (!connected) {
+    bool canOperate = deviceConnection_->canPerformOperations();
+    if (!canOperate) {
         // Could optionally clear the model here
     }
 }
 
 void ConfigPanel::refreshIfEmpty()
 {
-    if (deviceConnection_->isConnected() && categoryList_->count() == 0) {
+    if (deviceConnection_->canPerformOperations() && categoryList_->count() == 0) {
         onRefresh();
     }
 }
 
 void ConfigPanel::onSaveToFlash()
 {
-    if (!deviceConnection_->isConnected()) {
+    if (!deviceConnection_->canPerformOperations()) {
         emit statusMessage(tr("Not connected"), 3000);
         return;
     }
@@ -164,7 +164,7 @@ void ConfigPanel::onSaveToFlash()
 
 void ConfigPanel::onLoadFromFlash()
 {
-    if (!deviceConnection_->isConnected()) {
+    if (!deviceConnection_->canPerformOperations()) {
         emit statusMessage(tr("Not connected"), 3000);
         return;
     }
@@ -175,7 +175,7 @@ void ConfigPanel::onLoadFromFlash()
 
 void ConfigPanel::onResetToDefaults()
 {
-    if (!deviceConnection_->isConnected()) {
+    if (!deviceConnection_->canPerformOperations()) {
         emit statusMessage(tr("Not connected"), 3000);
         return;
     }
@@ -198,7 +198,7 @@ void ConfigPanel::onResetToDefaults()
 
 void ConfigPanel::onRefresh()
 {
-    if (!deviceConnection_->isConnected()) {
+    if (!deviceConnection_->canPerformOperations()) {
         emit statusMessage(tr("Not connected"), 3000);
         return;
     }
@@ -291,7 +291,7 @@ void ConfigPanel::onCategorySelected(QListWidgetItem *current, QListWidgetItem *
     itemsPanel_->setCategory(category);
 
     // Load items for this category if not already loaded
-    if (configModel_->itemCount(category) == 0 && deviceConnection_->isConnected()) {
+    if (configModel_->itemCount(category) == 0 && deviceConnection_->canPerformOperations()) {
         deviceConnection_->restClient()->getConfigCategoryItems(category);
     }
 }
@@ -299,7 +299,7 @@ void ConfigPanel::onCategorySelected(QListWidgetItem *current, QListWidgetItem *
 void ConfigPanel::onItemEdited(const QString &category, const QString &item,
                                 const QVariant &value)
 {
-    if (!deviceConnection_->isConnected()) {
+    if (!deviceConnection_->canPerformOperations()) {
         emit statusMessage(tr("Not connected - changes are local only"), 3000);
         return;
     }

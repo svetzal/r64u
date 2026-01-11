@@ -74,10 +74,10 @@ void TransferPanel::setupConnections()
 
     // Update upload/download button states based on connection
     connect(localBrowser_, &LocalFileBrowserWidget::selectionChanged, this, [this]() {
-        localBrowser_->setUploadEnabled(deviceConnection_->isConnected());
+        localBrowser_->setUploadEnabled(deviceConnection_->canPerformOperations());
     });
     connect(remoteBrowser_, &RemoteFileBrowserWidget::selectionChanged, this, [this]() {
-        remoteBrowser_->setDownloadEnabled(deviceConnection_->isConnected());
+        remoteBrowser_->setDownloadEnabled(deviceConnection_->canPerformOperations());
     });
 
     // Set up transfer service for progress widget
@@ -139,9 +139,9 @@ void TransferPanel::saveSettings()
 
 void TransferPanel::onConnectionStateChanged()
 {
-    bool connected = deviceConnection_->isConnected();
-    remoteBrowser_->onConnectionStateChanged(connected);
-    localBrowser_->setUploadEnabled(connected);
+    bool canOperate = deviceConnection_->canPerformOperations();
+    remoteBrowser_->onConnectionStateChanged(canOperate);
+    localBrowser_->setUploadEnabled(canOperate);
 }
 
 QString TransferPanel::selectedLocalPath() const

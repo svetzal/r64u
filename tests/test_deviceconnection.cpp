@@ -44,6 +44,7 @@ private slots:
         QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Disconnected);
         QVERIFY(!conn->isConnected());
         QVERIFY(!conn->isRestConnected());
+        QVERIFY(!conn->canPerformOperations());
     }
 
     void testHostConfiguration()
@@ -96,6 +97,7 @@ private slots:
 
         QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connected);
         QVERIFY(conn->isConnected());
+        QVERIFY(conn->canPerformOperations());
         QCOMPARE(stateSpy.count(), 1);
         QCOMPARE(connectedSpy.count(), 1);
     }
@@ -225,6 +227,7 @@ private slots:
 
         // Verify state is cleared
         QVERIFY(!conn->isConnected());
+        QVERIFY(!conn->canPerformOperations());
         QVERIFY(!conn->isRestConnected());
         QVERIFY(conn->deviceInfo().product.isEmpty());
         QVERIFY(conn->driveInfo().isEmpty());
@@ -243,6 +246,7 @@ private slots:
         emit conn->restClient()->infoReceived(info);
         QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connecting);
         QVERIFY(!conn->isConnected());
+        QVERIFY(!conn->canPerformOperations());  // Not yet - still connecting
         QVERIFY(conn->isRestConnected());
 
         // FTP connects - now should be Connected
