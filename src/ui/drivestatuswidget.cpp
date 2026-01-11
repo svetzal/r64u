@@ -17,6 +17,8 @@ DriveStatusWidget::DriveStatusWidget(const QString &driveName, QWidget *parent)
     imageLabel_->setStyleSheet("color: #666;");
     layout->addWidget(imageLabel_);
 
+    layout->addStretch();  // Push indicator and eject button to the right
+
     indicator_ = new QLabel();
     indicator_->setFixedSize(8, 8);
     layout->addWidget(indicator_);
@@ -25,7 +27,6 @@ DriveStatusWidget::DriveStatusWidget(const QString &driveName, QWidget *parent)
     ejectButton_->setText(tr("\u23cf"));  // Eject symbol
     ejectButton_->setToolTip(tr("Eject"));
     ejectButton_->setAutoRaise(true);
-    ejectButton_->setVisible(false);
     connect(ejectButton_, &QToolButton::clicked, this, &DriveStatusWidget::ejectClicked);
     layout->addWidget(ejectButton_);
 
@@ -46,7 +47,6 @@ void DriveStatusWidget::setImageName(const QString &imageName)
 void DriveStatusWidget::setMounted(bool mounted)
 {
     mounted_ = mounted;
-    ejectButton_->setVisible(mounted);
     updateDisplay();
 }
 
