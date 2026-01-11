@@ -44,6 +44,13 @@ set(SOURCES
     src/ui/transferqueuewidget.cpp
     src/ui/filedetailspanel.cpp
     src/ui/videodisplaywidget.cpp
+    src/ui/localfilebrowserwidget.cpp
+    src/ui/remotefilebrowserwidget.cpp
+    src/ui/transferprogresswidget.cpp
+    src/ui/explorepanel.cpp
+    src/ui/transferpanel.cpp
+    src/ui/viewpanel.cpp
+    src/ui/configpanel.cpp
     src/services/c64urestclient.cpp
     src/services/c64uftpclient.cpp
     src/services/deviceconnection.cpp
@@ -72,6 +79,13 @@ set(HEADERS
     src/ui/transferqueuewidget.h
     src/ui/filedetailspanel.h
     src/ui/videodisplaywidget.h
+    src/ui/localfilebrowserwidget.h
+    src/ui/remotefilebrowserwidget.h
+    src/ui/transferprogresswidget.h
+    src/ui/explorepanel.h
+    src/ui/transferpanel.h
+    src/ui/viewpanel.h
+    src/ui/configpanel.h
     src/services/c64urestclient.h
     src/services/c64uftpclient.h
     src/services/deviceconnection.h

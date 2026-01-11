@@ -1,41 +1,25 @@
 #include "mainwindow.h"
 #include "ui/preferencesdialog.h"
-#include "ui/filedetailspanel.h"
-#include "ui/configitemspanel.h"
 #include "ui/connectionstatuswidget.h"
-#include "ui/drivestatuswidget.h"
-#include "ui/pathnavigationwidget.h"
-#include "ui/videodisplaywidget.h"
+#include "ui/explorepanel.h"
+#include "ui/transferpanel.h"
+#include "ui/viewpanel.h"
+#include "ui/configpanel.h"
 #include "services/deviceconnection.h"
 #include "services/configfileloader.h"
-#include "services/streamcontrolclient.h"
-#include "services/videostreamreceiver.h"
-#include "services/audiostreamreceiver.h"
-#include "services/audioplaybackservice.h"
-#include "services/keyboardinputservice.h"
 #include "models/remotefilemodel.h"
-#include "models/localfileproxymodel.h"
 #include "models/transferqueue.h"
-#include "models/configurationmodel.h"
 
 #include <QMenuBar>
 #include <QStatusBar>
 #include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QHeaderView>
-#include <QStandardPaths>
 #include <QMessageBox>
 #include <QSettings>
 #include <QCloseEvent>
-#include <QKeyEvent>
-#include <QInputDialog>
-#include <QFile>
-#include <QFileInfo>
 #include <QTimer>
+#include <QStandardPaths>
 #include <QDir>
-#include <QUrl>
-#include <QNetworkInterface>
-#include "utils/logging.h"
+#include <QFileInfo>
 
 #include "services/credentialstore.h"
 
@@ -58,10 +42,7 @@ MainWindow::MainWindow(QWidget *parent)
     setupMenuBar();
     setupSystemToolBar();
     setupStatusBar();
-    setupExploreRunMode();
-    setupTransferMode();
-    setupViewMode();
-    setupConfigMode();
+    setupPanels();
     setupConnections();
 
     switchToMode(Mode::ExploreRun);
@@ -188,20 +169,17 @@ void MainWindow::setupSystemToolBar()
     connectAction_ = systemToolBar_->addAction(tr("Connect"));
     connectAction_->setToolTip(tr("Connect to C64U device"));
     connect(connectAction_, &QAction::triggered, this, [this]() {
-        // Check actual state, not just isConnected()
-        // In Connecting/Reconnecting states, clicking should cancel
         DeviceConnection::ConnectionState state = deviceConnection_->state();
         if (state == DeviceConnection::ConnectionState::Disconnected) {
             onConnect();
         } else {
-            // Connected, Connecting, or Reconnecting - disconnect/cancel
             onDisconnect();
         }
     });
 
     systemToolBar_->addSeparator();
 
-    // Machine actions (not file-specific)
+    // Machine actions
     resetAction_ = systemToolBar_->addAction(tr("Reset"));
     resetAction_->setToolTip(tr("Reset the C64"));
     connect(resetAction_, &QAction::triggered, this, &MainWindow::onReset);
@@ -244,520 +222,32 @@ void MainWindow::setupSystemToolBar()
 
 void MainWindow::setupStatusBar()
 {
-    // Status bar just shows messages now
     statusBar()->showMessage(tr("Ready"));
 }
 
-void MainWindow::setupExploreRunMode()
+void MainWindow::setupPanels()
 {
-    exploreRunWidget_ = new QWidget();
-    auto *layout = new QVBoxLayout(exploreRunWidget_);
-    layout->setContentsMargins(0, 0, 0, 0);
-
-    // Create horizontal splitter for tree view and details panel
-    exploreRunSplitter_ = new QSplitter(Qt::Horizontal);
-
-    // Left side: remote file browser with toolbar
-    auto *remoteWidget = new QWidget();
-    auto *remoteLayout = new QVBoxLayout(remoteWidget);
-    remoteLayout->setContentsMargins(4, 4, 4, 4);
-
-    auto *remoteLabel = new QLabel(tr("C64U Files"));
-    remoteLabel->setStyleSheet("font-weight: bold;");
-    remoteLayout->addWidget(remoteLabel);
-
-    // Path navigation widget (spans full width)
-    exploreRemoteNavWidget_ = new PathNavigationWidget(tr("Location:"));
-    connect(exploreRemoteNavWidget_, &PathNavigationWidget::upClicked, this, &MainWindow::onExploreRemoteParentFolder);
-    remoteLayout->addWidget(exploreRemoteNavWidget_);
-
-    // Remote panel toolbar
-    exploreRemotePanelToolBar_ = new QToolBar();
-    exploreRemotePanelToolBar_->setIconSize(QSize(16, 16));
-    exploreRemotePanelToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-
-    // File actions
-    playAction_ = exploreRemotePanelToolBar_->addAction(tr("Play"));
-    playAction_->setToolTip(tr("Play selected SID/MOD file"));
-    connect(playAction_, &QAction::triggered, this, &MainWindow::onPlay);
-
-    runAction_ = exploreRemotePanelToolBar_->addAction(tr("Run"));
-    runAction_->setToolTip(tr("Run selected PRG/CRT file"));
-    connect(runAction_, &QAction::triggered, this, &MainWindow::onRun);
-
-    mountAction_ = exploreRemotePanelToolBar_->addAction(tr("Mount"));
-    mountAction_->setToolTip(tr("Mount selected disk image"));
-    connect(mountAction_, &QAction::triggered, this, &MainWindow::onMount);
-
-    exploreRemotePanelToolBar_->addSeparator();
-
-    auto *exploreRefreshAction = exploreRemotePanelToolBar_->addAction(tr("Refresh"));
-    exploreRefreshAction->setToolTip(tr("Refresh file listing"));
-    connect(exploreRefreshAction, &QAction::triggered, this, &MainWindow::onRefresh);
-
-    remoteLayout->addWidget(exploreRemotePanelToolBar_);
-
-    // File tree
-    remoteTreeView_ = new QTreeView();
-    remoteTreeView_->setModel(remoteFileModel_);
-    remoteTreeView_->setHeaderHidden(false);
-    remoteTreeView_->setAlternatingRowColors(true);
-    remoteTreeView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    remoteTreeView_->setContextMenuPolicy(Qt::CustomContextMenu);
-    remoteTreeView_->setSortingEnabled(true);
-    remoteTreeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
-
-    connect(remoteTreeView_->selectionModel(), &QItemSelectionModel::selectionChanged,
-            this, &MainWindow::onRemoteSelectionChanged);
-    connect(remoteTreeView_, &QTreeView::doubleClicked,
-            this, &MainWindow::onRemoteDoubleClicked);
-    connect(remoteTreeView_, &QTreeView::customContextMenuRequested,
-            this, &MainWindow::onRemoteContextMenu);
-
-    remoteLayout->addWidget(remoteTreeView_);
-
-    // Drive status widgets at the bottom
-    drive8Status_ = new DriveStatusWidget(tr("Drive 8:"));
-    connect(drive8Status_, &DriveStatusWidget::ejectClicked, this, &MainWindow::onEjectDriveA);
-    remoteLayout->addWidget(drive8Status_);
-
-    drive9Status_ = new DriveStatusWidget(tr("Drive 9:"));
-    connect(drive9Status_, &DriveStatusWidget::ejectClicked, this, &MainWindow::onEjectDriveB);
-    remoteLayout->addWidget(drive9Status_);
-
-    exploreRunSplitter_->addWidget(remoteWidget);
-
-    // Right side: file details panel
-    fileDetailsPanel_ = new FileDetailsPanel();
-    connect(fileDetailsPanel_, &FileDetailsPanel::contentRequested,
-            this, &MainWindow::onFileContentRequested);
-    exploreRunSplitter_->addWidget(fileDetailsPanel_);
-
-    // Set initial splitter sizes (40% tree, 60% details)
-    exploreRunSplitter_->setSizes({400, 600});
-
-    layout->addWidget(exploreRunSplitter_);
-
-    modeTabWidget_->addTab(exploreRunWidget_, tr("Explore/Run"));
-
-    // Setup context menu
-    remoteContextMenu_ = new QMenu(this);
-    contextPlayAction_ = remoteContextMenu_->addAction(tr("Play"), this, &MainWindow::onPlay);
-    contextRunAction_ = remoteContextMenu_->addAction(tr("Run"), this, &MainWindow::onRun);
-    contextLoadConfigAction_ = remoteContextMenu_->addAction(tr("Load Config"), this, &MainWindow::onLoadConfig);
-    remoteContextMenu_->addSeparator();
-    contextMountAAction_ = remoteContextMenu_->addAction(tr("Mount to Drive A"), this, &MainWindow::onMountToDriveA);
-    contextMountBAction_ = remoteContextMenu_->addAction(tr("Mount to Drive B"), this, &MainWindow::onMountToDriveB);
-    remoteContextMenu_->addSeparator();
-    remoteContextMenu_->addAction(tr("Download"), this, &MainWindow::onDownload);
-    remoteContextMenu_->addSeparator();
-    remoteContextMenu_->addAction(tr("Refresh"), this, &MainWindow::onRefresh);
-}
-
-void MainWindow::setupTransferMode()
-{
-    transferWidget_ = new QWidget();
-    auto *layout = new QVBoxLayout(transferWidget_);
-    layout->setContentsMargins(0, 0, 0, 0);
-
-    transferSplitter_ = new QSplitter(Qt::Horizontal);
-
-    // Remote file browser (shares model with explore mode) - LEFT SIDE
-    auto *remoteWidget = new QWidget();
-    auto *remoteLayout = new QVBoxLayout(remoteWidget);
-    remoteLayout->setContentsMargins(4, 4, 4, 4);
-
-    auto *remoteLabel = new QLabel(tr("C64U Files"));
-    remoteLabel->setStyleSheet("font-weight: bold;");
-    remoteLayout->addWidget(remoteLabel);
-
-    // Path navigation widget (spans full width)
-    remoteNavWidget_ = new PathNavigationWidget(tr("Upload to:"));
-    connect(remoteNavWidget_, &PathNavigationWidget::upClicked, this, &MainWindow::onRemoteParentFolder);
-    remoteLayout->addWidget(remoteNavWidget_);
-
-    // Remote panel toolbar
-    remotePanelToolBar_ = new QToolBar();
-    remotePanelToolBar_->setIconSize(QSize(16, 16));
-    remotePanelToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-
-    downloadAction_ = remotePanelToolBar_->addAction(tr("Download"));
-    downloadAction_->setToolTip(tr("Download selected files from C64U"));
-    connect(downloadAction_, &QAction::triggered, this, &MainWindow::onDownload);
-
-    newFolderAction_ = remotePanelToolBar_->addAction(tr("New Folder"));
-    newFolderAction_->setToolTip(tr("Create new folder on C64U"));
-    connect(newFolderAction_, &QAction::triggered, this, &MainWindow::onNewFolder);
-
-    remoteRenameAction_ = remotePanelToolBar_->addAction(tr("Rename"));
-    remoteRenameAction_->setToolTip(tr("Rename selected file or folder on C64U"));
-    connect(remoteRenameAction_, &QAction::triggered, this, &MainWindow::onRemoteRename);
-
-    remoteDeleteAction_ = remotePanelToolBar_->addAction(tr("Delete"));
-    remoteDeleteAction_->setToolTip(tr("Delete selected file or folder on C64U"));
-    connect(remoteDeleteAction_, &QAction::triggered, this, &MainWindow::onDelete);
-
-    remotePanelToolBar_->addSeparator();
-
-    auto *transferRefreshAction = remotePanelToolBar_->addAction(tr("Refresh"));
-    transferRefreshAction->setToolTip(tr("Refresh file listing"));
-    connect(transferRefreshAction, &QAction::triggered, this, &MainWindow::onRefresh);
-
-    remoteLayout->addWidget(remotePanelToolBar_);
-
-    remoteTransferTreeView_ = new QTreeView();
-    remoteTransferTreeView_->setModel(remoteFileModel_);
-    remoteTransferTreeView_->setAlternatingRowColors(true);
-    remoteTransferTreeView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    remoteTransferTreeView_->setContextMenuPolicy(Qt::CustomContextMenu);
-    remoteTransferTreeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
-
-    connect(remoteTransferTreeView_, &QTreeView::customContextMenuRequested,
-            this, [this](const QPoint &pos) {
-        QModelIndex index = remoteTransferTreeView_->indexAt(pos);
-        if (index.isValid()) {
-            // Only enable "Set as Destination" for directories
-            bool isDir = remoteFileModel_->isDirectory(index);
-            transferSetDestAction_->setEnabled(isDir);
-            transferContextMenu_->exec(remoteTransferTreeView_->viewport()->mapToGlobal(pos));
-        }
-    });
-    connect(remoteTransferTreeView_, &QTreeView::doubleClicked,
-            this, &MainWindow::onRemoteTransferDoubleClicked);
-    connect(remoteTransferTreeView_->selectionModel(), &QItemSelectionModel::selectionChanged,
-            this, &MainWindow::updateActions);
-
-    remoteLayout->addWidget(remoteTransferTreeView_);
-    transferSplitter_->addWidget(remoteWidget);
-
-    // Local file browser - RIGHT SIDE
-    auto *localWidget = new QWidget();
-    auto *localLayout = new QVBoxLayout(localWidget);
-    localLayout->setContentsMargins(4, 4, 4, 4);
-
-    auto *localLabel = new QLabel(tr("Local Files"));
-    localLabel->setStyleSheet("font-weight: bold;");
-    localLayout->addWidget(localLabel);
-
-    // Path navigation widget (spans full width)
-    localNavWidget_ = new PathNavigationWidget(tr("Download to:"));
-    localNavWidget_->setStyleGreen();
-    connect(localNavWidget_, &PathNavigationWidget::upClicked, this, &MainWindow::onLocalParentFolder);
-    localLayout->addWidget(localNavWidget_);
-
-    // Local panel toolbar
-    localPanelToolBar_ = new QToolBar();
-    localPanelToolBar_->setIconSize(QSize(16, 16));
-    localPanelToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-
-    uploadAction_ = localPanelToolBar_->addAction(tr("Upload"));
-    uploadAction_->setToolTip(tr("Upload selected files to C64U"));
-    connect(uploadAction_, &QAction::triggered, this, &MainWindow::onUpload);
-
-    localNewFolderAction_ = localPanelToolBar_->addAction(tr("New Folder"));
-    localNewFolderAction_->setToolTip(tr("Create new folder in local directory"));
-    connect(localNewFolderAction_, &QAction::triggered, this, &MainWindow::onNewLocalFolder);
-
-    localRenameAction_ = localPanelToolBar_->addAction(tr("Rename"));
-    localRenameAction_->setToolTip(tr("Rename selected local file or folder"));
-    connect(localRenameAction_, &QAction::triggered, this, &MainWindow::onLocalRename);
-
-    localDeleteAction_ = localPanelToolBar_->addAction(tr("Delete"));
-    localDeleteAction_->setToolTip(tr("Move selected local file to trash"));
-    connect(localDeleteAction_, &QAction::triggered, this, &MainWindow::onLocalDelete);
-
-    localLayout->addWidget(localPanelToolBar_);
-
-    localTreeView_ = new QTreeView();
-    localTreeView_->setAlternatingRowColors(true);
-    localTreeView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    localTreeView_->setContextMenuPolicy(Qt::CustomContextMenu);
-
-    localFileModel_ = new QFileSystemModel(this);
-    QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-    localFileModel_->setRootPath(homePath);
-
-    // Use proxy model to show file sizes in bytes instead of KB/MB
-    localFileProxyModel_ = new LocalFileProxyModel(this);
-    localFileProxyModel_->setSourceModel(localFileModel_);
-    localTreeView_->setModel(localFileProxyModel_);
-    localTreeView_->setRootIndex(localFileProxyModel_->mapFromSource(localFileModel_->index(homePath)));
-    localTreeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
-
-    // Initialize current directories
-    currentLocalDir_ = homePath;
-    currentRemoteTransferDir_ = "/";
-
-    connect(localTreeView_, &QTreeView::doubleClicked,
-            this, &MainWindow::onLocalDoubleClicked);
-    connect(localTreeView_, &QTreeView::customContextMenuRequested,
-            this, &MainWindow::onLocalContextMenu);
-    connect(localTreeView_->selectionModel(), &QItemSelectionModel::selectionChanged,
-            this, &MainWindow::updateActions);
-
-    localLayout->addWidget(localTreeView_);
-    transferSplitter_->addWidget(localWidget);
-
-    transferSplitter_->setSizes({400, 400});
-    layout->addWidget(transferSplitter_, 1);
-
-    // Transfer progress widget (replaces TransferQueueWidget)
-    transferProgressWidget_ = new QWidget();
-    transferProgressWidget_->setMaximumHeight(60);
-    auto *progressLayout = new QHBoxLayout(transferProgressWidget_);
-    progressLayout->setContentsMargins(8, 4, 8, 4);
-
-    transferStatusLabel_ = new QLabel(tr("Ready"));
-    transferStatusLabel_->setMinimumWidth(200);
-    progressLayout->addWidget(transferStatusLabel_);
-
-    transferProgressBar_ = new QProgressBar();
-    transferProgressBar_->setMinimum(0);
-    transferProgressBar_->setMaximum(100);
-    transferProgressBar_->setValue(0);
-    progressLayout->addWidget(transferProgressBar_, 1);
-
-    // Initially hide the progress widget
-    transferProgressWidget_->setVisible(false);
-    layout->addWidget(transferProgressWidget_);
-
-    // Setup 2-second delay timer for progress display
-    transferProgressDelayTimer_ = new QTimer(this);
-    transferProgressDelayTimer_->setSingleShot(true);
-    connect(transferProgressDelayTimer_, &QTimer::timeout,
-            this, &MainWindow::onShowTransferProgress);
-
-    modeTabWidget_->addTab(transferWidget_, tr("Transfer"));
-
-    // Setup transfer context menu (for remote files)
-    transferContextMenu_ = new QMenu(this);
-    transferSetDestAction_ = transferContextMenu_->addAction(tr("Set as Upload Destination"), this, [this]() {
-        QModelIndex index = remoteTransferTreeView_->currentIndex();
-        if (index.isValid() && remoteFileModel_->isDirectory(index)) {
-            QString path = remoteFileModel_->filePath(index);
-            setCurrentRemoteTransferDir(path);
-        }
-    });
-    transferContextMenu_->addSeparator();
-    transferContextMenu_->addAction(tr("Download to Local Directory"), this, &MainWindow::onDownload);
-    transferContextMenu_->addAction(tr("Delete"), this, &MainWindow::onDelete);
-    transferContextMenu_->addSeparator();
-    transferContextMenu_->addAction(tr("New Folder"), this, &MainWindow::onNewFolder);
-    transferContextMenu_->addAction(tr("Refresh"), this, &MainWindow::onRefresh);
-
-    // Setup local context menu
-    localContextMenu_ = new QMenu(this);
-    localSetDestAction_ = localContextMenu_->addAction(tr("Set as Download Destination"), this, [this]() {
-        QModelIndex proxyIndex = localTreeView_->currentIndex();
-        if (proxyIndex.isValid()) {
-            QModelIndex sourceIndex = localFileProxyModel_->mapToSource(proxyIndex);
-            if (localFileModel_->isDir(sourceIndex)) {
-                QString path = localFileModel_->filePath(sourceIndex);
-                setCurrentLocalDir(path);
-            }
-        }
-    });
-    localContextMenu_->addSeparator();
-    localContextMenu_->addAction(tr("Upload to C64U"), this, &MainWindow::onUpload);
-    localContextMenu_->addSeparator();
-    localContextMenu_->addAction(tr("New Folder"), this, &MainWindow::onNewLocalFolder);
-    localContextMenu_->addAction(tr("Rename"), this, &MainWindow::onLocalRename);
-    localContextMenu_->addAction(tr("Delete"), this, &MainWindow::onLocalDelete);
-}
-
-void MainWindow::setupViewMode()
-{
-    viewWidget_ = new QWidget();
-    auto *layout = new QVBoxLayout(viewWidget_);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(0);
-
-    // Create toolbar for View panel
-    viewPanelToolBar_ = new QToolBar();
-    viewPanelToolBar_->setMovable(false);
-    viewPanelToolBar_->setIconSize(QSize(16, 16));
-
-    startStreamAction_ = viewPanelToolBar_->addAction(tr("Start Stream"));
-    startStreamAction_->setToolTip(tr("Start video and audio streaming"));
-    connect(startStreamAction_, &QAction::triggered, this, &MainWindow::onStartStreaming);
-
-    stopStreamAction_ = viewPanelToolBar_->addAction(tr("Stop Stream"));
-    stopStreamAction_->setToolTip(tr("Stop streaming"));
-    stopStreamAction_->setEnabled(false);
-    connect(stopStreamAction_, &QAction::triggered, this, &MainWindow::onStopStreaming);
-
-    viewPanelToolBar_->addSeparator();
-
-    streamStatusLabel_ = new QLabel(tr("Not streaming"));
-    viewPanelToolBar_->addWidget(streamStatusLabel_);
-
-    // Add spacer to push scaling mode to the right
-    auto *spacer = new QWidget();
-    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    viewPanelToolBar_->addWidget(spacer);
-
-    // Add scaling mode radio buttons
-    auto *scalingLabel = new QLabel(tr("Scale:"));
-    viewPanelToolBar_->addWidget(scalingLabel);
-
-    scalingModeGroup_ = new QButtonGroup(this);
-
-    sharpRadio_ = new QRadioButton(tr("Sharp"));
-    sharpRadio_->setToolTip(tr("Nearest-neighbor scaling - crisp pixels"));
-    smoothRadio_ = new QRadioButton(tr("Smooth"));
-    smoothRadio_->setToolTip(tr("Bilinear interpolation - smooth but fuzzy"));
-    integerRadio_ = new QRadioButton(tr("Integer"));
-    integerRadio_->setToolTip(tr("Integer scaling with letterboxing - pixel-perfect"));
-
-    scalingModeGroup_->addButton(sharpRadio_, static_cast<int>(VideoDisplayWidget::ScalingMode::Sharp));
-    scalingModeGroup_->addButton(smoothRadio_, static_cast<int>(VideoDisplayWidget::ScalingMode::Smooth));
-    scalingModeGroup_->addButton(integerRadio_, static_cast<int>(VideoDisplayWidget::ScalingMode::Integer));
-
-    viewPanelToolBar_->addWidget(sharpRadio_);
-    viewPanelToolBar_->addWidget(smoothRadio_);
-    viewPanelToolBar_->addWidget(integerRadio_);
-
-    // Default to Integer (will be overridden by loadSettings)
-    integerRadio_->setChecked(true);
-
-    connect(scalingModeGroup_, QOverload<int>::of(&QButtonGroup::idClicked),
-            this, &MainWindow::onScalingModeChanged);
-
-    layout->addWidget(viewPanelToolBar_);
-
-    // Create video display widget
-    videoDisplayWidget_ = new VideoDisplayWidget();
-    videoDisplayWidget_->setMinimumSize(384, 272);
-    layout->addWidget(videoDisplayWidget_, 1);
-
-    modeTabWidget_->addTab(viewWidget_, tr("View"));
-
-    // Create streaming services
-    streamControl_ = new StreamControlClient(this);
-    videoReceiver_ = new VideoStreamReceiver(this);
-    audioReceiver_ = new AudioStreamReceiver(this);
-    audioPlayback_ = new AudioPlaybackService(this);
-
-    // Connect video receiver to display
-    connect(videoReceiver_, &VideoStreamReceiver::frameReady,
-            videoDisplayWidget_, &VideoDisplayWidget::displayFrame);
-    connect(videoReceiver_, &VideoStreamReceiver::formatDetected,
-            this, [this](VideoStreamReceiver::VideoFormat format) {
-        onVideoFormatDetected(static_cast<int>(format));
-    });
-
-    // Connect audio receiver to playback
-    connect(audioReceiver_, &AudioStreamReceiver::samplesReady,
-            audioPlayback_, &AudioPlaybackService::writeSamples);
-
-    // Connect stream control signals
-    connect(streamControl_, &StreamControlClient::commandSucceeded,
-            this, &MainWindow::onStreamCommandSucceeded);
-    connect(streamControl_, &StreamControlClient::commandFailed,
-            this, &MainWindow::onStreamCommandFailed);
-
-    // Create keyboard input service
-    keyboardInput_ = new KeyboardInputService(deviceConnection_->restClient(), this);
-
-    // Connect video display keyboard events to keyboard service
-    connect(videoDisplayWidget_, &VideoDisplayWidget::keyPressed,
-            this, [this](QKeyEvent *event) {
-        keyboardInput_->handleKeyPress(event);
-    });
-}
-
-void MainWindow::setupConfigMode()
-{
-    // Create the configuration model
-    configModel_ = new ConfigurationModel(this);
-
-    configWidget_ = new QWidget();
-    auto *layout = new QVBoxLayout(configWidget_);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(0);
-
-    // Create toolbar for Config mode
-    configToolBar_ = new QToolBar();
-    configToolBar_->setMovable(false);
-    configToolBar_->setIconSize(QSize(16, 16));
-
-    configSaveToFlashAction_ = configToolBar_->addAction(tr("Save to Flash"));
-    configSaveToFlashAction_->setToolTip(tr("Persist current settings to non-volatile storage"));
-    connect(configSaveToFlashAction_, &QAction::triggered,
-            this, &MainWindow::onConfigSaveToFlash);
-
-    configLoadFromFlashAction_ = configToolBar_->addAction(tr("Load from Flash"));
-    configLoadFromFlashAction_->setToolTip(tr("Revert to last saved settings"));
-    connect(configLoadFromFlashAction_, &QAction::triggered,
-            this, &MainWindow::onConfigLoadFromFlash);
-
-    configResetToDefaultsAction_ = configToolBar_->addAction(tr("Reset to Defaults"));
-    configResetToDefaultsAction_->setToolTip(tr("Reset all settings to factory defaults"));
-    connect(configResetToDefaultsAction_, &QAction::triggered,
-            this, &MainWindow::onConfigResetToDefaults);
-
-    configToolBar_->addSeparator();
-
-    configRefreshAction_ = configToolBar_->addAction(tr("Refresh"));
-    configRefreshAction_->setToolTip(tr("Reload all configuration from device"));
-    connect(configRefreshAction_, &QAction::triggered,
-            this, &MainWindow::onConfigRefresh);
-
-    configToolBar_->addSeparator();
-
-    // Unsaved changes indicator
-    configUnsavedIndicator_ = new QLabel();
-    configUnsavedIndicator_->setStyleSheet("QLabel { color: orange; font-weight: bold; }");
-    configUnsavedIndicator_->setVisible(false);
-    configToolBar_->addWidget(configUnsavedIndicator_);
-
-    layout->addWidget(configToolBar_);
-
-    // Create splitter with category list on left, items panel on right
-    configSplitter_ = new QSplitter(Qt::Horizontal);
-
-    // Category list
-    configCategoryList_ = new QListWidget();
-    configCategoryList_->setMinimumWidth(150);
-    configCategoryList_->setMaximumWidth(250);
-    configCategoryList_->setAlternatingRowColors(true);
-    configCategoryList_->setSpacing(2);
-    // Match the styling of tree views with slightly more padding
-    configCategoryList_->setStyleSheet(
-        "QListWidget::item { padding: 4px 8px; }"
-    );
-    connect(configCategoryList_, &QListWidget::currentItemChanged,
-            this, &MainWindow::onConfigCategorySelected);
-    configSplitter_->addWidget(configCategoryList_);
-
-    // Config items panel
-    configItemsPanel_ = new ConfigItemsPanel(configModel_);
-    connect(configItemsPanel_, &ConfigItemsPanel::itemChanged,
-            this, &MainWindow::onConfigItemEdited);
-    configSplitter_->addWidget(configItemsPanel_);
-
-    // Set splitter sizes (category list gets ~25%, items panel gets ~75%)
-    configSplitter_->setSizes({200, 600});
-
-    layout->addWidget(configSplitter_, 1);
-
-    modeTabWidget_->addTab(configWidget_, tr("Config"));
-
-    // Connect model signals
-    connect(configModel_, &ConfigurationModel::dirtyStateChanged,
-            this, &MainWindow::onConfigDirtyStateChanged);
-    connect(configModel_, &ConfigurationModel::categoriesChanged,
-            this, [this]() {
-        // Update category list when categories change
-        configCategoryList_->clear();
-        for (const QString &category : configModel_->categories()) {
-            configCategoryList_->addItem(category);
-        }
-        // Select first category if available
-        if (configCategoryList_->count() > 0) {
-            configCategoryList_->setCurrentRow(0);
-        }
-    });
+    // Create mode panels with their dependencies
+    explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, configFileLoader_);
+    transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferQueue_);
+    viewPanel_ = new ViewPanel(deviceConnection_);
+    configPanel_ = new ConfigPanel(deviceConnection_);
+
+    // Add panels to tab widget
+    modeTabWidget_->addTab(explorePanel_, tr("Explore/Run"));
+    modeTabWidget_->addTab(transferPanel_, tr("Transfer"));
+    modeTabWidget_->addTab(viewPanel_, tr("View"));
+    modeTabWidget_->addTab(configPanel_, tr("Config"));
+
+    // Connect panel status messages to status bar
+    connect(explorePanel_, &ExplorePanel::statusMessage,
+            statusBar(), &QStatusBar::showMessage);
+    connect(transferPanel_, &TransferPanel::statusMessage,
+            statusBar(), &QStatusBar::showMessage);
+    connect(viewPanel_, &ViewPanel::statusMessage,
+            statusBar(), &QStatusBar::showMessage);
+    connect(configPanel_, &ConfigPanel::statusMessage,
+            statusBar(), &QStatusBar::showMessage);
 }
 
 void MainWindow::setupConnections()
@@ -782,20 +272,6 @@ void MainWindow::setupConnections()
     connect(deviceConnection_->restClient(), &C64URestClient::operationFailed,
             this, &MainWindow::onOperationFailed);
 
-    // REST client config signals
-    connect(deviceConnection_->restClient(), &C64URestClient::configCategoriesReceived,
-            this, &MainWindow::onConfigCategoriesReceived);
-    connect(deviceConnection_->restClient(), &C64URestClient::configCategoryItemsReceived,
-            this, &MainWindow::onConfigCategoryItemsReceived);
-    connect(deviceConnection_->restClient(), &C64URestClient::configSavedToFlash,
-            this, &MainWindow::onConfigSavedToFlash);
-    connect(deviceConnection_->restClient(), &C64URestClient::configLoadedFromFlash,
-            this, &MainWindow::onConfigLoadedFromFlash);
-    connect(deviceConnection_->restClient(), &C64URestClient::configResetToDefaults,
-            this, &MainWindow::onConfigResetComplete);
-    connect(deviceConnection_->restClient(), &C64URestClient::configItemSet,
-            this, &MainWindow::onConfigItemSetResult);
-
     // Model signals
     connect(remoteFileModel_, &RemoteFileModel::loadingStarted,
             this, [this](const QString &path) {
@@ -810,56 +286,17 @@ void MainWindow::setupConnections()
         statusBar()->showMessage(tr("Error: %1").arg(message), 5000);
     });
 
-    // FTP transfer signals (for non-queued operations)
-    C64UFtpClient *ftp = deviceConnection_->ftpClient();
-    connect(ftp, &C64UFtpClient::directoryCreated,
-            this, &MainWindow::onDirectoryCreated);
-    connect(ftp, &C64UFtpClient::fileRemoved,
-            this, &MainWindow::onFileRemoved);
-    connect(ftp, &C64UFtpClient::fileRenamed,
-            this, &MainWindow::onFileRenamed);
-    connect(ftp, &C64UFtpClient::downloadToMemoryFinished,
-            this, &MainWindow::onFileContentReceived);
-
     // Config file loader signals
     connect(configFileLoader_, &ConfigFileLoader::loadStarted,
             this, [this](const QString &path) {
         statusBar()->showMessage(tr("Loading configuration: %1...").arg(QFileInfo(path).fileName()));
     });
-    connect(configFileLoader_, &ConfigFileLoader::loadFinished,
-            this, &MainWindow::onConfigLoadFinished);
-    connect(configFileLoader_, &ConfigFileLoader::loadFailed,
-            this, &MainWindow::onConfigLoadFailed);
-
-    // Transfer queue signals
-    connect(transferQueue_, &TransferQueue::transferStarted,
-            this, &MainWindow::onTransferStarted);
-    connect(transferQueue_, &TransferQueue::transferCompleted,
-            this, [this](const QString &fileName) {
-        statusBar()->showMessage(tr("Transfer complete: %1").arg(fileName), 3000);
-        transferCompletedCount_++;
-        onTransferQueueChanged();
-    });
-    connect(transferQueue_, &TransferQueue::transferFailed,
-            this, [this](const QString &fileName, const QString &error) {
-        statusBar()->showMessage(tr("Transfer failed: %1 - %2").arg(fileName, error), 5000);
-        transferCompletedCount_++;
-        onTransferQueueChanged();
-    });
-    connect(transferQueue_, &TransferQueue::allTransfersCompleted,
-            this, &MainWindow::onAllTransfersCompleted);
-    connect(transferQueue_, &TransferQueue::queueChanged,
-            this, &MainWindow::onTransferQueueChanged);
 }
 
 void MainWindow::switchToMode(Mode mode)
 {
     currentMode_ = mode;
 
-    // Mode-specific actions are on panel toolbars which are part of the mode widgets,
-    // so they automatically become visible/invisible when switching modes via stacked widget
-
-    // Switch stacked widget based on mode
     int pageIndex = 0;
     switch (mode) {
     case Mode::ExploreRun:
@@ -873,15 +310,11 @@ void MainWindow::switchToMode(Mode mode)
         break;
     case Mode::Config:
         pageIndex = 3;
+        // Auto-load config when switching to Config mode if connected and empty
+        configPanel_->refreshIfEmpty();
         break;
     }
     modeTabWidget_->setCurrentIndex(pageIndex);
-
-    // Auto-load config when switching to Config mode if connected and empty
-    if (mode == Mode::Config && deviceConnection_->isConnected() &&
-        configCategoryList_->count() == 0) {
-        onConfigRefresh();
-    }
 
     updateWindowTitle();
     updateActions();
@@ -928,57 +361,14 @@ void MainWindow::updateStatusBar()
         connectionStatus_->setConnected(true);
         connectionStatus_->setHostname(info.hostname.isEmpty() ? deviceConnection_->host() : info.hostname);
         connectionStatus_->setFirmwareVersion(info.firmwareVersion);
-
-        // Update drive info
-        QList<DriveInfo> drives = deviceConnection_->driveInfo();
-        for (const DriveInfo &drive : drives) {
-            bool hasDisk = !drive.imageFile.isEmpty();
-
-            if (drive.name.toLower() == "a") {
-                drive8Status_->setImageName(drive.imageFile);
-                drive8Status_->setMounted(hasDisk);
-            } else if (drive.name.toLower() == "b") {
-                drive9Status_->setImageName(drive.imageFile);
-                drive9Status_->setMounted(hasDisk);
-            }
-        }
     } else {
         connectionStatus_->setConnected(false);
-        drive8Status_->setImageName(QString());
-        drive8Status_->setMounted(false);
-        drive9Status_->setImageName(QString());
-        drive9Status_->setMounted(false);
     }
 }
 
 void MainWindow::updateActions()
 {
-    bool connected = deviceConnection_->isConnected();
-
-    // Check remote selection
-    QString selectedRemote = selectedRemotePath();
-    bool hasRemoteSelection = !selectedRemote.isEmpty();
-
-    // Check local selection (for Transfer mode)
-    QString selectedLocal = selectedLocalPath();
-    bool hasLocalSelection = !selectedLocal.isEmpty();
-
-    // Determine file type for enabling actions (use mode-aware view)
-    QTreeView *remoteView = (currentMode_ == Mode::ExploreRun) ? remoteTreeView_ : remoteTransferTreeView_;
-    RemoteFileModel::FileType fileType = RemoteFileModel::FileType::Unknown;
-    if (hasRemoteSelection) {
-        QModelIndex index = remoteView->currentIndex();
-        fileType = remoteFileModel_->fileType(index);
-    }
-
-    bool canPlay = hasRemoteSelection && (fileType == RemoteFileModel::FileType::SidMusic ||
-                                           fileType == RemoteFileModel::FileType::ModMusic);
-    bool canRun = hasRemoteSelection && (fileType == RemoteFileModel::FileType::Program ||
-                                          fileType == RemoteFileModel::FileType::Cartridge ||
-                                          fileType == RemoteFileModel::FileType::DiskImage);
-    bool canMount = hasRemoteSelection && fileType == RemoteFileModel::FileType::DiskImage;
-
-    // Update action states based on actual connection state
+    // Update connect action text based on state
     DeviceConnection::ConnectionState state = deviceConnection_->state();
     switch (state) {
     case DeviceConnection::ConnectionState::Disconnected:
@@ -994,10 +384,8 @@ void MainWindow::updateActions()
         connectAction_->setText(tr("Cancel"));
         break;
     }
-    playAction_->setEnabled(connected && canPlay);
-    runAction_->setEnabled(connected && canRun);
-    mountAction_->setEnabled(connected && canMount);
-    // System control actions only require REST API, not FTP
+
+    // System control actions only require REST API
     bool restConnected = deviceConnection_->isRestConnected();
     resetAction_->setEnabled(restConnected);
     rebootAction_->setEnabled(restConnected);
@@ -1005,23 +393,7 @@ void MainWindow::updateActions()
     resumeAction_->setEnabled(restConnected);
     menuAction_->setEnabled(restConnected);
     powerOffAction_->setEnabled(restConnected);
-    uploadAction_->setEnabled(connected && hasLocalSelection);
-    downloadAction_->setEnabled(connected && hasRemoteSelection);
-    newFolderAction_->setEnabled(connected);
-    remoteDeleteAction_->setEnabled(connected && hasRemoteSelection);
-    remoteRenameAction_->setEnabled(connected && hasRemoteSelection);
-    localNewFolderAction_->setEnabled(true);  // Always enabled in Transfer mode
-    localDeleteAction_->setEnabled(hasLocalSelection);
-    localRenameAction_->setEnabled(hasLocalSelection);
-    refreshAction_->setEnabled(connected);
-
-    // View mode streaming actions
-    if (startStreamAction_) {
-        startStreamAction_->setEnabled(connected && !isStreaming_);
-    }
-    if (stopStreamAction_) {
-        stopStreamAction_->setEnabled(isStreaming_);
-    }
+    refreshAction_->setEnabled(deviceConnection_->isConnected());
 }
 
 void MainWindow::loadSettings()
@@ -1031,15 +403,13 @@ void MainWindow::loadSettings()
     bool autoConnect = settings.value("device/autoConnect", false).toBool();
 
     if (!host.isEmpty()) {
-        // Load password from secure storage (Keychain on macOS)
+        // Load password from secure storage
         QString password = CredentialStore::retrievePassword("r64u", host);
 
         deviceConnection_->setHost(host);
         deviceConnection_->setPassword(password);
 
         if (autoConnect) {
-            // Defer auto-connect to after event loop starts
-            // Network stack may not be ready during app initialization
             QTimer::singleShot(500, this, &MainWindow::onConnect);
         }
     }
@@ -1048,51 +418,20 @@ void MainWindow::loadSettings()
     restoreGeometry(settings.value("window/geometry").toByteArray());
     restoreState(settings.value("window/state").toByteArray());
 
-    // Restore directories
+    // Restore panel directories
     QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
     QString savedLocalDir = settings.value("directories/local", homePath).toString();
     QString savedRemoteDir = settings.value("directories/remote", "/").toString();
-
-    // Set local directory (updates model, label, tree view root, and up button state)
-    if (QDir(savedLocalDir).exists()) {
-        setCurrentLocalDir(savedLocalDir);
-    }
-
-    // Set remote transfer directory (will be used when connected)
-    currentRemoteTransferDir_ = savedRemoteDir;
-    remoteNavWidget_->setPath(savedRemoteDir);
-
-    // Initialize remote up button state (disabled until connected, then based on path)
-    bool canGoUpRemote = (savedRemoteDir != "/" && !savedRemoteDir.isEmpty());
-    remoteNavWidget_->setUpEnabled(canGoUpRemote && deviceConnection_->isConnected());
-
-    // Set explore remote directory (will be used when connected)
     QString savedExploreRemoteDir = settings.value("directories/exploreRemote", "/").toString();
-    currentExploreRemoteDir_ = savedExploreRemoteDir;
-    exploreRemoteNavWidget_->setPath(savedExploreRemoteDir);
 
-    // Initialize explore remote up button state (disabled until connected)
-    bool canGoUpExploreRemote = (savedExploreRemoteDir != "/" && !savedExploreRemoteDir.isEmpty());
-    exploreRemoteNavWidget_->setUpEnabled(canGoUpExploreRemote && deviceConnection_->isConnected());
-
-    // Load video scaling mode (default to Integer)
-    int scalingMode = settings.value("view/scalingMode",
-        static_cast<int>(VideoDisplayWidget::ScalingMode::Integer)).toInt();
-    auto mode = static_cast<VideoDisplayWidget::ScalingMode>(scalingMode);
-    videoDisplayWidget_->setScalingMode(mode);
-
-    // Update the radio buttons to match
-    switch (mode) {
-    case VideoDisplayWidget::ScalingMode::Sharp:
-        sharpRadio_->setChecked(true);
-        break;
-    case VideoDisplayWidget::ScalingMode::Smooth:
-        smoothRadio_->setChecked(true);
-        break;
-    case VideoDisplayWidget::ScalingMode::Integer:
-        integerRadio_->setChecked(true);
-        break;
+    if (QDir(savedLocalDir).exists()) {
+        transferPanel_->setCurrentLocalDir(savedLocalDir);
     }
+    transferPanel_->setCurrentRemoteDir(savedRemoteDir);
+    explorePanel_->setCurrentDirectory(savedExploreRemoteDir);
+
+    // Load view panel settings
+    viewPanel_->loadSettings();
 }
 
 void MainWindow::saveSettings()
@@ -1101,61 +440,13 @@ void MainWindow::saveSettings()
     settings.setValue("window/geometry", saveGeometry());
     settings.setValue("window/state", saveState());
 
-    // Save directories
-    settings.setValue("directories/local", currentLocalDir_);
-    settings.setValue("directories/remote", currentRemoteTransferDir_);
-    settings.setValue("directories/exploreRemote", currentExploreRemoteDir_);
+    // Save panel directories
+    settings.setValue("directories/local", transferPanel_->currentLocalDir());
+    settings.setValue("directories/remote", transferPanel_->currentRemoteDir());
+    settings.setValue("directories/exploreRemote", explorePanel_->currentDirectory());
 
-    // Save video scaling mode
-    settings.setValue("view/scalingMode",
-        static_cast<int>(videoDisplayWidget_->scalingMode()));
-}
-
-QString MainWindow::selectedRemotePath() const
-{
-    QTreeView *view = (currentMode_ == Mode::ExploreRun) ? remoteTreeView_ : remoteTransferTreeView_;
-    QModelIndex index = view->currentIndex();
-    if (index.isValid()) {
-        return remoteFileModel_->filePath(index);
-    }
-    return QString();
-}
-
-bool MainWindow::isSelectedDirectory() const
-{
-    QTreeView *view = (currentMode_ == Mode::ExploreRun) ? remoteTreeView_ : remoteTransferTreeView_;
-    QModelIndex index = view->currentIndex();
-    if (index.isValid()) {
-        return remoteFileModel_->isDirectory(index);
-    }
-    return false;
-}
-
-QString MainWindow::selectedLocalPath() const
-{
-    QModelIndex proxyIndex = localTreeView_->currentIndex();
-    if (proxyIndex.isValid()) {
-        QModelIndex sourceIndex = localFileProxyModel_->mapToSource(proxyIndex);
-        return localFileModel_->filePath(sourceIndex);
-    }
-    return QString();
-}
-
-QString MainWindow::currentRemoteDirectory() const
-{
-    QTreeView *view = (currentMode_ == Mode::ExploreRun) ? remoteTreeView_ : remoteTransferTreeView_;
-    QModelIndex index = view->currentIndex();
-
-    if (index.isValid()) {
-        QString path = remoteFileModel_->filePath(index);
-        if (remoteFileModel_->isDirectory(index)) {
-            return path;
-        }
-        // Return parent directory
-        return QFileInfo(path).path();
-    }
-
-    return remoteFileModel_->rootPath();
+    // Save view panel settings
+    viewPanel_->saveSettings();
 }
 
 // Slots
@@ -1190,7 +481,6 @@ void MainWindow::onPreferences()
     }
 
     if (preferencesDialog_->exec() == QDialog::Accepted) {
-        // Reload settings
         QSettings settings;
         QString host = settings.value("device/host").toString();
         QString password = settings.value("device/password").toString();
@@ -1220,117 +510,6 @@ void MainWindow::onConnect()
 void MainWindow::onDisconnect()
 {
     deviceConnection_->disconnectFromDevice();
-}
-
-void MainWindow::onPlay()
-{
-    QString path = selectedRemotePath();
-    if (path.isEmpty()) return;
-
-    RemoteFileModel::FileType type = remoteFileModel_->fileType(remoteTreeView_->currentIndex());
-
-    if (type == RemoteFileModel::FileType::SidMusic) {
-        deviceConnection_->restClient()->playSid(path);
-        statusBar()->showMessage(tr("Playing SID: %1").arg(path), 3000);
-    } else if (type == RemoteFileModel::FileType::ModMusic) {
-        deviceConnection_->restClient()->playMod(path);
-        statusBar()->showMessage(tr("Playing MOD: %1").arg(path), 3000);
-    }
-}
-
-void MainWindow::onRun()
-{
-    QString path = selectedRemotePath();
-    if (path.isEmpty()) return;
-
-    RemoteFileModel::FileType type = remoteFileModel_->fileType(remoteTreeView_->currentIndex());
-
-    if (type == RemoteFileModel::FileType::Program) {
-        deviceConnection_->restClient()->runPrg(path);
-        statusBar()->showMessage(tr("Running PRG: %1").arg(path), 3000);
-    } else if (type == RemoteFileModel::FileType::Cartridge) {
-        deviceConnection_->restClient()->runCrt(path);
-        statusBar()->showMessage(tr("Running CRT: %1").arg(path), 3000);
-    } else if (type == RemoteFileModel::FileType::DiskImage) {
-        runDiskImage(path);
-    }
-}
-
-void MainWindow::runDiskImage(const QString &path)
-{
-    // Multi-step async process to run a disk image:
-    // 1. Mount the disk to Drive A
-    // 2. Reset the machine
-    // 3. Wait for C64 to boot (3 seconds)
-    // 4. Type LOAD"*",8,1 (exactly 10 chars, fits in buffer)
-    // 5. Wait for buffer to be consumed, then send RETURN
-    // 6. Wait for load (5 seconds)
-    // 7. Type RUN + RETURN
-
-    statusBar()->showMessage(tr("Mounting and running: %1").arg(path));
-
-    // Step 1: Mount the disk
-    deviceConnection_->restClient()->mountImage("a", path);
-
-    // Step 2: Reset after a brief delay to ensure mount completes
-    QTimer::singleShot(500, this, [this]() {
-        deviceConnection_->restClient()->resetMachine();
-
-        // Step 3: Wait for C64 to boot
-        QTimer::singleShot(3000, this, [this]() {
-            statusBar()->showMessage(tr("Loading..."));
-
-            // Step 4: Type LOAD"*",8,1 (10 chars exactly, no newline)
-            deviceConnection_->restClient()->typeText("LOAD\"*\",8,1");
-
-            // Step 5: Wait 500ms for buffer to be consumed, then send RETURN
-            QTimer::singleShot(500, this, [this]() {
-                deviceConnection_->restClient()->typeText("\n");
-
-                // Step 6: Wait for load to complete (5 seconds)
-                QTimer::singleShot(5000, this, [this]() {
-                    // Step 7: Type RUN + RETURN
-                    deviceConnection_->restClient()->typeText("RUN\n");
-                    statusBar()->showMessage(tr("Running disk image"), 3000);
-                });
-            });
-        });
-    });
-}
-
-void MainWindow::onMount()
-{
-    onMountToDriveA();
-}
-
-void MainWindow::onMountToDriveA()
-{
-    QString path = selectedRemotePath();
-    if (path.isEmpty()) return;
-
-    deviceConnection_->restClient()->mountImage("a", path);
-    statusBar()->showMessage(tr("Mounting to Drive A: %1").arg(path), 3000);
-}
-
-void MainWindow::onMountToDriveB()
-{
-    QString path = selectedRemotePath();
-    if (path.isEmpty()) return;
-
-    deviceConnection_->restClient()->mountImage("b", path);
-    statusBar()->showMessage(tr("Mounting to Drive B: %1").arg(path), 3000);
-}
-
-void MainWindow::onEjectDriveA()
-{
-    deviceConnection_->restClient()->unmountImage("a");
-    statusBar()->showMessage(tr("Ejecting Drive A"), 3000);
-}
-
-void MainWindow::onEjectDriveB()
-{
-    deviceConnection_->restClient()->unmountImage("b");
-    statusBar()->showMessage(tr("Ejecting Drive B"), 3000);
 }
 
 void MainWindow::onReset()
@@ -1379,149 +558,40 @@ void MainWindow::onPowerOff()
 
     deviceConnection_->restClient()->powerOffMachine();
     statusBar()->showMessage(tr("Power off sent"), 3000);
-
-    // Device will be unreachable after power off, so disconnect
     deviceConnection_->disconnectFromDevice();
 }
 
-void MainWindow::onUpload()
+void MainWindow::onEjectDriveA()
 {
-    if (!deviceConnection_->isConnected()) return;
-
-    QString localPath = selectedLocalPath();
-    if (localPath.isEmpty()) {
-        statusBar()->showMessage(tr("No local file selected"), 3000);
-        return;
-    }
-
-    QFileInfo fileInfo(localPath);
-
-    // Use the current remote transfer directory as destination
-    QString remoteDir = currentRemoteTransferDir_;
-    if (remoteDir.isEmpty()) {
-        remoteDir = "/";
-    }
-
-    if (fileInfo.isDir()) {
-        // Recursive folder upload
-        transferQueue_->enqueueRecursiveUpload(localPath, remoteDir);
-        statusBar()->showMessage(tr("Queued folder upload: %1 → %2").arg(fileInfo.fileName()).arg(remoteDir), 3000);
-    } else {
-        // Single file upload
-        if (!remoteDir.endsWith('/')) {
-            remoteDir += '/';
-        }
-        QString remotePath = remoteDir + fileInfo.fileName();
-        transferQueue_->enqueueUpload(localPath, remotePath);
-        statusBar()->showMessage(tr("Queued upload: %1 → %2").arg(fileInfo.fileName()).arg(remoteDir), 3000);
-    }
+    deviceConnection_->restClient()->unmountImage("a");
+    statusBar()->showMessage(tr("Ejecting Drive A"), 3000);
 }
 
-void MainWindow::onDownload()
+void MainWindow::onEjectDriveB()
 {
-    if (!deviceConnection_->isConnected()) return;
-
-    QString remotePath = selectedRemotePath();
-    if (remotePath.isEmpty()) {
-        statusBar()->showMessage(tr("No remote file selected"), 3000);
-        return;
-    }
-
-    // Use current local directory as destination in Transfer mode,
-    // otherwise fall back to settings
-    QString downloadDir;
-    if (currentMode_ == Mode::Transfer && !currentLocalDir_.isEmpty()) {
-        downloadDir = currentLocalDir_;
-    } else {
-        QSettings settings;
-        downloadDir = settings.value("app/downloadPath",
-            QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)).toString();
-    }
-
-    if (isSelectedDirectory()) {
-        // Recursive folder download
-        transferQueue_->enqueueRecursiveDownload(remotePath, downloadDir);
-        QString folderName = QFileInfo(remotePath).fileName();
-        statusBar()->showMessage(tr("Queued folder download: %1 → %2").arg(folderName).arg(downloadDir), 3000);
-    } else {
-        // Single file download
-        QString fileName = QFileInfo(remotePath).fileName();
-        QString localPath = downloadDir + "/" + fileName;
-        transferQueue_->enqueueDownload(remotePath, localPath);
-        statusBar()->showMessage(tr("Queued download: %1 → %2").arg(fileName).arg(downloadDir), 3000);
-    }
-}
-
-void MainWindow::onNewFolder()
-{
-    if (!deviceConnection_->isConnected()) return;
-
-    // In Transfer mode, use the current remote transfer directory
-    QString remoteDir;
-    if (currentMode_ == Mode::Transfer && !currentRemoteTransferDir_.isEmpty()) {
-        remoteDir = currentRemoteTransferDir_;
-    } else {
-        remoteDir = currentRemoteDirectory();
-    }
-
-    if (remoteDir.isEmpty()) {
-        remoteDir = "/";
-    }
-
-    bool ok;
-    QString folderName = QInputDialog::getText(this, tr("New Remote Folder"),
-        tr("Folder name:"), QLineEdit::Normal, "", &ok);
-
-    if (!ok || folderName.isEmpty()) {
-        return;
-    }
-
-    if (!remoteDir.endsWith('/')) {
-        remoteDir += '/';
-    }
-
-    QString newPath = remoteDir + folderName;
-    deviceConnection_->ftpClient()->makeDirectory(newPath);
-    statusBar()->showMessage(tr("Creating folder %1 in %2...").arg(folderName).arg(remoteDir));
-}
-
-void MainWindow::onDelete()
-{
-    if (!deviceConnection_->isConnected()) return;
-
-    QString remotePath = selectedRemotePath();
-    if (remotePath.isEmpty()) {
-        return;
-    }
-
-    QString fileName = QFileInfo(remotePath).fileName();
-
-    int result = QMessageBox::question(this, tr("Delete File"),
-        tr("Are you sure you want to delete '%1'?").arg(fileName),
-        QMessageBox::Yes | QMessageBox::No);
-
-    if (result != QMessageBox::Yes) {
-        return;
-    }
-
-    if (isSelectedDirectory()) {
-        deviceConnection_->ftpClient()->removeDirectory(remotePath);
-    } else {
-        deviceConnection_->ftpClient()->remove(remotePath);
-    }
-
-    statusBar()->showMessage(tr("Deleting %1...").arg(fileName));
+    deviceConnection_->restClient()->unmountImage("b");
+    statusBar()->showMessage(tr("Ejecting Drive B"), 3000);
 }
 
 void MainWindow::onRefresh()
 {
     if (!deviceConnection_->isConnected()) return;
 
-    QModelIndex index = remoteTreeView_->currentIndex();
-    if (index.isValid() && remoteFileModel_->isDirectory(index)) {
-        remoteFileModel_->refresh(index);
-    } else {
+    // Delegate to the current panel
+    switch (currentMode_) {
+    case Mode::ExploreRun:
+        explorePanel_->refresh();
+        break;
+    case Mode::Transfer:
+        // Transfer panel has its own refresh
         remoteFileModel_->refresh();
+        break;
+    case Mode::View:
+        // View mode doesn't have refresh
+        break;
+    case Mode::Config:
+        configPanel_->refreshIfEmpty();
+        break;
     }
 
     deviceConnection_->refreshDriveInfo();
@@ -1534,6 +604,13 @@ void MainWindow::onConnectionStateChanged()
     updateActions();
 
     DeviceConnection::ConnectionState state = deviceConnection_->state();
+    bool connected = (state == DeviceConnection::ConnectionState::Connected);
+
+    // Notify panels of connection state change
+    explorePanel_->onConnectionStateChanged(connected);
+    transferPanel_->onConnectionStateChanged(connected);
+    viewPanel_->onConnectionStateChanged(connected);
+    configPanel_->onConnectionStateChanged(connected);
 
     switch (state) {
     case DeviceConnection::ConnectionState::Connecting:
@@ -1541,21 +618,17 @@ void MainWindow::onConnectionStateChanged()
         break;
     case DeviceConnection::ConnectionState::Connected:
         statusBar()->showMessage(tr("Connected"), 3000);
-        // Navigate to saved remote directories (or "/" if none saved)
-        setCurrentRemoteTransferDir(currentRemoteTransferDir_.isEmpty() ? "/" : currentRemoteTransferDir_);
-        setCurrentExploreRemoteDir(currentExploreRemoteDir_.isEmpty() ? "/" : currentExploreRemoteDir_);
+        // Navigate to saved directories
+        explorePanel_->setCurrentDirectory(explorePanel_->currentDirectory().isEmpty() ? "/" : explorePanel_->currentDirectory());
+        transferPanel_->setCurrentRemoteDir(transferPanel_->currentRemoteDir().isEmpty() ? "/" : transferPanel_->currentRemoteDir());
         break;
     case DeviceConnection::ConnectionState::Reconnecting:
         statusBar()->showMessage(tr("Reconnecting..."));
         break;
     case DeviceConnection::ConnectionState::Disconnected:
         statusBar()->showMessage(tr("Disconnected"), 3000);
-        // Clear remote file model to prevent browsing stale cached listings
         remoteFileModel_->clear();
-        // Stop streaming if active
-        if (isStreaming_) {
-            onStopStreaming();
-        }
+        viewPanel_->stopStreamingIfActive();
         break;
     }
 }
@@ -1569,6 +642,7 @@ void MainWindow::onDeviceInfoUpdated()
 void MainWindow::onDriveInfoUpdated()
 {
     updateStatusBar();
+    explorePanel_->updateDriveInfo();
 }
 
 void MainWindow::onConnectionError(const QString &message)
@@ -1577,96 +651,10 @@ void MainWindow::onConnectionError(const QString &message)
     QMessageBox::warning(this, tr("Connection Error"), message);
 }
 
-void MainWindow::onRemoteSelectionChanged()
-{
-    updateActions();
-
-    // Update file details panel
-    QModelIndex index = remoteTreeView_->currentIndex();
-    if (!index.isValid()) {
-        fileDetailsPanel_->clear();
-        return;
-    }
-
-    if (remoteFileModel_->isDirectory(index)) {
-        fileDetailsPanel_->clear();
-        return;
-    }
-
-    QString path = remoteFileModel_->filePath(index);
-    qint64 size = remoteFileModel_->fileSize(index);
-    RemoteFileModel::FileType fileType = remoteFileModel_->fileType(index);
-    QString typeStr = RemoteFileModel::fileTypeString(fileType);
-
-    fileDetailsPanel_->showFileDetails(path, size, typeStr);
-}
-
-void MainWindow::onRemoteDoubleClicked(const QModelIndex &index)
-{
-    if (!index.isValid()) {
-        return;
-    }
-
-    if (remoteFileModel_->isDirectory(index)) {
-        // Navigate into the directory
-        QString path = remoteFileModel_->filePath(index);
-        setCurrentExploreRemoteDir(path);
-    } else {
-        // Execute default action based on file type
-        RemoteFileModel::FileType type = remoteFileModel_->fileType(index);
-
-        switch (type) {
-        case RemoteFileModel::FileType::SidMusic:
-        case RemoteFileModel::FileType::ModMusic:
-            onPlay();
-            break;
-        case RemoteFileModel::FileType::Program:
-        case RemoteFileModel::FileType::Cartridge:
-            onRun();
-            break;
-        case RemoteFileModel::FileType::DiskImage:
-            onMount();
-            break;
-        case RemoteFileModel::FileType::Config:
-            onLoadConfig();
-            break;
-        default:
-            break;
-        }
-    }
-}
-
-void MainWindow::onRemoteContextMenu(const QPoint &pos)
-{
-    QModelIndex index = remoteTreeView_->indexAt(pos);
-    if (index.isValid()) {
-        // Get file type and enable/disable context menu actions accordingly
-        RemoteFileModel::FileType fileType = remoteFileModel_->fileType(index);
-        bool connected = deviceConnection_->isConnected();
-
-        bool canPlay = fileType == RemoteFileModel::FileType::SidMusic ||
-                       fileType == RemoteFileModel::FileType::ModMusic;
-        bool canRun = fileType == RemoteFileModel::FileType::Program ||
-                      fileType == RemoteFileModel::FileType::Cartridge ||
-                      fileType == RemoteFileModel::FileType::DiskImage;
-        bool canMount = fileType == RemoteFileModel::FileType::DiskImage;
-        bool canLoadConfig = fileType == RemoteFileModel::FileType::Config;
-
-        contextPlayAction_->setEnabled(connected && canPlay);
-        contextRunAction_->setEnabled(connected && canRun);
-        contextLoadConfigAction_->setEnabled(connected && canLoadConfig);
-        contextMountAAction_->setEnabled(connected && canMount);
-        contextMountBAction_->setEnabled(connected && canMount);
-
-        remoteContextMenu_->exec(remoteTreeView_->viewport()->mapToGlobal(pos));
-    }
-}
-
 void MainWindow::onOperationSucceeded(const QString &operation)
 {
     statusBar()->showMessage(tr("%1 succeeded").arg(operation), 3000);
 
-    // Refresh drive info after mount/unmount
     if (operation == "mount" || operation == "unmount") {
         deviceConnection_->refreshDriveInfo();
     }
@@ -1675,877 +663,4 @@ void MainWindow::onOperationSucceeded(const QString &operation)
 void MainWindow::onOperationFailed(const QString &operation, const QString &error)
 {
     statusBar()->showMessage(tr("%1 failed: %2").arg(operation).arg(error), 5000);
-}
-
-// Transfer progress slots
-
-void MainWindow::onUploadProgress(const QString &file, qint64 sent, qint64 total)
-{
-    Q_UNUSED(file)
-    if (total > 0) {
-        int percent = static_cast<int>((sent * 100) / total);
-        transferProgress_->setValue(percent);
-    }
-}
-
-void MainWindow::onUploadFinished(const QString &localPath, const QString &remotePath)
-{
-    Q_UNUSED(localPath)
-    transferProgress_->setVisible(false);
-    statusBar()->showMessage(tr("Upload complete: %1").arg(QFileInfo(remotePath).fileName()), 3000);
-
-    // Refresh the remote file listing
-    remoteFileModel_->refresh();
-}
-
-void MainWindow::onDownloadProgress(const QString &file, qint64 received, qint64 total)
-{
-    Q_UNUSED(file)
-    if (total > 0) {
-        int percent = static_cast<int>((received * 100) / total);
-        transferProgress_->setValue(percent);
-    }
-}
-
-void MainWindow::onDownloadFinished(const QString &remotePath, const QString &localPath)
-{
-    Q_UNUSED(remotePath)
-    transferProgress_->setVisible(false);
-    statusBar()->showMessage(tr("Download complete: %1").arg(QFileInfo(localPath).fileName()), 3000);
-}
-
-void MainWindow::onDirectoryCreated(const QString &path)
-{
-    statusBar()->showMessage(tr("Folder created: %1").arg(QFileInfo(path).fileName()), 3000);
-
-    // Refresh the remote file listing
-    remoteFileModel_->refresh();
-}
-
-void MainWindow::onFileRemoved(const QString &path)
-{
-    statusBar()->showMessage(tr("Deleted: %1").arg(QFileInfo(path).fileName()), 3000);
-
-    // Refresh the remote file listing
-    remoteFileModel_->refresh();
-}
-
-void MainWindow::onFileRenamed(const QString &oldPath, const QString &newPath)
-{
-    QString oldName = QFileInfo(oldPath).fileName();
-    QString newName = QFileInfo(newPath).fileName();
-    statusBar()->showMessage(tr("Renamed: %1 → %2").arg(oldName).arg(newName), 3000);
-
-    // Refresh the remote file listing
-    remoteFileModel_->refresh();
-}
-
-void MainWindow::onRemoteRename()
-{
-    if (!deviceConnection_->isConnected()) {
-        return;
-    }
-
-    QString remotePath = selectedRemotePath();
-    if (remotePath.isEmpty()) {
-        return;
-    }
-
-    QFileInfo fileInfo(remotePath);
-    QString oldName = fileInfo.fileName();
-    QString itemType = isSelectedDirectory() ? tr("folder") : tr("file");
-
-    bool ok;
-    QString newName = QInputDialog::getText(this, tr("Rename Remote %1").arg(itemType),
-        tr("New name:"), QLineEdit::Normal, oldName, &ok);
-
-    if (!ok || newName.isEmpty()) {
-        return;
-    }
-
-    // Check if the name changed
-    if (newName == oldName) {
-        return;
-    }
-
-    // Validate the new name - check for invalid characters
-    if (newName.contains('/') || newName.contains('\\')) {
-        QMessageBox::warning(this, tr("Invalid Name"),
-            tr("The name cannot contain '/' or '\\' characters."));
-        return;
-    }
-
-    // Construct the new path
-    QString parentPath = fileInfo.path();
-    if (!parentPath.endsWith('/')) {
-        parentPath += '/';
-    }
-    QString newPath = parentPath + newName;
-
-    // Perform the rename via FTP
-    deviceConnection_->ftpClient()->rename(remotePath, newPath);
-    statusBar()->showMessage(tr("Renaming %1...").arg(oldName));
-}
-
-void MainWindow::onFileContentRequested(const QString &path)
-{
-    if (!deviceConnection_->isConnected()) {
-        fileDetailsPanel_->showError(tr("Not connected"));
-        return;
-    }
-
-    // Download file content to memory for preview
-    deviceConnection_->ftpClient()->downloadToMemory(path);
-}
-
-void MainWindow::onFileContentReceived(const QString &remotePath, const QByteArray &data)
-{
-    // Check if this is a disk image file
-    if (fileDetailsPanel_->isDiskImageFile(remotePath)) {
-        fileDetailsPanel_->showDiskDirectory(data, remotePath);
-    } else if (fileDetailsPanel_->isSidFile(remotePath)) {
-        fileDetailsPanel_->showSidDetails(data, remotePath);
-    } else {
-        // Display the content in the file details panel as text
-        QString content = QString::fromUtf8(data);
-        fileDetailsPanel_->showTextContent(content);
-    }
-}
-
-void MainWindow::onLoadConfig()
-{
-    QString path = selectedRemotePath();
-    if (path.isEmpty()) return;
-
-    RemoteFileModel::FileType type = remoteFileModel_->fileType(remoteTreeView_->currentIndex());
-    if (type != RemoteFileModel::FileType::Config) {
-        statusBar()->showMessage(tr("Selected file is not a configuration file"), 3000);
-        return;
-    }
-
-    if (!deviceConnection_->isConnected()) {
-        statusBar()->showMessage(tr("Not connected"), 3000);
-        return;
-    }
-
-    configFileLoader_->loadConfigFile(path);
-}
-
-void MainWindow::onConfigLoadFinished(const QString &path)
-{
-    statusBar()->showMessage(tr("Configuration loaded: %1").arg(QFileInfo(path).fileName()), 5000);
-}
-
-void MainWindow::onConfigLoadFailed(const QString &path, const QString &error)
-{
-    statusBar()->showMessage(tr("Failed to load %1: %2").arg(QFileInfo(path).fileName()).arg(error), 5000);
-    QMessageBox::warning(this, tr("Configuration Error"),
-        tr("Failed to load configuration file:\n%1\n\nError: %2").arg(path).arg(error));
-}
-
-// Transfer mode slots
-
-void MainWindow::onLocalDoubleClicked(const QModelIndex &proxyIndex)
-{
-    if (!proxyIndex.isValid()) return;
-
-    QModelIndex sourceIndex = localFileProxyModel_->mapToSource(proxyIndex);
-    QString path = localFileModel_->filePath(sourceIndex);
-
-    if (localFileModel_->isDir(sourceIndex)) {
-        // Set as current download destination
-        setCurrentLocalDir(path);
-    }
-    // For files, no special action - tree view handles expand/collapse
-}
-
-void MainWindow::onRemoteTransferDoubleClicked(const QModelIndex &index)
-{
-    if (!index.isValid()) return;
-
-    if (remoteFileModel_->isDirectory(index)) {
-        // Set as current upload destination
-        QString path = remoteFileModel_->filePath(index);
-        setCurrentRemoteTransferDir(path);
-    }
-    // For files, no special action - tree view handles expand/collapse
-}
-
-void MainWindow::onLocalContextMenu(const QPoint &pos)
-{
-    QModelIndex proxyIndex = localTreeView_->indexAt(pos);
-    if (proxyIndex.isValid()) {
-        // Only enable "Set as Destination" for directories
-        QModelIndex sourceIndex = localFileProxyModel_->mapToSource(proxyIndex);
-        bool isDir = localFileModel_->isDir(sourceIndex);
-        localSetDestAction_->setEnabled(isDir);
-        localContextMenu_->exec(localTreeView_->viewport()->mapToGlobal(pos));
-    }
-}
-
-void MainWindow::onNewLocalFolder()
-{
-    bool ok;
-    QString folderName = QInputDialog::getText(this, tr("New Local Folder"),
-        tr("Folder name:"), QLineEdit::Normal, "", &ok);
-
-    if (!ok || folderName.isEmpty()) {
-        return;
-    }
-
-    QString newPath = currentLocalDir_;
-    if (!newPath.endsWith('/')) {
-        newPath += '/';
-    }
-    newPath += folderName;
-
-    QDir dir;
-    if (dir.mkdir(newPath)) {
-        statusBar()->showMessage(tr("Local folder created: %1").arg(folderName), 3000);
-    } else {
-        QMessageBox::warning(this, tr("Error"),
-            tr("Failed to create folder: %1").arg(newPath));
-    }
-}
-
-void MainWindow::onLocalDelete()
-{
-    QString localPath = selectedLocalPath();
-    if (localPath.isEmpty()) {
-        return;
-    }
-
-    QFileInfo fileInfo(localPath);
-    QString itemName = fileInfo.fileName();
-    QString itemType = fileInfo.isDir() ? tr("folder") : tr("file");
-
-    int result = QMessageBox::question(this, tr("Move to Trash"),
-        tr("Are you sure you want to move the %1 '%2' to the trash?").arg(itemType).arg(itemName),
-        QMessageBox::Yes | QMessageBox::No);
-
-    if (result != QMessageBox::Yes) {
-        return;
-    }
-
-    QString pathInTrash;
-    bool success = QFile::moveToTrash(localPath, &pathInTrash);
-
-    if (success) {
-        statusBar()->showMessage(tr("Moved to trash: %1").arg(itemName), 3000);
-        // QFileSystemModel automatically detects changes via QFileSystemWatcher
-        // so no explicit refresh is needed
-    } else {
-        QString errorMessage;
-        if (!fileInfo.exists()) {
-            errorMessage = tr("The %1 no longer exists.").arg(itemType);
-        } else if (!fileInfo.isWritable()) {
-            errorMessage = tr("Permission denied. You don't have permission to delete this %1.").arg(itemType);
-        } else {
-            errorMessage = tr("Failed to move the %1 to trash. The system may not support trash functionality.").arg(itemType);
-        }
-        QMessageBox::warning(this, tr("Delete Failed"), errorMessage);
-        statusBar()->showMessage(tr("Failed to delete: %1").arg(itemName), 3000);
-    }
-}
-
-void MainWindow::onLocalRename()
-{
-    QString localPath = selectedLocalPath();
-    if (localPath.isEmpty()) {
-        return;
-    }
-
-    QFileInfo fileInfo(localPath);
-    QString oldName = fileInfo.fileName();
-    QString itemType = fileInfo.isDir() ? tr("folder") : tr("file");
-
-    bool ok;
-    QString newName = QInputDialog::getText(this, tr("Rename %1").arg(itemType),
-        tr("New name:"), QLineEdit::Normal, oldName, &ok);
-
-    if (!ok || newName.isEmpty()) {
-        return;
-    }
-
-    // Check if the name changed
-    if (newName == oldName) {
-        return;
-    }
-
-    // Validate the new name - check for invalid characters
-    if (newName.contains('/') || newName.contains('\\')) {
-        QMessageBox::warning(this, tr("Invalid Name"),
-            tr("The name cannot contain '/' or '\\' characters."));
-        return;
-    }
-
-    // Construct the new path
-    QString newPath = fileInfo.absolutePath() + "/" + newName;
-
-    // Check if target already exists
-    if (QFileInfo::exists(newPath)) {
-        QMessageBox::warning(this, tr("Rename Failed"),
-            tr("A %1 with the name '%2' already exists.").arg(itemType).arg(newName));
-        return;
-    }
-
-    // Perform the rename
-    QDir dir;
-    bool success = dir.rename(localPath, newPath);
-
-    if (success) {
-        statusBar()->showMessage(tr("Renamed: %1 → %2").arg(oldName).arg(newName), 3000);
-        // QFileSystemModel automatically detects changes via QFileSystemWatcher
-        // so no explicit refresh is needed
-    } else {
-        QString errorMessage;
-        if (!fileInfo.exists()) {
-            errorMessage = tr("The %1 no longer exists.").arg(itemType);
-        } else if (!fileInfo.isWritable()) {
-            errorMessage = tr("Permission denied. You don't have permission to rename this %1.").arg(itemType);
-        } else {
-            errorMessage = tr("Failed to rename the %1. Please check that you have the necessary permissions.").arg(itemType);
-        }
-        QMessageBox::warning(this, tr("Rename Failed"), errorMessage);
-        statusBar()->showMessage(tr("Failed to rename: %1").arg(oldName), 3000);
-    }
-}
-
-void MainWindow::onLocalParentFolder()
-{
-    QDir dir(currentLocalDir_);
-    if (dir.cdUp()) {
-        setCurrentLocalDir(dir.absolutePath());
-    }
-}
-
-void MainWindow::onRemoteParentFolder()
-{
-    if (currentRemoteTransferDir_.isEmpty() || currentRemoteTransferDir_ == "/") {
-        return;  // Already at root
-    }
-
-    // Get parent path
-    QString parentPath = currentRemoteTransferDir_;
-    int lastSlash = parentPath.lastIndexOf('/');
-    if (lastSlash > 0) {
-        parentPath = parentPath.left(lastSlash);
-    } else {
-        parentPath = "/";
-    }
-
-    setCurrentRemoteTransferDir(parentPath);
-}
-
-void MainWindow::setCurrentLocalDir(const QString &path)
-{
-    currentLocalDir_ = path;
-
-    // Update tree view to show this folder as root
-    localFileModel_->setRootPath(path);
-    localTreeView_->setRootIndex(localFileProxyModel_->mapFromSource(localFileModel_->index(path)));
-
-    // Shorten path for display by replacing home with ~
-    QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-    QString displayPath = path;
-    if (displayPath.startsWith(homePath)) {
-        displayPath = "~" + displayPath.mid(homePath.length());
-    }
-
-    localNavWidget_->setPath(displayPath);
-    statusBar()->showMessage(tr("Download destination: %1").arg(displayPath), 2000);
-
-    // Enable/disable up button based on whether we can go up
-    QDir dir(path);
-    bool canGoUp = dir.cdUp();
-    localNavWidget_->setUpEnabled(canGoUp);
-}
-
-void MainWindow::setCurrentRemoteTransferDir(const QString &path)
-{
-    currentRemoteTransferDir_ = path;
-
-    // Update tree view to show this folder as root
-    remoteFileModel_->setRootPath(path);
-
-    remoteNavWidget_->setPath(path);
-    statusBar()->showMessage(tr("Upload destination: %1").arg(path), 2000);
-
-    // Enable/disable up button based on whether we can go up
-    bool canGoUp = (path != "/" && !path.isEmpty());
-    remoteNavWidget_->setUpEnabled(canGoUp);
-}
-
-// Transfer progress slots
-
-void MainWindow::onTransferStarted(const QString &fileName)
-{
-    Q_UNUSED(fileName)
-
-    // If this is the first transfer, start the delay timer
-    if (!transferProgressPending_ && !transferProgressWidget_->isVisible()) {
-        transferProgressPending_ = true;
-        transferTotalCount_ = transferQueue_->rowCount();
-        transferCompletedCount_ = 0;
-        transferProgressDelayTimer_->start(2000);  // 2-second delay
-    }
-}
-
-void MainWindow::onTransferQueueChanged()
-{
-    // Update progress count
-    transferTotalCount_ = transferQueue_->rowCount();
-
-    // Update progress bar and label if visible
-    if (transferProgressWidget_->isVisible()) {
-        if (transferQueue_->isScanning()) {
-            // Indeterminate mode while scanning directories
-            transferProgressBar_->setMaximum(0);  // Indeterminate
-            transferStatusLabel_->setText(tr("Scanning directories..."));
-        } else if (transferTotalCount_ > 0) {
-            // Determinate mode showing file progress
-            transferProgressBar_->setMaximum(100);
-            int progress = (transferTotalCount_ > 0)
-                ? (transferCompletedCount_ * 100) / transferTotalCount_
-                : 0;
-            transferProgressBar_->setValue(progress);
-            transferStatusLabel_->setText(tr("Transferring %1 of %2 files...")
-                .arg(transferCompletedCount_ + 1)
-                .arg(transferTotalCount_));
-        }
-    }
-}
-
-void MainWindow::onAllTransfersCompleted()
-{
-    // Cancel the delay timer if it hasn't fired yet
-    transferProgressDelayTimer_->stop();
-    transferProgressPending_ = false;
-
-    // Hide the progress widget
-    transferProgressWidget_->setVisible(false);
-
-    // Reset counters
-    transferTotalCount_ = 0;
-    transferCompletedCount_ = 0;
-
-    // Reset progress bar
-    transferProgressBar_->setMaximum(100);
-    transferProgressBar_->setValue(0);
-    transferStatusLabel_->setText(tr("Ready"));
-}
-
-void MainWindow::onShowTransferProgress()
-{
-    transferProgressPending_ = false;
-
-    // Only show if there are still transfers in progress
-    if (transferQueue_->isProcessing() || transferQueue_->isScanning()) {
-        transferProgressWidget_->setVisible(true);
-
-        // Initialize display state
-        if (transferQueue_->isScanning()) {
-            transferProgressBar_->setMaximum(0);  // Indeterminate
-            transferStatusLabel_->setText(tr("Scanning directories..."));
-        } else {
-            transferProgressBar_->setMaximum(100);
-            int progress = (transferTotalCount_ > 0)
-                ? (transferCompletedCount_ * 100) / transferTotalCount_
-                : 0;
-            transferProgressBar_->setValue(progress);
-            transferStatusLabel_->setText(tr("Transferring %1 of %2 files...")
-                .arg(transferCompletedCount_ + 1)
-                .arg(transferTotalCount_));
-        }
-    }
-}
-
-// Explore/Run mode navigation slots
-
-void MainWindow::onExploreRemoteParentFolder()
-{
-    if (currentExploreRemoteDir_.isEmpty() || currentExploreRemoteDir_ == "/") {
-        return;  // Already at root
-    }
-
-    // Get parent path
-    QString parentPath = currentExploreRemoteDir_;
-    int lastSlash = parentPath.lastIndexOf('/');
-    if (lastSlash > 0) {
-        parentPath = parentPath.left(lastSlash);
-    } else {
-        parentPath = "/";
-    }
-
-    setCurrentExploreRemoteDir(parentPath);
-}
-
-void MainWindow::setCurrentExploreRemoteDir(const QString &path)
-{
-    currentExploreRemoteDir_ = path;
-
-    // Update the remote file model to show this folder as root
-    remoteFileModel_->setRootPath(path);
-
-    exploreRemoteNavWidget_->setPath(path);
-    statusBar()->showMessage(tr("Navigated to: %1").arg(path), 2000);
-
-    // Enable/disable up button based on whether we can go up
-    bool canGoUp = (path != "/" && !path.isEmpty());
-    exploreRemoteNavWidget_->setUpEnabled(canGoUp);
-}
-
-// View mode streaming slots
-
-void MainWindow::onStartStreaming()
-{
-    if (!deviceConnection_->isConnected()) {
-        QMessageBox::warning(this, tr("Not Connected"),
-                           tr("Please connect to a C64 Ultimate device first."));
-        return;
-    }
-
-    // Clear any pending commands from previous sessions
-    streamControl_->clearPendingCommands();
-
-    // Extract just the host/IP from the REST client URL
-    QString deviceUrl = deviceConnection_->restClient()->host();
-    LOG_VERBOSE() << "MainWindow::onStartStreaming: deviceUrl from restClient:" << deviceUrl;
-    QString deviceHost = QUrl(deviceUrl).host();
-    if (deviceHost.isEmpty()) {
-        // Maybe it's already just an IP address without scheme
-        deviceHost = deviceUrl;
-    }
-    LOG_VERBOSE() << "MainWindow::onStartStreaming: extracted deviceHost:" << deviceHost;
-    streamControl_->setHost(deviceHost);
-
-    // Parse the device IP address
-    QHostAddress deviceAddr(deviceHost);
-    if (deviceAddr.isNull() || deviceAddr.protocol() != QAbstractSocket::IPv4Protocol) {
-        LOG_VERBOSE() << "MainWindow::onStartStreaming: Invalid device IP - isNull:" << deviceAddr.isNull()
-                 << "protocol:" << deviceAddr.protocol();
-        QMessageBox::warning(this, tr("Network Error"),
-                           tr("Invalid device IP address: %1").arg(deviceHost));
-        return;
-    }
-    LOG_VERBOSE() << "MainWindow::onStartStreaming: device IP address:" << deviceAddr.toString();
-
-    // Find our local IP address that can reach the device
-    // Look for an interface on the same subnet as the C64 device
-    QString targetHost;
-
-    for (const QNetworkInterface &iface : QNetworkInterface::allInterfaces()) {
-        if (!(iface.flags() & QNetworkInterface::IsUp) ||
-            !(iface.flags() & QNetworkInterface::IsRunning) ||
-            (iface.flags() & QNetworkInterface::IsLoopBack)) {
-            continue;
-        }
-
-        for (const QNetworkAddressEntry &entry : iface.addressEntries()) {
-            if (entry.ip().protocol() != QAbstractSocket::IPv4Protocol) {
-                continue;
-            }
-
-            // Check if device is in same subnet
-            QHostAddress subnet = entry.netmask();
-            if ((entry.ip().toIPv4Address() & subnet.toIPv4Address()) ==
-                (deviceAddr.toIPv4Address() & subnet.toIPv4Address())) {
-                targetHost = entry.ip().toString();
-                break;
-            }
-        }
-        if (!targetHost.isEmpty()) {
-            break;
-        }
-    }
-
-    if (targetHost.isEmpty()) {
-        LOG_VERBOSE() << "MainWindow::onStartStreaming: Could not find local IP on same subnet as device";
-        QMessageBox::warning(this, tr("Network Error"),
-                           tr("Could not determine local IP address for streaming.\n\n"
-                              "Device IP: %1\n"
-                              "Make sure you're on the same network as the C64 device.")
-                           .arg(deviceAddr.toString()));
-        return;
-    }
-
-    LOG_VERBOSE() << "MainWindow::onStartStreaming: Local IP for streaming:" << targetHost;
-
-    // Start UDP receivers
-    if (!videoReceiver_->bind()) {
-        QMessageBox::warning(this, tr("Stream Error"),
-                           tr("Failed to bind video receiver port."));
-        return;
-    }
-
-    if (!audioReceiver_->bind()) {
-        videoReceiver_->close();
-        QMessageBox::warning(this, tr("Stream Error"),
-                           tr("Failed to bind audio receiver port."));
-        return;
-    }
-
-    // Start audio playback
-    if (!audioPlayback_->start()) {
-        videoReceiver_->close();
-        audioReceiver_->close();
-        QMessageBox::warning(this, tr("Stream Error"),
-                           tr("Failed to start audio playback."));
-        return;
-    }
-
-    // Send stream start commands to the device
-    LOG_VERBOSE() << "MainWindow::onStartStreaming: Sending stream commands to device"
-             << deviceHost << "- target:" << targetHost
-             << "video port:" << VideoStreamReceiver::DefaultPort
-             << "audio port:" << AudioStreamReceiver::DefaultPort;
-    streamControl_->startAllStreams(targetHost,
-                                    VideoStreamReceiver::DefaultPort,
-                                    AudioStreamReceiver::DefaultPort);
-
-    isStreaming_ = true;
-    startStreamAction_->setEnabled(false);
-    stopStreamAction_->setEnabled(true);
-    streamStatusLabel_->setText(tr("Starting stream to %1...").arg(targetHost));
-}
-
-void MainWindow::onStopStreaming()
-{
-    if (!isStreaming_) {
-        return;
-    }
-
-    // Send stop commands
-    streamControl_->stopAllStreams();
-
-    // Stop receivers and playback
-    audioPlayback_->stop();
-    videoReceiver_->close();
-    audioReceiver_->close();
-
-    // Clear display
-    videoDisplayWidget_->clear();
-
-    isStreaming_ = false;
-    startStreamAction_->setEnabled(deviceConnection_->isConnected());
-    stopStreamAction_->setEnabled(false);
-    streamStatusLabel_->setText(tr("Not streaming"));
-}
-
-void MainWindow::onVideoFrameReady()
-{
-    // Frame rendering is handled by VideoDisplayWidget directly
-    // This slot can be used for frame counting or stats if needed
-}
-
-void MainWindow::onVideoFormatDetected(int format)
-{
-    auto videoFormat = static_cast<VideoStreamReceiver::VideoFormat>(format);
-    QString formatName;
-    switch (videoFormat) {
-    case VideoStreamReceiver::VideoFormat::PAL:
-        formatName = "PAL";
-        audioReceiver_->setAudioFormat(AudioStreamReceiver::AudioFormat::PAL);
-        break;
-    case VideoStreamReceiver::VideoFormat::NTSC:
-        formatName = "NTSC";
-        audioReceiver_->setAudioFormat(AudioStreamReceiver::AudioFormat::NTSC);
-        break;
-    default:
-        formatName = "Unknown";
-        break;
-    }
-
-    streamStatusLabel_->setText(tr("Streaming (%1)").arg(formatName));
-}
-
-void MainWindow::onStreamCommandSucceeded(const QString &command)
-{
-    statusBar()->showMessage(tr("Stream: %1").arg(command), 2000);
-}
-
-void MainWindow::onStreamCommandFailed(const QString &command, const QString &error)
-{
-    statusBar()->showMessage(tr("Stream failed: %1 - %2").arg(command, error), 5000);
-
-    // If we're trying to start and it failed, clean up
-    if (isStreaming_ && command.contains("start")) {
-        onStopStreaming();
-    }
-}
-
-void MainWindow::onScalingModeChanged(int id)
-{
-    auto mode = static_cast<VideoDisplayWidget::ScalingMode>(id);
-    videoDisplayWidget_->setScalingMode(mode);
-
-    // Save immediately so preference is persisted
-    QSettings settings;
-    settings.setValue("view/scalingMode", id);
-}
-
-// Config mode slots
-
-void MainWindow::onConfigSaveToFlash()
-{
-    if (!deviceConnection_->isConnected()) {
-        statusBar()->showMessage(tr("Not connected"), 3000);
-        return;
-    }
-
-    statusBar()->showMessage(tr("Saving configuration to flash..."));
-    deviceConnection_->restClient()->saveConfigToFlash();
-}
-
-void MainWindow::onConfigLoadFromFlash()
-{
-    if (!deviceConnection_->isConnected()) {
-        statusBar()->showMessage(tr("Not connected"), 3000);
-        return;
-    }
-
-    statusBar()->showMessage(tr("Loading configuration from flash..."));
-    deviceConnection_->restClient()->loadConfigFromFlash();
-}
-
-void MainWindow::onConfigResetToDefaults()
-{
-    if (!deviceConnection_->isConnected()) {
-        statusBar()->showMessage(tr("Not connected"), 3000);
-        return;
-    }
-
-    // Show confirmation dialog
-    int reply = QMessageBox::warning(
-        this,
-        tr("Reset to Defaults"),
-        tr("This will reset all configuration settings to factory defaults.\n\n"
-           "Are you sure you want to continue?"),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No
-    );
-
-    if (reply == QMessageBox::Yes) {
-        statusBar()->showMessage(tr("Resetting configuration to defaults..."));
-        deviceConnection_->restClient()->resetConfigToDefaults();
-    }
-}
-
-void MainWindow::onConfigRefresh()
-{
-    if (!deviceConnection_->isConnected()) {
-        statusBar()->showMessage(tr("Not connected"), 3000);
-        return;
-    }
-
-    statusBar()->showMessage(tr("Refreshing configuration..."));
-    deviceConnection_->restClient()->getConfigCategories();
-}
-
-void MainWindow::onConfigCategoriesReceived(const QStringList &categories)
-{
-    configModel_->setCategories(categories);
-    statusBar()->showMessage(tr("Loaded %1 configuration categories").arg(categories.size()), 3000);
-
-    // Optionally load items for each category
-    for (const QString &category : categories) {
-        deviceConnection_->restClient()->getConfigCategoryItems(category);
-    }
-}
-
-void MainWindow::onConfigCategoryItemsReceived(const QString &category,
-                                               const QHash<QString, ConfigItemMetadata> &items)
-{
-    // Convert REST metadata to model's ConfigItemInfo format
-    QHash<QString, ConfigItemInfo> infoItems;
-    for (auto it = items.begin(); it != items.end(); ++it) {
-        const ConfigItemMetadata &meta = it.value();
-        ConfigItemInfo info;
-        info.value = meta.current;
-        info.defaultValue = meta.defaultValue;
-        info.isDirty = false;
-
-        // Use values array if available, otherwise use presets
-        if (!meta.values.isEmpty()) {
-            info.options = meta.values;
-        } else if (!meta.presets.isEmpty()) {
-            info.options = meta.presets;
-        }
-
-        // Store numeric range
-        if (meta.hasRange) {
-            info.minValue = meta.min;
-            info.maxValue = meta.max;
-        }
-
-        infoItems[it.key()] = info;
-    }
-    configModel_->setCategoryItemsWithInfo(category, infoItems);
-}
-
-void MainWindow::onConfigSavedToFlash()
-{
-    configModel_->clearDirtyFlags();
-    statusBar()->showMessage(tr("Configuration saved to flash"), 3000);
-}
-
-void MainWindow::onConfigLoadedFromFlash()
-{
-    // Reload categories to get fresh data
-    onConfigRefresh();
-    statusBar()->showMessage(tr("Configuration loaded from flash"), 3000);
-}
-
-void MainWindow::onConfigResetComplete()
-{
-    // Reload categories to get fresh data
-    onConfigRefresh();
-    statusBar()->showMessage(tr("Configuration reset to defaults"), 3000);
-}
-
-void MainWindow::onConfigDirtyStateChanged(bool isDirty)
-{
-    if (isDirty) {
-        configUnsavedIndicator_->setText(tr("Unsaved changes"));
-        configUnsavedIndicator_->setVisible(true);
-    } else {
-        configUnsavedIndicator_->setVisible(false);
-    }
-}
-
-void MainWindow::onConfigCategorySelected(QListWidgetItem *current, QListWidgetItem *previous)
-{
-    Q_UNUSED(previous)
-
-    if (!current) {
-        configItemsPanel_->setCategory(QString());
-        return;
-    }
-
-    QString category = current->text();
-    configItemsPanel_->setCategory(category);
-
-    // Load items for this category if not already loaded
-    if (configModel_->itemCount(category) == 0 && deviceConnection_->isConnected()) {
-        deviceConnection_->restClient()->getConfigCategoryItems(category);
-    }
-}
-
-void MainWindow::onConfigItemEdited(const QString &category, const QString &item,
-                                     const QVariant &value)
-{
-    if (!deviceConnection_->isConnected()) {
-        statusBar()->showMessage(tr("Not connected - changes are local only"), 3000);
-        return;
-    }
-
-    // Send update to device immediately
-    statusBar()->showMessage(tr("Updating %1...").arg(item));
-    deviceConnection_->restClient()->setConfigItem(category, item, value);
-}
-
-void MainWindow::onConfigItemSetResult(const QString &category, const QString &item)
-{
-    Q_UNUSED(category)
-    statusBar()->showMessage(tr("%1 updated").arg(item), 2000);
 }
