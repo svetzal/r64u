@@ -132,7 +132,7 @@ void TransferQueueWidget::setupUi()
     auto *headerLayout = new QHBoxLayout();
 
     statusLabel_ = new QLabel(tr("Transfer Queue"));
-    statusLabel_->setStyleSheet("font-weight: bold;");
+    statusLabel_->setObjectName("heading");
     headerLayout->addWidget(statusLabel_);
 
     headerLayout->addStretch();

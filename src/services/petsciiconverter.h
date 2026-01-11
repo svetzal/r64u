@@ -79,6 +79,16 @@ public:
      */
     static bool isControl(quint8 petscii);
 
+    /**
+     * @brief Convert ASCII string to C64 Pro font PUA characters
+     * @param text ASCII text (e.g., "123 \"FILENAME\"")
+     * @return QString with all characters mapped to C64 Pro font's PUA range
+     *
+     * This ensures all characters use the C64 Pro font for consistent
+     * monospace rendering in directory listings and other formatted text.
+     */
+    static QString toC64ProString(const QString &text);
+
 private:
     // Lookup tables
     static const char petsciiToAsciiTable[256];

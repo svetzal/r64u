@@ -3,6 +3,7 @@
 #include <QFontDatabase>
 #include "mainwindow.h"
 #include "utils/logging.h"
+#include "utils/thememanager.h"
 #include "version.h"
 
 int main(int argc, char *argv[])
@@ -37,13 +38,22 @@ int main(int argc, char *argv[])
     // Load C64 font from resources
     int fontId = QFontDatabase::addApplicationFont(":/fonts/C64_Pro_Mono.ttf");
     if (fontId == -1) {
-        qWarning() << "Failed to load C64 Pro Mono font";
-    } else if (r64u::verboseLogging) {
+        qWarning() << "Failed to load C64 Pro Mono font from resources";
+    } else {
         QStringList families = QFontDatabase::applicationFontFamilies(fontId);
-        if (!families.isEmpty()) {
-            qDebug() << "Loaded C64 font:" << families.first();
+        if (families.isEmpty()) {
+            qWarning() << "C64 font loaded but no family names returned";
+        } else {
+            // Always log the font family name so we can verify it matches our usage
+            qDebug() << "Loaded C64 font, family name:" << families.first();
+            if (families.first() != "C64 Pro Mono") {
+                qWarning() << "C64 font family name mismatch! Expected 'C64 Pro Mono', got:" << families.first();
+            }
         }
     }
+
+    // Initialize and apply theme
+    ThemeManager::instance()->applyTheme();
 
     MainWindow window;
     window.show();

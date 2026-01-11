@@ -47,7 +47,7 @@ void ConfigItemsPanel::setupUi()
     // Empty state label
     emptyLabel_ = new QLabel(tr("Select a category to view configuration items."));
     emptyLabel_->setAlignment(Qt::AlignCenter);
-    emptyLabel_->setStyleSheet("QLabel { color: gray; }");
+    emptyLabel_->setObjectName("muted");
     mainLayout->addWidget(emptyLabel_);
 
     // Initially show empty label

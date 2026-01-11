@@ -5,4 +5,8 @@
     <qresource prefix="/fonts">
         <file alias="C64_Pro_Mono.ttf">fonts/C64_Pro_Mono-STYLE.ttf</file>
     </qresource>
+    <qresource prefix="/themes">
+        <file alias="theme-light.qss">themes/theme-light.qss</file>
+        <file alias="theme-dark.qss">themes/theme-dark.qss</file>
+    </qresource>
 </RCC>

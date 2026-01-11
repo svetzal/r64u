@@ -33,6 +33,9 @@ private:
     QLineEdit *passwordEdit_ = nullptr;
     QCheckBox *autoConnectCheck_ = nullptr;
 
+    // Appearance settings
+    QComboBox *themeCombo_ = nullptr;
+
     // Application settings
     QLineEdit *localDirEdit_ = nullptr;
     QComboBox *defaultDriveCombo_ = nullptr;

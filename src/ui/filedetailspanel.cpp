@@ -1,4 +1,5 @@
 #include "filedetailspanel.h"
+#include "../utils/thememanager.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -12,6 +13,10 @@ FileDetailsPanel::FileDetailsPanel(QWidget *parent)
     : QWidget(parent)
 {
     setupUi();
+
+    // Reapply C64 styling after theme changes
+    connect(ThemeManager::instance(), &ThemeManager::themeChanged,
+            this, &FileDetailsPanel::applyC64TextStyle);
 }
 
 void FileDetailsPanel::setupUi()
@@ -26,7 +31,7 @@ void FileDetailsPanel::setupUi()
     auto *emptyLayout = new QVBoxLayout(emptyPage_);
     auto *emptyLabel = new QLabel(tr("Select a file to view details"));
     emptyLabel->setAlignment(Qt::AlignCenter);
-    emptyLabel->setStyleSheet("color: gray;");
+    emptyLabel->setObjectName("muted");
     emptyLayout->addWidget(emptyLabel);
     stack_->addWidget(emptyPage_);
 
@@ -53,7 +58,7 @@ void FileDetailsPanel::setupUi()
 
     statusLabel_ = new QLabel();
     statusLabel_->setAlignment(Qt::AlignCenter);
-    statusLabel_->setStyleSheet("color: gray;");
+    statusLabel_->setObjectName("muted");
     statusLabel_->hide();
     infoLayout->addWidget(statusLabel_);
 
@@ -69,9 +74,14 @@ void FileDetailsPanel::setupUi()
     textFileNameLabel_->setContentsMargins(0, 0, 0, 4);
 
     textBrowser_ = new QTextBrowser();
+    textBrowser_->setObjectName("c64TextBrowser");
     textBrowser_->setReadOnly(true);
     textBrowser_->setOpenExternalLinks(false);
     textBrowser_->setOpenLinks(false);
+
+    // Critical for monospace rendering: disable word wrap
+    // PETSCII box-drawing characters must align vertically
+    textBrowser_->setLineWrapMode(QTextEdit::NoWrap);
 
     // Apply C64 styling
     applyC64TextStyle();
@@ -271,40 +281,44 @@ void FileDetailsPanel::showSidDetails(const QByteArray &sidData, const QString &
 
 void FileDetailsPanel::applyC64TextStyle()
 {
-    // Set C64 Pro Mono font
+    // Set C64 Pro Mono font programmatically
     QFont c64Font("C64 Pro Mono");
     c64Font.setStyleHint(QFont::Monospace);
-    c64Font.setPointSize(12);
+    c64Font.setPointSize(11);
+    c64Font.setStyleStrategy(QFont::PreferMatch);
+    // Disable font hinting for pixel-perfect rendering
+    c64Font.setHintingPreference(QFont::PreferNoHinting);
     textBrowser_->setFont(c64Font);
 
-    // Determine color scheme based on system theme
-    Qt::ColorScheme scheme = QGuiApplication::styleHints()->colorScheme();
-    bool isDarkMode = (scheme == Qt::ColorScheme::Dark);
+    // Determine color scheme based on app theme (not system theme)
+    bool isDarkMode = (ThemeManager::instance()->effectiveTheme() == ThemeManager::Theme::Dark);
 
-    // C64 color constants
+    // C64 color constants (VIC-II inspired)
     const QString c64Blue = "#4040E8";
     const QString c64LightBlue = "#887ECB";
 
+    // Include font-family in stylesheet to ensure global QSS doesn't override it
+    // The font-family must match exactly what Qt registered when loading the TTF
     QString stylesheet;
     if (isDarkMode) {
         // Dark mode: blue text on black background
         stylesheet = QString(
-            "QTextBrowser {"
-            "  background-color: #000000;"
-            "  color: %1;"
-            "  border: 1px solid %1;"
-            "  padding: 8px;"
-            "}"
+            "font-family: 'C64 Pro Mono';"
+            "font-size: 11pt;"
+            "background-color: #000000;"
+            "color: %1;"
+            "border: 1px solid %1;"
+            "padding: 8px;"
         ).arg(c64LightBlue);
     } else {
         // Light mode: white text on blue background (classic C64 look)
         stylesheet = QString(
-            "QTextBrowser {"
-            "  background-color: %1;"
-            "  color: #FFFFFF;"
-            "  border: 1px solid #2020A8;"
-            "  padding: 8px;"
-            "}"
+            "font-family: 'C64 Pro Mono';"
+            "font-size: 11pt;"
+            "background-color: %1;"
+            "color: #FFFFFF;"
+            "border: 1px solid #2020A8;"
+            "padding: 8px;"
         ).arg(c64Blue);
     }
 

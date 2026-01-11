@@ -57,6 +57,7 @@ set(SOURCES
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
     src/models/configurationmodel.cpp
+    src/utils/thememanager.cpp
 )
 
 set(HEADERS
@@ -83,6 +84,8 @@ set(HEADERS
     src/models/localfileproxymodel.h
     src/models/transferqueue.h
     src/models/configurationmodel.h
+    src/utils/thememanager.h
+    src/utils/logging.h
 )
 
 # Platform-specific credential storage

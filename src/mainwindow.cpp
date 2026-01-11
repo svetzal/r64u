@@ -279,7 +279,7 @@ void MainWindow::setupExploreRunMode()
     remoteLayout->setContentsMargins(4, 4, 4, 4);
 
     auto *remoteLabel = new QLabel(tr("C64U Files"));
-    remoteLabel->setStyleSheet("font-weight: bold;");
+    remoteLabel->setObjectName("heading");
     remoteLayout->addWidget(remoteLabel);
 
     // Remote panel toolbar
@@ -317,7 +317,7 @@ void MainWindow::setupExploreRunMode()
 
     // Current directory indicator
     exploreRemoteCurrentDirLabel_ = new QLabel(tr("Location: /"));
-    exploreRemoteCurrentDirLabel_->setStyleSheet("color: #0066cc; padding: 2px; background-color: #f0f8ff; border-radius: 3px;");
+    exploreRemoteCurrentDirLabel_->setObjectName("remoteDirLabel");
     exploreRemoteCurrentDirLabel_->setWordWrap(true);
     remoteLayout->addWidget(exploreRemoteCurrentDirLabel_);
 
@@ -382,7 +382,7 @@ void MainWindow::setupTransferMode()
     remoteLayout->setContentsMargins(4, 4, 4, 4);
 
     auto *remoteLabel = new QLabel(tr("C64U Files"));
-    remoteLabel->setStyleSheet("font-weight: bold;");
+    remoteLabel->setObjectName("heading");
     remoteLayout->addWidget(remoteLabel);
 
     // Remote panel toolbar
@@ -423,7 +423,7 @@ void MainWindow::setupTransferMode()
 
     // Current remote directory indicator
     remoteCurrentDirLabel_ = new QLabel(tr("Upload to: /"));
-    remoteCurrentDirLabel_->setStyleSheet("color: #0066cc; padding: 2px; background-color: #f0f8ff; border-radius: 3px;");
+    remoteCurrentDirLabel_->setObjectName("remoteDirLabel");
     remoteCurrentDirLabel_->setWordWrap(true);
     remoteLayout->addWidget(remoteCurrentDirLabel_);
 
@@ -458,7 +458,7 @@ void MainWindow::setupTransferMode()
     localLayout->setContentsMargins(4, 4, 4, 4);
 
     auto *localLabel = new QLabel(tr("Local Files"));
-    localLabel->setStyleSheet("font-weight: bold;");
+    localLabel->setObjectName("heading");
     localLayout->addWidget(localLabel);
 
     // Local panel toolbar
@@ -493,7 +493,7 @@ void MainWindow::setupTransferMode()
 
     // Current local directory indicator
     localCurrentDirLabel_ = new QLabel(tr("Download to: ~"));
-    localCurrentDirLabel_->setStyleSheet("color: #006600; padding: 2px; background-color: #f0fff0; border-radius: 3px;");
+    localCurrentDirLabel_->setObjectName("localDirLabel");
     localCurrentDirLabel_->setWordWrap(true);
     localLayout->addWidget(localCurrentDirLabel_);
 
@@ -736,7 +736,7 @@ void MainWindow::setupConfigMode()
 
     // Unsaved changes indicator
     configUnsavedIndicator_ = new QLabel();
-    configUnsavedIndicator_->setStyleSheet("QLabel { color: orange; font-weight: bold; }");
+    configUnsavedIndicator_->setObjectName("unsavedIndicator");
     configUnsavedIndicator_->setVisible(false);
     configToolBar_->addWidget(configUnsavedIndicator_);
 
@@ -751,10 +751,6 @@ void MainWindow::setupConfigMode()
     configCategoryList_->setMaximumWidth(250);
     configCategoryList_->setAlternatingRowColors(true);
     configCategoryList_->setSpacing(2);
-    // Match the styling of tree views with slightly more padding
-    configCategoryList_->setStyleSheet(
-        "QListWidget::item { padding: 4px 8px; }"
-    );
     connect(configCategoryList_, &QListWidget::currentItemChanged,
             this, &MainWindow::onConfigCategorySelected);
     configSplitter_->addWidget(configCategoryList_);

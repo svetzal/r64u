@@ -1,6 +1,7 @@
 #include "preferencesdialog.h"
 #include "../services/c64urestclient.h"
 #include "../services/credentialstore.h"
+#include "../utils/thememanager.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -50,6 +51,18 @@ void PreferencesDialog::setupUi()
     deviceLayout->addRow("", autoConnectCheck_);
 
     mainLayout->addWidget(deviceGroup);
+
+    // Appearance settings group
+    auto *appearanceGroup = new QGroupBox(tr("Appearance"));
+    auto *appearanceLayout = new QFormLayout(appearanceGroup);
+
+    themeCombo_ = new QComboBox();
+    themeCombo_->addItem(tr("System (Auto)"), static_cast<int>(ThemeManager::Theme::System));
+    themeCombo_->addItem(tr("Light (Breadbin)"), static_cast<int>(ThemeManager::Theme::Light));
+    themeCombo_->addItem(tr("Dark (Desk Mat)"), static_cast<int>(ThemeManager::Theme::Dark));
+    appearanceLayout->addRow(tr("Theme:"), themeCombo_);
+
+    mainLayout->addWidget(appearanceGroup);
 
     // Application settings group
     auto *appGroup = new QGroupBox(tr("Application"));
@@ -134,6 +147,13 @@ void PreferencesDialog::loadSettings()
 
     autoConnectCheck_->setChecked(settings.value("device/autoConnect", false).toBool());
 
+    // Load theme setting
+    int themeIndex = themeCombo_->findData(
+        static_cast<int>(ThemeManager::instance()->currentTheme()));
+    if (themeIndex >= 0) {
+        themeCombo_->setCurrentIndex(themeIndex);
+    }
+
     QString homePath = QStandardPaths::writableLocation(
         QStandardPaths::HomeLocation);
     localDirEdit_->setText(
@@ -173,6 +193,11 @@ void PreferencesDialog::saveSettings()
     settings.remove("device/password");
 
     settings.setValue("device/autoConnect", autoConnectCheck_->isChecked());
+
+    // Apply theme immediately
+    ThemeManager::Theme selectedTheme = static_cast<ThemeManager::Theme>(
+        themeCombo_->currentData().toInt());
+    ThemeManager::instance()->setTheme(selectedTheme);
 
     settings.setValue("directories/local", localDirEdit_->text());
 

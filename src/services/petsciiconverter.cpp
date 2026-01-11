@@ -210,3 +210,36 @@ bool PetsciiConverter::isControl(quint8 petscii)
     }
     return false;
 }
+
+QString PetsciiConverter::toC64ProString(const QString &text)
+{
+    // Convert ASCII/Unicode text to C64 Pro font's PUA encoding
+    // This ensures all characters render using the C64 Pro font
+    // for consistent monospace alignment in directory listings.
+    //
+    // Maps ASCII 0x20-0x7F to U+E020-E07F in the font's PUA range.
+    // Newlines (0x0A) are preserved as-is for Qt text rendering.
+
+    QString result;
+    result.reserve(text.size());
+
+    for (int i = 0; i < text.size(); i++) {
+        ushort ch = text[i].unicode();
+
+        if (ch == '\n') {
+            // Keep newlines as-is for proper line breaks
+            result += QChar('\n');
+        } else if (ch >= 0x20 && ch <= 0x7F) {
+            // Map printable ASCII to PUA
+            result += QChar(0xE000 + ch);
+        } else if (ch >= 0xE000 && ch <= 0xE0FF) {
+            // Already in PUA range (from toDisplayString), keep as-is
+            result += QChar(ch);
+        } else {
+            // Other characters: map to PUA space
+            result += QChar(0xE020);
+        }
+    }
+
+    return result;
+}
