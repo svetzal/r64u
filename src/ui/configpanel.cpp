@@ -58,9 +58,9 @@ void ConfigPanel::setupUi()
 
     layout->addWidget(toolBar_);
 
-    // Create horizontal tab widget for categories
+    // Create tab widget with tabs on the left side
     categoryTabs_ = new QTabWidget();
-    categoryTabs_->setTabPosition(QTabWidget::North);
+    categoryTabs_->setTabPosition(QTabWidget::West);
     categoryTabs_->setDocumentMode(true);  // Cleaner look on macOS
     connect(categoryTabs_, &QTabWidget::currentChanged,
             this, &ConfigPanel::onCategoryTabChanged);
