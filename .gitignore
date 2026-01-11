@@ -66,3 +66,10 @@ coverage.info
 tests/CTestTestfile.cmake
 CTestTestfile.cmake
 Testing/
+
+# CPack generated
+CPackConfig.cmake
+CPackSourceConfig.cmake
+
+# Generated source files (in-source builds)
+generated/
