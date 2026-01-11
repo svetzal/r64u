@@ -4,7 +4,7 @@
 #include <QAbstractItemModel>
 #include <QIcon>
 #include <QSet>
-#include "services/c64uftpclient.h"
+#include "services/iftpclient.h"
 
 class RemoteFileModel : public QAbstractItemModel
 {
@@ -35,7 +35,7 @@ public:
     explicit RemoteFileModel(QObject *parent = nullptr);
     ~RemoteFileModel() override;
 
-    void setFtpClient(C64UFtpClient *client);
+    void setFtpClient(IFtpClient *client);
 
     // QAbstractItemModel interface
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
@@ -96,7 +96,7 @@ private:
     TreeNode* findNodeByPath(const QString &path) const;
     void populateNode(TreeNode *node, const QList<FtpEntry> &entries);
 
-    C64UFtpClient *ftpClient_ = nullptr;
+    IFtpClient *ftpClient_ = nullptr;
     TreeNode *rootNode_ = nullptr;
     QString rootPath_ = "/";
 

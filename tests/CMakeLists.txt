@@ -50,6 +50,36 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_transferqueue)
 endif()
 
+# RemoteFileModel tests - uses MockFtpClient via interface injection
+add_executable(test_remotefilemodel
+    test_remotefilemodel.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+)
+
+target_include_directories(test_remotefilemodel PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/mockftpclient.h
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_remotefilemodel PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+    Qt6::Widgets
+)
+
+# Register test with CTest
+add_test(NAME RemoteFileModelTest COMMAND test_remotefilemodel)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(remotefilemodel test_remotefilemodel)
+    add_dependencies(coverage coverage_remotefilemodel)
+endif()
+
 # ConfigurationModel tests
 add_executable(test_configurationmodel
     test_configurationmodel.cpp

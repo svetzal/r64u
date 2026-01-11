@@ -18,7 +18,7 @@ RemoteFileModel::~RemoteFileModel()
     delete rootNode_;
 }
 
-void RemoteFileModel::setFtpClient(C64UFtpClient *client)
+void RemoteFileModel::setFtpClient(IFtpClient *client)
 {
     if (ftpClient_) {
         disconnect(ftpClient_, nullptr, this, nullptr);
@@ -27,9 +27,9 @@ void RemoteFileModel::setFtpClient(C64UFtpClient *client)
     ftpClient_ = client;
 
     if (ftpClient_) {
-        connect(ftpClient_, &C64UFtpClient::directoryListed,
+        connect(ftpClient_, &IFtpClient::directoryListed,
                 this, &RemoteFileModel::onDirectoryListed);
-        connect(ftpClient_, &C64UFtpClient::error,
+        connect(ftpClient_, &IFtpClient::error,
                 this, &RemoteFileModel::onFtpError);
     }
 }
