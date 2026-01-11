@@ -9,6 +9,7 @@
 #include "services/configfileloader.h"
 #include "services/filepreviewservice.h"
 #include "services/transferservice.h"
+#include "services/errorhandler.h"
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 
@@ -40,6 +41,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Create the transfer service
     transferService_ = new TransferService(deviceConnection_, transferQueue_, this);
+
+    // Create the error handler
+    errorHandler_ = new ErrorHandler(this, this);
 
     // Configure the config file loader
     configFileLoader_->setFtpClient(deviceConnection_->ftpClient());
@@ -270,16 +274,23 @@ void MainWindow::setupConnections()
             this, &MainWindow::onDeviceInfoUpdated);
     connect(deviceConnection_, &DeviceConnection::driveInfoUpdated,
             this, &MainWindow::onDriveInfoUpdated);
+    // Route error signals through ErrorHandler for consistent presentation
     connect(deviceConnection_, &DeviceConnection::connectionError,
-            this, &MainWindow::onConnectionError);
+            errorHandler_, &ErrorHandler::handleConnectionError);
+    connect(deviceConnection_->restClient(), &C64URestClient::operationFailed,
+            errorHandler_, &ErrorHandler::handleOperationFailed);
+    connect(remoteFileModel_, &RemoteFileModel::errorOccurred,
+            errorHandler_, &ErrorHandler::handleDataError);
 
-    // REST client signals for operation results
+    // ErrorHandler status messages go to status bar
+    connect(errorHandler_, &ErrorHandler::statusMessage,
+            statusBar(), &QStatusBar::showMessage);
+
+    // REST client success signals
     connect(deviceConnection_->restClient(), &C64URestClient::operationSucceeded,
             this, &MainWindow::onOperationSucceeded);
-    connect(deviceConnection_->restClient(), &C64URestClient::operationFailed,
-            this, &MainWindow::onOperationFailed);
 
-    // Model signals
+    // Model signals for loading state (not errors)
     connect(remoteFileModel_, &RemoteFileModel::loadingStarted,
             this, [this](const QString &path) {
         statusBar()->showMessage(tr("Loading %1...").arg(path));
@@ -287,10 +298,6 @@ void MainWindow::setupConnections()
     connect(remoteFileModel_, &RemoteFileModel::loadingFinished,
             this, [this](const QString &) {
         statusBar()->clearMessage();
-    });
-    connect(remoteFileModel_, &RemoteFileModel::errorOccurred,
-            this, [this](const QString &message) {
-        statusBar()->showMessage(tr("Error: %1").arg(message), 5000);
     });
 
     // Config file loader signals
@@ -660,12 +667,6 @@ void MainWindow::onDriveInfoUpdated()
     explorePanel_->updateDriveInfo();
 }
 
-void MainWindow::onConnectionError(const QString &message)
-{
-    statusBar()->showMessage(tr("Connection error: %1").arg(message), 5000);
-    QMessageBox::warning(this, tr("Connection Error"), message);
-}
-
 void MainWindow::onOperationSucceeded(const QString &operation)
 {
     statusBar()->showMessage(tr("%1 succeeded").arg(operation), 3000);
@@ -673,9 +674,4 @@ void MainWindow::onOperationSucceeded(const QString &operation)
     if (operation == "mount" || operation == "unmount") {
         deviceConnection_->refreshDriveInfo();
     }
-}
-
-void MainWindow::onOperationFailed(const QString &operation, const QString &error)
-{
-    statusBar()->showMessage(tr("%1 failed: %2").arg(operation).arg(error), 5000);
 }

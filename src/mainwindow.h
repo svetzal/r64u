@@ -13,6 +13,7 @@ class TransferQueue;
 class ConfigFileLoader;
 class FilePreviewService;
 class TransferService;
+class ErrorHandler;
 class ConnectionStatusWidget;
 class ExplorePanel;
 class TransferPanel;
@@ -54,11 +55,9 @@ private slots:
     void onConnectionStateChanged();
     void onDeviceInfoUpdated();
     void onDriveInfoUpdated();
-    void onConnectionError(const QString &message);
 
     // Operation result slots
     void onOperationSucceeded(const QString &operation);
-    void onOperationFailed(const QString &operation, const QString &error);
 
     // Refresh slot (shared by panels)
     void onRefresh();
@@ -86,6 +85,7 @@ private:
     ConfigFileLoader *configFileLoader_ = nullptr;
     FilePreviewService *filePreviewService_ = nullptr;
     TransferService *transferService_ = nullptr;
+    ErrorHandler *errorHandler_ = nullptr;
 
     // Central widget
     QTabWidget *modeTabWidget_ = nullptr;

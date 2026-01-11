@@ -349,3 +349,28 @@ if(BUILD_COVERAGE)
     add_coverage_target(transferservice test_transferservice)
     add_dependencies(coverage coverage_transferservice)
 endif()
+
+# ErrorHandler tests
+add_executable(test_errorhandler
+    test_errorhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
+)
+
+target_include_directories(test_errorhandler PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_errorhandler PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Widgets
+)
+
+# Register test with CTest
+add_test(NAME ErrorHandlerTest COMMAND test_errorhandler)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(errorhandler test_errorhandler)
+    add_dependencies(coverage coverage_errorhandler)
+endif()
