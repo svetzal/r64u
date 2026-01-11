@@ -80,12 +80,19 @@ MainWindow::~MainWindow()
 
 void MainWindow::setupUi()
 {
+    // Create container with top margin for spacing below toolbar
+    auto *centralContainer = new QWidget(this);
+    auto *layout = new QVBoxLayout(centralContainer);
+    layout->setContentsMargins(0, 8, 0, 0);
+    layout->setSpacing(0);
+
     // Create tabbed mode widget
     // Note: Signal connection is deferred to setupConnections() to avoid
     // triggering onModeChanged before all widgets are initialized
-    modeTabWidget_ = new QTabWidget(this);
-    modeTabWidget_->setContentsMargins(0, 8, 0, 0);  // Add spacing below toolbar
-    setCentralWidget(modeTabWidget_);
+    modeTabWidget_ = new QTabWidget();
+    layout->addWidget(modeTabWidget_);
+
+    setCentralWidget(centralContainer);
 }
 
 void MainWindow::setupMenuBar()
