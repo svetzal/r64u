@@ -810,6 +810,11 @@ void TransferQueue::onFileRemoved(const QString &path)
         if (deleteQueue_[currentDeleteIndex_].path == path) {
             deletedCount_++;
             currentDeleteIndex_++;
+
+            // Emit progress update with filename
+            QString fileName = QFileInfo(path).fileName();
+            emit deleteProgressUpdate(fileName, deletedCount_, totalDeleteItems_);
+
             emit queueChanged();
             processNextDelete();
             return;

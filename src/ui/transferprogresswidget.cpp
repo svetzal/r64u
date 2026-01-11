@@ -55,6 +55,8 @@ void TransferProgressWidget::setTransferQueue(TransferQueue *queue)
                 this, &TransferProgressWidget::onAllOperationsCompleted);
         connect(transferQueue_, &TransferQueue::queueChanged,
                 this, &TransferProgressWidget::onQueueChanged);
+        connect(transferQueue_, &TransferQueue::deleteProgressUpdate,
+                this, &TransferProgressWidget::onDeleteProgressUpdate);
     }
 }
 
@@ -130,6 +132,13 @@ void TransferProgressWidget::onShowProgress()
         setVisible(true);
         updateProgressDisplay();
     }
+}
+
+void TransferProgressWidget::onDeleteProgressUpdate(const QString &fileName, int current, int total)
+{
+    Q_UNUSED(current)
+    Q_UNUSED(total)
+    emit statusMessage(tr("Deleted: %1").arg(fileName), 1000);
 }
 
 void TransferProgressWidget::updateProgressDisplay()

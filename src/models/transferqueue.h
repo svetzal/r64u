@@ -82,6 +82,7 @@ signals:
     void operationFailed(const QString &fileName, const QString &error);
     void allOperationsCompleted();
     void queueChanged();
+    void deleteProgressUpdate(const QString &fileName, int current, int total);
 
 private slots:
     void onUploadProgress(const QString &file, qint64 sent, qint64 total);

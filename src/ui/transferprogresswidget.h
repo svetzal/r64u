@@ -27,6 +27,7 @@ private slots:
     void onQueueChanged();
     void onAllOperationsCompleted();
     void onShowProgress();
+    void onDeleteProgressUpdate(const QString &fileName, int current, int total);
 
 private:
     void setupUi();
