@@ -86,25 +86,15 @@ void MainWindow::setupUi()
     centralLayout->setContentsMargins(0, 0, 0, 0);
     centralLayout->setSpacing(0);
 
-    // Mode selector row
-    auto *modeWidget = new QWidget();
-    auto *modeLayout = new QHBoxLayout(modeWidget);
-    modeLayout->setContentsMargins(8, 4, 8, 4);
-
-    auto *modeLabel = new QLabel(tr("Mode:"));
-    modeLayout->addWidget(modeLabel);
-
-    modeCombo_ = new QComboBox();
-    modeCombo_->addItem(tr("Explore/Run"));
-    modeCombo_->addItem(tr("Transfer"));
-    modeCombo_->addItem(tr("View"));
-    modeCombo_->addItem(tr("Config"));
-    connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+    // Mode tab bar
+    modeTabBar_ = new QTabBar();
+    modeTabBar_->addTab(tr("Explore/Run"));
+    modeTabBar_->addTab(tr("Transfer"));
+    modeTabBar_->addTab(tr("View"));
+    modeTabBar_->addTab(tr("Config"));
+    connect(modeTabBar_, &QTabBar::currentChanged,
             this, &MainWindow::onModeChanged);
-    modeLayout->addWidget(modeCombo_);
-
-    modeLayout->addStretch();
-    centralLayout->addWidget(modeWidget);
+    centralLayout->addWidget(modeTabBar_);
 
     // Main content area
     stackedWidget_ = new QStackedWidget();
@@ -142,25 +132,25 @@ void MainWindow::setupMenuBar()
     auto *exploreAction = viewMenu->addAction(tr("&Explore/Run Mode"));
     exploreAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_1));
     connect(exploreAction, &QAction::triggered, this, [this]() {
-        modeCombo_->setCurrentIndex(0);
+        modeTabBar_->setCurrentIndex(0);
     });
 
     auto *transferAction = viewMenu->addAction(tr("&Transfer Mode"));
     transferAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_2));
     connect(transferAction, &QAction::triggered, this, [this]() {
-        modeCombo_->setCurrentIndex(1);
+        modeTabBar_->setCurrentIndex(1);
     });
 
     auto *viewModeAction = viewMenu->addAction(tr("&View Mode"));
     viewModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_3));
     connect(viewModeAction, &QAction::triggered, this, [this]() {
-        modeCombo_->setCurrentIndex(2);
+        modeTabBar_->setCurrentIndex(2);
     });
 
     auto *configModeAction = viewMenu->addAction(tr("&Config Mode"));
     configModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_4));
     connect(configModeAction, &QAction::triggered, this, [this]() {
-        modeCombo_->setCurrentIndex(3);
+        modeTabBar_->setCurrentIndex(3);
     });
 
     viewMenu->addSeparator();

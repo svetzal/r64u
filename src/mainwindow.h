@@ -6,7 +6,7 @@
 #include <QTreeView>
 #include <QSplitter>
 #include <QToolBar>
-#include <QComboBox>
+#include <QTabBar>
 #include <QLabel>
 #include <QFileSystemModel>
 #include <QMenu>
@@ -261,7 +261,7 @@ private:
 
     // Toolbar
     QToolBar *systemToolBar_ = nullptr;
-    QComboBox *modeCombo_ = nullptr;
+    QTabBar *modeTabBar_ = nullptr;
     QAction *connectAction_ = nullptr;
 
     // Mode-specific actions
