@@ -10,6 +10,7 @@
 class DeviceConnection;
 class RemoteFileModel;
 class ConfigFileLoader;
+class FilePreviewService;
 class FileDetailsPanel;
 class PathNavigationWidget;
 class DriveStatusWidget;
@@ -22,6 +23,7 @@ public:
     explicit ExplorePanel(DeviceConnection *connection,
                           RemoteFileModel *model,
                           ConfigFileLoader *configLoader,
+                          FilePreviewService *previewService,
                           QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
@@ -59,9 +61,10 @@ private slots:
     void onDownload();
     void onRefresh();
 
-    // File details panel slots
+    // File preview service slots
     void onFileContentRequested(const QString &path);
-    void onFileContentReceived(const QString &remotePath, const QByteArray &data);
+    void onPreviewReady(const QString &remotePath, const QByteArray &data);
+    void onPreviewFailed(const QString &remotePath, const QString &error);
 
     // Config file loading slots
     void onConfigLoadFinished(const QString &path);
@@ -77,6 +80,7 @@ private:
     DeviceConnection *deviceConnection_ = nullptr;
     RemoteFileModel *remoteFileModel_ = nullptr;
     ConfigFileLoader *configFileLoader_ = nullptr;
+    FilePreviewService *previewService_ = nullptr;
 
     // State
     QString currentDirectory_;

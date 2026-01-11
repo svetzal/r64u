@@ -287,3 +287,32 @@ if(BUILD_COVERAGE)
     add_coverage_target(videostreamreceiver test_videostreamreceiver)
     add_dependencies(coverage coverage_videostreamreceiver)
 endif()
+
+# FilePreviewService tests - uses MockFtpClient via interface injection
+add_executable(test_filepreviewservice
+    test_filepreviewservice.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filepreviewservice.cpp
+)
+
+target_include_directories(test_filepreviewservice PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/mockftpclient.h
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_filepreviewservice PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+# Register test with CTest
+add_test(NAME FilePreviewServiceTest COMMAND test_filepreviewservice)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(filepreviewservice test_filepreviewservice)
+    add_dependencies(coverage coverage_filepreviewservice)
+endif()

@@ -4,6 +4,7 @@
 #include "drivestatuswidget.h"
 #include "services/deviceconnection.h"
 #include "services/configfileloader.h"
+#include "services/filepreviewservice.h"
 #include "models/remotefilemodel.h"
 
 #include <QVBoxLayout>
@@ -17,11 +18,13 @@
 ExplorePanel::ExplorePanel(DeviceConnection *connection,
                            RemoteFileModel *model,
                            ConfigFileLoader *configLoader,
+                           FilePreviewService *previewService,
                            QWidget *parent)
     : QWidget(parent)
     , deviceConnection_(connection)
     , remoteFileModel_(model)
     , configFileLoader_(configLoader)
+    , previewService_(previewService)
     , currentDirectory_("/")
 {
     setupUi();
@@ -138,9 +141,11 @@ void ExplorePanel::setupConnections()
     connect(deviceConnection_, &DeviceConnection::stateChanged,
             this, &ExplorePanel::onConnectionStateChanged);
 
-    // Connect to FTP client for file content
-    connect(deviceConnection_->ftpClient(), &C64UFtpClient::downloadToMemoryFinished,
-            this, &ExplorePanel::onFileContentReceived);
+    // Connect to file preview service for file content
+    connect(previewService_, &FilePreviewService::previewReady,
+            this, &ExplorePanel::onPreviewReady);
+    connect(previewService_, &FilePreviewService::previewFailed,
+            this, &ExplorePanel::onPreviewFailed);
 
     // Connect to config file loader
     connect(configFileLoader_, &ConfigFileLoader::loadFinished,
@@ -521,11 +526,11 @@ void ExplorePanel::onFileContentRequested(const QString &path)
         return;
     }
 
-    // Download file content to memory for preview
-    deviceConnection_->ftpClient()->downloadToMemory(path);
+    // Request file content via preview service
+    previewService_->requestPreview(path);
 }
 
-void ExplorePanel::onFileContentReceived(const QString &remotePath, const QByteArray &data)
+void ExplorePanel::onPreviewReady(const QString &remotePath, const QByteArray &data)
 {
     // Check if this is a disk image file
     if (fileDetailsPanel_->isDiskImageFile(remotePath)) {
@@ -537,6 +542,12 @@ void ExplorePanel::onFileContentReceived(const QString &remotePath, const QByteA
         QString content = QString::fromUtf8(data);
         fileDetailsPanel_->showTextContent(content);
     }
+}
+
+void ExplorePanel::onPreviewFailed(const QString &remotePath, const QString &error)
+{
+    Q_UNUSED(remotePath)
+    fileDetailsPanel_->showError(error);
 }
 
 void ExplorePanel::onConfigLoadFinished(const QString &path)

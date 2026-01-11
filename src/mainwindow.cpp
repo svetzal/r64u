@@ -7,6 +7,7 @@
 #include "ui/configpanel.h"
 #include "services/deviceconnection.h"
 #include "services/configfileloader.h"
+#include "services/filepreviewservice.h"
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 
@@ -32,6 +33,9 @@ MainWindow::MainWindow(QWidget *parent)
     // Connect the FTP client to the model and queue
     remoteFileModel_->setFtpClient(deviceConnection_->ftpClient());
     transferQueue_->setFtpClient(deviceConnection_->ftpClient());
+
+    // Create the file preview service
+    filePreviewService_ = new FilePreviewService(deviceConnection_->ftpClient(), this);
 
     // Configure the config file loader
     configFileLoader_->setFtpClient(deviceConnection_->ftpClient());
@@ -227,7 +231,7 @@ void MainWindow::setupStatusBar()
 void MainWindow::setupPanels()
 {
     // Create mode panels with their dependencies
-    explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, configFileLoader_);
+    explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, configFileLoader_, filePreviewService_);
     transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferQueue_);
     viewPanel_ = new ViewPanel(deviceConnection_);
     configPanel_ = new ConfigPanel(deviceConnection_);
