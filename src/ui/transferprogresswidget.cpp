@@ -83,7 +83,8 @@ void TransferProgressWidget::onOperationStarted(const QString &fileName, Operati
 
     if (!progressPending_ && !isVisible()) {
         progressPending_ = true;
-        operationTotalCount_ = transferService_->totalCount();
+        // Use activeAndPendingCount to exclude completed items from previous operations
+        operationTotalCount_ = transferService_->activeAndPendingCount();
         operationCompletedCount_ = 0;
         delayTimer_->start(2000);
     }
@@ -117,7 +118,8 @@ void TransferProgressWidget::onOperationFailed(const QString &fileName, const QS
 
 void TransferProgressWidget::onQueueChanged()
 {
-    operationTotalCount_ = transferService_->totalCount();
+    // Calculate total as completed + remaining (excludes old completed items from previous operations)
+    operationTotalCount_ = operationCompletedCount_ + transferService_->activeAndPendingCount();
 
     if (isVisible()) {
         updateProgressDisplay();

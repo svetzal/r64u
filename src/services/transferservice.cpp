@@ -157,6 +157,11 @@ int TransferService::activeCount() const
     return queue_->activeCount();
 }
 
+int TransferService::activeAndPendingCount() const
+{
+    return queue_->activeAndPendingCount();
+}
+
 int TransferService::totalCount() const
 {
     return queue_->rowCount();

@@ -351,6 +351,18 @@ int TransferQueue::activeCount() const
     return count;
 }
 
+int TransferQueue::activeAndPendingCount() const
+{
+    int count = 0;
+    for (const auto &item : items_) {
+        if (item.status == TransferItem::Status::Pending ||
+            item.status == TransferItem::Status::InProgress) {
+            count++;
+        }
+    }
+    return count;
+}
+
 int TransferQueue::rowCount(const QModelIndex &parent) const
 {
     if (parent.isValid()) return 0;

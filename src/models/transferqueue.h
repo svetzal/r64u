@@ -71,6 +71,7 @@ public:
 
     [[nodiscard]] int pendingCount() const;
     [[nodiscard]] int activeCount() const;
+    [[nodiscard]] int activeAndPendingCount() const;
     [[nodiscard]] bool isProcessing() const { return processing_; }
     [[nodiscard]] bool isProcessingDelete() const { return processingDelete_; }
     [[nodiscard]] bool isScanning() const { return !pendingScans_.isEmpty() || !pendingDeleteScans_.isEmpty(); }

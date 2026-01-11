@@ -175,6 +175,12 @@ public:
     [[nodiscard]] int activeCount() const;
 
     /**
+     * @brief Returns count of pending and in-progress items for progress tracking.
+     * @return Number of items still to be processed.
+     */
+    [[nodiscard]] int activeAndPendingCount() const;
+
+    /**
      * @brief Returns the total item count for progress tracking.
      * @return Total number of items.
      */
