@@ -91,11 +91,19 @@ void TransferProgressWidget::onOperationStarted(const QString &fileName, Operati
 
 void TransferProgressWidget::onOperationCompleted(const QString &fileName)
 {
-    Q_UNUSED(fileName)
-    // Don't emit per-file status messages - they queue up and continue showing
-    // after the progress bar completes. The progress widget already shows
-    // "Downloading X of Y items..." which provides sufficient feedback.
-    // The "All operations completed" message at the end summarizes the result.
+    QString actionVerb;
+    switch (currentOperationType_) {
+    case OperationType::Upload:
+        actionVerb = tr("Uploaded");
+        break;
+    case OperationType::Download:
+        actionVerb = tr("Downloaded");
+        break;
+    case OperationType::Delete:
+        actionVerb = tr("Deleted");
+        break;
+    }
+    emit statusMessage(tr("%1: %2").arg(actionVerb, fileName), 2000);
     operationCompletedCount_++;
     onQueueChanged();
 }
@@ -130,6 +138,8 @@ void TransferProgressWidget::onAllOperationsCompleted()
     progressBar_->setValue(0);
     statusLabel_->setText(tr("Ready"));
 
+    // Clear any queued status messages before showing the final message
+    emit clearStatusMessages();
     emit statusMessage(tr("All operations completed"), 3000);
 }
 
@@ -147,6 +157,8 @@ void TransferProgressWidget::onOperationsCancelled()
     progressBar_->setValue(0);
     statusLabel_->setText(tr("Ready"));
 
+    // Clear any queued status messages before showing the cancellation message
+    emit clearStatusMessages();
     emit statusMessage(tr("Operations cancelled"), 3000);
 }
 

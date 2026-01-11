@@ -39,6 +39,7 @@ public:
 
 signals:
     void statusMessage(const QString &message, int timeout = 0);
+    void clearStatusMessages();
     void selectionChanged();
 
 private slots:

@@ -22,6 +22,7 @@ public:
 
 signals:
     void statusMessage(const QString &message, int timeout = 0);
+    void clearStatusMessages();
 
 private slots:
     void onOperationStarted(const QString &fileName, OperationType type);

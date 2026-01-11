@@ -93,6 +93,8 @@ void TransferPanel::setupConnections()
     if (progressWidget_) {
         connect(progressWidget_, &TransferProgressWidget::statusMessage,
                 this, &TransferPanel::statusMessage);
+        connect(progressWidget_, &TransferProgressWidget::clearStatusMessages,
+                this, &TransferPanel::clearStatusMessages);
         progressWidget_->setTransferService(transferService_);
     }
 

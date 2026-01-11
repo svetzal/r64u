@@ -267,6 +267,8 @@ void MainWindow::setupPanels()
             this, [this](const QString &msg, int timeout) {
         statusMessageService_->showInfo(msg, timeout);
     });
+    connect(transferPanel_, &TransferPanel::clearStatusMessages,
+            statusMessageService_, &StatusMessageService::clearMessages);
     connect(viewPanel_, &ViewPanel::statusMessage,
             this, [this](const QString &msg, int timeout) {
         statusMessageService_->showInfo(msg, timeout);
