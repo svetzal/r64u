@@ -74,6 +74,7 @@ public:
     static constexpr int FtpReplyTransferComplete = 226;  ///< Transfer complete
     static constexpr int FtpReplyPendingFurtherInfo = 350;  ///< Requested action pending further info
     static constexpr int FtpReplyErrorThreshold = 400;  ///< Codes >= this indicate error
+    static constexpr int FtpReplyFileExists = 553;  ///< File/directory already exists
     /// @}
 
     /**

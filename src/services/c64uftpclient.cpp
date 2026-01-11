@@ -589,7 +589,8 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
         break;
 
     case Command::Mkd:
-        if (code == FtpReplyPathCreated) {
+        if (code == FtpReplyPathCreated || code == FtpReplyFileExists) {
+            // 257 = created, 553 = already exists (both are success for our purposes)
             emit directoryCreated(currentArg_);
         } else {
             emit error(tr("Cannot create directory '%1': %2").arg(currentArg_, text));
