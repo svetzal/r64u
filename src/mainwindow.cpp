@@ -2,6 +2,9 @@
 #include "ui/preferencesdialog.h"
 #include "ui/filedetailspanel.h"
 #include "ui/configitemspanel.h"
+#include "ui/connectionstatuswidget.h"
+#include "ui/drivestatuswidget.h"
+#include "ui/pathnavigationwidget.h"
 #include "ui/videodisplaywidget.h"
 #include "services/deviceconnection.h"
 #include "services/configfileloader.h"
@@ -53,7 +56,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     setupUi();
     setupMenuBar();
-    setupToolBar();
+    setupSystemToolBar();
     setupStatusBar();
     setupExploreRunMode();
     setupTransferMode();
@@ -77,8 +80,37 @@ MainWindow::~MainWindow()
 
 void MainWindow::setupUi()
 {
-    stackedWidget_ = new QStackedWidget(this);
-    setCentralWidget(stackedWidget_);
+    // Create container for mode selector and content
+    auto *centralContainer = new QWidget(this);
+    auto *centralLayout = new QVBoxLayout(centralContainer);
+    centralLayout->setContentsMargins(0, 0, 0, 0);
+    centralLayout->setSpacing(0);
+
+    // Mode selector row
+    auto *modeWidget = new QWidget();
+    auto *modeLayout = new QHBoxLayout(modeWidget);
+    modeLayout->setContentsMargins(8, 4, 8, 4);
+
+    auto *modeLabel = new QLabel(tr("Mode:"));
+    modeLayout->addWidget(modeLabel);
+
+    modeCombo_ = new QComboBox();
+    modeCombo_->addItem(tr("Explore/Run"));
+    modeCombo_->addItem(tr("Transfer"));
+    modeCombo_->addItem(tr("View"));
+    modeCombo_->addItem(tr("Config"));
+    connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::onModeChanged);
+    modeLayout->addWidget(modeCombo_);
+
+    modeLayout->addStretch();
+    centralLayout->addWidget(modeWidget);
+
+    // Main content area
+    stackedWidget_ = new QStackedWidget();
+    centralLayout->addWidget(stackedWidget_, 1);
+
+    setCentralWidget(centralContainer);
 }
 
 void MainWindow::setupMenuBar()
@@ -163,26 +195,15 @@ void MainWindow::setupMenuBar()
     });
 }
 
-void MainWindow::setupToolBar()
+void MainWindow::setupSystemToolBar()
 {
-    mainToolBar_ = addToolBar(tr("Main"));
-    mainToolBar_->setMovable(false);
-    mainToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-
-    // Mode selector
-    modeCombo_ = new QComboBox();
-    modeCombo_->addItem(tr("Explore/Run"));
-    modeCombo_->addItem(tr("Transfer"));
-    modeCombo_->addItem(tr("View"));
-    modeCombo_->addItem(tr("Config"));
-    connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &MainWindow::onModeChanged);
-    mainToolBar_->addWidget(modeCombo_);
-
-    mainToolBar_->addSeparator();
+    // System toolbar (top row)
+    systemToolBar_ = addToolBar(tr("System"));
+    systemToolBar_->setMovable(false);
+    systemToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
     // Connect button
-    connectAction_ = mainToolBar_->addAction(tr("Connect"));
+    connectAction_ = systemToolBar_->addAction(tr("Connect"));
     connectAction_->setToolTip(tr("Connect to C64U device"));
     connect(connectAction_, &QAction::triggered, this, [this]() {
         // Check actual state, not just isConnected()
@@ -196,72 +217,53 @@ void MainWindow::setupToolBar()
         }
     });
 
-    mainToolBar_->addSeparator();
+    systemToolBar_->addSeparator();
 
     // Machine actions (not file-specific)
-    resetAction_ = mainToolBar_->addAction(tr("Reset"));
+    resetAction_ = systemToolBar_->addAction(tr("Reset"));
     resetAction_->setToolTip(tr("Reset the C64"));
     connect(resetAction_, &QAction::triggered, this, &MainWindow::onReset);
 
-    rebootAction_ = mainToolBar_->addAction(tr("Reboot"));
+    rebootAction_ = systemToolBar_->addAction(tr("Reboot"));
     rebootAction_->setToolTip(tr("Reboot the Ultimate device"));
     connect(rebootAction_, &QAction::triggered, this, &MainWindow::onReboot);
 
-    pauseAction_ = mainToolBar_->addAction(tr("Pause"));
+    pauseAction_ = systemToolBar_->addAction(tr("Pause"));
     pauseAction_->setToolTip(tr("Pause C64 execution"));
     connect(pauseAction_, &QAction::triggered, this, &MainWindow::onPause);
 
-    resumeAction_ = mainToolBar_->addAction(tr("Resume"));
+    resumeAction_ = systemToolBar_->addAction(tr("Resume"));
     resumeAction_->setToolTip(tr("Resume C64 execution"));
     connect(resumeAction_, &QAction::triggered, this, &MainWindow::onResume);
 
-    menuAction_ = mainToolBar_->addAction(tr("Menu"));
+    menuAction_ = systemToolBar_->addAction(tr("Menu"));
     menuAction_->setToolTip(tr("Press Ultimate menu button"));
     connect(menuAction_, &QAction::triggered, this, &MainWindow::onMenuButton);
 
-    powerOffAction_ = mainToolBar_->addAction(tr("Power Off"));
+    powerOffAction_ = systemToolBar_->addAction(tr("Power Off"));
     powerOffAction_->setToolTip(tr("Power off the Ultimate device"));
     connect(powerOffAction_, &QAction::triggered, this, &MainWindow::onPowerOff);
 
-    mainToolBar_->addSeparator();
+    systemToolBar_->addSeparator();
 
-    auto *prefsAction = mainToolBar_->addAction(tr("Preferences"));
+    auto *prefsAction = systemToolBar_->addAction(tr("Preferences"));
     prefsAction->setToolTip(tr("Open preferences dialog"));
     connect(prefsAction, &QAction::triggered, this, &MainWindow::onPreferences);
+
+    // Spacer to push connection status to the right
+    auto *spacer = new QWidget();
+    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    systemToolBar_->addWidget(spacer);
+
+    // Connection status on the right
+    connectionStatus_ = new ConnectionStatusWidget();
+    systemToolBar_->addWidget(connectionStatus_);
 }
 
 void MainWindow::setupStatusBar()
 {
-    driveALabel_ = new QLabel(tr("Drive A: [none]"));
-    driveBLabel_ = new QLabel(tr("Drive B: [none]"));
-    connectionLabel_ = new QLabel(tr("Disconnected"));
-
-    // Eject buttons for drives
-    driveAEjectButton_ = new QToolButton();
-    driveAEjectButton_->setText(tr("⏏"));
-    driveAEjectButton_->setToolTip(tr("Eject Drive A"));
-    driveAEjectButton_->setAutoRaise(true);
-    driveAEjectButton_->setVisible(false);
-    connect(driveAEjectButton_, &QToolButton::clicked, this, &MainWindow::onEjectDriveA);
-
-    driveBEjectButton_ = new QToolButton();
-    driveBEjectButton_->setText(tr("⏏"));
-    driveBEjectButton_->setToolTip(tr("Eject Drive B"));
-    driveBEjectButton_->setAutoRaise(true);
-    driveBEjectButton_->setVisible(false);
-    connect(driveBEjectButton_, &QToolButton::clicked, this, &MainWindow::onEjectDriveB);
-
-    transferProgress_ = new QProgressBar();
-    transferProgress_->setMaximumWidth(150);
-    transferProgress_->setVisible(false);
-
-    statusBar()->addWidget(driveALabel_);
-    statusBar()->addWidget(driveAEjectButton_);
-    statusBar()->addWidget(new QLabel(" | "));
-    statusBar()->addWidget(driveBLabel_);
-    statusBar()->addWidget(driveBEjectButton_);
-    statusBar()->addPermanentWidget(transferProgress_);
-    statusBar()->addPermanentWidget(connectionLabel_);
+    // Status bar just shows messages now
+    statusBar()->showMessage(tr("Ready"));
 }
 
 void MainWindow::setupExploreRunMode()
@@ -282,17 +284,15 @@ void MainWindow::setupExploreRunMode()
     remoteLabel->setStyleSheet("font-weight: bold;");
     remoteLayout->addWidget(remoteLabel);
 
+    // Path navigation widget (spans full width)
+    exploreRemoteNavWidget_ = new PathNavigationWidget(tr("Location:"));
+    connect(exploreRemoteNavWidget_, &PathNavigationWidget::upClicked, this, &MainWindow::onExploreRemoteParentFolder);
+    remoteLayout->addWidget(exploreRemoteNavWidget_);
+
     // Remote panel toolbar
     exploreRemotePanelToolBar_ = new QToolBar();
     exploreRemotePanelToolBar_->setIconSize(QSize(16, 16));
     exploreRemotePanelToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-
-    exploreRemoteUpButton_ = new QPushButton(tr("↑ Up"));
-    exploreRemoteUpButton_->setToolTip(tr("Go to parent folder"));
-    connect(exploreRemoteUpButton_, &QPushButton::clicked, this, &MainWindow::onExploreRemoteParentFolder);
-    exploreRemotePanelToolBar_->addWidget(exploreRemoteUpButton_);
-
-    exploreRemotePanelToolBar_->addSeparator();
 
     // File actions
     playAction_ = exploreRemotePanelToolBar_->addAction(tr("Play"));
@@ -315,12 +315,6 @@ void MainWindow::setupExploreRunMode()
 
     remoteLayout->addWidget(exploreRemotePanelToolBar_);
 
-    // Current directory indicator
-    exploreRemoteCurrentDirLabel_ = new QLabel(tr("Location: /"));
-    exploreRemoteCurrentDirLabel_->setStyleSheet("color: #0066cc; padding: 2px; background-color: #f0f8ff; border-radius: 3px;");
-    exploreRemoteCurrentDirLabel_->setWordWrap(true);
-    remoteLayout->addWidget(exploreRemoteCurrentDirLabel_);
-
     // File tree
     remoteTreeView_ = new QTreeView();
     remoteTreeView_->setModel(remoteFileModel_);
@@ -339,6 +333,16 @@ void MainWindow::setupExploreRunMode()
             this, &MainWindow::onRemoteContextMenu);
 
     remoteLayout->addWidget(remoteTreeView_);
+
+    // Drive status widgets at the bottom
+    drive8Status_ = new DriveStatusWidget(tr("Drive 8:"));
+    connect(drive8Status_, &DriveStatusWidget::ejectClicked, this, &MainWindow::onEjectDriveA);
+    remoteLayout->addWidget(drive8Status_);
+
+    drive9Status_ = new DriveStatusWidget(tr("Drive 9:"));
+    connect(drive9Status_, &DriveStatusWidget::ejectClicked, this, &MainWindow::onEjectDriveB);
+    remoteLayout->addWidget(drive9Status_);
+
     exploreRunSplitter_->addWidget(remoteWidget);
 
     // Right side: file details panel
@@ -385,17 +389,15 @@ void MainWindow::setupTransferMode()
     remoteLabel->setStyleSheet("font-weight: bold;");
     remoteLayout->addWidget(remoteLabel);
 
+    // Path navigation widget (spans full width)
+    remoteNavWidget_ = new PathNavigationWidget(tr("Upload to:"));
+    connect(remoteNavWidget_, &PathNavigationWidget::upClicked, this, &MainWindow::onRemoteParentFolder);
+    remoteLayout->addWidget(remoteNavWidget_);
+
     // Remote panel toolbar
     remotePanelToolBar_ = new QToolBar();
     remotePanelToolBar_->setIconSize(QSize(16, 16));
     remotePanelToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-
-    remoteUpButton_ = new QPushButton(tr("↑ Up"));
-    remoteUpButton_->setToolTip(tr("Go to parent folder"));
-    connect(remoteUpButton_, &QPushButton::clicked, this, &MainWindow::onRemoteParentFolder);
-    remotePanelToolBar_->addWidget(remoteUpButton_);
-
-    remotePanelToolBar_->addSeparator();
 
     downloadAction_ = remotePanelToolBar_->addAction(tr("Download"));
     downloadAction_->setToolTip(tr("Download selected files from C64U"));
@@ -420,12 +422,6 @@ void MainWindow::setupTransferMode()
     connect(transferRefreshAction, &QAction::triggered, this, &MainWindow::onRefresh);
 
     remoteLayout->addWidget(remotePanelToolBar_);
-
-    // Current remote directory indicator
-    remoteCurrentDirLabel_ = new QLabel(tr("Upload to: /"));
-    remoteCurrentDirLabel_->setStyleSheet("color: #0066cc; padding: 2px; background-color: #f0f8ff; border-radius: 3px;");
-    remoteCurrentDirLabel_->setWordWrap(true);
-    remoteLayout->addWidget(remoteCurrentDirLabel_);
 
     remoteTransferTreeView_ = new QTreeView();
     remoteTransferTreeView_->setModel(remoteFileModel_);
@@ -461,17 +457,16 @@ void MainWindow::setupTransferMode()
     localLabel->setStyleSheet("font-weight: bold;");
     localLayout->addWidget(localLabel);
 
+    // Path navigation widget (spans full width)
+    localNavWidget_ = new PathNavigationWidget(tr("Download to:"));
+    localNavWidget_->setStyleGreen();
+    connect(localNavWidget_, &PathNavigationWidget::upClicked, this, &MainWindow::onLocalParentFolder);
+    localLayout->addWidget(localNavWidget_);
+
     // Local panel toolbar
     localPanelToolBar_ = new QToolBar();
     localPanelToolBar_->setIconSize(QSize(16, 16));
     localPanelToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-
-    localUpButton_ = new QPushButton(tr("↑ Up"));
-    localUpButton_->setToolTip(tr("Go to parent folder"));
-    connect(localUpButton_, &QPushButton::clicked, this, &MainWindow::onLocalParentFolder);
-    localPanelToolBar_->addWidget(localUpButton_);
-
-    localPanelToolBar_->addSeparator();
 
     uploadAction_ = localPanelToolBar_->addAction(tr("Upload"));
     uploadAction_->setToolTip(tr("Upload selected files to C64U"));
@@ -490,12 +485,6 @@ void MainWindow::setupTransferMode()
     connect(localDeleteAction_, &QAction::triggered, this, &MainWindow::onLocalDelete);
 
     localLayout->addWidget(localPanelToolBar_);
-
-    // Current local directory indicator
-    localCurrentDirLabel_ = new QLabel(tr("Download to: ~"));
-    localCurrentDirLabel_->setStyleSheet("color: #006600; padding: 2px; background-color: #f0fff0; border-radius: 3px;");
-    localCurrentDirLabel_->setWordWrap(true);
-    localLayout->addWidget(localCurrentDirLabel_);
 
     localTreeView_ = new QTreeView();
     localTreeView_->setAlternatingRowColors(true);
@@ -950,35 +939,29 @@ void MainWindow::updateStatusBar()
 {
     if (deviceConnection_->isConnected()) {
         DeviceInfo info = deviceConnection_->deviceInfo();
-        connectionLabel_->setText(tr("Connected: %1 (%2)")
-            .arg(info.hostname.isEmpty() ? deviceConnection_->host() : info.hostname)
-            .arg(info.firmwareVersion));
+        connectionStatus_->setConnected(true);
+        connectionStatus_->setHostname(info.hostname.isEmpty() ? deviceConnection_->host() : info.hostname);
+        connectionStatus_->setFirmwareVersion(info.firmwareVersion);
 
         // Update drive info
         QList<DriveInfo> drives = deviceConnection_->driveInfo();
         for (const DriveInfo &drive : drives) {
-            QString label;
             bool hasDisk = !drive.imageFile.isEmpty();
-            if (hasDisk) {
-                label = tr("Drive %1: %2").arg(drive.name.toUpper()).arg(drive.imageFile);
-            } else {
-                label = tr("Drive %1: [none]").arg(drive.name.toUpper());
-            }
 
             if (drive.name.toLower() == "a") {
-                driveALabel_->setText(label);
-                driveAEjectButton_->setVisible(hasDisk);
+                drive8Status_->setImageName(drive.imageFile);
+                drive8Status_->setMounted(hasDisk);
             } else if (drive.name.toLower() == "b") {
-                driveBLabel_->setText(label);
-                driveBEjectButton_->setVisible(hasDisk);
+                drive9Status_->setImageName(drive.imageFile);
+                drive9Status_->setMounted(hasDisk);
             }
         }
     } else {
-        connectionLabel_->setText(tr("Disconnected"));
-        driveALabel_->setText(tr("Drive A: [none]"));
-        driveAEjectButton_->setVisible(false);
-        driveBLabel_->setText(tr("Drive B: [none]"));
-        driveBEjectButton_->setVisible(false);
+        connectionStatus_->setConnected(false);
+        drive8Status_->setImageName(QString());
+        drive8Status_->setMounted(false);
+        drive9Status_->setImageName(QString());
+        drive9Status_->setMounted(false);
     }
 }
 
@@ -1091,20 +1074,20 @@ void MainWindow::loadSettings()
 
     // Set remote transfer directory (will be used when connected)
     currentRemoteTransferDir_ = savedRemoteDir;
-    remoteCurrentDirLabel_->setText(tr("Upload to: %1").arg(savedRemoteDir));
+    remoteNavWidget_->setPath(savedRemoteDir);
 
     // Initialize remote up button state (disabled until connected, then based on path)
     bool canGoUpRemote = (savedRemoteDir != "/" && !savedRemoteDir.isEmpty());
-    remoteUpButton_->setEnabled(canGoUpRemote && deviceConnection_->isConnected());
+    remoteNavWidget_->setUpEnabled(canGoUpRemote && deviceConnection_->isConnected());
 
     // Set explore remote directory (will be used when connected)
     QString savedExploreRemoteDir = settings.value("directories/exploreRemote", "/").toString();
     currentExploreRemoteDir_ = savedExploreRemoteDir;
-    exploreRemoteCurrentDirLabel_->setText(tr("Location: %1").arg(savedExploreRemoteDir));
+    exploreRemoteNavWidget_->setPath(savedExploreRemoteDir);
 
     // Initialize explore remote up button state (disabled until connected)
     bool canGoUpExploreRemote = (savedExploreRemoteDir != "/" && !savedExploreRemoteDir.isEmpty());
-    exploreRemoteUpButton_->setEnabled(canGoUpExploreRemote && deviceConnection_->isConnected());
+    exploreRemoteNavWidget_->setUpEnabled(canGoUpExploreRemote && deviceConnection_->isConnected());
 
     // Load video scaling mode (default to Integer)
     int scalingMode = settings.value("view/scalingMode",
@@ -2083,13 +2066,13 @@ void MainWindow::setCurrentLocalDir(const QString &path)
         displayPath = "~" + displayPath.mid(homePath.length());
     }
 
-    localCurrentDirLabel_->setText(tr("Download to: %1").arg(displayPath));
+    localNavWidget_->setPath(displayPath);
     statusBar()->showMessage(tr("Download destination: %1").arg(displayPath), 2000);
 
     // Enable/disable up button based on whether we can go up
     QDir dir(path);
     bool canGoUp = dir.cdUp();
-    localUpButton_->setEnabled(canGoUp);
+    localNavWidget_->setUpEnabled(canGoUp);
 }
 
 void MainWindow::setCurrentRemoteTransferDir(const QString &path)
@@ -2099,12 +2082,12 @@ void MainWindow::setCurrentRemoteTransferDir(const QString &path)
     // Update tree view to show this folder as root
     remoteFileModel_->setRootPath(path);
 
-    remoteCurrentDirLabel_->setText(tr("Upload to: %1").arg(path));
+    remoteNavWidget_->setPath(path);
     statusBar()->showMessage(tr("Upload destination: %1").arg(path), 2000);
 
     // Enable/disable up button based on whether we can go up
     bool canGoUp = (path != "/" && !path.isEmpty());
-    remoteUpButton_->setEnabled(canGoUp);
+    remoteNavWidget_->setUpEnabled(canGoUp);
 }
 
 // Transfer progress slots
@@ -2218,12 +2201,12 @@ void MainWindow::setCurrentExploreRemoteDir(const QString &path)
     // Update the remote file model to show this folder as root
     remoteFileModel_->setRootPath(path);
 
-    exploreRemoteCurrentDirLabel_->setText(tr("Location: %1").arg(path));
+    exploreRemoteNavWidget_->setPath(path);
     statusBar()->showMessage(tr("Navigated to: %1").arg(path), 2000);
 
     // Enable/disable up button based on whether we can go up
     bool canGoUp = (path != "/" && !path.isEmpty());
-    exploreRemoteUpButton_->setEnabled(canGoUp);
+    exploreRemoteNavWidget_->setUpEnabled(canGoUp);
 }
 
 // View mode streaming slots

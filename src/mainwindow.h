@@ -35,6 +35,9 @@ class StreamControlClient;
 class KeyboardInputService;
 class ConfigurationModel;
 class ConfigItemsPanel;
+class PathNavigationWidget;
+class ConnectionStatusWidget;
+class DriveStatusWidget;
 
 class MainWindow : public QMainWindow
 {
@@ -160,7 +163,7 @@ private slots:
 private:
     void setupUi();
     void setupMenuBar();
-    void setupToolBar();
+    void setupSystemToolBar();
     void setupStatusBar();
     void setupExploreRunMode();
     void setupTransferMode();
@@ -197,8 +200,7 @@ private:
     QTreeView *remoteTreeView_ = nullptr;
     FileDetailsPanel *fileDetailsPanel_ = nullptr;
     QToolBar *exploreRemotePanelToolBar_ = nullptr;
-    QPushButton *exploreRemoteUpButton_ = nullptr;
-    QLabel *exploreRemoteCurrentDirLabel_ = nullptr;
+    PathNavigationWidget *exploreRemoteNavWidget_ = nullptr;
     QString currentExploreRemoteDir_;
 
     // Transfer mode widgets
@@ -208,8 +210,8 @@ private:
     QTreeView *remoteTransferTreeView_ = nullptr;
     QFileSystemModel *localFileModel_ = nullptr;
     LocalFileProxyModel *localFileProxyModel_ = nullptr;
-    QPushButton *localUpButton_ = nullptr;
-    QPushButton *remoteUpButton_ = nullptr;
+    PathNavigationWidget *localNavWidget_ = nullptr;
+    PathNavigationWidget *remoteNavWidget_ = nullptr;
     QToolBar *remotePanelToolBar_ = nullptr;
     QToolBar *localPanelToolBar_ = nullptr;
 
@@ -258,7 +260,7 @@ private:
     bool transferProgressPending_ = false;
 
     // Toolbar
-    QToolBar *mainToolBar_ = nullptr;
+    QToolBar *systemToolBar_ = nullptr;
     QComboBox *modeCombo_ = nullptr;
     QAction *connectAction_ = nullptr;
 
@@ -297,16 +299,12 @@ private:
     // Transfer mode current directories
     QString currentLocalDir_;
     QString currentRemoteTransferDir_;
-    QLabel *localCurrentDirLabel_ = nullptr;
-    QLabel *remoteCurrentDirLabel_ = nullptr;
 
     // Status bar
-    QLabel *driveALabel_ = nullptr;
-    QToolButton *driveAEjectButton_ = nullptr;
+    DriveStatusWidget *drive8Status_ = nullptr;
+    DriveStatusWidget *drive9Status_ = nullptr;
     QProgressBar *transferProgress_ = nullptr;
-    QLabel *driveBLabel_ = nullptr;
-    QToolButton *driveBEjectButton_ = nullptr;
-    QLabel *connectionLabel_ = nullptr;
+    ConnectionStatusWidget *connectionStatus_ = nullptr;
 
     // Dialogs
     PreferencesDialog *preferencesDialog_ = nullptr;
