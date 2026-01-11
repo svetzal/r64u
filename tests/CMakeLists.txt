@@ -399,6 +399,32 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_statusmessageservice)
 endif()
 
+# C64UFtpClient protocol tests - tests the real FTP client implementation
+add_executable(test_c64uftpclient_protocol
+    test_c64uftpclient_protocol.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+)
+
+target_include_directories(test_c64uftpclient_protocol BEFORE PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_c64uftpclient_protocol PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+# Register test with CTest
+add_test(NAME C64UFtpClientProtocolTest COMMAND test_c64uftpclient_protocol)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(c64uftpclient_protocol test_c64uftpclient_protocol)
+    add_dependencies(coverage coverage_c64uftpclient_protocol)
+endif()
+
 # FileBrowserSync integration tests
 add_executable(test_filebrowsersync
     test_filebrowsersync.cpp
