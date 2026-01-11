@@ -84,6 +84,7 @@ void MainWindow::setupUi()
     // Note: Signal connection is deferred to setupConnections() to avoid
     // triggering onModeChanged before all widgets are initialized
     modeTabWidget_ = new QTabWidget(this);
+    modeTabWidget_->setContentsMargins(0, 8, 0, 0);  // Add spacing below toolbar
     setCentralWidget(modeTabWidget_);
 }
 
