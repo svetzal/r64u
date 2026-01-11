@@ -2,6 +2,7 @@
 #include "models/transferqueue.h"
 
 #include <QHBoxLayout>
+#include <QMessageBox>
 
 TransferProgressWidget::TransferProgressWidget(QWidget *parent)
     : QWidget(parent)
@@ -64,6 +65,8 @@ void TransferProgressWidget::setTransferQueue(TransferQueue *queue)
                 this, &TransferProgressWidget::onQueueChanged);
         connect(transferQueue_, &TransferQueue::deleteProgressUpdate,
                 this, &TransferProgressWidget::onDeleteProgressUpdate);
+        connect(transferQueue_, &TransferQueue::overwriteConfirmationNeeded,
+                this, &TransferProgressWidget::onOverwriteConfirmationNeeded);
         connect(cancelButton_, &QPushButton::clicked,
                 transferQueue_, &TransferQueue::cancelAll);
     }
@@ -212,5 +215,36 @@ void TransferProgressWidget::updateProgressDisplay()
             .arg(actionVerb)
             .arg(operationCompletedCount_ + 1)
             .arg(operationTotalCount_));
+    }
+}
+
+void TransferProgressWidget::onOverwriteConfirmationNeeded(const QString &fileName, OperationType type)
+{
+    QString typeStr = (type == OperationType::Download) ? tr("download") : tr("upload");
+
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle(tr("File Already Exists"));
+    msgBox.setText(tr("The file '%1' already exists.\n\n"
+                      "Do you want to overwrite it?").arg(fileName));
+    msgBox.setIcon(QMessageBox::Question);
+
+    QPushButton *overwriteButton = msgBox.addButton(tr("Overwrite"), QMessageBox::AcceptRole);
+    QPushButton *overwriteAllButton = msgBox.addButton(tr("Overwrite All"), QMessageBox::AcceptRole);
+    QPushButton *skipButton = msgBox.addButton(tr("Skip"), QMessageBox::RejectRole);
+    QPushButton *cancelButton = msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
+
+    msgBox.setDefaultButton(skipButton);
+    msgBox.exec();
+
+    QAbstractButton *clicked = msgBox.clickedButton();
+
+    if (clicked == overwriteButton) {
+        transferQueue_->respondToOverwrite(OverwriteResponse::Overwrite);
+    } else if (clicked == overwriteAllButton) {
+        transferQueue_->respondToOverwrite(OverwriteResponse::OverwriteAll);
+    } else if (clicked == skipButton) {
+        transferQueue_->respondToOverwrite(OverwriteResponse::Skip);
+    } else if (clicked == cancelButton) {
+        transferQueue_->respondToOverwrite(OverwriteResponse::Cancel);
     }
 }

@@ -5,6 +5,7 @@
 
 #include <QVBoxLayout>
 #include <QMessageBox>
+#include <QPushButton>
 
 ConfigPanel::ConfigPanel(DeviceConnection *connection, QWidget *parent)
     : QWidget(parent)
@@ -180,16 +181,16 @@ void ConfigPanel::onResetToDefaults()
     }
 
     // Show confirmation dialog
-    int reply = QMessageBox::warning(
-        this,
-        tr("Reset to Defaults"),
-        tr("This will reset all configuration settings to factory defaults.\n\n"
-           "Are you sure you want to continue?"),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No
-    );
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle(tr("Reset to Defaults"));
+    msgBox.setText(tr("This will reset all configuration settings to factory defaults.\n\n"
+                      "Are you sure you want to continue?"));
+    msgBox.setIcon(QMessageBox::Warning);
+    QPushButton *resetButton = msgBox.addButton(tr("Reset to Defaults"), QMessageBox::DestructiveRole);
+    msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
+    msgBox.exec();
 
-    if (reply == QMessageBox::Yes) {
+    if (msgBox.clickedButton() == resetButton) {
         emit statusMessage(tr("Resetting configuration to defaults..."));
         deviceConnection_->restClient()->resetConfigToDefaults();
     }

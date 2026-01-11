@@ -7,6 +7,7 @@
 #include <QLabel>
 #include <QHeaderView>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QInputDialog>
 #include <QFileInfo>
 
@@ -318,14 +319,18 @@ void RemoteFileBrowserWidget::onDelete()
     bool isDir = isSelectedDirectory();
 
     QString confirmMessage = isDir
-        ? tr("Are you sure you want to delete the folder '%1' and all its contents?").arg(fileName)
-        : tr("Are you sure you want to delete '%1'?").arg(fileName);
+        ? tr("Are you sure you want to permanently delete the folder '%1' and all its contents?\n\nThis cannot be undone.").arg(fileName)
+        : tr("Are you sure you want to permanently delete '%1'?\n\nThis cannot be undone.").arg(fileName);
 
-    int result = QMessageBox::question(this, tr("Delete"),
-        confirmMessage,
-        QMessageBox::Yes | QMessageBox::No);
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle(tr("Delete"));
+    msgBox.setText(confirmMessage);
+    msgBox.setIcon(QMessageBox::Warning);
+    QPushButton *deleteButton = msgBox.addButton(tr("Delete"), QMessageBox::DestructiveRole);
+    msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
+    msgBox.exec();
 
-    if (result != QMessageBox::Yes) {
+    if (msgBox.clickedButton() != deleteButton) {
         return;
     }
 

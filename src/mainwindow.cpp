@@ -14,6 +14,7 @@
 #include <QStatusBar>
 #include <QVBoxLayout>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QSettings>
 #include <QCloseEvent>
 #include <QTimer>
@@ -529,15 +530,16 @@ void MainWindow::onMenuButton()
 
 void MainWindow::onPowerOff()
 {
-    int reply = QMessageBox::question(
-        this,
-        tr("Power Off Device"),
-        tr("Are you sure you want to power off the Ultimate device?\n\n"
-           "You will lose connection and need physical access to turn it back on."),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No);
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle(tr("Power Off Device"));
+    msgBox.setText(tr("Are you sure you want to power off the Ultimate device?\n\n"
+                      "You will lose connection and need physical access to turn it back on."));
+    msgBox.setIcon(QMessageBox::Warning);
+    QPushButton *powerOffButton = msgBox.addButton(tr("Power Off"), QMessageBox::DestructiveRole);
+    msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
+    msgBox.exec();
 
-    if (reply != QMessageBox::Yes) {
+    if (msgBox.clickedButton() != powerOffButton) {
         return;
     }
 

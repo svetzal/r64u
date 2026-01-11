@@ -372,19 +372,37 @@ void TransferQueue::processNext()
         return;
     }
 
+    // Don't proceed while waiting for overwrite confirmation
+    if (waitingForOverwriteResponse_) {
+        qDebug() << "TransferQueue: processNext - waiting for overwrite response";
+        return;
+    }
+
     // Find next pending item
     for (int i = 0; i < items_.size(); ++i) {
         if (items_[i].status == TransferItem::Status::Pending) {
             currentIndex_ = i;
-            items_[i].status = TransferItem::Status::InProgress;
-            processing_ = true;
-
-            emit dataChanged(index(i), index(i));
 
             QString fileName = QFileInfo(
                 items_[i].operationType == OperationType::Upload
                     ? items_[i].localPath : items_[i].remotePath
             ).fileName();
+
+            // Check for file existence and ask for overwrite confirmation
+            if (items_[i].operationType == OperationType::Download && !overwriteAll_) {
+                QFileInfo localFile(items_[i].localPath);
+                if (localFile.exists()) {
+                    qDebug() << "TransferQueue: File exists, asking for confirmation:" << items_[i].localPath;
+                    waitingForOverwriteResponse_ = true;
+                    emit overwriteConfirmationNeeded(fileName, OperationType::Download);
+                    return;
+                }
+            }
+
+            items_[i].status = TransferItem::Status::InProgress;
+            processing_ = true;
+
+            emit dataChanged(index(i), index(i));
             emit operationStarted(fileName, items_[i].operationType);
 
             qDebug() << "TransferQueue: Starting operation" << i << "remote:" << items_[i].remotePath
@@ -409,7 +427,50 @@ void TransferQueue::processNext()
     qDebug() << "TransferQueue: processNext - no more pending items";
     processing_ = false;
     currentIndex_ = -1;
+    overwriteAll_ = false;  // Reset for next batch
     emit allOperationsCompleted();
+}
+
+void TransferQueue::respondToOverwrite(OverwriteResponse response)
+{
+    if (!waitingForOverwriteResponse_) {
+        return;
+    }
+
+    waitingForOverwriteResponse_ = false;
+
+    switch (response) {
+    case OverwriteResponse::Overwrite:
+        // Proceed with just this file
+        qDebug() << "TransferQueue: User chose to overwrite this file";
+        processNext();
+        break;
+
+    case OverwriteResponse::OverwriteAll:
+        // Set flag and proceed
+        qDebug() << "TransferQueue: User chose to overwrite all files";
+        overwriteAll_ = true;
+        processNext();
+        break;
+
+    case OverwriteResponse::Skip:
+        // Skip this file and continue
+        qDebug() << "TransferQueue: User chose to skip this file";
+        if (currentIndex_ >= 0 && currentIndex_ < items_.size()) {
+            items_[currentIndex_].status = TransferItem::Status::Completed;
+            items_[currentIndex_].errorMessage = tr("Skipped");
+            emit dataChanged(index(currentIndex_), index(currentIndex_));
+        }
+        currentIndex_ = -1;
+        processNext();
+        break;
+
+    case OverwriteResponse::Cancel:
+        // Cancel all remaining operations
+        qDebug() << "TransferQueue: User cancelled operations";
+        cancelAll();
+        break;
+    }
 }
 
 int TransferQueue::findItemIndex(const QString &localPath, const QString &remotePath) const

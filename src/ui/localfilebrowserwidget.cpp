@@ -4,6 +4,7 @@
 
 #include <QStandardPaths>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QInputDialog>
 #include <QFileInfo>
 #include <QDir>
@@ -283,11 +284,16 @@ void LocalFileBrowserWidget::onDelete()
     QString itemName = fileInfo.fileName();
     QString itemType = fileInfo.isDir() ? tr("folder") : tr("file");
 
-    int result = QMessageBox::question(this, tr("Move to Trash"),
-        tr("Are you sure you want to move the %1 '%2' to the trash?").arg(itemType).arg(itemName),
-        QMessageBox::Yes | QMessageBox::No);
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle(tr("Move to Trash"));
+    msgBox.setText(tr("Are you sure you want to move the %1 '%2' to the trash?").arg(itemType).arg(itemName));
+    msgBox.setIcon(QMessageBox::Question);
+    QPushButton *trashButton = msgBox.addButton(tr("Move to Trash"), QMessageBox::AcceptRole);
+    msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
+    msgBox.setDefaultButton(trashButton);
+    msgBox.exec();
 
-    if (result != QMessageBox::Yes) {
+    if (msgBox.clickedButton() != trashButton) {
         return;
     }
 

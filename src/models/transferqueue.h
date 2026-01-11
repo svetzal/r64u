@@ -12,6 +12,8 @@ class C64UFtpClient;
 
 enum class OperationType { Upload, Download, Delete };
 
+enum class OverwriteResponse { Overwrite, OverwriteAll, Skip, Cancel };
+
 struct TransferItem {
     enum class Status { Pending, InProgress, Completed, Failed };
 
@@ -76,6 +78,10 @@ public:
     [[nodiscard]] QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
+    // Overwrite handling
+    void respondToOverwrite(OverwriteResponse response);
+    void setAutoOverwrite(bool autoOverwrite) { overwriteAll_ = autoOverwrite; }
+
 signals:
     void operationStarted(const QString &fileName, OperationType type);
     void operationCompleted(const QString &fileName);
@@ -84,6 +90,7 @@ signals:
     void operationsCancelled();
     void queueChanged();
     void deleteProgressUpdate(const QString &fileName, int current, int total);
+    void overwriteConfirmationNeeded(const QString &fileName, OperationType type);
 
 private slots:
     void onUploadProgress(const QString &file, qint64 sent, qint64 total);
@@ -144,6 +151,10 @@ private:
     int totalDeleteItems_ = 0;
     int deletedCount_ = 0;
     bool processingDelete_ = false;
+
+    // Overwrite confirmation state
+    bool waitingForOverwriteResponse_ = false;
+    bool overwriteAll_ = false;
 };
 
 #endif // TRANSFERQUEUE_H

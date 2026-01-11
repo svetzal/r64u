@@ -20,6 +20,7 @@ private slots:
         mockFtp = new C64UFtpClient(this);
         queue = new TransferQueue(this);
         queue->setFtpClient(mockFtp);
+        queue->setAutoOverwrite(true);  // Skip overwrite confirmations in tests
         mockFtp->mockSetConnected(true);
     }
 

@@ -30,6 +30,7 @@ private slots:
     void onOperationsCancelled();
     void onShowProgress();
     void onDeleteProgressUpdate(const QString &fileName, int current, int total);
+    void onOverwriteConfirmationNeeded(const QString &fileName, OperationType type);
 
 private:
     void setupUi();
