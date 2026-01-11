@@ -27,6 +27,7 @@ DriveStatusWidget::DriveStatusWidget(const QString &driveName, QWidget *parent)
     ejectButton_->setText(tr("\u23cf"));  // Eject symbol
     ejectButton_->setToolTip(tr("Eject"));
     ejectButton_->setAutoRaise(true);
+    ejectButton_->setEnabled(false);  // Disabled until a disk is mounted
     connect(ejectButton_, &QToolButton::clicked, this, &DriveStatusWidget::ejectClicked);
     layout->addWidget(ejectButton_);
 
@@ -47,6 +48,7 @@ void DriveStatusWidget::setImageName(const QString &imageName)
 void DriveStatusWidget::setMounted(bool mounted)
 {
     mounted_ = mounted;
+    ejectButton_->setEnabled(mounted);
     updateDisplay();
 }
 
