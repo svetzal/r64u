@@ -122,6 +122,8 @@ void TransferProgressWidget::onAllOperationsCompleted()
     progressBar_->setMaximum(100);
     progressBar_->setValue(0);
     statusLabel_->setText(tr("Ready"));
+
+    emit statusMessage(tr("All operations completed"), 3000);
 }
 
 void TransferProgressWidget::onShowProgress()
@@ -136,9 +138,8 @@ void TransferProgressWidget::onShowProgress()
 
 void TransferProgressWidget::onDeleteProgressUpdate(const QString &fileName, int current, int total)
 {
-    Q_UNUSED(current)
-    Q_UNUSED(total)
-    emit statusMessage(tr("Deleted: %1").arg(fileName), 1000);
+    // Use timeout 0 so message stays until replaced by next delete
+    emit statusMessage(tr("Deleted %1 of %2: %3").arg(current).arg(total).arg(fileName), 0);
 }
 
 void TransferProgressWidget::updateProgressDisplay()
