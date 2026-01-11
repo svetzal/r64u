@@ -88,13 +88,14 @@ void MainWindow::setupUi()
 
     // Mode tab bar
     modeTabBar_ = new QTabBar();
+    modeTabBar_->setExpanding(false);  // Size tabs to fit their labels
     modeTabBar_->addTab(tr("Explore/Run"));
     modeTabBar_->addTab(tr("Transfer"));
     modeTabBar_->addTab(tr("View"));
     modeTabBar_->addTab(tr("Config"));
     connect(modeTabBar_, &QTabBar::currentChanged,
             this, &MainWindow::onModeChanged);
-    centralLayout->addWidget(modeTabBar_);
+    centralLayout->addWidget(modeTabBar_, 0, Qt::AlignLeft);
 
     // Main content area
     stackedWidget_ = new QStackedWidget();
