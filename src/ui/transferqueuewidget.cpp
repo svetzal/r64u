@@ -28,10 +28,21 @@ public:
 
         QRect rect = opt.rect.adjusted(4, 4, -4, -4);
 
-        // File name and direction
+        // File name and operation type
         QString fileName = index.data(TransferQueue::FileNameRole).toString();
-        int direction = index.data(TransferQueue::DirectionRole).toInt();
-        QString dirText = (direction == 0) ? "[UP]" : "[DN]";
+        int operationType = index.data(TransferQueue::OperationTypeRole).toInt();
+        QString opText;
+        switch (static_cast<OperationType>(operationType)) {
+        case OperationType::Upload:
+            opText = "[UP]";
+            break;
+        case OperationType::Download:
+            opText = "[DN]";
+            break;
+        case OperationType::Delete:
+            opText = "[DEL]";
+            break;
+        }
 
         int status = index.data(TransferQueue::StatusRole).toInt();
         QString statusText;
@@ -64,7 +75,7 @@ public:
 
         painter->setPen(statusColor);
         painter->drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter,
-                          QString("%1 %2 - %3").arg(dirText, fileName, statusText));
+                          QString("%1 %2 - %3").arg(opText, fileName, statusText));
 
         // Draw progress bar for in-progress items
         if (status == static_cast<int>(TransferItem::Status::InProgress)) {

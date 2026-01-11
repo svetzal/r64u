@@ -3,6 +3,7 @@
 
 #include <QAbstractItemModel>
 #include <QIcon>
+#include <QSet>
 #include "services/c64uftpclient.h"
 
 class RemoteFileModel : public QAbstractItemModel
@@ -101,6 +102,9 @@ private:
 
     // Map pending fetch paths to parent nodes
     QHash<QString, TreeNode*> pendingFetches_;
+
+    // Track paths we explicitly requested (to ignore listings from other components)
+    QSet<QString> requestedListings_;
 };
 
 #endif // REMOTEFILEMODEL_H

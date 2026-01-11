@@ -315,21 +315,21 @@ void RemoteFileBrowserWidget::onDelete()
     }
 
     QString fileName = QFileInfo(remotePath).fileName();
+    bool isDir = isSelectedDirectory();
 
-    int result = QMessageBox::question(this, tr("Delete File"),
-        tr("Are you sure you want to delete '%1'?").arg(fileName),
+    QString confirmMessage = isDir
+        ? tr("Are you sure you want to delete the folder '%1' and all its contents?").arg(fileName)
+        : tr("Are you sure you want to delete '%1'?").arg(fileName);
+
+    int result = QMessageBox::question(this, tr("Delete"),
+        confirmMessage,
         QMessageBox::Yes | QMessageBox::No);
 
     if (result != QMessageBox::Yes) {
         return;
     }
 
-    if (isSelectedDirectory()) {
-        ftpClient_->removeDirectory(remotePath);
-    } else {
-        ftpClient_->remove(remotePath);
-    }
-
+    emit deleteRequested(remotePath, isDir);
     emit statusMessage(tr("Deleting %1...").arg(fileName));
 }
 

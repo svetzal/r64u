@@ -46,6 +46,7 @@ void RemoteFileModel::setRootPath(const QString &path)
     rootNode_->isDirectory = true;
     rootNode_->fileType = FileType::Directory;
     pendingFetches_.clear();
+    requestedListings_.clear();
 
     endResetModel();
 }
@@ -195,6 +196,7 @@ void RemoteFileModel::fetchMore(const QModelIndex &parent)
 
     node->fetching = true;
     pendingFetches_[node->fullPath] = node;
+    requestedListings_.insert(node->fullPath);
 
     emit loadingStarted(node->fullPath);
     ftpClient_->list(node->fullPath);
@@ -273,6 +275,7 @@ void RemoteFileModel::clear()
         rootNode_->fetching = false;
     }
     pendingFetches_.clear();
+    requestedListings_.clear();
 
     endResetModel();
 }
@@ -349,6 +352,15 @@ QString RemoteFileModel::fileTypeString(FileType type)
 void RemoteFileModel::onDirectoryListed(const QString &path, const QList<FtpEntry> &entries)
 {
     qDebug() << "Model: onDirectoryListed path:" << path << "entries:" << entries.size();
+    qDebug() << "Model: requestedListings_:" << requestedListings_;
+
+    // Ignore listings we didn't request (e.g., from TransferQueue's delete scanning)
+    if (!requestedListings_.contains(path)) {
+        qDebug() << "Model: Ignoring listing for path we didn't request:" << path;
+        return;
+    }
+    requestedListings_.remove(path);
+
     qDebug() << "Model: pendingFetches_ keys:" << pendingFetches_.keys();
 
     TreeNode *node = pendingFetches_.take(path);

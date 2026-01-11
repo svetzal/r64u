@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QDebug>
+#include <algorithm>
 
 TransferQueue::TransferQueue(QObject *parent)
     : QAbstractListModel(parent)
@@ -34,6 +35,8 @@ void TransferQueue::setFtpClient(C64UFtpClient *client)
                 this, &TransferQueue::onDirectoryCreated);
         connect(ftpClient_, &C64UFtpClient::directoryListed,
                 this, &TransferQueue::onDirectoryListed);
+        connect(ftpClient_, &C64UFtpClient::fileRemoved,
+                this, &TransferQueue::onFileRemoved);
     }
 }
 
@@ -42,7 +45,7 @@ void TransferQueue::enqueueUpload(const QString &localPath, const QString &remot
     TransferItem item;
     item.localPath = localPath;
     item.remotePath = remotePath;
-    item.direction = TransferItem::Direction::Upload;
+    item.operationType = OperationType::Upload;
     item.status = TransferItem::Status::Pending;
     item.totalBytes = QFileInfo(localPath).size();
 
@@ -62,7 +65,7 @@ void TransferQueue::enqueueDownload(const QString &remotePath, const QString &lo
     TransferItem item;
     item.localPath = localPath;
     item.remotePath = remotePath;
-    item.direction = TransferItem::Direction::Download;
+    item.operationType = OperationType::Download;
     item.status = TransferItem::Status::Pending;
 
     beginInsertRows(QModelIndex(), items_.size(), items_.size());
@@ -200,6 +203,15 @@ void TransferQueue::clear()
     pendingMkdirs_.clear();
     creatingDirectory_ = false;
 
+    // Clear recursive delete state
+    pendingDeleteScans_.clear();
+    requestedDeleteListings_.clear();
+    deleteQueue_.clear();
+    currentDeleteIndex_ = 0;
+    totalDeleteItems_ = 0;
+    deletedCount_ = 0;
+    processingDelete_ = false;
+
     emit queueChanged();
 }
 
@@ -246,6 +258,15 @@ void TransferQueue::cancelAll()
     pendingMkdirs_.clear();
     creatingDirectory_ = false;
 
+    // Clear recursive delete state
+    pendingDeleteScans_.clear();
+    requestedDeleteListings_.clear();
+    deleteQueue_.clear();
+    currentDeleteIndex_ = 0;
+    totalDeleteItems_ = 0;
+    deletedCount_ = 0;
+    processingDelete_ = false;
+
     emit dataChanged(index(0), index(items_.size() - 1));
     emit queueChanged();
 }
@@ -289,7 +310,7 @@ QVariant TransferQueue::data(const QModelIndex &index, int role) const
     switch (role) {
     case Qt::DisplayRole:
     case FileNameRole: {
-        QString path = (item.direction == TransferItem::Direction::Upload)
+        QString path = (item.operationType == OperationType::Upload)
             ? item.localPath : item.remotePath;
         return QFileInfo(path).fileName();
     }
@@ -297,8 +318,8 @@ QVariant TransferQueue::data(const QModelIndex &index, int role) const
         return item.localPath;
     case RemotePathRole:
         return item.remotePath;
-    case DirectionRole:
-        return static_cast<int>(item.direction);
+    case OperationTypeRole:
+        return static_cast<int>(item.operationType);
     case StatusRole:
         return static_cast<int>(item.status);
     case ProgressRole:
@@ -322,7 +343,7 @@ QHash<int, QByteArray> TransferQueue::roleNames() const
     QHash<int, QByteArray> roles;
     roles[LocalPathRole] = "localPath";
     roles[RemotePathRole] = "remotePath";
-    roles[DirectionRole] = "direction";
+    roles[OperationTypeRole] = "operationType";
     roles[StatusRole] = "status";
     roles[ProgressRole] = "progress";
     roles[BytesTransferredRole] = "bytesTransferred";
@@ -360,18 +381,24 @@ void TransferQueue::processNext()
             emit dataChanged(index(i), index(i));
 
             QString fileName = QFileInfo(
-                items_[i].direction == TransferItem::Direction::Upload
+                items_[i].operationType == OperationType::Upload
                     ? items_[i].localPath : items_[i].remotePath
             ).fileName();
-            emit transferStarted(fileName);
+            emit operationStarted(fileName, items_[i].operationType);
 
-            qDebug() << "TransferQueue: Starting download" << i << "remote:" << items_[i].remotePath
+            qDebug() << "TransferQueue: Starting operation" << i << "remote:" << items_[i].remotePath
                      << "local:" << items_[i].localPath;
 
-            if (items_[i].direction == TransferItem::Direction::Upload) {
+            if (items_[i].operationType == OperationType::Upload) {
                 ftpClient_->upload(items_[i].localPath, items_[i].remotePath);
-            } else {
+            } else if (items_[i].operationType == OperationType::Download) {
                 ftpClient_->download(items_[i].remotePath, items_[i].localPath);
+            } else if (items_[i].operationType == OperationType::Delete) {
+                if (items_[i].isDirectory) {
+                    ftpClient_->removeDirectory(items_[i].remotePath);
+                } else {
+                    ftpClient_->remove(items_[i].remotePath);
+                }
             }
             return;
         }
@@ -381,7 +408,7 @@ void TransferQueue::processNext()
     qDebug() << "TransferQueue: processNext - no more pending items";
     processing_ = false;
     currentIndex_ = -1;
-    emit allTransfersCompleted();
+    emit allOperationsCompleted();
 }
 
 int TransferQueue::findItemIndex(const QString &localPath, const QString &remotePath) const
@@ -413,7 +440,7 @@ void TransferQueue::onUploadFinished(const QString &localPath, const QString &re
         emit dataChanged(index(idx), index(idx));
 
         QString fileName = QFileInfo(localPath).fileName();
-        emit transferCompleted(fileName);
+        emit operationCompleted(fileName);
     }
 
     emit queueChanged();
@@ -443,7 +470,7 @@ void TransferQueue::onDownloadFinished(const QString &remotePath, const QString 
         emit dataChanged(index(idx), index(idx));
 
         QString fileName = QFileInfo(remotePath).fileName();
-        emit transferCompleted(fileName);
+        emit operationCompleted(fileName);
     } else {
         // Debug: show what we were looking for vs what's in the queue
         qDebug() << "TransferQueue: ERROR - item not found! Queue contents:";
@@ -464,11 +491,11 @@ void TransferQueue::onFtpError(const QString &message)
         emit dataChanged(index(currentIndex_), index(currentIndex_));
 
         QString fileName = QFileInfo(
-            items_[currentIndex_].direction == TransferItem::Direction::Upload
+            items_[currentIndex_].operationType == OperationType::Upload
                 ? items_[currentIndex_].localPath
                 : items_[currentIndex_].remotePath
         ).fileName();
-        emit transferFailed(fileName, message);
+        emit operationFailed(fileName, message);
     }
 
     emit queueChanged();
@@ -500,7 +527,13 @@ void TransferQueue::onDirectoryListed(const QString &path, const QList<FtpEntry>
 {
     qDebug() << "TransferQueue: onDirectoryListed path:" << path << "entries:" << entries.size();
     qDebug() << "TransferQueue: requestedListings_ contains path:" << requestedListings_.contains(path);
-    qDebug() << "TransferQueue: requestedListings_:" << requestedListings_;
+    qDebug() << "TransferQueue: requestedDeleteListings_ contains path:" << requestedDeleteListings_.contains(path);
+
+    // Check if this is for a recursive delete operation
+    if (requestedDeleteListings_.contains(path)) {
+        onDirectoryListedForDelete(path, entries);
+        return;
+    }
 
     // Only process listings we explicitly requested for recursive download
     if (!requestedListings_.contains(path)) {
@@ -583,5 +616,216 @@ void TransferQueue::onDirectoryListed(const QString &path, const QList<FtpEntry>
         // All directories scanned - now start processing the download queue
         scanningDirectories_ = false;
         processNext();
+    }
+}
+
+void TransferQueue::enqueueDelete(const QString &remotePath, bool isDirectory)
+{
+    TransferItem item;
+    item.remotePath = remotePath;
+    item.operationType = OperationType::Delete;
+    item.status = TransferItem::Status::Pending;
+    item.isDirectory = isDirectory;
+
+    beginInsertRows(QModelIndex(), items_.size(), items_.size());
+    items_.append(item);
+    endInsertRows();
+
+    emit queueChanged();
+
+    if (!processing_ && !processingDelete_) {
+        processNext();
+    }
+}
+
+void TransferQueue::enqueueRecursiveDelete(const QString &remotePath)
+{
+    if (!ftpClient_ || !ftpClient_->isConnected()) {
+        return;
+    }
+
+    qDebug() << "TransferQueue: enqueueRecursiveDelete" << remotePath;
+
+    // Normalize remote path - remove trailing slashes
+    QString normalizedPath = remotePath;
+    while (normalizedPath.endsWith('/') && normalizedPath.length() > 1) {
+        normalizedPath.chop(1);
+    }
+
+    // Clear any previous delete state
+    deleteQueue_.clear();
+    currentDeleteIndex_ = 0;
+    totalDeleteItems_ = 0;
+    deletedCount_ = 0;
+
+    // Queue the initial directory scan
+    PendingDeleteScan scan;
+    scan.remotePath = normalizedPath;
+    pendingDeleteScans_.enqueue(scan);
+
+    // Track that we're requesting this listing
+    requestedDeleteListings_.insert(normalizedPath);
+    qDebug() << "TransferQueue: Requesting delete listing for:" << normalizedPath;
+
+    // Signal that scanning has started
+    emit operationStarted(QFileInfo(normalizedPath).fileName(), OperationType::Delete);
+    emit queueChanged();
+
+    // Start scanning
+    ftpClient_->list(normalizedPath);
+}
+
+void TransferQueue::onDirectoryListedForDelete(const QString &path, const QList<FtpEntry> &entries)
+{
+    qDebug() << "TransferQueue: onDirectoryListedForDelete path:" << path << "entries:" << entries.size();
+
+    // Remove from our tracking set
+    requestedDeleteListings_.remove(path);
+
+    // Find the matching pending scan
+    bool found = false;
+    for (int i = 0; i < pendingDeleteScans_.size(); ++i) {
+        if (pendingDeleteScans_[i].remotePath == path) {
+            pendingDeleteScans_.removeAt(i);
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        qDebug() << "TransferQueue: ERROR - no matching pending delete scan found!";
+        return;
+    }
+
+    // Process entries - files first, then queue subdirectories for scanning
+    for (const FtpEntry &entry : entries) {
+        QString entryPath = path;
+        if (!entryPath.endsWith('/')) {
+            entryPath += '/';
+        }
+        entryPath += entry.name;
+
+        if (entry.isDirectory) {
+            // Queue subdirectory for scanning
+            PendingDeleteScan subScan;
+            subScan.remotePath = entryPath;
+            pendingDeleteScans_.enqueue(subScan);
+            requestedDeleteListings_.insert(entryPath);
+            qDebug() << "TransferQueue: Queued subdir for delete scan:" << entryPath;
+        } else {
+            // Add file to delete queue
+            DeleteItem item;
+            item.path = entryPath;
+            item.isDirectory = false;
+            deleteQueue_.append(item);
+            qDebug() << "TransferQueue: Queued file for delete:" << entryPath;
+        }
+    }
+
+    // Add the directory itself to the queue AFTER its contents (depth-first)
+    DeleteItem dirItem;
+    dirItem.path = path;
+    dirItem.isDirectory = true;
+    deleteQueue_.append(dirItem);
+    qDebug() << "TransferQueue: Queued directory for delete:" << path;
+
+    // Continue scanning if there are more directories
+    if (!pendingDeleteScans_.isEmpty()) {
+        PendingDeleteScan next = pendingDeleteScans_.head();
+        qDebug() << "TransferQueue: Next delete scan:" << next.remotePath;
+        ftpClient_->list(next.remotePath);
+    } else {
+        qDebug() << "TransferQueue: All delete scans complete, sorting and starting deletes";
+
+        // Sort the queue: files first, then directories by depth (deepest first)
+        std::sort(deleteQueue_.begin(), deleteQueue_.end(),
+            [](const DeleteItem &a, const DeleteItem &b) {
+                // Files before directories
+                if (!a.isDirectory && b.isDirectory) {
+                    return true;
+                }
+                if (a.isDirectory && !b.isDirectory) {
+                    return false;
+                }
+                // For directories, sort by depth (more slashes = deeper = comes first)
+                if (a.isDirectory && b.isDirectory) {
+                    int depthA = a.path.count('/');
+                    int depthB = b.path.count('/');
+                    return depthA > depthB;  // Deeper directories first
+                }
+                // Files can stay in any order
+                return false;
+            });
+
+        qDebug() << "TransferQueue: Delete queue sorted, first item:"
+                 << (deleteQueue_.isEmpty() ? "empty" : deleteQueue_.first().path);
+
+        // All directories scanned - now start processing the delete queue
+        totalDeleteItems_ = deleteQueue_.size();
+        currentDeleteIndex_ = 0;
+        deletedCount_ = 0;
+        processingDelete_ = true;
+        processNextDelete();
+    }
+}
+
+void TransferQueue::processNextDelete()
+{
+    if (!ftpClient_ || !ftpClient_->isConnected()) {
+        qDebug() << "TransferQueue: processNextDelete - FTP client not ready";
+        processingDelete_ = false;
+        return;
+    }
+
+    if (currentDeleteIndex_ >= deleteQueue_.size()) {
+        qDebug() << "TransferQueue: All deletes complete";
+        processingDelete_ = false;
+        deleteQueue_.clear();
+        emit operationCompleted(tr("Deleted %1 items").arg(deletedCount_));
+        emit allOperationsCompleted();
+        return;
+    }
+
+    const DeleteItem &item = deleteQueue_[currentDeleteIndex_];
+    qDebug() << "TransferQueue: Deleting" << (currentDeleteIndex_ + 1) << "of" << totalDeleteItems_
+             << ":" << item.path << (item.isDirectory ? "(dir)" : "(file)");
+
+    if (item.isDirectory) {
+        ftpClient_->removeDirectory(item.path);
+    } else {
+        ftpClient_->remove(item.path);
+    }
+}
+
+void TransferQueue::onFileRemoved(const QString &path)
+{
+    qDebug() << "TransferQueue: onFileRemoved" << path;
+
+    // Check if this is part of a recursive delete operation
+    if (processingDelete_ && currentDeleteIndex_ < deleteQueue_.size()) {
+        if (deleteQueue_[currentDeleteIndex_].path == path) {
+            deletedCount_++;
+            currentDeleteIndex_++;
+            emit queueChanged();
+            processNextDelete();
+            return;
+        }
+    }
+
+    // Check if this is a single delete operation in the regular queue
+    for (int i = 0; i < items_.size(); ++i) {
+        if (items_[i].operationType == OperationType::Delete &&
+            items_[i].remotePath == path &&
+            items_[i].status == TransferItem::Status::InProgress) {
+            items_[i].status = TransferItem::Status::Completed;
+            emit dataChanged(index(i), index(i));
+
+            QString fileName = QFileInfo(path).fileName();
+            emit operationCompleted(fileName);
+
+            emit queueChanged();
+            processNext();
+            return;
+        }
     }
 }

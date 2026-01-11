@@ -311,8 +311,8 @@ private slots:
 
         QString remotePath = "/remote/upload_test.txt";
 
-        QSignalSpy completedSpy(queue, &TransferQueue::transferCompleted);
-        QSignalSpy startedSpy(queue, &TransferQueue::transferStarted);
+        QSignalSpy completedSpy(queue, &TransferQueue::operationCompleted);
+        QSignalSpy startedSpy(queue, &TransferQueue::operationStarted);
 
         queue->enqueueUpload(localPath, remotePath);
 
@@ -336,7 +336,7 @@ private slots:
         QString remotePath = "/test/file.txt";
         QString localPath = tempDir.path() + "/file.txt";
 
-        QSignalSpy failedSpy(queue, &TransferQueue::transferFailed);
+        QSignalSpy failedSpy(queue, &TransferQueue::operationFailed);
 
         queue->enqueueDownload(remotePath, localPath);
 
@@ -373,8 +373,8 @@ private slots:
         QCOMPARE(remote.toString(), remotePath);
 
         // Test DirectionRole
-        QVariant dir = queue->data(index, TransferQueue::DirectionRole);
-        QCOMPARE(dir.toInt(), static_cast<int>(TransferItem::Direction::Download));
+        QVariant dir = queue->data(index, TransferQueue::OperationTypeRole);
+        QCOMPARE(dir.toInt(), static_cast<int>(OperationType::Download));
 
         // Test StatusRole (should be InProgress since processNext was called)
         QVariant status = queue->data(index, TransferQueue::StatusRole);
@@ -431,7 +431,7 @@ private slots:
         QString localPath = tempDir.path() + "/file.txt";
         mockFtp->mockSetDownloadData(remotePath, "content");
 
-        QSignalSpy allCompletedSpy(queue, &TransferQueue::allTransfersCompleted);
+        QSignalSpy allCompletedSpy(queue, &TransferQueue::allOperationsCompleted);
 
         queue->enqueueDownload(remotePath, localPath);
         mockFtp->mockProcessAllOperations();
@@ -497,7 +497,7 @@ private slots:
 
         QVERIFY(roles.contains(TransferQueue::LocalPathRole));
         QVERIFY(roles.contains(TransferQueue::RemotePathRole));
-        QVERIFY(roles.contains(TransferQueue::DirectionRole));
+        QVERIFY(roles.contains(TransferQueue::OperationTypeRole));
         QVERIFY(roles.contains(TransferQueue::StatusRole));
         QVERIFY(roles.contains(TransferQueue::ProgressRole));
         QVERIFY(roles.contains(TransferQueue::FileNameRole));
@@ -752,7 +752,7 @@ private slots:
 
         QString remotePath = "/remote/upload_error.txt";
 
-        QSignalSpy failedSpy(queue, &TransferQueue::transferFailed);
+        QSignalSpy failedSpy(queue, &TransferQueue::operationFailed);
 
         queue->enqueueUpload(localPath, remotePath);
 

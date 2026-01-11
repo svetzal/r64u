@@ -29,6 +29,7 @@ public:
 
 signals:
     void downloadRequested(const QString &remotePath, bool isDirectory);
+    void deleteRequested(const QString &remotePath, bool isDirectory);
     void currentDirectoryChanged(const QString &path);
     void selectionChanged();
     void statusMessage(const QString &message, int timeout = 0);

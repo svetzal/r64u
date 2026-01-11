@@ -10,17 +10,19 @@
 
 class C64UFtpClient;
 
+enum class OperationType { Upload, Download, Delete };
+
 struct TransferItem {
-    enum class Direction { Upload, Download };
     enum class Status { Pending, InProgress, Completed, Failed };
 
-    QString localPath;
+    QString localPath;   // Empty for delete operations
     QString remotePath;
-    Direction direction;
+    OperationType operationType;
     Status status = Status::Pending;
     qint64 bytesTransferred = 0;
     qint64 totalBytes = 0;
     QString errorMessage;
+    bool isDirectory = false;  // For delete operations
 };
 
 class TransferQueue : public QAbstractListModel
@@ -31,7 +33,7 @@ public:
     enum Roles {
         LocalPathRole = Qt::UserRole + 1,
         RemotePathRole,
-        DirectionRole,
+        OperationTypeRole,
         StatusRole,
         ProgressRole,
         BytesTransferredRole,
@@ -52,6 +54,10 @@ public:
     void enqueueRecursiveUpload(const QString &localDir, const QString &remoteDir);
     void enqueueRecursiveDownload(const QString &remoteDir, const QString &localDir);
 
+    // Delete operations
+    void enqueueDelete(const QString &remotePath, bool isDirectory);
+    void enqueueRecursiveDelete(const QString &remotePath);
+
     void clear();
     void removeCompleted();
     void cancelAll();
@@ -59,7 +65,8 @@ public:
     [[nodiscard]] int pendingCount() const;
     [[nodiscard]] int activeCount() const;
     [[nodiscard]] bool isProcessing() const { return processing_; }
-    [[nodiscard]] bool isScanning() const { return !pendingScans_.isEmpty(); }
+    [[nodiscard]] bool isScanning() const { return !pendingScans_.isEmpty() || !pendingDeleteScans_.isEmpty(); }
+    [[nodiscard]] bool isScanningForDelete() const { return !pendingDeleteScans_.isEmpty(); }
 
     // QAbstractListModel interface
     [[nodiscard]] int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -67,10 +74,10 @@ public:
     [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
 
 signals:
-    void transferStarted(const QString &fileName);
-    void transferCompleted(const QString &fileName);
-    void transferFailed(const QString &fileName, const QString &error);
-    void allTransfersCompleted();
+    void operationStarted(const QString &fileName, OperationType type);
+    void operationCompleted(const QString &fileName);
+    void operationFailed(const QString &fileName, const QString &error);
+    void allOperationsCompleted();
     void queueChanged();
 
 private slots:
@@ -81,12 +88,15 @@ private slots:
     void onFtpError(const QString &message);
     void onDirectoryCreated(const QString &path);
     void onDirectoryListed(const QString &path, const QList<FtpEntry> &entries);
+    void onFileRemoved(const QString &path);
 
 private:
     void processNext();
     [[nodiscard]] int findItemIndex(const QString &localPath, const QString &remotePath) const;
     void processRecursiveUpload(const QString &localDir, const QString &remoteDir);
     void processPendingDirectoryCreation();
+    void processNextDelete();
+    void onDirectoryListedForDelete(const QString &path, const QList<FtpEntry> &entries);
 
     C64UFtpClient *ftpClient_ = nullptr;
     QList<TransferItem> items_;
@@ -112,6 +122,23 @@ private:
     };
     QQueue<PendingMkdir> pendingMkdirs_;
     bool creatingDirectory_ = false;
+
+    // Recursive delete state
+    struct PendingDeleteScan {
+        QString remotePath;
+    };
+    QQueue<PendingDeleteScan> pendingDeleteScans_;
+    QSet<QString> requestedDeleteListings_;  // Track paths we've requested for delete scanning
+
+    struct DeleteItem {
+        QString path;
+        bool isDirectory;
+    };
+    QList<DeleteItem> deleteQueue_;  // Ordered: files first, then dirs deepest-first
+    int currentDeleteIndex_ = 0;
+    int totalDeleteItems_ = 0;
+    int deletedCount_ = 0;
+    bool processingDelete_ = false;
 };
 
 #endif // TRANSFERQUEUE_H

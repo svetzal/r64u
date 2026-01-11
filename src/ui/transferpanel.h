@@ -44,6 +44,7 @@ private slots:
     void onConnectionStateChanged();
     void onUploadRequested(const QString &localPath, bool isDirectory);
     void onDownloadRequested(const QString &remotePath, bool isDirectory);
+    void onDeleteRequested(const QString &remotePath, bool isDirectory);
 
 private:
     void setupUi();

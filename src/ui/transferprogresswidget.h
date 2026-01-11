@@ -6,7 +6,7 @@
 #include <QLabel>
 #include <QTimer>
 
-class TransferQueue;
+#include "models/transferqueue.h"
 
 class TransferProgressWidget : public QWidget
 {
@@ -21,12 +21,12 @@ signals:
     void statusMessage(const QString &message, int timeout = 0);
 
 private slots:
-    void onTransferStarted(const QString &fileName);
-    void onTransferCompleted(const QString &fileName);
-    void onTransferFailed(const QString &fileName, const QString &error);
-    void onTransferQueueChanged();
-    void onAllTransfersCompleted();
-    void onShowTransferProgress();
+    void onOperationStarted(const QString &fileName, OperationType type);
+    void onOperationCompleted(const QString &fileName);
+    void onOperationFailed(const QString &fileName, const QString &error);
+    void onQueueChanged();
+    void onAllOperationsCompleted();
+    void onShowProgress();
 
 private:
     void setupUi();
@@ -36,9 +36,10 @@ private:
     TransferQueue *transferQueue_ = nullptr;
 
     // State
-    int transferTotalCount_ = 0;
-    int transferCompletedCount_ = 0;
-    bool transferProgressPending_ = false;
+    int operationTotalCount_ = 0;
+    int operationCompletedCount_ = 0;
+    bool progressPending_ = false;
+    OperationType currentOperationType_ = OperationType::Upload;
 
     // UI widgets
     QProgressBar *progressBar_ = nullptr;

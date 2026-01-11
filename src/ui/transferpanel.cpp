@@ -49,11 +49,13 @@ void TransferPanel::setupConnections()
     connect(deviceConnection_, &DeviceConnection::stateChanged,
             this, &TransferPanel::onConnectionStateChanged);
 
-    // Connect upload/download requests to transfer queue
+    // Connect upload/download/delete requests to transfer queue
     connect(localBrowser_, &LocalFileBrowserWidget::uploadRequested,
             this, &TransferPanel::onUploadRequested);
     connect(remoteBrowser_, &RemoteFileBrowserWidget::downloadRequested,
             this, &TransferPanel::onDownloadRequested);
+    connect(remoteBrowser_, &RemoteFileBrowserWidget::deleteRequested,
+            this, &TransferPanel::onDeleteRequested);
 
     // Forward status messages from all widgets
     connect(localBrowser_, &LocalFileBrowserWidget::statusMessage,
@@ -185,5 +187,22 @@ void TransferPanel::onDownloadRequested(const QString &remotePath, bool isDirect
         QString localPath = downloadDir + "/" + fileName;
         transferQueue_->enqueueDownload(remotePath, localPath);
         emit statusMessage(tr("Queued download: %1 -> %2").arg(fileName).arg(downloadDir), 3000);
+    }
+}
+
+void TransferPanel::onDeleteRequested(const QString &remotePath, bool isDirectory)
+{
+    if (!deviceConnection_->isConnected()) {
+        return;
+    }
+
+    QString fileName = QFileInfo(remotePath).fileName();
+
+    if (isDirectory) {
+        transferQueue_->enqueueRecursiveDelete(remotePath);
+        emit statusMessage(tr("Queued folder delete: %1").arg(fileName), 3000);
+    } else {
+        transferQueue_->enqueueDelete(remotePath, false);
+        emit statusMessage(tr("Queued delete: %1").arg(fileName), 3000);
     }
 }

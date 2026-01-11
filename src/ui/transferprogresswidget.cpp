@@ -33,7 +33,7 @@ void TransferProgressWidget::setupUi()
     delayTimer_ = new QTimer(this);
     delayTimer_->setSingleShot(true);
     connect(delayTimer_, &QTimer::timeout,
-            this, &TransferProgressWidget::onShowTransferProgress);
+            this, &TransferProgressWidget::onShowProgress);
 }
 
 void TransferProgressWidget::setTransferQueue(TransferQueue *queue)
@@ -45,72 +45,86 @@ void TransferProgressWidget::setTransferQueue(TransferQueue *queue)
     transferQueue_ = queue;
 
     if (transferQueue_) {
-        connect(transferQueue_, &TransferQueue::transferStarted,
-                this, &TransferProgressWidget::onTransferStarted);
-        connect(transferQueue_, &TransferQueue::transferCompleted,
-                this, &TransferProgressWidget::onTransferCompleted);
-        connect(transferQueue_, &TransferQueue::transferFailed,
-                this, &TransferProgressWidget::onTransferFailed);
-        connect(transferQueue_, &TransferQueue::allTransfersCompleted,
-                this, &TransferProgressWidget::onAllTransfersCompleted);
+        connect(transferQueue_, &TransferQueue::operationStarted,
+                this, &TransferProgressWidget::onOperationStarted);
+        connect(transferQueue_, &TransferQueue::operationCompleted,
+                this, &TransferProgressWidget::onOperationCompleted);
+        connect(transferQueue_, &TransferQueue::operationFailed,
+                this, &TransferProgressWidget::onOperationFailed);
+        connect(transferQueue_, &TransferQueue::allOperationsCompleted,
+                this, &TransferProgressWidget::onAllOperationsCompleted);
         connect(transferQueue_, &TransferQueue::queueChanged,
-                this, &TransferProgressWidget::onTransferQueueChanged);
+                this, &TransferProgressWidget::onQueueChanged);
     }
 }
 
-void TransferProgressWidget::onTransferStarted(const QString &fileName)
+void TransferProgressWidget::onOperationStarted(const QString &fileName, OperationType type)
 {
     Q_UNUSED(fileName)
 
-    if (!transferProgressPending_ && !isVisible()) {
-        transferProgressPending_ = true;
-        transferTotalCount_ = transferQueue_->rowCount();
-        transferCompletedCount_ = 0;
+    currentOperationType_ = type;
+
+    if (!progressPending_ && !isVisible()) {
+        progressPending_ = true;
+        operationTotalCount_ = transferQueue_->rowCount();
+        operationCompletedCount_ = 0;
         delayTimer_->start(2000);
     }
 }
 
-void TransferProgressWidget::onTransferCompleted(const QString &fileName)
+void TransferProgressWidget::onOperationCompleted(const QString &fileName)
 {
-    emit statusMessage(tr("Transfer complete: %1").arg(fileName), 3000);
-    transferCompletedCount_++;
-    onTransferQueueChanged();
+    QString actionVerb;
+    switch (currentOperationType_) {
+    case OperationType::Upload:
+        actionVerb = tr("Uploaded");
+        break;
+    case OperationType::Download:
+        actionVerb = tr("Downloaded");
+        break;
+    case OperationType::Delete:
+        actionVerb = tr("Deleted");
+        break;
+    }
+    emit statusMessage(tr("%1: %2").arg(actionVerb, fileName), 3000);
+    operationCompletedCount_++;
+    onQueueChanged();
 }
 
-void TransferProgressWidget::onTransferFailed(const QString &fileName, const QString &error)
+void TransferProgressWidget::onOperationFailed(const QString &fileName, const QString &error)
 {
-    emit statusMessage(tr("Transfer failed: %1 - %2").arg(fileName, error), 5000);
-    transferCompletedCount_++;
-    onTransferQueueChanged();
+    emit statusMessage(tr("Operation failed: %1 - %2").arg(fileName, error), 5000);
+    operationCompletedCount_++;
+    onQueueChanged();
 }
 
-void TransferProgressWidget::onTransferQueueChanged()
+void TransferProgressWidget::onQueueChanged()
 {
-    transferTotalCount_ = transferQueue_->rowCount();
+    operationTotalCount_ = transferQueue_->rowCount();
 
     if (isVisible()) {
         updateProgressDisplay();
     }
 }
 
-void TransferProgressWidget::onAllTransfersCompleted()
+void TransferProgressWidget::onAllOperationsCompleted()
 {
     delayTimer_->stop();
-    transferProgressPending_ = false;
+    progressPending_ = false;
 
     setVisible(false);
 
-    transferTotalCount_ = 0;
-    transferCompletedCount_ = 0;
+    operationTotalCount_ = 0;
+    operationCompletedCount_ = 0;
 
     progressBar_->setMaximum(100);
     progressBar_->setValue(0);
     statusLabel_->setText(tr("Ready"));
 }
 
-void TransferProgressWidget::onShowTransferProgress()
+void TransferProgressWidget::onShowProgress()
 {
-    transferProgressPending_ = false;
+    progressPending_ = false;
 
     if (transferQueue_->isProcessing() || transferQueue_->isScanning()) {
         setVisible(true);
@@ -122,15 +136,33 @@ void TransferProgressWidget::updateProgressDisplay()
 {
     if (transferQueue_->isScanning()) {
         progressBar_->setMaximum(0);
-        statusLabel_->setText(tr("Scanning directories..."));
-    } else if (transferTotalCount_ > 0) {
+        if (transferQueue_->isScanningForDelete()) {
+            statusLabel_->setText(tr("Scanning for delete..."));
+        } else {
+            statusLabel_->setText(tr("Scanning directories..."));
+        }
+    } else if (operationTotalCount_ > 0) {
         progressBar_->setMaximum(100);
-        int progress = (transferTotalCount_ > 0)
-            ? (transferCompletedCount_ * 100) / transferTotalCount_
+        int progress = (operationTotalCount_ > 0)
+            ? (operationCompletedCount_ * 100) / operationTotalCount_
             : 0;
         progressBar_->setValue(progress);
-        statusLabel_->setText(tr("Transferring %1 of %2 files...")
-            .arg(transferCompletedCount_ + 1)
-            .arg(transferTotalCount_));
+
+        QString actionVerb;
+        switch (currentOperationType_) {
+        case OperationType::Upload:
+            actionVerb = tr("Uploading");
+            break;
+        case OperationType::Download:
+            actionVerb = tr("Downloading");
+            break;
+        case OperationType::Delete:
+            actionVerb = tr("Deleting");
+            break;
+        }
+        statusLabel_->setText(tr("%1 %2 of %3 items...")
+            .arg(actionVerb)
+            .arg(operationCompletedCount_ + 1)
+            .arg(operationTotalCount_));
     }
 }
