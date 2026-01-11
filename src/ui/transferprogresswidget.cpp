@@ -118,8 +118,21 @@ void TransferProgressWidget::onOperationFailed(const QString &fileName, const QS
 
 void TransferProgressWidget::onQueueChanged()
 {
-    // Calculate total as completed + remaining (excludes old completed items from previous operations)
-    operationTotalCount_ = operationCompletedCount_ + transferService_->activeAndPendingCount();
+    int currentActiveAndPending = transferService_->activeAndPendingCount();
+
+    // Detect new batch: if we're not showing progress and there are pending items,
+    // this is a fresh start - reset the counts
+    if (!isVisible() && !progressPending_ && currentActiveAndPending > 0) {
+        operationTotalCount_ = currentActiveAndPending;
+        operationCompletedCount_ = 0;
+    } else if (isVisible() || progressPending_) {
+        // During an active operation, only increase total if new items were added
+        // (e.g., during directory scanning)
+        int expectedRemaining = operationTotalCount_ - operationCompletedCount_;
+        if (currentActiveAndPending > expectedRemaining && expectedRemaining >= 0) {
+            operationTotalCount_ += (currentActiveAndPending - expectedRemaining);
+        }
+    }
 
     if (isVisible()) {
         updateProgressDisplay();
