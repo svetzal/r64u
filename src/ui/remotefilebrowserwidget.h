@@ -26,7 +26,11 @@ public:
     void setDownloadEnabled(bool enabled);
     void onConnectionStateChanged(bool connected);
     void refresh();
+    void refreshIfStale();
     void setSuppressAutoRefresh(bool suppress);
+
+protected:
+    void showEvent(QShowEvent *event) override;
 
 signals:
     void downloadRequested(const QString &remotePath, bool isDirectory);

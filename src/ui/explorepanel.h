@@ -30,6 +30,7 @@ public:
     void setCurrentDirectory(const QString &path);
     QString currentDirectory() const { return currentDirectory_; }
     void refresh();
+    void refreshIfStale();
     void updateDriveInfo();
 
     // Settings
@@ -69,6 +70,9 @@ private slots:
     // Config file loading slots
     void onConfigLoadFinished(const QString &path);
     void onConfigLoadFailed(const QString &path, const QString &error);
+
+protected:
+    void showEvent(QShowEvent *event) override;
 
 private:
     void setupUi();

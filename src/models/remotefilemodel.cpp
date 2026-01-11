@@ -184,16 +184,35 @@ bool RemoteFileModel::canFetchMore(const QModelIndex &parent) const
         return false;
     }
 
-    return node->isDirectory && !node->fetched && !node->fetching;
+    if (!node->isDirectory || node->fetching) {
+        return false;
+    }
+
+    // Can fetch if not yet fetched, or if stale (TTL expired)
+    if (!node->fetched) {
+        return true;
+    }
+
+    // Check if stale
+    return isStale(parent);
 }
 
 void RemoteFileModel::fetchMore(const QModelIndex &parent)
 {
     TreeNode *node = nodeFromIndex(parent);
-    if (!node || !ftpClient_ || node->fetching || node->fetched) {
+    if (!node || !ftpClient_ || node->fetching) {
         return;
     }
 
+    // If already fetched but stale, clear children first
+    if (node->fetched && !node->children.isEmpty()) {
+        beginRemoveRows(parent, 0, node->children.count() - 1);
+        qDeleteAll(node->children);
+        node->children.clear();
+        endRemoveRows();
+    }
+
+    node->fetched = false;
     node->fetching = true;
     pendingFetches_[node->fullPath] = node;
     requestedListings_.insert(node->fullPath);
@@ -273,11 +292,70 @@ void RemoteFileModel::clear()
         rootNode_->children.clear();
         rootNode_->fetched = false;
         rootNode_->fetching = false;
+        rootNode_->fetchedAt = QDateTime();
     }
     pendingFetches_.clear();
     requestedListings_.clear();
 
     endResetModel();
+}
+
+void RemoteFileModel::invalidateCache()
+{
+    // Recursively mark all nodes as stale
+    std::function<void(TreeNode*)> invalidateNode = [&](TreeNode *node) {
+        if (node->fetched) {
+            node->fetched = false;
+            node->fetchedAt = QDateTime();
+        }
+        for (TreeNode *child : node->children) {
+            invalidateNode(child);
+        }
+    };
+
+    if (rootNode_) {
+        invalidateNode(rootNode_);
+    }
+}
+
+void RemoteFileModel::invalidatePath(const QString &path)
+{
+    TreeNode *node = findNodeByPath(path);
+    if (node) {
+        node->fetched = false;
+        node->fetchedAt = QDateTime();
+    }
+}
+
+bool RemoteFileModel::isStale(const QModelIndex &index) const
+{
+    TreeNode *node = nodeFromIndex(index);
+    if (!node || !node->isDirectory || !node->fetched) {
+        return false;  // Not fetched yet, so not "stale"
+    }
+
+    if (cacheTtlSeconds_ <= 0) {
+        return false;  // TTL disabled, never stale
+    }
+
+    if (!node->fetchedAt.isValid()) {
+        return true;  // No timestamp, treat as stale
+    }
+
+    qint64 ageSeconds = node->fetchedAt.secsTo(QDateTime::currentDateTime());
+    return ageSeconds >= cacheTtlSeconds_;
+}
+
+void RemoteFileModel::refreshIfStale()
+{
+    if (!ftpClient_) {
+        return;
+    }
+
+    // Check if root is stale and refresh if so
+    if (isStale(QModelIndex())) {
+        refresh();
+    }
 }
 
 RemoteFileModel::FileType RemoteFileModel::detectFileType(const QString &filename)
@@ -379,6 +457,7 @@ void RemoteFileModel::onDirectoryListed(const QString &path, const QList<FtpEntr
 
     node->fetching = false;
     node->fetched = true;
+    node->fetchedAt = QDateTime::currentDateTime();
 
     populateNode(node, entries);
     emit loadingFinished(path);

@@ -10,6 +10,7 @@
 #include <QPushButton>
 #include <QInputDialog>
 #include <QFileInfo>
+#include <QShowEvent>
 
 RemoteFileBrowserWidget::RemoteFileBrowserWidget(RemoteFileModel *model,
                                                  C64UFtpClient *ftpClient,
@@ -181,6 +182,23 @@ bool RemoteFileBrowserWidget::isSelectedDirectory() const
 void RemoteFileBrowserWidget::refresh()
 {
     onRefresh();
+}
+
+void RemoteFileBrowserWidget::refreshIfStale()
+{
+    if (!connected_ || suppressAutoRefresh_) {
+        return;
+    }
+
+    remoteFileModel_->refreshIfStale();
+}
+
+void RemoteFileBrowserWidget::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+
+    // Auto-refresh stale data when panel becomes visible
+    refreshIfStale();
 }
 
 void RemoteFileBrowserWidget::onDoubleClicked(const QModelIndex &index)

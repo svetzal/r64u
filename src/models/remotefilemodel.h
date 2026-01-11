@@ -4,6 +4,7 @@
 #include <QAbstractItemModel>
 #include <QIcon>
 #include <QSet>
+#include <QDateTime>
 #include "services/iftpclient.h"
 
 class RemoteFileModel : public QAbstractItemModel
@@ -62,6 +63,50 @@ public:
     void refresh(const QModelIndex &index);
     void clear();
 
+    /**
+     * @brief Invalidate all cached directory listings.
+     *
+     * Marks all fetched directories as stale, so they will be refetched
+     * on next access. Does not clear the current display.
+     */
+    void invalidateCache();
+
+    /**
+     * @brief Invalidate cache for a specific directory path.
+     * @param path The directory path to invalidate.
+     */
+    void invalidatePath(const QString &path);
+
+    /**
+     * @brief Set the cache TTL (time-to-live) in seconds.
+     * @param seconds TTL in seconds. Use 0 to disable TTL (infinite cache).
+     *
+     * Default is 30 seconds. Directories fetched longer ago than this
+     * will be considered stale and refetched on next access.
+     */
+    void setCacheTtl(int seconds) { cacheTtlSeconds_ = seconds; }
+
+    /**
+     * @brief Get the current cache TTL.
+     * @return TTL in seconds.
+     */
+    int cacheTtl() const { return cacheTtlSeconds_; }
+
+    /**
+     * @brief Check if a directory is stale (older than TTL).
+     * @param index The model index to check.
+     * @return True if the directory is stale and should be refetched.
+     */
+    bool isStale(const QModelIndex &index) const;
+
+    /**
+     * @brief Refresh stale directories that are currently visible.
+     *
+     * This is useful for auto-refresh on focus/panel switch.
+     * Only refreshes the root directory if it's stale.
+     */
+    void refreshIfStale();
+
     static FileType detectFileType(const QString &filename);
     static QIcon iconForFileType(FileType type);
     static QString fileTypeString(FileType type);
@@ -87,6 +132,7 @@ private:
         QList<TreeNode*> children;
         bool fetched = false;
         bool fetching = false;
+        QDateTime fetchedAt;  ///< When this directory was last fetched
 
         ~TreeNode() { qDeleteAll(children); }
     };
@@ -105,6 +151,9 @@ private:
 
     // Track paths we explicitly requested (to ignore listings from other components)
     QSet<QString> requestedListings_;
+
+    // Cache TTL in seconds (0 = infinite, no automatic expiry)
+    int cacheTtlSeconds_ = 30;
 };
 
 #endif // REMOTEFILEMODEL_H

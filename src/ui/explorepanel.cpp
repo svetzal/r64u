@@ -14,6 +14,7 @@
 #include <QFileInfo>
 #include <QTimer>
 #include <QSettings>
+#include <QShowEvent>
 
 ExplorePanel::ExplorePanel(DeviceConnection *connection,
                            RemoteFileModel *model,
@@ -181,7 +182,9 @@ void ExplorePanel::setCurrentDirectory(const QString &path)
 
 void ExplorePanel::refresh()
 {
-    if (!deviceConnection_->canPerformOperations()) return;
+    if (!deviceConnection_->canPerformOperations()) {
+        return;
+    }
 
     QModelIndex index = treeView_->currentIndex();
     if (index.isValid() && remoteFileModel_->isDirectory(index)) {
@@ -191,6 +194,23 @@ void ExplorePanel::refresh()
     }
 
     deviceConnection_->refreshDriveInfo();
+}
+
+void ExplorePanel::refreshIfStale()
+{
+    if (!deviceConnection_->canPerformOperations()) {
+        return;
+    }
+
+    remoteFileModel_->refreshIfStale();
+}
+
+void ExplorePanel::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+
+    // Auto-refresh stale data when panel becomes visible
+    refreshIfStale();
 }
 
 void ExplorePanel::updateDriveInfo()

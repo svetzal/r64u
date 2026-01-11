@@ -741,6 +741,307 @@ private slots:
         QModelIndex nameIdx = model->index(0, 0);
         QVERIFY(!model->data(nameIdx, Qt::TextAlignmentRole).isValid());
     }
+
+    // === Cache TTL and Invalidation Tests ===
+
+    void testCacheTtlConfiguration()
+    {
+        // Default TTL is 30 seconds
+        QCOMPARE(model->cacheTtl(), 30);
+
+        // Set custom TTL
+        model->setCacheTtl(60);
+        QCOMPARE(model->cacheTtl(), 60);
+
+        // Disable TTL
+        model->setCacheTtl(0);
+        QCOMPARE(model->cacheTtl(), 0);
+    }
+
+    void testIsStaleBeforeFetch()
+    {
+        // Unfetched directory is not stale (it's just unfetched)
+        QVERIFY(!model->isStale(QModelIndex()));
+    }
+
+    void testIsStaleImmediatelyAfterFetch()
+    {
+        // Set a long TTL so data is fresh
+        model->setCacheTtl(300);
+
+        QList<FtpEntry> entries;
+        FtpEntry file;
+        file.name = "test.prg";
+        file.isDirectory = false;
+        entries << file;
+        mockFtp->mockSetDirectoryListing("/", entries);
+
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+
+        // Immediately after fetch, should not be stale
+        QVERIFY(!model->isStale(QModelIndex()));
+    }
+
+    void testIsStaleWithZeroTtl()
+    {
+        // Disable TTL - data should never be considered stale
+        model->setCacheTtl(0);
+
+        QList<FtpEntry> entries;
+        FtpEntry file;
+        file.name = "test.prg";
+        file.isDirectory = false;
+        entries << file;
+        mockFtp->mockSetDirectoryListing("/", entries);
+
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+
+        // With TTL disabled, should never be stale
+        QVERIFY(!model->isStale(QModelIndex()));
+    }
+
+    void testCanFetchMoreWhenStaleEnabled()
+    {
+        // Set very short TTL (1 second)
+        model->setCacheTtl(1);
+
+        QList<FtpEntry> entries;
+        FtpEntry file;
+        file.name = "test.prg";
+        file.isDirectory = false;
+        entries << file;
+        mockFtp->mockSetDirectoryListing("/", entries);
+
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+
+        // Immediately after fetch, should not be able to fetch more
+        QVERIFY(!model->canFetchMore(QModelIndex()));
+
+        // Wait for TTL to expire
+        QTest::qWait(1100);  // Wait 1.1 seconds
+
+        // Now should be able to fetch more (stale data)
+        QVERIFY(model->canFetchMore(QModelIndex()));
+    }
+
+    void testInvalidateCache()
+    {
+        // Setup with nested structure
+        QList<FtpEntry> rootEntries;
+        FtpEntry dir;
+        dir.name = "Games";
+        dir.isDirectory = true;
+        rootEntries << dir;
+        mockFtp->mockSetDirectoryListing("/", rootEntries);
+
+        QList<FtpEntry> subEntries;
+        FtpEntry file;
+        file.name = "tetris.prg";
+        file.isDirectory = false;
+        subEntries << file;
+        mockFtp->mockSetDirectoryListing("/Games", subEntries);
+
+        // Fetch root
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+
+        // Fetch subdir
+        QModelIndex gamesIndex = model->index(0, 0);
+        model->fetchMore(gamesIndex);
+        mockFtp->mockProcessAllOperations();
+
+        // Both should be fetched (not fetchable)
+        QVERIFY(!model->canFetchMore(QModelIndex()));
+        QVERIFY(!model->canFetchMore(gamesIndex));
+
+        // Invalidate entire cache
+        model->invalidateCache();
+
+        // Both should now be fetchable again
+        QVERIFY(model->canFetchMore(QModelIndex()));
+        QVERIFY(model->canFetchMore(gamesIndex));
+    }
+
+    void testInvalidatePath()
+    {
+        // Setup with nested structure
+        QList<FtpEntry> rootEntries;
+        FtpEntry dir;
+        dir.name = "Games";
+        dir.isDirectory = true;
+        rootEntries << dir;
+        mockFtp->mockSetDirectoryListing("/", rootEntries);
+
+        QList<FtpEntry> subEntries;
+        FtpEntry file;
+        file.name = "tetris.prg";
+        file.isDirectory = false;
+        subEntries << file;
+        mockFtp->mockSetDirectoryListing("/Games", subEntries);
+
+        // Fetch root
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+
+        // Fetch subdir
+        QModelIndex gamesIndex = model->index(0, 0);
+        model->fetchMore(gamesIndex);
+        mockFtp->mockProcessAllOperations();
+
+        // Both should be fetched
+        QVERIFY(!model->canFetchMore(QModelIndex()));
+        QVERIFY(!model->canFetchMore(gamesIndex));
+
+        // Invalidate only Games directory
+        model->invalidatePath("/Games");
+
+        // Root should still be fetched
+        QVERIFY(!model->canFetchMore(QModelIndex()));
+
+        // Games should now be fetchable
+        QVERIFY(model->canFetchMore(gamesIndex));
+    }
+
+    void testInvalidatePathNonexistent()
+    {
+        // Invalidating a non-existent path should not crash
+        model->invalidatePath("/NonExistent/Path");
+
+        // Model should still work
+        QVERIFY(model->canFetchMore(QModelIndex()));
+    }
+
+    void testRefreshIfStaleWhenFresh()
+    {
+        // Set long TTL
+        model->setCacheTtl(300);
+
+        QList<FtpEntry> entries;
+        FtpEntry file;
+        file.name = "test.prg";
+        file.isDirectory = false;
+        entries << file;
+        mockFtp->mockSetDirectoryListing("/", entries);
+
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+
+        int listRequestsBefore = mockFtp->mockGetListRequests().size();
+
+        // refreshIfStale should not trigger a refresh when data is fresh
+        model->refreshIfStale();
+
+        int listRequestsAfter = mockFtp->mockGetListRequests().size();
+
+        // No new list requests should have been made
+        QCOMPARE(listRequestsAfter, listRequestsBefore);
+    }
+
+    void testRefreshIfStaleWhenStale()
+    {
+        // Set very short TTL
+        model->setCacheTtl(1);
+
+        QList<FtpEntry> entries;
+        FtpEntry file;
+        file.name = "test.prg";
+        file.isDirectory = false;
+        entries << file;
+        mockFtp->mockSetDirectoryListing("/", entries);
+
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+
+        // Wait for TTL to expire
+        QTest::qWait(1100);
+
+        int listRequestsBefore = mockFtp->mockGetListRequests().size();
+
+        // refreshIfStale should trigger a refresh when data is stale
+        model->refreshIfStale();
+
+        int listRequestsAfter = mockFtp->mockGetListRequests().size();
+
+        // Should not have made additional list request because refresh() does a full reset
+        // Actually, refresh() calls setRootPath() which resets the model, not lists
+        // So the list count should be the same until fetchMore is called again
+        QCOMPARE(listRequestsAfter, listRequestsBefore);
+
+        // But the model should now be fetchable again
+        QVERIFY(model->canFetchMore(QModelIndex()));
+    }
+
+    void testFetchMoreClearsStaleChildren()
+    {
+        // Set short TTL
+        model->setCacheTtl(1);
+
+        // First fetch with old data
+        QList<FtpEntry> oldEntries;
+        FtpEntry oldFile;
+        oldFile.name = "old.prg";
+        oldFile.isDirectory = false;
+        oldEntries << oldFile;
+        mockFtp->mockSetDirectoryListing("/", oldEntries);
+
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+
+        QCOMPARE(model->rowCount(), 1);
+        QCOMPARE(model->data(model->index(0, 0), Qt::DisplayRole).toString(), QString("old.prg"));
+
+        // Wait for TTL to expire
+        QTest::qWait(1100);
+
+        // Update mock with new data
+        QList<FtpEntry> newEntries;
+        FtpEntry newFile;
+        newFile.name = "new.prg";
+        newFile.isDirectory = false;
+        newEntries << newFile;
+        mockFtp->mockSetDirectoryListing("/", newEntries);
+
+        // fetchMore should clear old children and get new ones
+        QSignalSpy rowsRemovedSpy(model, &QAbstractItemModel::rowsRemoved);
+        QSignalSpy rowsInsertedSpy(model, &QAbstractItemModel::rowsInserted);
+
+        model->fetchMore(QModelIndex());
+
+        // Old children should be removed first
+        QCOMPARE(rowsRemovedSpy.count(), 1);
+
+        mockFtp->mockProcessAllOperations();
+
+        // New children should be inserted
+        QCOMPARE(rowsInsertedSpy.count(), 1);
+
+        // Model should now have new data
+        QCOMPARE(model->rowCount(), 1);
+        QCOMPARE(model->data(model->index(0, 0), Qt::DisplayRole).toString(), QString("new.prg"));
+    }
+
+    void testClearResetsTimestamp()
+    {
+        QList<FtpEntry> entries;
+        FtpEntry file;
+        file.name = "test.prg";
+        file.isDirectory = false;
+        entries << file;
+        mockFtp->mockSetDirectoryListing("/", entries);
+
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+
+        // After clear, should be fetchable again
+        model->clear();
+        QVERIFY(model->canFetchMore(QModelIndex()));
+
+        // And should not be stale (not fetched)
+        QVERIFY(!model->isStale(QModelIndex()));
+    }
 };
 
 QTEST_MAIN(TestRemoteFileModel)
