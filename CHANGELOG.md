@@ -5,6 +5,17 @@ All notable changes to r64u will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Recursive folder delete** - Delete folders with all their contents from the remote filesystem
+- **Cancel button** - Abort long-running transfer or delete operations from the progress bar
+- Progress bar now shows delete operation progress (previously only showed copy progress)
+- Status bar displays each filename as it's deleted during bulk operations
+
+### Changed
+- Progress bar is now a generic operation progress indicator (uploads, downloads, deletes)
+
 ## [0.7.0] - 2026-01-10
 
 ### Added
