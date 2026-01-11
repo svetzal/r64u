@@ -10,7 +10,11 @@
 
 TransferQueue::TransferQueue(QObject *parent)
     : QAbstractListModel(parent)
+    , operationTimeoutTimer_(new QTimer(this))
 {
+    operationTimeoutTimer_->setSingleShot(true);
+    connect(operationTimeoutTimer_, &QTimer::timeout,
+            this, &TransferQueue::onOperationTimeout);
 }
 
 void TransferQueue::setFtpClient(IFtpClient *client)
@@ -117,6 +121,10 @@ void TransferQueue::startRecursiveUpload()
     QString targetDir = pendingFolderUpload_.targetDir;
 
     qDebug() << "TransferQueue: Starting recursive upload from" << localDir << "to" << targetDir;
+
+    // Emit operationStarted to keep refresh suppressed during directory creation and file uploads
+    QString folderName = QFileInfo(localDir).fileName();
+    emit operationStarted(folderName, OperationType::Upload);
 
     // Collect all directories that need to be created first
     QDir baseDir(localDir);
@@ -440,6 +448,9 @@ void TransferQueue::processNext()
             emit dataChanged(index(i), index(i));
             emit operationStarted(fileName, items_[i].operationType);
 
+            // Start operation timeout timer
+            startOperationTimeout();
+
             qDebug() << "TransferQueue: Starting operation" << i << "remote:" << items_[i].remotePath
                      << "local:" << items_[i].localPath;
 
@@ -460,6 +471,7 @@ void TransferQueue::processNext()
 
     // No more pending items
     qDebug() << "TransferQueue: processNext - no more pending items";
+    stopOperationTimeout();
     processing_ = false;
     currentIndex_ = -1;
     overwriteAll_ = false;  // Reset for next batch
@@ -521,6 +533,9 @@ int TransferQueue::findItemIndex(const QString &localPath, const QString &remote
 void TransferQueue::onUploadProgress(const QString &file, qint64 sent, qint64 total)
 {
     Q_UNUSED(file)
+    // Reset timeout on activity
+    startOperationTimeout();
+
     if (currentIndex_ >= 0 && currentIndex_ < items_.size()) {
         items_[currentIndex_].bytesTransferred = sent;
         items_[currentIndex_].totalBytes = total;
@@ -530,6 +545,8 @@ void TransferQueue::onUploadProgress(const QString &file, qint64 sent, qint64 to
 
 void TransferQueue::onUploadFinished(const QString &localPath, const QString &remotePath)
 {
+    stopOperationTimeout();
+
     int idx = findItemIndex(localPath, remotePath);
     if (idx >= 0) {
         items_[idx].status = TransferItem::Status::Completed;
@@ -547,6 +564,9 @@ void TransferQueue::onUploadFinished(const QString &localPath, const QString &re
 void TransferQueue::onDownloadProgress(const QString &file, qint64 received, qint64 total)
 {
     Q_UNUSED(file)
+    // Reset timeout on activity
+    startOperationTimeout();
+
     if (currentIndex_ >= 0 && currentIndex_ < items_.size()) {
         items_[currentIndex_].bytesTransferred = received;
         items_[currentIndex_].totalBytes = total;
@@ -556,6 +576,8 @@ void TransferQueue::onDownloadProgress(const QString &file, qint64 received, qin
 
 void TransferQueue::onDownloadFinished(const QString &remotePath, const QString &localPath)
 {
+    stopOperationTimeout();
+
     qDebug() << "TransferQueue: onDownloadFinished remotePath:" << remotePath << "localPath:" << localPath;
 
     int idx = findItemIndex(localPath, remotePath);
@@ -582,6 +604,8 @@ void TransferQueue::onDownloadFinished(const QString &remotePath, const QString 
 
 void TransferQueue::onFtpError(const QString &message)
 {
+    stopOperationTimeout();
+
     if (currentIndex_ >= 0 && currentIndex_ < items_.size()) {
         items_[currentIndex_].status = TransferItem::Status::Failed;
         items_[currentIndex_].errorMessage = message;
@@ -890,7 +914,15 @@ void TransferQueue::processNextDelete()
         processingDelete_ = false;
         deleteQueue_.clear();
         emit operationCompleted(tr("Deleted %1 items").arg(deletedCount_));
-        emit allOperationsCompleted();
+
+        // Check if we have a pending upload after delete (Replace operation)
+        if (pendingUploadAfterDelete_) {
+            qDebug() << "TransferQueue: Delete completed, starting pending upload";
+            pendingUploadAfterDelete_ = false;
+            startRecursiveUpload();
+        } else {
+            emit allOperationsCompleted();
+        }
         return;
     }
 
@@ -992,20 +1024,10 @@ void TransferQueue::respondToFolderExists(FolderExistsResponse response)
     case FolderExistsResponse::Replace:
         // Delete existing folder first, then upload
         qDebug() << "TransferQueue: User chose to replace folder";
-        // Store that we need to upload after delete completes
-        // We'll use the allOperationsCompleted signal from the delete to trigger the upload
-        // But we need a way to know it was from a replace operation...
-        // For now, connect a one-shot handler
-        {
-            QString targetDir = pendingFolderUpload_.targetDir;
-            auto conn = std::make_shared<QMetaObject::Connection>();
-            *conn = connect(this, &TransferQueue::allOperationsCompleted, this, [this, conn]() {
-                disconnect(*conn);
-                qDebug() << "TransferQueue: Delete completed, starting upload";
-                startRecursiveUpload();
-            });
-            enqueueRecursiveDelete(targetDir);
-        }
+        // Set flag to indicate upload is pending after delete
+        // This prevents allOperationsCompleted from firing prematurely
+        pendingUploadAfterDelete_ = true;
+        enqueueRecursiveDelete(pendingFolderUpload_.targetDir);
         break;
 
     case FolderExistsResponse::Cancel:
@@ -1015,4 +1037,44 @@ void TransferQueue::respondToFolderExists(FolderExistsResponse response)
         emit operationsCancelled();
         break;
     }
+}
+
+void TransferQueue::startOperationTimeout()
+{
+    operationTimeoutTimer_->start(OperationTimeoutMs);
+}
+
+void TransferQueue::stopOperationTimeout()
+{
+    operationTimeoutTimer_->stop();
+}
+
+void TransferQueue::onOperationTimeout()
+{
+    qDebug() << "TransferQueue: Operation timeout! Current operation has stalled.";
+
+    // Find the current in-progress item
+    for (int i = 0; i < items_.size(); ++i) {
+        if (items_[i].status == TransferItem::Status::InProgress) {
+            QString fileName = QFileInfo(items_[i].localPath.isEmpty()
+                                        ? items_[i].remotePath
+                                        : items_[i].localPath).fileName();
+
+            items_[i].status = TransferItem::Status::Failed;
+            items_[i].errorMessage = tr("Operation timed out after %1 minutes")
+                                     .arg(OperationTimeoutMs / 60000);
+            emit dataChanged(index(i), index(i));
+            emit operationFailed(fileName, items_[i].errorMessage);
+
+            qDebug() << "TransferQueue: Marked item as failed:" << fileName;
+            break;
+        }
+    }
+
+    // Reset processing state
+    processing_ = false;
+    currentIndex_ = -1;
+
+    // Try to process remaining items
+    processNext();
 }

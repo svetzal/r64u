@@ -5,6 +5,7 @@
 #include <QQueue>
 #include <QString>
 #include <QSet>
+#include <QTimer>
 
 #include "services/ftpentry.h"  // For FtpEntry definition (needed by Qt MOC)
 
@@ -177,6 +178,17 @@ private:
     bool checkingFolderExists_ = false;
     bool waitingForFolderExistsResponse_ = false;
     bool autoMerge_ = false;
+
+    // Compound operation state (delete + upload for Replace)
+    // When true, don't emit allOperationsCompleted after delete - wait for upload to finish
+    bool pendingUploadAfterDelete_ = false;
+
+    // Operation timeout for stalled transfers
+    QTimer *operationTimeoutTimer_ = nullptr;
+    static constexpr int OperationTimeoutMs = 300000;  // 5 minutes
+    void startOperationTimeout();
+    void stopOperationTimeout();
+    void onOperationTimeout();
 };
 
 #endif // TRANSFERQUEUE_H
