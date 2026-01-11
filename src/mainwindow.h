@@ -14,6 +14,7 @@ class ConfigFileLoader;
 class FilePreviewService;
 class TransferService;
 class ErrorHandler;
+class StatusMessageService;
 class ConnectionStatusWidget;
 class ExplorePanel;
 class TransferPanel;
@@ -86,6 +87,7 @@ private:
     FilePreviewService *filePreviewService_ = nullptr;
     TransferService *transferService_ = nullptr;
     ErrorHandler *errorHandler_ = nullptr;
+    StatusMessageService *statusMessageService_ = nullptr;
 
     // Central widget
     QTabWidget *modeTabWidget_ = nullptr;

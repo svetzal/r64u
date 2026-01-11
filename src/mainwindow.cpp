@@ -10,6 +10,7 @@
 #include "services/filepreviewservice.h"
 #include "services/transferservice.h"
 #include "services/errorhandler.h"
+#include "services/statusmessageservice.h"
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 
@@ -44,6 +45,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Create the error handler
     errorHandler_ = new ErrorHandler(this, this);
+
+    // Create the status message service for coordinated status bar messages
+    statusMessageService_ = new StatusMessageService(this);
 
     // Configure the config file loader
     configFileLoader_->setFtpClient(deviceConnection_->ftpClient());
@@ -233,7 +237,11 @@ void MainWindow::setupSystemToolBar()
 
 void MainWindow::setupStatusBar()
 {
-    statusBar()->showMessage(tr("Ready"));
+    // Connect StatusMessageService to statusBar
+    connect(statusMessageService_, &StatusMessageService::displayMessage,
+            statusBar(), &QStatusBar::showMessage);
+
+    statusMessageService_->showInfo(tr("Ready"));
 }
 
 void MainWindow::setupPanels()
@@ -250,15 +258,23 @@ void MainWindow::setupPanels()
     modeTabWidget_->addTab(viewPanel_, tr("View"));
     modeTabWidget_->addTab(configPanel_, tr("Config"));
 
-    // Connect panel status messages to status bar
+    // Connect panel status messages through the coordinator service
     connect(explorePanel_, &ExplorePanel::statusMessage,
-            statusBar(), &QStatusBar::showMessage);
+            this, [this](const QString &msg, int timeout) {
+        statusMessageService_->showInfo(msg, timeout);
+    });
     connect(transferPanel_, &TransferPanel::statusMessage,
-            statusBar(), &QStatusBar::showMessage);
+            this, [this](const QString &msg, int timeout) {
+        statusMessageService_->showInfo(msg, timeout);
+    });
     connect(viewPanel_, &ViewPanel::statusMessage,
-            statusBar(), &QStatusBar::showMessage);
+            this, [this](const QString &msg, int timeout) {
+        statusMessageService_->showInfo(msg, timeout);
+    });
     connect(configPanel_, &ConfigPanel::statusMessage,
-            statusBar(), &QStatusBar::showMessage);
+            this, [this](const QString &msg, int timeout) {
+        statusMessageService_->showInfo(msg, timeout);
+    });
 }
 
 void MainWindow::setupConnections()
@@ -282,9 +298,12 @@ void MainWindow::setupConnections()
     connect(remoteFileModel_, &RemoteFileModel::errorOccurred,
             errorHandler_, &ErrorHandler::handleDataError);
 
-    // ErrorHandler status messages go to status bar
+    // ErrorHandler status messages go through coordinator with appropriate priority
     connect(errorHandler_, &ErrorHandler::statusMessage,
-            statusBar(), &QStatusBar::showMessage);
+            this, [this](const QString &msg, int timeout) {
+        // ErrorHandler always uses warning or error severity
+        statusMessageService_->showWarning(msg, timeout);
+    });
 
     // REST client success signals
     connect(deviceConnection_->restClient(), &C64URestClient::operationSucceeded,
@@ -293,17 +312,17 @@ void MainWindow::setupConnections()
     // Model signals for loading state (not errors)
     connect(remoteFileModel_, &RemoteFileModel::loadingStarted,
             this, [this](const QString &path) {
-        statusBar()->showMessage(tr("Loading %1...").arg(path));
+        statusMessageService_->showInfo(tr("Loading %1...").arg(path));
     });
     connect(remoteFileModel_, &RemoteFileModel::loadingFinished,
             this, [this](const QString &) {
-        statusBar()->clearMessage();
+        // Loading finished - no need to show a message, just let it clear naturally
     });
 
     // Config file loader signals
     connect(configFileLoader_, &ConfigFileLoader::loadStarted,
             this, [this](const QString &path) {
-        statusBar()->showMessage(tr("Loading configuration: %1...").arg(QFileInfo(path).fileName()));
+        statusMessageService_->showInfo(tr("Loading configuration: %1...").arg(QFileInfo(path).fileName()));
     });
 }
 
@@ -537,31 +556,31 @@ void MainWindow::onDisconnect()
 void MainWindow::onReset()
 {
     deviceConnection_->restClient()->resetMachine();
-    statusBar()->showMessage(tr("Reset sent"), 3000);
+    statusMessageService_->showInfo(tr("Reset sent"), 3000);
 }
 
 void MainWindow::onReboot()
 {
     deviceConnection_->restClient()->rebootMachine();
-    statusBar()->showMessage(tr("Reboot sent"), 3000);
+    statusMessageService_->showInfo(tr("Reboot sent"), 3000);
 }
 
 void MainWindow::onPause()
 {
     deviceConnection_->restClient()->pauseMachine();
-    statusBar()->showMessage(tr("Pause sent"), 3000);
+    statusMessageService_->showInfo(tr("Pause sent"), 3000);
 }
 
 void MainWindow::onResume()
 {
     deviceConnection_->restClient()->resumeMachine();
-    statusBar()->showMessage(tr("Resume sent"), 3000);
+    statusMessageService_->showInfo(tr("Resume sent"), 3000);
 }
 
 void MainWindow::onMenuButton()
 {
     deviceConnection_->restClient()->pressMenuButton();
-    statusBar()->showMessage(tr("Menu button pressed"), 3000);
+    statusMessageService_->showInfo(tr("Menu button pressed"), 3000);
 }
 
 void MainWindow::onPowerOff()
@@ -580,20 +599,20 @@ void MainWindow::onPowerOff()
     }
 
     deviceConnection_->restClient()->powerOffMachine();
-    statusBar()->showMessage(tr("Power off sent"), 3000);
+    statusMessageService_->showInfo(tr("Power off sent"), 3000);
     deviceConnection_->disconnectFromDevice();
 }
 
 void MainWindow::onEjectDriveA()
 {
     deviceConnection_->restClient()->unmountImage("a");
-    statusBar()->showMessage(tr("Ejecting Drive A"), 3000);
+    statusMessageService_->showInfo(tr("Ejecting Drive A"), 3000);
 }
 
 void MainWindow::onEjectDriveB()
 {
     deviceConnection_->restClient()->unmountImage("b");
-    statusBar()->showMessage(tr("Ejecting Drive B"), 3000);
+    statusMessageService_->showInfo(tr("Ejecting Drive B"), 3000);
 }
 
 void MainWindow::onRefresh()
@@ -630,10 +649,10 @@ void MainWindow::onConnectionStateChanged()
 
     switch (state) {
     case DeviceConnection::ConnectionState::Connecting:
-        statusBar()->showMessage(tr("Connecting..."));
+        statusMessageService_->showInfo(tr("Connecting..."));
         break;
     case DeviceConnection::ConnectionState::Connected:
-        statusBar()->showMessage(tr("Connected"), 3000);
+        statusMessageService_->showInfo(tr("Connected"), 3000);
         // Navigate to saved directory for the currently active panel only
         // (both panels share the same model, so only sync the visible one)
         if (currentMode_ == Mode::ExploreRun) {
@@ -645,10 +664,10 @@ void MainWindow::onConnectionStateChanged()
         }
         break;
     case DeviceConnection::ConnectionState::Reconnecting:
-        statusBar()->showMessage(tr("Reconnecting..."));
+        statusMessageService_->showWarning(tr("Reconnecting..."));
         break;
     case DeviceConnection::ConnectionState::Disconnected:
-        statusBar()->showMessage(tr("Disconnected"), 3000);
+        statusMessageService_->showInfo(tr("Disconnected"), 3000);
         remoteFileModel_->clear();
         viewPanel_->stopStreamingIfActive();
         break;
@@ -669,7 +688,7 @@ void MainWindow::onDriveInfoUpdated()
 
 void MainWindow::onOperationSucceeded(const QString &operation)
 {
-    statusBar()->showMessage(tr("%1 succeeded").arg(operation), 3000);
+    statusMessageService_->showInfo(tr("%1 succeeded").arg(operation), 3000);
 
     if (operation == "mount" || operation == "unmount") {
         deviceConnection_->refreshDriveInfo();

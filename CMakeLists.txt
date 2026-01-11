@@ -65,6 +65,7 @@ set(SOURCES
     src/services/filepreviewservice.cpp
     src/services/transferservice.cpp
     src/services/errorhandler.cpp
+    src/services/statusmessageservice.cpp
     src/services/streamcontrolclient.cpp
     src/services/streamingmanager.cpp
     src/services/videostreamreceiver.cpp
@@ -111,6 +112,7 @@ set(HEADERS
     src/services/filepreviewservice.h
     src/services/transferservice.h
     src/services/errorhandler.h
+    src/services/statusmessageservice.h
     src/services/credentialstore.h
     src/services/streamcontrolclient.h
     src/services/streamingmanager.h

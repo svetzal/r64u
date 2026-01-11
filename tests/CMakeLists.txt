@@ -375,6 +375,30 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_errorhandler)
 endif()
 
+# StatusMessageService tests
+add_executable(test_statusmessageservice
+    test_statusmessageservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
+)
+
+target_include_directories(test_statusmessageservice PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_statusmessageservice PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+# Register test with CTest
+add_test(NAME StatusMessageServiceTest COMMAND test_statusmessageservice)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(statusmessageservice test_statusmessageservice)
+    add_dependencies(coverage coverage_statusmessageservice)
+endif()
+
 # FileBrowserSync integration tests
 add_executable(test_filebrowsersync
     test_filebrowsersync.cpp
