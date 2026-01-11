@@ -24,7 +24,6 @@ public:
     ~ViewPanel() override;
 
     // Public API for MainWindow coordination
-    void onConnectionStateChanged(bool connected);
     void stopStreamingIfActive();
 
     // Settings
@@ -36,6 +35,7 @@ signals:
     void statusMessage(const QString &message, int timeout = 0);
 
 private slots:
+    void onConnectionStateChanged();
     void onStartStreaming();
     void onStopStreaming();
     void onVideoFormatDetected(int format);

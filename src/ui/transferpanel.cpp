@@ -42,6 +42,10 @@ void TransferPanel::setupUi()
 
 void TransferPanel::setupConnections()
 {
+    // Subscribe to device connection state changes
+    connect(deviceConnection_, &DeviceConnection::stateChanged,
+            this, &TransferPanel::onConnectionStateChanged);
+
     // Connect upload/download requests to transfer queue
     connect(localBrowser_, &LocalFileBrowserWidget::uploadRequested,
             this, &TransferPanel::onUploadRequested);
@@ -94,8 +98,9 @@ QString TransferPanel::currentRemoteDir() const
     return remoteBrowser_->currentDirectory();
 }
 
-void TransferPanel::onConnectionStateChanged(bool connected)
+void TransferPanel::onConnectionStateChanged()
 {
+    bool connected = deviceConnection_->isConnected();
     remoteBrowser_->onConnectionStateChanged(connected);
     localBrowser_->setUploadEnabled(connected);
 }

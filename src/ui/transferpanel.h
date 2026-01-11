@@ -26,7 +26,6 @@ public:
     void setCurrentRemoteDir(const QString &path);
     QString currentLocalDir() const;
     QString currentRemoteDir() const;
-    void onConnectionStateChanged(bool connected);
 
     // Selection info for MainWindow
     QString selectedLocalPath() const;
@@ -38,6 +37,7 @@ signals:
     void selectionChanged();
 
 private slots:
+    void onConnectionStateChanged();
     void onUploadRequested(const QString &localPath, bool isDirectory);
     void onDownloadRequested(const QString &remotePath, bool isDirectory);
 

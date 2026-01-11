@@ -29,7 +29,6 @@ public:
     QString currentDirectory() const { return currentDirectory_; }
     void refresh();
     void updateDriveInfo();
-    void onConnectionStateChanged(bool connected);
 
     // Selection info for MainWindow
     QString selectedPath() const;
@@ -40,6 +39,7 @@ signals:
     void selectionChanged();
 
 private slots:
+    void onConnectionStateChanged();
     void onSelectionChanged();
     void onDoubleClicked(const QModelIndex &index);
     void onContextMenu(const QPoint &pos);

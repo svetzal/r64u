@@ -133,6 +133,10 @@ void ExplorePanel::setupContextMenu()
 
 void ExplorePanel::setupConnections()
 {
+    // Subscribe to device connection state changes
+    connect(deviceConnection_, &DeviceConnection::stateChanged,
+            this, &ExplorePanel::onConnectionStateChanged);
+
     // Connect to FTP client for file content
     connect(deviceConnection_->ftpClient(), &C64UFtpClient::downloadToMemoryFinished,
             this, &ExplorePanel::onFileContentReceived);
@@ -206,8 +210,10 @@ void ExplorePanel::updateDriveInfo()
     }
 }
 
-void ExplorePanel::onConnectionStateChanged(bool connected)
+void ExplorePanel::onConnectionStateChanged()
 {
+    bool connected = deviceConnection_->isConnected();
+
     playAction_->setEnabled(false);
     runAction_->setEnabled(false);
     mountAction_->setEnabled(false);

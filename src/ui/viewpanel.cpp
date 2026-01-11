@@ -106,6 +106,10 @@ void ViewPanel::setupUi()
 
 void ViewPanel::setupConnections()
 {
+    // Subscribe to device connection state changes
+    connect(deviceConnection_, &DeviceConnection::stateChanged,
+            this, &ViewPanel::onConnectionStateChanged);
+
     // Connect video receiver to display
     connect(videoReceiver_, &VideoStreamReceiver::frameReady,
             videoDisplayWidget_, &VideoDisplayWidget::displayFrame);
@@ -138,10 +142,11 @@ void ViewPanel::updateActions()
     stopStreamAction_->setEnabled(isStreaming_);
 }
 
-void ViewPanel::onConnectionStateChanged(bool connected)
+void ViewPanel::onConnectionStateChanged()
 {
     updateActions();
 
+    bool connected = deviceConnection_->isConnected();
     if (!connected && isStreaming_) {
         onStopStreaming();
     }

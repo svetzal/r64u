@@ -64,7 +64,7 @@ void MainWindow::setupUi()
     // Create container with top margin for spacing below toolbar
     auto *centralContainer = new QWidget(this);
     auto *layout = new QVBoxLayout(centralContainer);
-    layout->setContentsMargins(0, 8, 0, 0);
+    layout->setContentsMargins(8, 16, 8, 8);
     layout->setSpacing(0);
 
     // Create tabbed mode widget
@@ -604,13 +604,6 @@ void MainWindow::onConnectionStateChanged()
     updateActions();
 
     DeviceConnection::ConnectionState state = deviceConnection_->state();
-    bool connected = (state == DeviceConnection::ConnectionState::Connected);
-
-    // Notify panels of connection state change
-    explorePanel_->onConnectionStateChanged(connected);
-    transferPanel_->onConnectionStateChanged(connected);
-    viewPanel_->onConnectionStateChanged(connected);
-    configPanel_->onConnectionStateChanged(connected);
 
     switch (state) {
     case DeviceConnection::ConnectionState::Connecting:

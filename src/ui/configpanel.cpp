@@ -89,6 +89,10 @@ void ConfigPanel::setupUi()
 
 void ConfigPanel::setupConnections()
 {
+    // Subscribe to device connection state changes
+    connect(deviceConnection_, &DeviceConnection::stateChanged,
+            this, &ConfigPanel::onConnectionStateChanged);
+
     // Connect model signals
     connect(configModel_, &ConfigurationModel::dirtyStateChanged,
             this, &ConfigPanel::onDirtyStateChanged);
@@ -129,10 +133,11 @@ void ConfigPanel::updateActions()
     refreshAction_->setEnabled(connected);
 }
 
-void ConfigPanel::onConnectionStateChanged(bool connected)
+void ConfigPanel::onConnectionStateChanged()
 {
     updateActions();
 
+    bool connected = deviceConnection_->isConnected();
     if (!connected) {
         // Could optionally clear the model here
     }

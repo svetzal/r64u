@@ -21,13 +21,13 @@ public:
     explicit ConfigPanel(DeviceConnection *connection, QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
-    void onConnectionStateChanged(bool connected);
     void refreshIfEmpty();
 
 signals:
     void statusMessage(const QString &message, int timeout = 0);
 
 private slots:
+    void onConnectionStateChanged();
     void onSaveToFlash();
     void onLoadFromFlash();
     void onResetToDefaults();
