@@ -300,9 +300,23 @@ void MainWindow::switchToMode(Mode mode)
     switch (mode) {
     case Mode::ExploreRun:
         pageIndex = 0;
+        // Sync model with ExplorePanel's directory if needed
+        if (deviceConnection_->isConnected()) {
+            QString panelDir = explorePanel_->currentDirectory();
+            if (!panelDir.isEmpty() && panelDir != remoteFileModel_->rootPath()) {
+                explorePanel_->setCurrentDirectory(panelDir);
+            }
+        }
         break;
     case Mode::Transfer:
         pageIndex = 1;
+        // Sync model with TransferPanel's directory if needed
+        if (deviceConnection_->isConnected()) {
+            QString panelDir = transferPanel_->currentRemoteDir();
+            if (!panelDir.isEmpty() && panelDir != remoteFileModel_->rootPath()) {
+                transferPanel_->setCurrentRemoteDir(panelDir);
+            }
+        }
         break;
     case Mode::View:
         pageIndex = 2;
@@ -598,9 +612,15 @@ void MainWindow::onConnectionStateChanged()
         break;
     case DeviceConnection::ConnectionState::Connected:
         statusBar()->showMessage(tr("Connected"), 3000);
-        // Navigate to saved directories
-        explorePanel_->setCurrentDirectory(explorePanel_->currentDirectory().isEmpty() ? "/" : explorePanel_->currentDirectory());
-        transferPanel_->setCurrentRemoteDir(transferPanel_->currentRemoteDir().isEmpty() ? "/" : transferPanel_->currentRemoteDir());
+        // Navigate to saved directory for the currently active panel only
+        // (both panels share the same model, so only sync the visible one)
+        if (currentMode_ == Mode::ExploreRun) {
+            QString dir = explorePanel_->currentDirectory();
+            explorePanel_->setCurrentDirectory(dir.isEmpty() ? "/" : dir);
+        } else if (currentMode_ == Mode::Transfer) {
+            QString dir = transferPanel_->currentRemoteDir();
+            transferPanel_->setCurrentRemoteDir(dir.isEmpty() ? "/" : dir);
+        }
         break;
     case DeviceConnection::ConnectionState::Reconnecting:
         statusBar()->showMessage(tr("Reconnecting..."));
