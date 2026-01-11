@@ -1,4 +1,5 @@
 #include "transferprogresswidget.h"
+#include "services/transferservice.h"
 #include "models/transferqueue.h"
 
 #include <QHBoxLayout>
@@ -41,36 +42,36 @@ void TransferProgressWidget::setupUi()
             this, &TransferProgressWidget::onShowProgress);
 }
 
-void TransferProgressWidget::setTransferQueue(TransferQueue *queue)
+void TransferProgressWidget::setTransferService(TransferService *service)
 {
-    if (transferQueue_) {
-        disconnect(transferQueue_, nullptr, this, nullptr);
-        disconnect(cancelButton_, nullptr, transferQueue_, nullptr);
+    if (transferService_) {
+        disconnect(transferService_, nullptr, this, nullptr);
+        disconnect(cancelButton_, nullptr, transferService_, nullptr);
     }
 
-    transferQueue_ = queue;
+    transferService_ = service;
 
-    if (transferQueue_) {
-        connect(transferQueue_, &TransferQueue::operationStarted,
+    if (transferService_) {
+        connect(transferService_, &TransferService::operationStarted,
                 this, &TransferProgressWidget::onOperationStarted);
-        connect(transferQueue_, &TransferQueue::operationCompleted,
+        connect(transferService_, &TransferService::operationCompleted,
                 this, &TransferProgressWidget::onOperationCompleted);
-        connect(transferQueue_, &TransferQueue::operationFailed,
+        connect(transferService_, &TransferService::operationFailed,
                 this, &TransferProgressWidget::onOperationFailed);
-        connect(transferQueue_, &TransferQueue::allOperationsCompleted,
+        connect(transferService_, &TransferService::allOperationsCompleted,
                 this, &TransferProgressWidget::onAllOperationsCompleted);
-        connect(transferQueue_, &TransferQueue::operationsCancelled,
+        connect(transferService_, &TransferService::operationsCancelled,
                 this, &TransferProgressWidget::onOperationsCancelled);
-        connect(transferQueue_, &TransferQueue::queueChanged,
+        connect(transferService_, &TransferService::queueChanged,
                 this, &TransferProgressWidget::onQueueChanged);
-        connect(transferQueue_, &TransferQueue::deleteProgressUpdate,
+        connect(transferService_, &TransferService::deleteProgressUpdate,
                 this, &TransferProgressWidget::onDeleteProgressUpdate);
-        connect(transferQueue_, &TransferQueue::overwriteConfirmationNeeded,
+        connect(transferService_, &TransferService::overwriteConfirmationNeeded,
                 this, &TransferProgressWidget::onOverwriteConfirmationNeeded);
-        connect(transferQueue_, &TransferQueue::folderExistsConfirmationNeeded,
+        connect(transferService_, &TransferService::folderExistsConfirmationNeeded,
                 this, &TransferProgressWidget::onFolderExistsConfirmationNeeded);
         connect(cancelButton_, &QPushButton::clicked,
-                transferQueue_, &TransferQueue::cancelAll);
+                transferService_, &TransferService::cancelAll);
     }
 }
 
@@ -82,7 +83,7 @@ void TransferProgressWidget::onOperationStarted(const QString &fileName, Operati
 
     if (!progressPending_ && !isVisible()) {
         progressPending_ = true;
-        operationTotalCount_ = transferQueue_->rowCount();
+        operationTotalCount_ = transferService_->totalCount();
         operationCompletedCount_ = 0;
         delayTimer_->start(2000);
     }
@@ -116,7 +117,7 @@ void TransferProgressWidget::onOperationFailed(const QString &fileName, const QS
 
 void TransferProgressWidget::onQueueChanged()
 {
-    operationTotalCount_ = transferQueue_->rowCount();
+    operationTotalCount_ = transferService_->totalCount();
 
     if (isVisible()) {
         updateProgressDisplay();
@@ -161,7 +162,7 @@ void TransferProgressWidget::onShowProgress()
 {
     progressPending_ = false;
 
-    if (transferQueue_->isProcessing() || transferQueue_->isScanning()) {
+    if (transferService_->isProcessing() || transferService_->isScanning()) {
         setVisible(true);
         updateProgressDisplay();
     }
@@ -175,17 +176,17 @@ void TransferProgressWidget::onDeleteProgressUpdate(const QString &fileName, int
 
 void TransferProgressWidget::updateProgressDisplay()
 {
-    if (transferQueue_->isScanning()) {
+    if (transferService_->isScanning()) {
         progressBar_->setMaximum(0);
-        if (transferQueue_->isScanningForDelete()) {
+        if (transferService_->isScanningForDelete()) {
             statusLabel_->setText(tr("Scanning for delete..."));
         } else {
             statusLabel_->setText(tr("Scanning directories..."));
         }
-    } else if (transferQueue_->isProcessingDelete()) {
+    } else if (transferService_->isProcessingDelete()) {
         // Delete operations use their own progress tracking
-        int total = transferQueue_->deleteTotalCount();
-        int completed = transferQueue_->deleteProgress();
+        int total = transferService_->deleteTotalCount();
+        int completed = transferService_->deleteProgress();
 
         progressBar_->setMaximum(100);
         int progress = (total > 0) ? (completed * 100) / total : 0;
@@ -241,13 +242,13 @@ void TransferProgressWidget::onOverwriteConfirmationNeeded(const QString &fileNa
     QAbstractButton *clicked = msgBox.clickedButton();
 
     if (clicked == overwriteButton) {
-        transferQueue_->respondToOverwrite(OverwriteResponse::Overwrite);
+        transferService_->respondToOverwrite(OverwriteResponse::Overwrite);
     } else if (clicked == overwriteAllButton) {
-        transferQueue_->respondToOverwrite(OverwriteResponse::OverwriteAll);
+        transferService_->respondToOverwrite(OverwriteResponse::OverwriteAll);
     } else if (clicked == skipButton) {
-        transferQueue_->respondToOverwrite(OverwriteResponse::Skip);
+        transferService_->respondToOverwrite(OverwriteResponse::Skip);
     } else if (clicked == cancelButton) {
-        transferQueue_->respondToOverwrite(OverwriteResponse::Cancel);
+        transferService_->respondToOverwrite(OverwriteResponse::Cancel);
     }
 }
 
@@ -269,10 +270,10 @@ void TransferProgressWidget::onFolderExistsConfirmationNeeded(const QString &fol
     QAbstractButton *clicked = msgBox.clickedButton();
 
     if (clicked == mergeButton) {
-        transferQueue_->respondToFolderExists(FolderExistsResponse::Merge);
+        transferService_->respondToFolderExists(FolderExistsResponse::Merge);
     } else if (clicked == replaceButton) {
-        transferQueue_->respondToFolderExists(FolderExistsResponse::Replace);
+        transferService_->respondToFolderExists(FolderExistsResponse::Replace);
     } else if (clicked == cancelButton) {
-        transferQueue_->respondToFolderExists(FolderExistsResponse::Cancel);
+        transferService_->respondToFolderExists(FolderExistsResponse::Cancel);
     }
 }

@@ -3,6 +3,7 @@
 #include "remotefilebrowserwidget.h"
 #include "transferprogresswidget.h"
 #include "services/deviceconnection.h"
+#include "services/transferservice.h"
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 
@@ -14,11 +15,11 @@
 
 TransferPanel::TransferPanel(DeviceConnection *connection,
                              RemoteFileModel *model,
-                             TransferQueue *queue,
+                             TransferService *transferService,
                              QWidget *parent)
     : QWidget(parent)
     , deviceConnection_(connection)
-    , transferQueue_(queue)
+    , transferService_(transferService)
 {
     // Create browser widgets with their dependencies
     remoteBrowser_ = new RemoteFileBrowserWidget(model, connection->ftpClient(), this);
@@ -79,14 +80,18 @@ void TransferPanel::setupConnections()
         remoteBrowser_->setDownloadEnabled(deviceConnection_->isConnected());
     });
 
-    // Set up transfer queue for progress widget
-    progressWidget_->setTransferQueue(transferQueue_);
+    // Set up transfer service for progress widget
+    progressWidget_->setTransferService(transferService_);
+
+    // Forward status messages from transfer service
+    connect(transferService_, &TransferService::statusMessage,
+            this, &TransferPanel::statusMessage);
 
     // Suppress auto-refresh during queue operations to prevent constant reloading
-    connect(transferQueue_, &TransferQueue::operationStarted, this, [this]() {
+    connect(transferService_, &TransferService::operationStarted, this, [this]() {
         remoteBrowser_->setSuppressAutoRefresh(true);
     });
-    connect(transferQueue_, &TransferQueue::allOperationsCompleted, this, [this]() {
+    connect(transferService_, &TransferService::allOperationsCompleted, this, [this]() {
         remoteBrowser_->setSuppressAutoRefresh(false);
         remoteBrowser_->refresh();
     });
@@ -156,62 +161,34 @@ bool TransferPanel::isSelectedRemoteDirectory() const
 
 void TransferPanel::onUploadRequested(const QString &localPath, bool isDirectory)
 {
-    if (!deviceConnection_->isConnected()) {
-        return;
-    }
-
-    QFileInfo fileInfo(localPath);
     QString remoteDir = remoteBrowser_->currentDirectory();
     if (remoteDir.isEmpty()) {
         remoteDir = "/";
     }
 
     if (isDirectory) {
-        transferQueue_->enqueueRecursiveUpload(localPath, remoteDir);
-        emit statusMessage(tr("Queued folder upload: %1 -> %2").arg(fileInfo.fileName()).arg(remoteDir), 3000);
+        transferService_->uploadDirectory(localPath, remoteDir);
     } else {
-        if (!remoteDir.endsWith('/')) {
-            remoteDir += '/';
-        }
-        QString remotePath = remoteDir + fileInfo.fileName();
-        transferQueue_->enqueueUpload(localPath, remotePath);
-        emit statusMessage(tr("Queued upload: %1 -> %2").arg(fileInfo.fileName()).arg(remoteDir), 3000);
+        transferService_->uploadFile(localPath, remoteDir);
     }
 }
 
 void TransferPanel::onDownloadRequested(const QString &remotePath, bool isDirectory)
 {
-    if (!deviceConnection_->isConnected()) {
-        return;
-    }
-
     QString downloadDir = localBrowser_->currentDirectory();
 
     if (isDirectory) {
-        transferQueue_->enqueueRecursiveDownload(remotePath, downloadDir);
-        QString folderName = QFileInfo(remotePath).fileName();
-        emit statusMessage(tr("Queued folder download: %1 -> %2").arg(folderName).arg(downloadDir), 3000);
+        transferService_->downloadDirectory(remotePath, downloadDir);
     } else {
-        QString fileName = QFileInfo(remotePath).fileName();
-        QString localPath = downloadDir + "/" + fileName;
-        transferQueue_->enqueueDownload(remotePath, localPath);
-        emit statusMessage(tr("Queued download: %1 -> %2").arg(fileName).arg(downloadDir), 3000);
+        transferService_->downloadFile(remotePath, downloadDir);
     }
 }
 
 void TransferPanel::onDeleteRequested(const QString &remotePath, bool isDirectory)
 {
-    if (!deviceConnection_->isConnected()) {
-        return;
-    }
-
-    QString fileName = QFileInfo(remotePath).fileName();
-
     if (isDirectory) {
-        transferQueue_->enqueueRecursiveDelete(remotePath);
-        emit statusMessage(tr("Queued folder delete: %1").arg(fileName), 3000);
+        transferService_->deleteRecursive(remotePath);
     } else {
-        transferQueue_->enqueueDelete(remotePath, false);
-        emit statusMessage(tr("Queued delete: %1").arg(fileName), 3000);
+        transferService_->deleteRemote(remotePath, false);
     }
 }

@@ -8,6 +8,7 @@
 #include "services/deviceconnection.h"
 #include "services/configfileloader.h"
 #include "services/filepreviewservice.h"
+#include "services/transferservice.h"
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 
@@ -36,6 +37,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Create the file preview service
     filePreviewService_ = new FilePreviewService(deviceConnection_->ftpClient(), this);
+
+    // Create the transfer service
+    transferService_ = new TransferService(deviceConnection_, transferQueue_, this);
 
     // Configure the config file loader
     configFileLoader_->setFtpClient(deviceConnection_->ftpClient());
@@ -232,7 +236,7 @@ void MainWindow::setupPanels()
 {
     // Create mode panels with their dependencies
     explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, configFileLoader_, filePreviewService_);
-    transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferQueue_);
+    transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferService_);
     viewPanel_ = new ViewPanel(deviceConnection_);
     configPanel_ = new ConfigPanel(deviceConnection_);
 
@@ -302,10 +306,10 @@ void MainWindow::switchToMode(Mode mode)
 
     // Don't sync model while transfer operations are in progress
     bool canSync = deviceConnection_->isConnected() &&
-                   !transferQueue_->isProcessing() &&
-                   !transferQueue_->isScanning() &&
-                   !transferQueue_->isProcessingDelete() &&
-                   !transferQueue_->isCreatingDirectories();
+                   !transferService_->isProcessing() &&
+                   !transferService_->isScanning() &&
+                   !transferService_->isProcessingDelete() &&
+                   !transferService_->isCreatingDirectories();
 
     int pageIndex = 0;
     switch (mode) {

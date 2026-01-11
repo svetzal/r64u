@@ -9,6 +9,8 @@
 
 #include "models/transferqueue.h"
 
+class TransferService;
+
 class TransferProgressWidget : public QWidget
 {
     Q_OBJECT
@@ -16,7 +18,7 @@ class TransferProgressWidget : public QWidget
 public:
     explicit TransferProgressWidget(QWidget *parent = nullptr);
 
-    void setTransferQueue(TransferQueue *queue);
+    void setTransferService(TransferService *service);
 
 signals:
     void statusMessage(const QString &message, int timeout = 0);
@@ -38,7 +40,7 @@ private:
     void updateProgressDisplay();
 
     // Dependencies (not owned)
-    TransferQueue *transferQueue_ = nullptr;
+    TransferService *transferService_ = nullptr;
 
     // State
     int operationTotalCount_ = 0;

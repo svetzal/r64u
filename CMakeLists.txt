@@ -63,6 +63,7 @@ set(SOURCES
     src/services/deviceconnection.cpp
     src/services/configfileloader.cpp
     src/services/filepreviewservice.cpp
+    src/services/transferservice.cpp
     src/services/streamcontrolclient.cpp
     src/services/streamingmanager.cpp
     src/services/videostreamreceiver.cpp
@@ -107,6 +108,7 @@ set(HEADERS
     src/services/deviceconnection.h
     src/services/configfileloader.h
     src/services/filepreviewservice.h
+    src/services/transferservice.h
     src/services/credentialstore.h
     src/services/streamcontrolclient.h
     src/services/streamingmanager.h

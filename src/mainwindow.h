@@ -12,6 +12,7 @@ class RemoteFileModel;
 class TransferQueue;
 class ConfigFileLoader;
 class FilePreviewService;
+class TransferService;
 class ConnectionStatusWidget;
 class ExplorePanel;
 class TransferPanel;
@@ -84,6 +85,7 @@ private:
     TransferQueue *transferQueue_ = nullptr;
     ConfigFileLoader *configFileLoader_ = nullptr;
     FilePreviewService *filePreviewService_ = nullptr;
+    TransferService *transferService_ = nullptr;
 
     // Central widget
     QTabWidget *modeTabWidget_ = nullptr;

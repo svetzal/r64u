@@ -316,3 +316,36 @@ if(BUILD_COVERAGE)
     add_coverage_target(filepreviewservice test_filepreviewservice)
     add_dependencies(coverage coverage_filepreviewservice)
 endif()
+
+# TransferService tests - uses MockFtpClient via interface injection
+add_executable(test_transferservice
+    test_transferservice.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+)
+
+target_include_directories(test_transferservice PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/mockftpclient.h
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_transferservice PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+# Register test with CTest
+add_test(NAME TransferServiceTest COMMAND test_transferservice)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(transferservice test_transferservice)
+    add_dependencies(coverage coverage_transferservice)
+endif()

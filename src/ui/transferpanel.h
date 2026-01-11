@@ -7,6 +7,7 @@
 class DeviceConnection;
 class RemoteFileModel;
 class TransferQueue;
+class TransferService;
 class LocalFileBrowserWidget;
 class RemoteFileBrowserWidget;
 class TransferProgressWidget;
@@ -18,7 +19,7 @@ class TransferPanel : public QWidget
 public:
     explicit TransferPanel(DeviceConnection *connection,
                            RemoteFileModel *model,
-                           TransferQueue *queue,
+                           TransferService *transferService,
                            QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
@@ -52,7 +53,7 @@ private:
 
     // Dependencies (not owned)
     DeviceConnection *deviceConnection_ = nullptr;
-    TransferQueue *transferQueue_ = nullptr;
+    TransferService *transferService_ = nullptr;
 
     // UI widgets
     QSplitter *splitter_ = nullptr;
