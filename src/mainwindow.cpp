@@ -296,12 +296,19 @@ void MainWindow::switchToMode(Mode mode)
 {
     currentMode_ = mode;
 
+    // Don't sync model while transfer operations are in progress
+    bool canSync = deviceConnection_->isConnected() &&
+                   !transferQueue_->isProcessing() &&
+                   !transferQueue_->isScanning() &&
+                   !transferQueue_->isProcessingDelete() &&
+                   !transferQueue_->isCreatingDirectories();
+
     int pageIndex = 0;
     switch (mode) {
     case Mode::ExploreRun:
         pageIndex = 0;
         // Sync model with ExplorePanel's directory if needed
-        if (deviceConnection_->isConnected()) {
+        if (canSync) {
             QString panelDir = explorePanel_->currentDirectory();
             if (!panelDir.isEmpty() && panelDir != remoteFileModel_->rootPath()) {
                 explorePanel_->setCurrentDirectory(panelDir);
@@ -311,7 +318,7 @@ void MainWindow::switchToMode(Mode mode)
     case Mode::Transfer:
         pageIndex = 1;
         // Sync model with TransferPanel's directory if needed
-        if (deviceConnection_->isConnected()) {
+        if (canSync) {
             QString panelDir = transferPanel_->currentRemoteDir();
             if (!panelDir.isEmpty() && panelDir != remoteFileModel_->rootPath()) {
                 transferPanel_->setCurrentRemoteDir(panelDir);

@@ -372,6 +372,12 @@ void TransferQueue::processNext()
         return;
     }
 
+    // Don't start transfers while we're still creating directories for recursive upload
+    if (creatingDirectory_ || !pendingMkdirs_.isEmpty()) {
+        qDebug() << "TransferQueue: processNext - waiting for directory creation to complete";
+        return;
+    }
+
     // Don't proceed while waiting for overwrite confirmation
     if (waitingForOverwriteResponse_) {
         qDebug() << "TransferQueue: processNext - waiting for overwrite response";

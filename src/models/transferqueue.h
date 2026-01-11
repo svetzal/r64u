@@ -70,6 +70,7 @@ public:
     [[nodiscard]] bool isProcessingDelete() const { return processingDelete_; }
     [[nodiscard]] bool isScanning() const { return !pendingScans_.isEmpty() || !pendingDeleteScans_.isEmpty(); }
     [[nodiscard]] bool isScanningForDelete() const { return !pendingDeleteScans_.isEmpty(); }
+    [[nodiscard]] bool isCreatingDirectories() const { return creatingDirectory_ || !pendingMkdirs_.isEmpty(); }
     [[nodiscard]] int deleteProgress() const { return totalDeleteItems_ > 0 ? deletedCount_ : 0; }
     [[nodiscard]] int deleteTotalCount() const { return totalDeleteItems_; }
 
