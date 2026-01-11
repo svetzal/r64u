@@ -67,6 +67,8 @@ void TransferProgressWidget::setTransferQueue(TransferQueue *queue)
                 this, &TransferProgressWidget::onDeleteProgressUpdate);
         connect(transferQueue_, &TransferQueue::overwriteConfirmationNeeded,
                 this, &TransferProgressWidget::onOverwriteConfirmationNeeded);
+        connect(transferQueue_, &TransferQueue::folderExistsConfirmationNeeded,
+                this, &TransferProgressWidget::onFolderExistsConfirmationNeeded);
         connect(cancelButton_, &QPushButton::clicked,
                 transferQueue_, &TransferQueue::cancelAll);
     }
@@ -246,5 +248,31 @@ void TransferProgressWidget::onOverwriteConfirmationNeeded(const QString &fileNa
         transferQueue_->respondToOverwrite(OverwriteResponse::Skip);
     } else if (clicked == cancelButton) {
         transferQueue_->respondToOverwrite(OverwriteResponse::Cancel);
+    }
+}
+
+void TransferProgressWidget::onFolderExistsConfirmationNeeded(const QString &folderName)
+{
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle(tr("Folder Already Exists"));
+    msgBox.setText(tr("The folder '%1' already exists on the remote device.\n\n"
+                      "What would you like to do?").arg(folderName));
+    msgBox.setIcon(QMessageBox::Question);
+
+    QPushButton *mergeButton = msgBox.addButton(tr("Merge"), QMessageBox::AcceptRole);
+    QPushButton *replaceButton = msgBox.addButton(tr("Replace"), QMessageBox::DestructiveRole);
+    QPushButton *cancelButton = msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
+
+    msgBox.setDefaultButton(mergeButton);
+    msgBox.exec();
+
+    QAbstractButton *clicked = msgBox.clickedButton();
+
+    if (clicked == mergeButton) {
+        transferQueue_->respondToFolderExists(FolderExistsResponse::Merge);
+    } else if (clicked == replaceButton) {
+        transferQueue_->respondToFolderExists(FolderExistsResponse::Replace);
+    } else if (clicked == cancelButton) {
+        transferQueue_->respondToFolderExists(FolderExistsResponse::Cancel);
     }
 }

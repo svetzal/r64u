@@ -31,6 +31,7 @@ private slots:
     void onShowProgress();
     void onDeleteProgressUpdate(const QString &fileName, int current, int total);
     void onOverwriteConfirmationNeeded(const QString &fileName, OperationType type);
+    void onFolderExistsConfirmationNeeded(const QString &folderName);
 
 private:
     void setupUi();

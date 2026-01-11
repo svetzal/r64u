@@ -21,6 +21,7 @@ private slots:
         queue = new TransferQueue(this);
         queue->setFtpClient(mockFtp);
         queue->setAutoOverwrite(true);  // Skip overwrite confirmations in tests
+        queue->setAutoMerge(true);      // Skip folder exists confirmations in tests
         mockFtp->mockSetConnected(true);
     }
 

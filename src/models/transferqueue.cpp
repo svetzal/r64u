@@ -6,6 +6,7 @@
 #include <QDirIterator>
 #include <QDebug>
 #include <algorithm>
+#include <memory>
 
 TransferQueue::TransferQueue(QObject *parent)
     : QAbstractListModel(parent)
@@ -83,7 +84,6 @@ void TransferQueue::enqueueRecursiveUpload(const QString &localDir, const QStrin
 {
     if (!ftpClient_ || !ftpClient_->isConnected()) return;
 
-    // Collect all directories that need to be created first
     QDir baseDir(localDir);
     if (!baseDir.exists()) return;
 
@@ -91,6 +91,35 @@ void TransferQueue::enqueueRecursiveUpload(const QString &localDir, const QStrin
     QString targetDir = remoteDir;
     if (!targetDir.endsWith('/')) targetDir += '/';
     targetDir += baseName;
+
+    // Store pending upload parameters
+    pendingFolderUpload_.localDir = localDir;
+    pendingFolderUpload_.remoteDir = remoteDir;
+    pendingFolderUpload_.targetDir = targetDir;
+
+    // If auto-merge is enabled, skip the existence check
+    if (autoMerge_) {
+        startRecursiveUpload();
+        return;
+    }
+
+    // Check if the target folder already exists by listing the parent directory
+    checkingFolderExists_ = true;
+    requestedFolderCheckListings_.insert(remoteDir);
+
+    qDebug() << "TransferQueue: Checking if folder exists:" << targetDir << "by listing" << remoteDir;
+    ftpClient_->list(remoteDir);
+}
+
+void TransferQueue::startRecursiveUpload()
+{
+    QString localDir = pendingFolderUpload_.localDir;
+    QString targetDir = pendingFolderUpload_.targetDir;
+
+    qDebug() << "TransferQueue: Starting recursive upload from" << localDir << "to" << targetDir;
+
+    // Collect all directories that need to be created first
+    QDir baseDir(localDir);
 
     // Queue the root directory creation
     PendingMkdir rootMkdir;
@@ -596,6 +625,13 @@ void TransferQueue::onDirectoryListed(const QString &path, const QList<FtpEntry>
     qDebug() << "TransferQueue: onDirectoryListed path:" << path << "entries:" << entries.size();
     qDebug() << "TransferQueue: requestedListings_ contains path:" << requestedListings_.contains(path);
     qDebug() << "TransferQueue: requestedDeleteListings_ contains path:" << requestedDeleteListings_.contains(path);
+    qDebug() << "TransferQueue: requestedFolderCheckListings_ contains path:" << requestedFolderCheckListings_.contains(path);
+
+    // Check if this is for folder existence check (recursive upload)
+    if (requestedFolderCheckListings_.contains(path)) {
+        onDirectoryListedForFolderCheck(path, entries);
+        return;
+    }
 
     // Check if this is for a recursive delete operation
     if (requestedDeleteListings_.contains(path)) {
@@ -904,5 +940,79 @@ void TransferQueue::onFileRemoved(const QString &path)
             processNext();
             return;
         }
+    }
+}
+
+void TransferQueue::onDirectoryListedForFolderCheck(const QString &path, const QList<FtpEntry> &entries)
+{
+    qDebug() << "TransferQueue: onDirectoryListedForFolderCheck path:" << path << "entries:" << entries.size();
+
+    // Remove from tracking set
+    requestedFolderCheckListings_.remove(path);
+    checkingFolderExists_ = false;
+
+    // Check if the target folder exists in the listing
+    QString targetFolderName = QFileInfo(pendingFolderUpload_.targetDir).fileName();
+    bool folderExists = false;
+
+    for (const FtpEntry &entry : entries) {
+        if (entry.isDirectory && entry.name == targetFolderName) {
+            folderExists = true;
+            break;
+        }
+    }
+
+    qDebug() << "TransferQueue: Target folder" << targetFolderName << "exists:" << folderExists;
+
+    if (folderExists) {
+        // Folder exists - ask user what to do
+        waitingForFolderExistsResponse_ = true;
+        emit folderExistsConfirmationNeeded(targetFolderName);
+    } else {
+        // Folder doesn't exist - proceed with upload
+        startRecursiveUpload();
+    }
+}
+
+void TransferQueue::respondToFolderExists(FolderExistsResponse response)
+{
+    if (!waitingForFolderExistsResponse_) {
+        return;
+    }
+
+    waitingForFolderExistsResponse_ = false;
+
+    switch (response) {
+    case FolderExistsResponse::Merge:
+        // Proceed with upload - files will merge into existing folder
+        qDebug() << "TransferQueue: User chose to merge folders";
+        startRecursiveUpload();
+        break;
+
+    case FolderExistsResponse::Replace:
+        // Delete existing folder first, then upload
+        qDebug() << "TransferQueue: User chose to replace folder";
+        // Store that we need to upload after delete completes
+        // We'll use the allOperationsCompleted signal from the delete to trigger the upload
+        // But we need a way to know it was from a replace operation...
+        // For now, connect a one-shot handler
+        {
+            QString targetDir = pendingFolderUpload_.targetDir;
+            auto conn = std::make_shared<QMetaObject::Connection>();
+            *conn = connect(this, &TransferQueue::allOperationsCompleted, this, [this, conn]() {
+                disconnect(*conn);
+                qDebug() << "TransferQueue: Delete completed, starting upload";
+                startRecursiveUpload();
+            });
+            enqueueRecursiveDelete(targetDir);
+        }
+        break;
+
+    case FolderExistsResponse::Cancel:
+        // Cancel the upload
+        qDebug() << "TransferQueue: User cancelled folder upload";
+        pendingFolderUpload_ = {};
+        emit operationsCancelled();
+        break;
     }
 }

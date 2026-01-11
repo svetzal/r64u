@@ -14,6 +14,8 @@ enum class OperationType { Upload, Download, Delete };
 
 enum class OverwriteResponse { Overwrite, OverwriteAll, Skip, Cancel };
 
+enum class FolderExistsResponse { Merge, Replace, Cancel };
+
 struct TransferItem {
     enum class Status { Pending, InProgress, Completed, Failed };
 
@@ -83,6 +85,10 @@ public:
     void respondToOverwrite(OverwriteResponse response);
     void setAutoOverwrite(bool autoOverwrite) { overwriteAll_ = autoOverwrite; }
 
+    // Folder exists handling
+    void respondToFolderExists(FolderExistsResponse response);
+    void setAutoMerge(bool autoMerge) { autoMerge_ = autoMerge; }
+
 signals:
     void operationStarted(const QString &fileName, OperationType type);
     void operationCompleted(const QString &fileName);
@@ -92,6 +98,7 @@ signals:
     void queueChanged();
     void deleteProgressUpdate(const QString &fileName, int current, int total);
     void overwriteConfirmationNeeded(const QString &fileName, OperationType type);
+    void folderExistsConfirmationNeeded(const QString &folderName);
 
 private slots:
     void onUploadProgress(const QString &file, qint64 sent, qint64 total);
@@ -110,6 +117,8 @@ private:
     void processPendingDirectoryCreation();
     void processNextDelete();
     void onDirectoryListedForDelete(const QString &path, const QList<FtpEntry> &entries);
+    void onDirectoryListedForFolderCheck(const QString &path, const QList<FtpEntry> &entries);
+    void startRecursiveUpload();  // Actually starts the upload after confirmation
 
     C64UFtpClient *ftpClient_ = nullptr;
     QList<TransferItem> items_;
@@ -135,6 +144,7 @@ private:
     };
     QQueue<PendingMkdir> pendingMkdirs_;
     bool creatingDirectory_ = false;
+    QSet<QString> requestedFolderCheckListings_;  // Track paths for folder existence check
 
     // Recursive delete state
     struct PendingDeleteScan {
@@ -156,6 +166,17 @@ private:
     // Overwrite confirmation state
     bool waitingForOverwriteResponse_ = false;
     bool overwriteAll_ = false;
+
+    // Folder exists confirmation state
+    struct PendingFolderUpload {
+        QString localDir;
+        QString remoteDir;
+        QString targetDir;  // The actual target path (remoteDir + folderName)
+    };
+    PendingFolderUpload pendingFolderUpload_;
+    bool checkingFolderExists_ = false;
+    bool waitingForFolderExistsResponse_ = false;
+    bool autoMerge_ = false;
 };
 
 #endif // TRANSFERQUEUE_H
