@@ -47,6 +47,7 @@ private:
     int operationTotalCount_ = 0;
     int operationCompletedCount_ = 0;
     bool progressPending_ = false;
+    bool waitingForNewBatch_ = true;  // Start true so first batch is detected
     OperationType currentOperationType_ = OperationType::Upload;
 
     // UI widgets

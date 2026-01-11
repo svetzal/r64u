@@ -81,11 +81,9 @@ void TransferProgressWidget::onOperationStarted(const QString &fileName, Operati
 
     currentOperationType_ = type;
 
+    // Start the delay timer if not already pending
     if (!progressPending_ && !isVisible()) {
         progressPending_ = true;
-        // Use activeAndPendingCount to exclude completed items from previous operations
-        operationTotalCount_ = transferService_->activeAndPendingCount();
-        operationCompletedCount_ = 0;
         delayTimer_->start(2000);
     }
 }
@@ -120,13 +118,13 @@ void TransferProgressWidget::onQueueChanged()
 {
     int currentActiveAndPending = transferService_->activeAndPendingCount();
 
-    // Detect new batch: if we're not showing progress and there are pending items,
-    // this is a fresh start - reset the counts
-    if (!isVisible() && !progressPending_ && currentActiveAndPending > 0) {
+    // If waiting for a new batch and items appear, start fresh
+    if (waitingForNewBatch_ && currentActiveAndPending > 0) {
         operationTotalCount_ = currentActiveAndPending;
         operationCompletedCount_ = 0;
-    } else if (isVisible() || progressPending_) {
-        // During an active operation, only increase total if new items were added
+        waitingForNewBatch_ = false;
+    } else if (!waitingForNewBatch_) {
+        // During an active batch, only increase total if new items were added
         // (e.g., during directory scanning)
         int expectedRemaining = operationTotalCount_ - operationCompletedCount_;
         if (currentActiveAndPending > expectedRemaining && expectedRemaining >= 0) {
@@ -143,6 +141,7 @@ void TransferProgressWidget::onAllOperationsCompleted()
 {
     delayTimer_->stop();
     progressPending_ = false;
+    waitingForNewBatch_ = true;  // Ready for next batch
 
     setVisible(false);
 
@@ -162,6 +161,7 @@ void TransferProgressWidget::onOperationsCancelled()
 {
     delayTimer_->stop();
     progressPending_ = false;
+    waitingForNewBatch_ = true;  // Ready for next batch
 
     setVisible(false);
 
