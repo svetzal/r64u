@@ -17,6 +17,18 @@ TransferQueue::TransferQueue(QObject *parent)
             this, &TransferQueue::onOperationTimeout);
 }
 
+TransferQueue::~TransferQueue()
+{
+    // Disconnect from FTP client BEFORE this object is destroyed to prevent
+    // signals from being delivered to slots that access invalid memory.
+    // Qt's automatic disconnection happens in QObject::~QObject() which
+    // runs AFTER this destructor body, by which time our member variables
+    // (like items_) may already be destroyed.
+    if (ftpClient_) {
+        disconnect(ftpClient_, nullptr, this, nullptr);
+    }
+}
+
 void TransferQueue::setFtpClient(IFtpClient *client)
 {
     if (ftpClient_) {
@@ -249,6 +261,10 @@ void TransferQueue::clear()
     deletedCount_ = 0;
     processingDelete_ = false;
 
+    // Clear upload file check state
+    checkingUploadFileExists_ = false;
+    requestedUploadFileCheckListings_.clear();
+
     emit queueChanged();
 }
 
@@ -303,6 +319,10 @@ void TransferQueue::cancelAll()
     totalDeleteItems_ = 0;
     deletedCount_ = 0;
     processingDelete_ = false;
+
+    // Clear upload file check state
+    checkingUploadFileExists_ = false;
+    requestedUploadFileCheckListings_.clear();
 
     emit dataChanged(index(0), index(items_.size() - 1));
     emit queueChanged();
@@ -432,7 +452,9 @@ void TransferQueue::processNext()
             ).fileName();
 
             // Check for file existence and ask for overwrite confirmation
-            if (items_[i].operationType == OperationType::Download && !overwriteAll_) {
+            // Skip if overwriteAll_ is set, or if this specific file was already confirmed
+            if (items_[i].operationType == OperationType::Download &&
+                !overwriteAll_ && !items_[i].overwriteConfirmed) {
                 QFileInfo localFile(items_[i].localPath);
                 if (localFile.exists()) {
                     qDebug() << "TransferQueue: File exists, asking for confirmation:" << items_[i].localPath;
@@ -440,6 +462,25 @@ void TransferQueue::processNext()
                     emit overwriteConfirmationNeeded(fileName, OperationType::Download);
                     return;
                 }
+            }
+
+            // Check for remote file existence before uploading
+            // This prevents accidental overwriting of remote files
+            if (items_[i].operationType == OperationType::Upload &&
+                !overwriteAll_ && !items_[i].overwriteConfirmed) {
+                // Get the parent directory of the remote path
+                QString parentDir = QFileInfo(items_[i].remotePath).path();
+                if (parentDir.isEmpty()) {
+                    parentDir = "/";
+                }
+
+                qDebug() << "TransferQueue: Checking if remote file exists:" << items_[i].remotePath
+                         << "by listing" << parentDir;
+
+                checkingUploadFileExists_ = true;
+                requestedUploadFileCheckListings_.insert(parentDir);
+                ftpClient_->list(parentDir);
+                return;
             }
 
             items_[i].status = TransferItem::Status::InProgress;
@@ -488,8 +529,11 @@ void TransferQueue::respondToOverwrite(OverwriteResponse response)
 
     switch (response) {
     case OverwriteResponse::Overwrite:
-        // Proceed with just this file
+        // Proceed with just this file - mark it so we don't ask again
         qDebug() << "TransferQueue: User chose to overwrite this file";
+        if (currentIndex_ >= 0 && currentIndex_ < items_.size()) {
+            items_[currentIndex_].overwriteConfirmed = true;
+        }
         processNext();
         break;
 
@@ -650,10 +694,17 @@ void TransferQueue::onDirectoryListed(const QString &path, const QList<FtpEntry>
     qDebug() << "TransferQueue: requestedListings_ contains path:" << requestedListings_.contains(path);
     qDebug() << "TransferQueue: requestedDeleteListings_ contains path:" << requestedDeleteListings_.contains(path);
     qDebug() << "TransferQueue: requestedFolderCheckListings_ contains path:" << requestedFolderCheckListings_.contains(path);
+    qDebug() << "TransferQueue: requestedUploadFileCheckListings_ contains path:" << requestedUploadFileCheckListings_.contains(path);
 
     // Check if this is for folder existence check (recursive upload)
     if (requestedFolderCheckListings_.contains(path)) {
         onDirectoryListedForFolderCheck(path, entries);
+        return;
+    }
+
+    // Check if this is for upload file existence check
+    if (requestedUploadFileCheckListings_.contains(path)) {
+        onDirectoryListedForUploadCheck(path, entries);
         return;
     }
 
@@ -1003,6 +1054,44 @@ void TransferQueue::onDirectoryListedForFolderCheck(const QString &path, const Q
     } else {
         // Folder doesn't exist - proceed with upload
         startRecursiveUpload();
+    }
+}
+
+void TransferQueue::onDirectoryListedForUploadCheck(const QString &path, const QList<FtpEntry> &entries)
+{
+    qDebug() << "TransferQueue: onDirectoryListedForUploadCheck path:" << path << "entries:" << entries.size();
+
+    // Remove from tracking set
+    requestedUploadFileCheckListings_.remove(path);
+    checkingUploadFileExists_ = false;
+
+    // Get the filename we're checking for
+    if (currentIndex_ < 0 || currentIndex_ >= items_.size()) {
+        qDebug() << "TransferQueue: onDirectoryListedForUploadCheck - invalid currentIndex_";
+        return;
+    }
+
+    QString targetFileName = QFileInfo(items_[currentIndex_].remotePath).fileName();
+    bool fileExists = false;
+
+    for (const FtpEntry &entry : entries) {
+        if (!entry.isDirectory && entry.name == targetFileName) {
+            fileExists = true;
+            break;
+        }
+    }
+
+    qDebug() << "TransferQueue: Target file" << targetFileName << "exists:" << fileExists;
+
+    if (fileExists) {
+        // File exists - ask user what to do
+        waitingForOverwriteResponse_ = true;
+        emit overwriteConfirmationNeeded(targetFileName, OperationType::Upload);
+    } else {
+        // File doesn't exist - proceed with upload
+        // Mark as confirmed to skip the check on the next processNext() call
+        items_[currentIndex_].overwriteConfirmed = true;
+        processNext();
     }
 }
 

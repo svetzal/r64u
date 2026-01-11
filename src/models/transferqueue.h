@@ -2,14 +2,14 @@
 #define TRANSFERQUEUE_H
 
 #include <QAbstractListModel>
+#include <QPointer>
 #include <QQueue>
 #include <QString>
 #include <QSet>
 #include <QTimer>
 
 #include "services/ftpentry.h"  // For FtpEntry definition (needed by Qt MOC)
-
-class IFtpClient;
+#include "services/iftpclient.h"  // Full include needed for QPointer
 
 enum class OperationType { Upload, Download, Delete };
 
@@ -28,6 +28,7 @@ struct TransferItem {
     qint64 totalBytes = 0;
     QString errorMessage;
     bool isDirectory = false;  // For delete operations
+    bool overwriteConfirmed = false;  // User confirmed overwrite for this file
 };
 
 class TransferQueue : public QAbstractListModel
@@ -48,6 +49,7 @@ public:
     };
 
     explicit TransferQueue(QObject *parent = nullptr);
+    ~TransferQueue() override;
 
     void setFtpClient(IFtpClient *client);
 
@@ -119,9 +121,10 @@ private:
     void processNextDelete();
     void onDirectoryListedForDelete(const QString &path, const QList<FtpEntry> &entries);
     void onDirectoryListedForFolderCheck(const QString &path, const QList<FtpEntry> &entries);
+    void onDirectoryListedForUploadCheck(const QString &path, const QList<FtpEntry> &entries);
     void startRecursiveUpload();  // Actually starts the upload after confirmation
 
-    IFtpClient *ftpClient_ = nullptr;
+    QPointer<IFtpClient> ftpClient_;
     QList<TransferItem> items_;
     bool processing_ = false;
     int currentIndex_ = -1;
@@ -167,6 +170,10 @@ private:
     // Overwrite confirmation state
     bool waitingForOverwriteResponse_ = false;
     bool overwriteAll_ = false;
+
+    // Upload file existence check state
+    bool checkingUploadFileExists_ = false;
+    QSet<QString> requestedUploadFileCheckListings_;  // Track paths we've requested for upload file checks
 
     // Folder exists confirmation state
     struct PendingFolderUpload {

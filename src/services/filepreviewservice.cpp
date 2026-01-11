@@ -11,7 +11,14 @@ FilePreviewService::FilePreviewService(IFtpClient *ftpClient, QObject *parent)
             this, &FilePreviewService::onFtpError);
 }
 
-FilePreviewService::~FilePreviewService() = default;
+FilePreviewService::~FilePreviewService()
+{
+    // Disconnect from FTP client BEFORE this object is destroyed to prevent
+    // signals from being delivered to slots after member variables are destroyed.
+    if (ftpClient_) {
+        disconnect(ftpClient_, nullptr, this, nullptr);
+    }
+}
 
 void FilePreviewService::requestPreview(const QString &remotePath)
 {

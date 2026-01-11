@@ -13,6 +13,7 @@ class ConfigFileLoader : public QObject
 
 public:
     explicit ConfigFileLoader(QObject *parent = nullptr);
+    ~ConfigFileLoader() override;
 
     void setFtpClient(C64UFtpClient *client);
     void setRestClient(C64URestClient *client);
@@ -30,6 +31,8 @@ private slots:
     void onDownloadFinished(const QString &remotePath, const QByteArray &data);
     void onConfigsUpdated();
     void onOperationFailed(const QString &operation, const QString &error);
+    void onFtpClientDestroyed();
+    void onRestClientDestroyed();
 
 private:
     C64UFtpClient *ftpClient_ = nullptr;

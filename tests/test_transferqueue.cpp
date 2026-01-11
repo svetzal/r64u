@@ -1143,6 +1143,348 @@ private slots:
         // Queue should handle the failure gracefully
         // This documents current behavior - may need improvement
     }
+
+    // =========================================================================
+    // Overwrite Confirmation Tests
+    // =========================================================================
+
+    // Bug: Clicking "Overwrite" (single file) causes dialog to loop forever
+    // When user clicks Overwrite (not OverwriteAll), processNext() is called
+    // but the file still exists and overwriteAll_ is false, so it asks again.
+    void testOverwriteSingleFileDoesNotLoop()
+    {
+        // Disable auto-overwrite to trigger the confirmation flow
+        queue->setAutoOverwrite(false);
+
+        QString remotePath = "/test/existing.txt";
+        QString localPath = tempDir.path() + "/existing.txt";
+
+        // Create the local file FIRST (it already exists)
+        QFile existingFile(localPath);
+        QVERIFY(existingFile.open(QIODevice::WriteOnly));
+        existingFile.write("old content");
+        existingFile.close();
+        QVERIFY(QFile::exists(localPath));
+
+        // Setup the download data
+        mockFtp->mockSetDownloadData(remotePath, "new content from server");
+
+        // Spy on the overwrite confirmation signal
+        QSignalSpy overwriteSpy(queue, &TransferQueue::overwriteConfirmationNeeded);
+        QSignalSpy completedSpy(queue, &TransferQueue::operationCompleted);
+
+        // Enqueue the download
+        queue->enqueueDownload(remotePath, localPath);
+
+        // The overwrite confirmation should be requested exactly ONCE
+        QCOMPARE(overwriteSpy.count(), 1);
+
+        // User clicks "Overwrite" (single file, not "Overwrite All")
+        queue->respondToOverwrite(OverwriteResponse::Overwrite);
+
+        // Bug: The dialog should NOT appear again
+        // Currently this fails because processNext() re-checks file existence
+        QCOMPARE(overwriteSpy.count(), 1);  // Still only 1, not 2!
+
+        // The download should be in progress now
+        QCOMPARE(mockFtp->mockGetDownloadRequests().size(), 1);
+
+        // Complete the download
+        mockFtp->mockProcessAllOperations();
+
+        // Verify completion
+        QCOMPARE(completedSpy.count(), 1);
+
+        // Verify the file was overwritten with new content
+        QFile file(localPath);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QCOMPARE(file.readAll(), QByteArray("new content from server"));
+    }
+
+    // Test that OverwriteAll works correctly (for comparison)
+    void testOverwriteAllBypassesSubsequentChecks()
+    {
+        queue->setAutoOverwrite(false);
+
+        QString remotePath1 = "/test/file1.txt";
+        QString remotePath2 = "/test/file2.txt";
+        QString localPath1 = tempDir.path() + "/file1.txt";
+        QString localPath2 = tempDir.path() + "/file2.txt";
+
+        // Create both local files (they already exist)
+        QFile file1(localPath1);
+        QVERIFY(file1.open(QIODevice::WriteOnly));
+        file1.write("old1");
+        file1.close();
+
+        QFile file2(localPath2);
+        QVERIFY(file2.open(QIODevice::WriteOnly));
+        file2.write("old2");
+        file2.close();
+
+        mockFtp->mockSetDownloadData(remotePath1, "new1");
+        mockFtp->mockSetDownloadData(remotePath2, "new2");
+
+        QSignalSpy overwriteSpy(queue, &TransferQueue::overwriteConfirmationNeeded);
+
+        queue->enqueueDownload(remotePath1, localPath1);
+        queue->enqueueDownload(remotePath2, localPath2);
+
+        // First file should trigger confirmation
+        QCOMPARE(overwriteSpy.count(), 1);
+
+        // User clicks "Overwrite All"
+        queue->respondToOverwrite(OverwriteResponse::OverwriteAll);
+
+        // Process first download
+        mockFtp->mockProcessNextOperation();
+
+        // Second file should NOT trigger confirmation (OverwriteAll is set)
+        QCOMPARE(overwriteSpy.count(), 1);  // Still only 1
+
+        // Process second download
+        mockFtp->mockProcessNextOperation();
+
+        // Both files should be overwritten
+        QFile checkFile1(localPath1);
+        QVERIFY(checkFile1.open(QIODevice::ReadOnly));
+        QCOMPARE(checkFile1.readAll(), QByteArray("new1"));
+
+        QFile checkFile2(localPath2);
+        QVERIFY(checkFile2.open(QIODevice::ReadOnly));
+        QCOMPARE(checkFile2.readAll(), QByteArray("new2"));
+    }
+
+    // Test that Skip works correctly
+    void testOverwriteSkipMovesToNextFile()
+    {
+        queue->setAutoOverwrite(false);
+
+        QString remotePath = "/test/skip_me.txt";
+        QString localPath = tempDir.path() + "/skip_me.txt";
+
+        // Create the local file
+        QFile existingFile(localPath);
+        QVERIFY(existingFile.open(QIODevice::WriteOnly));
+        existingFile.write("original content");
+        existingFile.close();
+
+        mockFtp->mockSetDownloadData(remotePath, "new content");
+
+        QSignalSpy overwriteSpy(queue, &TransferQueue::overwriteConfirmationNeeded);
+        QSignalSpy allCompletedSpy(queue, &TransferQueue::allOperationsCompleted);
+
+        queue->enqueueDownload(remotePath, localPath);
+
+        QCOMPARE(overwriteSpy.count(), 1);
+
+        // User clicks "Skip"
+        queue->respondToOverwrite(OverwriteResponse::Skip);
+
+        // Should complete without downloading
+        QCOMPARE(mockFtp->mockGetDownloadRequests().size(), 0);
+
+        // All operations should complete (the skipped item is marked complete)
+        QCOMPARE(allCompletedSpy.count(), 1);
+
+        // File should still have original content
+        QFile file(localPath);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QCOMPARE(file.readAll(), QByteArray("original content"));
+    }
+
+    // =========================================================================
+    // Upload Overwrite Confirmation Tests (HIGH PRIORITY - DESTRUCTIVE BUG)
+    // =========================================================================
+
+    // Bug: Upload does not check if remote file exists before overwriting.
+    // This is destructive - user can accidentally overwrite remote files.
+    void testUploadConfirmsOverwriteWhenRemoteFileExists()
+    {
+        // Disable auto-overwrite to require confirmation
+        queue->setAutoOverwrite(false);
+
+        QString localPath = tempDir.path() + "/upload_test.txt";
+        QString remotePath = "/remote/upload_test.txt";
+
+        // Create the local file to upload
+        QFile localFile(localPath);
+        QVERIFY(localFile.open(QIODevice::WriteOnly));
+        localFile.write("new local content");
+        localFile.close();
+
+        // Setup: The remote file ALREADY EXISTS (simulate with directory listing)
+        QList<FtpEntry> remoteEntries;
+        FtpEntry existingFile;
+        existingFile.name = "upload_test.txt";
+        existingFile.isDirectory = false;
+        existingFile.size = 100;
+        remoteEntries << existingFile;
+        mockFtp->mockSetDirectoryListing("/remote", remoteEntries);
+
+        QSignalSpy overwriteSpy(queue, &TransferQueue::overwriteConfirmationNeeded);
+        QSignalSpy completedSpy(queue, &TransferQueue::operationCompleted);
+
+        // Enqueue the upload
+        queue->enqueueUpload(localPath, remotePath);
+
+        // The queue should first issue a LIST to check if remote file exists
+        // (This is the missing behavior we're testing for)
+        QVERIFY2(mockFtp->mockGetListRequests().contains("/remote"),
+                 "Upload should check if remote file exists before uploading");
+
+        // Process the LIST operation
+        mockFtp->mockProcessNextOperation();
+
+        // Since the file exists, overwrite confirmation should be requested
+        QCOMPARE(overwriteSpy.count(), 1);
+
+        // Verify the signal includes Upload operation type
+        QList<QVariant> args = overwriteSpy.takeFirst();
+        QCOMPARE(args.at(0).toString(), QString("upload_test.txt"));
+        QCOMPARE(args.at(1).value<OperationType>(), OperationType::Upload);
+
+        // Upload should NOT have started yet (waiting for confirmation)
+        QCOMPARE(mockFtp->mockGetUploadRequests().size(), 0);
+
+        // User confirms overwrite
+        queue->respondToOverwrite(OverwriteResponse::Overwrite);
+
+        // Now upload should proceed
+        QCOMPARE(mockFtp->mockGetUploadRequests().size(), 1);
+
+        // Process the upload
+        mockFtp->mockProcessNextOperation();
+
+        // Upload should complete
+        QCOMPARE(completedSpy.count(), 1);
+    }
+
+    // Test that upload proceeds without confirmation when remote file doesn't exist
+    void testUploadProceedsWhenRemoteFileDoesNotExist()
+    {
+        queue->setAutoOverwrite(false);
+
+        QString localPath = tempDir.path() + "/new_file.txt";
+        QString remotePath = "/remote/new_file.txt";
+
+        // Create the local file
+        QFile localFile(localPath);
+        QVERIFY(localFile.open(QIODevice::WriteOnly));
+        localFile.write("content");
+        localFile.close();
+
+        // Remote directory is empty - file doesn't exist
+        mockFtp->mockSetDirectoryListing("/remote", QList<FtpEntry>());
+
+        QSignalSpy overwriteSpy(queue, &TransferQueue::overwriteConfirmationNeeded);
+
+        queue->enqueueUpload(localPath, remotePath);
+
+        // Process the LIST to check file existence
+        mockFtp->mockProcessNextOperation();
+
+        // No confirmation needed - file doesn't exist
+        QCOMPARE(overwriteSpy.count(), 0);
+
+        // Upload should have started
+        QCOMPARE(mockFtp->mockGetUploadRequests().size(), 1);
+    }
+
+    // Test that OverwriteAll bypasses checks for subsequent uploads
+    void testUploadOverwriteAllBypassesChecks()
+    {
+        queue->setAutoOverwrite(false);
+
+        QString localPath1 = tempDir.path() + "/file1.txt";
+        QString localPath2 = tempDir.path() + "/file2.txt";
+        QString remotePath1 = "/remote/file1.txt";
+        QString remotePath2 = "/remote/file2.txt";
+
+        // Create local files
+        QFile file1(localPath1);
+        QVERIFY(file1.open(QIODevice::WriteOnly));
+        file1.write("content1");
+        file1.close();
+
+        QFile file2(localPath2);
+        QVERIFY(file2.open(QIODevice::WriteOnly));
+        file2.write("content2");
+        file2.close();
+
+        // Both files exist on remote
+        QList<FtpEntry> remoteEntries;
+        FtpEntry entry1; entry1.name = "file1.txt"; entry1.isDirectory = false;
+        FtpEntry entry2; entry2.name = "file2.txt"; entry2.isDirectory = false;
+        remoteEntries << entry1 << entry2;
+        mockFtp->mockSetDirectoryListing("/remote", remoteEntries);
+
+        QSignalSpy overwriteSpy(queue, &TransferQueue::overwriteConfirmationNeeded);
+
+        queue->enqueueUpload(localPath1, remotePath1);
+        queue->enqueueUpload(localPath2, remotePath2);
+
+        // Process first file's LIST
+        mockFtp->mockProcessNextOperation();
+
+        // First file should trigger confirmation
+        QCOMPARE(overwriteSpy.count(), 1);
+
+        // User chooses "Overwrite All"
+        queue->respondToOverwrite(OverwriteResponse::OverwriteAll);
+
+        // First upload should proceed
+        mockFtp->mockProcessNextOperation();
+
+        // Second file should NOT require confirmation (OverwriteAll is set)
+        // It may or may not need a LIST depending on implementation,
+        // but should NOT emit overwriteConfirmationNeeded
+        mockFtp->mockProcessAllOperations();
+
+        // Only one confirmation was needed
+        QCOMPARE(overwriteSpy.count(), 1);
+    }
+
+    // Test that Skip works for uploads
+    void testUploadSkipWhenRemoteFileExists()
+    {
+        queue->setAutoOverwrite(false);
+
+        QString localPath = tempDir.path() + "/skip_upload.txt";
+        QString remotePath = "/remote/skip_upload.txt";
+
+        QFile localFile(localPath);
+        QVERIFY(localFile.open(QIODevice::WriteOnly));
+        localFile.write("local content");
+        localFile.close();
+
+        // Remote file exists
+        QList<FtpEntry> remoteEntries;
+        FtpEntry existingFile;
+        existingFile.name = "skip_upload.txt";
+        existingFile.isDirectory = false;
+        remoteEntries << existingFile;
+        mockFtp->mockSetDirectoryListing("/remote", remoteEntries);
+
+        QSignalSpy overwriteSpy(queue, &TransferQueue::overwriteConfirmationNeeded);
+        QSignalSpy allCompletedSpy(queue, &TransferQueue::allOperationsCompleted);
+
+        queue->enqueueUpload(localPath, remotePath);
+
+        // Process the LIST
+        mockFtp->mockProcessNextOperation();
+
+        QCOMPARE(overwriteSpy.count(), 1);
+
+        // User clicks Skip
+        queue->respondToOverwrite(OverwriteResponse::Skip);
+
+        // Upload should NOT have been issued
+        QCOMPARE(mockFtp->mockGetUploadRequests().size(), 0);
+
+        // Should complete (item skipped)
+        QCOMPARE(allCompletedSpy.count(), 1);
+    }
 };
 
 QTEST_MAIN(TestTransferQueue)

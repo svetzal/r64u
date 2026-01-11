@@ -2,6 +2,7 @@
 #include <QStyle>
 #include <QApplication>
 #include <QDebug>
+#include <functional>
 
 RemoteFileModel::RemoteFileModel(QObject *parent)
     : QAbstractItemModel(parent)
@@ -15,6 +16,14 @@ RemoteFileModel::RemoteFileModel(QObject *parent)
 
 RemoteFileModel::~RemoteFileModel()
 {
+    // Disconnect from FTP client BEFORE deleting nodes to prevent
+    // signals from being delivered to slots that access deleted memory.
+    // Qt's automatic disconnection happens in QObject::~QObject() which
+    // runs AFTER this destructor body.
+    if (ftpClient_) {
+        disconnect(ftpClient_, nullptr, this, nullptr);
+    }
+
     delete rootNode_;
 }
 
@@ -269,6 +278,20 @@ void RemoteFileModel::refresh(const QModelIndex &index)
     // Clear children and refetch
     QModelIndex parentIndex = indexFromNode(node);
     if (!node->children.isEmpty()) {
+        // Remove any pending operations for nodes we're about to delete.
+        // This prevents dangling pointers in pendingFetches_ if a directory
+        // listing arrives after the node is deleted.
+        std::function<void(TreeNode*)> cleanupPendingOps = [this, &cleanupPendingOps](TreeNode* n) {
+            pendingFetches_.remove(n->fullPath);
+            requestedListings_.remove(n->fullPath);
+            for (TreeNode* child : n->children) {
+                cleanupPendingOps(child);
+            }
+        };
+        for (TreeNode* child : node->children) {
+            cleanupPendingOps(child);
+        }
+
         beginRemoveRows(parentIndex, 0, node->children.count() - 1);
         qDeleteAll(node->children);
         node->children.clear();

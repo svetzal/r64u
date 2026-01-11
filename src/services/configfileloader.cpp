@@ -12,6 +12,18 @@ ConfigFileLoader::ConfigFileLoader(QObject *parent)
 {
 }
 
+ConfigFileLoader::~ConfigFileLoader()
+{
+    // Disconnect from clients BEFORE this object is destroyed to prevent
+    // signals from being delivered to slots after member variables are destroyed.
+    if (ftpClient_) {
+        disconnect(ftpClient_, nullptr, this, nullptr);
+    }
+    if (restClient_) {
+        disconnect(restClient_, nullptr, this, nullptr);
+    }
+}
+
 void ConfigFileLoader::setFtpClient(C64UFtpClient *client)
 {
     if (ftpClient_) {
@@ -23,6 +35,9 @@ void ConfigFileLoader::setFtpClient(C64UFtpClient *client)
     if (ftpClient_) {
         connect(ftpClient_, &C64UFtpClient::downloadToMemoryFinished,
                 this, &ConfigFileLoader::onDownloadFinished);
+        // Track destruction to avoid dangling pointer access
+        connect(ftpClient_, &QObject::destroyed,
+                this, &ConfigFileLoader::onFtpClientDestroyed);
     }
 }
 
@@ -39,6 +54,9 @@ void ConfigFileLoader::setRestClient(C64URestClient *client)
                 this, &ConfigFileLoader::onConfigsUpdated);
         connect(restClient_, &C64URestClient::operationFailed,
                 this, &ConfigFileLoader::onOperationFailed);
+        // Track destruction to avoid dangling pointer access
+        connect(restClient_, &QObject::destroyed,
+                this, &ConfigFileLoader::onRestClientDestroyed);
     }
 }
 
@@ -159,4 +177,16 @@ void ConfigFileLoader::onOperationFailed(const QString &operation, const QString
         emit loadFailed(pendingPath_, error);
         pendingPath_.clear();
     }
+}
+
+void ConfigFileLoader::onFtpClientDestroyed()
+{
+    // Client is being destroyed - null our pointer to avoid dangling access
+    ftpClient_ = nullptr;
+}
+
+void ConfigFileLoader::onRestClientDestroyed()
+{
+    // Client is being destroyed - null our pointer to avoid dangling access
+    restClient_ = nullptr;
 }

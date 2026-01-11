@@ -10,10 +10,11 @@
 #define FILEPREVIEWSERVICE_H
 
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QByteArray>
 
-class IFtpClient;
+#include "iftpclient.h"  // Full include needed for QPointer
 
 /**
  * @brief Service for downloading file content for preview purposes.
@@ -105,7 +106,7 @@ private slots:
     void onFtpError(const QString &message);
 
 private:
-    IFtpClient *ftpClient_ = nullptr;
+    QPointer<IFtpClient> ftpClient_;
     QString pendingPath_;
 };
 

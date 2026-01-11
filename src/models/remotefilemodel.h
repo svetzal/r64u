@@ -3,6 +3,7 @@
 
 #include <QAbstractItemModel>
 #include <QIcon>
+#include <QPointer>
 #include <QSet>
 #include <QDateTime>
 #include "services/iftpclient.h"
@@ -142,7 +143,7 @@ private:
     TreeNode* findNodeByPath(const QString &path) const;
     void populateNode(TreeNode *node, const QList<FtpEntry> &entries);
 
-    IFtpClient *ftpClient_ = nullptr;
+    QPointer<IFtpClient> ftpClient_;
     TreeNode *rootNode_ = nullptr;
     QString rootPath_ = "/";
 
