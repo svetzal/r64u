@@ -425,6 +425,38 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_c64uftpclient_protocol)
 endif()
 
+# FilePreview strategy tests
+add_executable(test_filepreviewstrategies
+    test_filepreviewstrategies.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/filepreviewfactory.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/textfilepreview.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/diskimagepreview.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/sidfilepreview.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/defaultfilepreview.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/diskimagereader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/sidfileparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/petsciiconverter.cpp
+)
+
+target_include_directories(test_filepreviewstrategies BEFORE PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_filepreviewstrategies PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Widgets
+)
+
+# Register test with CTest
+add_test(NAME FilePreviewStrategiesTest COMMAND test_filepreviewstrategies)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(filepreviewstrategies test_filepreviewstrategies)
+    add_dependencies(coverage coverage_filepreviewstrategies)
+endif()
+
 # FileBrowserSync integration tests
 add_executable(test_filebrowsersync
     test_filebrowsersync.cpp
