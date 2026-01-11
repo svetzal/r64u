@@ -52,6 +52,11 @@ set(SOURCES
     src/ui/transferpanel.cpp
     src/ui/viewpanel.cpp
     src/ui/configpanel.cpp
+    src/ui/filepreview/textfilepreview.cpp
+    src/ui/filepreview/diskimagepreview.cpp
+    src/ui/filepreview/sidfilepreview.cpp
+    src/ui/filepreview/defaultfilepreview.cpp
+    src/ui/filepreview/filepreviewfactory.cpp
     src/services/c64urestclient.cpp
     src/services/c64uftpclient.cpp
     src/services/deviceconnection.cpp
@@ -89,6 +94,12 @@ set(HEADERS
     src/ui/transferpanel.h
     src/ui/viewpanel.h
     src/ui/configpanel.h
+    src/ui/filepreview/filepreviewstrategy.h
+    src/ui/filepreview/textfilepreview.h
+    src/ui/filepreview/diskimagepreview.h
+    src/ui/filepreview/sidfilepreview.h
+    src/ui/filepreview/defaultfilepreview.h
+    src/ui/filepreview/filepreviewfactory.h
     src/services/c64urestclient.h
     src/services/c64uftpclient.h
     src/services/deviceconnection.h
