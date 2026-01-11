@@ -28,6 +28,12 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection,
     , previewService_(previewService)
     , currentDirectory_("/")
 {
+    // These dependencies are required - assert in debug builds
+    Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
+    Q_ASSERT(remoteFileModel_ && "RemoteFileModel is required");
+    Q_ASSERT(configFileLoader_ && "ConfigFileLoader is required");
+    Q_ASSERT(previewService_ && "FilePreviewService is required");
+
     setupUi();
     setupContextMenu();
     setupConnections();
@@ -83,7 +89,9 @@ void ExplorePanel::setupUi()
 
     // File tree
     treeView_ = new QTreeView();
-    treeView_->setModel(remoteFileModel_);
+    if (remoteFileModel_) {
+        treeView_->setModel(remoteFileModel_);
+    }
     treeView_->setHeaderHidden(false);
     treeView_->setAlternatingRowColors(true);
     treeView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -91,8 +99,11 @@ void ExplorePanel::setupUi()
     treeView_->setSortingEnabled(true);
     treeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
 
-    connect(treeView_->selectionModel(), &QItemSelectionModel::selectionChanged,
-            this, &ExplorePanel::onSelectionChanged);
+    // Guard against null selection model (can happen if no model is set)
+    if (auto *selModel = treeView_->selectionModel()) {
+        connect(selModel, &QItemSelectionModel::selectionChanged,
+                this, &ExplorePanel::onSelectionChanged);
+    }
     connect(treeView_, &QTreeView::doubleClicked,
             this, &ExplorePanel::onDoubleClicked);
     connect(treeView_, &QTreeView::customContextMenuRequested,
@@ -139,30 +150,44 @@ void ExplorePanel::setupContextMenu()
 void ExplorePanel::setupConnections()
 {
     // Subscribe to device connection state changes
-    connect(deviceConnection_, &DeviceConnection::stateChanged,
-            this, &ExplorePanel::onConnectionStateChanged);
+    if (deviceConnection_) {
+        connect(deviceConnection_, &DeviceConnection::stateChanged,
+                this, &ExplorePanel::onConnectionStateChanged);
+    }
 
     // Connect to file preview service for file content
-    connect(previewService_, &FilePreviewService::previewReady,
-            this, &ExplorePanel::onPreviewReady);
-    connect(previewService_, &FilePreviewService::previewFailed,
-            this, &ExplorePanel::onPreviewFailed);
+    if (previewService_) {
+        connect(previewService_, &FilePreviewService::previewReady,
+                this, &ExplorePanel::onPreviewReady);
+        connect(previewService_, &FilePreviewService::previewFailed,
+                this, &ExplorePanel::onPreviewFailed);
+    }
 
     // Connect to config file loader
-    connect(configFileLoader_, &ConfigFileLoader::loadFinished,
-            this, &ExplorePanel::onConfigLoadFinished);
-    connect(configFileLoader_, &ConfigFileLoader::loadFailed,
-            this, &ExplorePanel::onConfigLoadFailed);
+    if (configFileLoader_) {
+        connect(configFileLoader_, &ConfigFileLoader::loadFinished,
+                this, &ExplorePanel::onConfigLoadFinished);
+        connect(configFileLoader_, &ConfigFileLoader::loadFailed,
+                this, &ExplorePanel::onConfigLoadFailed);
+    }
 
     // Connect drive status eject buttons
-    connect(drive8Status_, &DriveStatusWidget::ejectClicked, this, [this]() {
-        deviceConnection_->restClient()->unmountImage("a");
-        emit statusMessage(tr("Ejecting Drive A"), 3000);
-    });
-    connect(drive9Status_, &DriveStatusWidget::ejectClicked, this, [this]() {
-        deviceConnection_->restClient()->unmountImage("b");
-        emit statusMessage(tr("Ejecting Drive B"), 3000);
-    });
+    if (drive8Status_) {
+        connect(drive8Status_, &DriveStatusWidget::ejectClicked, this, [this]() {
+            if (deviceConnection_ && deviceConnection_->restClient()) {
+                deviceConnection_->restClient()->unmountImage("a");
+                emit statusMessage(tr("Ejecting Drive A"), 3000);
+            }
+        });
+    }
+    if (drive9Status_) {
+        connect(drive9Status_, &DriveStatusWidget::ejectClicked, this, [this]() {
+            if (deviceConnection_ && deviceConnection_->restClient()) {
+                deviceConnection_->restClient()->unmountImage("b");
+                emit statusMessage(tr("Ejecting Drive B"), 3000);
+            }
+        });
+    }
 }
 
 void ExplorePanel::setCurrentDirectory(const QString &path)
@@ -170,19 +195,29 @@ void ExplorePanel::setCurrentDirectory(const QString &path)
     currentDirectory_ = path;
 
     // Update the remote file model to show this folder as root
-    remoteFileModel_->setRootPath(path);
+    if (remoteFileModel_) {
+        remoteFileModel_->setRootPath(path);
+    }
 
-    navWidget_->setPath(path);
+    if (navWidget_) {
+        navWidget_->setPath(path);
+    }
     emit statusMessage(tr("Navigated to: %1").arg(path), 2000);
 
     // Enable/disable up button based on whether we can go up
     bool canGoUp = (path != "/" && !path.isEmpty());
-    navWidget_->setUpEnabled(canGoUp);
+    if (navWidget_) {
+        navWidget_->setUpEnabled(canGoUp);
+    }
 }
 
 void ExplorePanel::refresh()
 {
-    if (!deviceConnection_->canPerformOperations()) {
+    if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
+        return;
+    }
+
+    if (!remoteFileModel_ || !treeView_) {
         return;
     }
 
@@ -198,11 +233,13 @@ void ExplorePanel::refresh()
 
 void ExplorePanel::refreshIfStale()
 {
-    if (!deviceConnection_->canPerformOperations()) {
+    if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
         return;
     }
 
-    remoteFileModel_->refreshIfStale();
+    if (remoteFileModel_) {
+        remoteFileModel_->refreshIfStale();
+    }
 }
 
 void ExplorePanel::showEvent(QShowEvent *event)
@@ -215,24 +252,28 @@ void ExplorePanel::showEvent(QShowEvent *event)
 
 void ExplorePanel::updateDriveInfo()
 {
-    if (deviceConnection_->canPerformOperations()) {
+    if (deviceConnection_ && deviceConnection_->canPerformOperations()) {
         QList<DriveInfo> drives = deviceConnection_->driveInfo();
         for (const DriveInfo &drive : drives) {
             bool hasDisk = !drive.imageFile.isEmpty();
 
-            if (drive.name.toLower() == "a") {
+            if (drive.name.toLower() == "a" && drive8Status_) {
                 drive8Status_->setImageName(drive.imageFile);
                 drive8Status_->setMounted(hasDisk);
-            } else if (drive.name.toLower() == "b") {
+            } else if (drive.name.toLower() == "b" && drive9Status_) {
                 drive9Status_->setImageName(drive.imageFile);
                 drive9Status_->setMounted(hasDisk);
             }
         }
     } else {
-        drive8Status_->setImageName(QString());
-        drive8Status_->setMounted(false);
-        drive9Status_->setImageName(QString());
-        drive9Status_->setMounted(false);
+        if (drive8Status_) {
+            drive8Status_->setImageName(QString());
+            drive8Status_->setMounted(false);
+        }
+        if (drive9Status_) {
+            drive9Status_->setImageName(QString());
+            drive9Status_->setMounted(false);
+        }
     }
 }
 
@@ -251,32 +292,48 @@ void ExplorePanel::saveSettings()
 
 void ExplorePanel::onConnectionStateChanged()
 {
-    bool canOperate = deviceConnection_->canPerformOperations();
+    bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
 
-    playAction_->setEnabled(false);
-    runAction_->setEnabled(false);
-    mountAction_->setEnabled(false);
-    refreshAction_->setEnabled(canOperate);
+    if (playAction_) {
+        playAction_->setEnabled(false);
+    }
+    if (runAction_) {
+        runAction_->setEnabled(false);
+    }
+    if (mountAction_) {
+        mountAction_->setEnabled(false);
+    }
+    if (refreshAction_) {
+        refreshAction_->setEnabled(canOperate);
+    }
 
     bool canGoUp = (currentDirectory_ != "/" && !currentDirectory_.isEmpty());
-    navWidget_->setUpEnabled(canGoUp && canOperate);
+    if (navWidget_) {
+        navWidget_->setUpEnabled(canGoUp && canOperate);
+    }
 
-    if (!canOperate) {
+    if (!canOperate && fileDetailsPanel_) {
         fileDetailsPanel_->clear();
     }
 }
 
 QString ExplorePanel::selectedPath() const
 {
+    if (!treeView_ || !remoteFileModel_) {
+        return {};
+    }
     QModelIndex index = treeView_->currentIndex();
     if (index.isValid()) {
         return remoteFileModel_->filePath(index);
     }
-    return QString();
+    return {};
 }
 
 bool ExplorePanel::isSelectedDirectory() const
 {
+    if (!treeView_ || !remoteFileModel_) {
+        return false;
+    }
     QModelIndex index = treeView_->currentIndex();
     if (index.isValid()) {
         return remoteFileModel_->isDirectory(index);
@@ -291,10 +348,10 @@ void ExplorePanel::onSelectionChanged()
     // Update toolbar actions
     QString selected = selectedPath();
     bool hasSelection = !selected.isEmpty();
-    bool canOperate = deviceConnection_->canPerformOperations();
+    bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
 
     RemoteFileModel::FileType fileType = RemoteFileModel::FileType::Unknown;
-    if (hasSelection) {
+    if (hasSelection && treeView_ && remoteFileModel_) {
         QModelIndex index = treeView_->currentIndex();
         fileType = remoteFileModel_->fileType(index);
     }
@@ -306,11 +363,21 @@ void ExplorePanel::onSelectionChanged()
                                     fileType == RemoteFileModel::FileType::DiskImage);
     bool canMount = hasSelection && fileType == RemoteFileModel::FileType::DiskImage;
 
-    playAction_->setEnabled(canOperate && canPlay);
-    runAction_->setEnabled(canOperate && canRun);
-    mountAction_->setEnabled(canOperate && canMount);
+    if (playAction_) {
+        playAction_->setEnabled(canOperate && canPlay);
+    }
+    if (runAction_) {
+        runAction_->setEnabled(canOperate && canRun);
+    }
+    if (mountAction_) {
+        mountAction_->setEnabled(canOperate && canMount);
+    }
 
     // Update file details panel
+    if (!treeView_ || !remoteFileModel_ || !fileDetailsPanel_) {
+        return;
+    }
+
     QModelIndex index = treeView_->currentIndex();
     if (!index.isValid()) {
         fileDetailsPanel_->clear();
@@ -331,7 +398,7 @@ void ExplorePanel::onSelectionChanged()
 
 void ExplorePanel::onDoubleClicked(const QModelIndex &index)
 {
-    if (!index.isValid()) {
+    if (!index.isValid() || !remoteFileModel_) {
         return;
     }
 
@@ -366,11 +433,15 @@ void ExplorePanel::onDoubleClicked(const QModelIndex &index)
 
 void ExplorePanel::onContextMenu(const QPoint &pos)
 {
+    if (!treeView_ || !remoteFileModel_) {
+        return;
+    }
+
     QModelIndex index = treeView_->indexAt(pos);
     if (index.isValid()) {
         // Get file type and enable/disable context menu actions accordingly
         RemoteFileModel::FileType fileType = remoteFileModel_->fileType(index);
-        bool canOperate = deviceConnection_->canPerformOperations();
+        bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
 
         bool canPlay = fileType == RemoteFileModel::FileType::SidMusic ||
                        fileType == RemoteFileModel::FileType::ModMusic;
@@ -412,7 +483,13 @@ void ExplorePanel::onParentFolder()
 void ExplorePanel::onPlay()
 {
     QString path = selectedPath();
-    if (path.isEmpty()) return;
+    if (path.isEmpty()) {
+        return;
+    }
+
+    if (!treeView_ || !remoteFileModel_ || !deviceConnection_ || !deviceConnection_->restClient()) {
+        return;
+    }
 
     RemoteFileModel::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
 
@@ -428,7 +505,13 @@ void ExplorePanel::onPlay()
 void ExplorePanel::onRun()
 {
     QString path = selectedPath();
-    if (path.isEmpty()) return;
+    if (path.isEmpty()) {
+        return;
+    }
+
+    if (!treeView_ || !remoteFileModel_ || !deviceConnection_ || !deviceConnection_->restClient()) {
+        return;
+    }
 
     RemoteFileModel::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
 
@@ -454,6 +537,10 @@ void ExplorePanel::runDiskImage(const QString &path)
     // 6. Wait for load (5 seconds)
     // 7. Type RUN + RETURN
 
+    if (!deviceConnection_ || !deviceConnection_->restClient()) {
+        return;
+    }
+
     emit statusMessage(tr("Mounting and running: %1").arg(path));
 
     // Step 1: Mount the disk
@@ -461,10 +548,16 @@ void ExplorePanel::runDiskImage(const QString &path)
 
     // Step 2: Reset after a brief delay to ensure mount completes
     QTimer::singleShot(500, this, [this]() {
+        if (!deviceConnection_ || !deviceConnection_->restClient()) {
+            return;
+        }
         deviceConnection_->restClient()->resetMachine();
 
         // Step 3: Wait for C64 to boot
         QTimer::singleShot(3000, this, [this]() {
+            if (!deviceConnection_ || !deviceConnection_->restClient()) {
+                return;
+            }
             emit statusMessage(tr("Loading..."));
 
             // Step 4: Type LOAD"*",8,1 (10 chars exactly, no newline)
@@ -472,10 +565,16 @@ void ExplorePanel::runDiskImage(const QString &path)
 
             // Step 5: Wait 500ms for buffer to be consumed, then send RETURN
             QTimer::singleShot(500, this, [this]() {
+                if (!deviceConnection_ || !deviceConnection_->restClient()) {
+                    return;
+                }
                 deviceConnection_->restClient()->typeText("\n");
 
                 // Step 6: Wait for load to complete (5 seconds)
                 QTimer::singleShot(5000, this, [this]() {
+                    if (!deviceConnection_ || !deviceConnection_->restClient()) {
+                        return;
+                    }
                     // Step 7: Type RUN + RETURN
                     deviceConnection_->restClient()->typeText("RUN\n");
                     emit statusMessage(tr("Running disk image"), 3000);
@@ -493,7 +592,13 @@ void ExplorePanel::onMount()
 void ExplorePanel::onMountToDriveA()
 {
     QString path = selectedPath();
-    if (path.isEmpty()) return;
+    if (path.isEmpty()) {
+        return;
+    }
+
+    if (!deviceConnection_ || !deviceConnection_->restClient()) {
+        return;
+    }
 
     deviceConnection_->restClient()->mountImage("a", path);
     emit statusMessage(tr("Mounting to Drive A: %1").arg(path), 3000);
@@ -502,7 +607,13 @@ void ExplorePanel::onMountToDriveA()
 void ExplorePanel::onMountToDriveB()
 {
     QString path = selectedPath();
-    if (path.isEmpty()) return;
+    if (path.isEmpty()) {
+        return;
+    }
+
+    if (!deviceConnection_ || !deviceConnection_->restClient()) {
+        return;
+    }
 
     deviceConnection_->restClient()->mountImage("b", path);
     emit statusMessage(tr("Mounting to Drive B: %1").arg(path), 3000);
@@ -511,7 +622,13 @@ void ExplorePanel::onMountToDriveB()
 void ExplorePanel::onLoadConfig()
 {
     QString path = selectedPath();
-    if (path.isEmpty()) return;
+    if (path.isEmpty()) {
+        return;
+    }
+
+    if (!treeView_ || !remoteFileModel_) {
+        return;
+    }
 
     RemoteFileModel::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
     if (type != RemoteFileModel::FileType::Config) {
@@ -519,12 +636,14 @@ void ExplorePanel::onLoadConfig()
         return;
     }
 
-    if (!deviceConnection_->canPerformOperations()) {
+    if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
         emit statusMessage(tr("Not connected"), 3000);
         return;
     }
 
-    configFileLoader_->loadConfigFile(path);
+    if (configFileLoader_) {
+        configFileLoader_->loadConfigFile(path);
+    }
 }
 
 void ExplorePanel::onDownload()
@@ -541,17 +660,25 @@ void ExplorePanel::onRefresh()
 
 void ExplorePanel::onFileContentRequested(const QString &path)
 {
-    if (!deviceConnection_->canPerformOperations()) {
-        fileDetailsPanel_->showError(tr("Not connected"));
+    if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
+        if (fileDetailsPanel_) {
+            fileDetailsPanel_->showError(tr("Not connected"));
+        }
         return;
     }
 
     // Request file content via preview service
-    previewService_->requestPreview(path);
+    if (previewService_) {
+        previewService_->requestPreview(path);
+    }
 }
 
 void ExplorePanel::onPreviewReady(const QString &remotePath, const QByteArray &data)
 {
+    if (!fileDetailsPanel_) {
+        return;
+    }
+
     // Check if this is a disk image file
     if (fileDetailsPanel_->isDiskImageFile(remotePath)) {
         fileDetailsPanel_->showDiskDirectory(data, remotePath);
@@ -567,7 +694,9 @@ void ExplorePanel::onPreviewReady(const QString &remotePath, const QByteArray &d
 void ExplorePanel::onPreviewFailed(const QString &remotePath, const QString &error)
 {
     Q_UNUSED(remotePath)
-    fileDetailsPanel_->showError(error);
+    if (fileDetailsPanel_) {
+        fileDetailsPanel_->showError(error);
+    }
 }
 
 void ExplorePanel::onConfigLoadFinished(const QString &path)

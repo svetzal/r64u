@@ -16,12 +16,17 @@ StreamingManager::StreamingManager(DeviceConnection *connection, QObject *parent
     : QObject(parent)
     , deviceConnection_(connection)
 {
+    // DeviceConnection is required - assert in debug builds
+    Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
+
     // Create streaming services (owned by this manager)
     streamControl_ = new StreamControlClient(this);
     videoReceiver_ = new VideoStreamReceiver(this);
     audioReceiver_ = new AudioStreamReceiver(this);
     audioPlayback_ = new AudioPlaybackService(this);
-    keyboardInput_ = new KeyboardInputService(deviceConnection_->restClient(), this);
+    // Guard against null restClient
+    C64URestClient *restClient = deviceConnection_ ? deviceConnection_->restClient() : nullptr;
+    keyboardInput_ = new KeyboardInputService(restClient, this);
 
     // Connect video receiver format detection
     connect(videoReceiver_, &VideoStreamReceiver::formatDetected,
@@ -54,13 +59,20 @@ bool StreamingManager::startStreaming()
         return false;
     }
 
-    if (!deviceConnection_->isConnected()) {
+    if (!deviceConnection_ || !deviceConnection_->isConnected()) {
         emit error(tr("Not connected to device"));
         return false;
     }
 
+    if (!deviceConnection_->restClient()) {
+        emit error(tr("REST client not available"));
+        return false;
+    }
+
     // Clear any pending commands from previous sessions
-    streamControl_->clearPendingCommands();
+    if (streamControl_) {
+        streamControl_->clearPendingCommands();
+    }
 
     // Extract device host from REST client URL
     QString deviceUrl = deviceConnection_->restClient()->host();
@@ -174,6 +186,10 @@ void StreamingManager::onStreamCommandFailed(const QString &command, const QStri
 
 QString StreamingManager::findLocalHostForDevice() const
 {
+    if (!deviceConnection_ || !deviceConnection_->restClient()) {
+        return {};
+    }
+
     QString deviceUrl = deviceConnection_->restClient()->host();
     QString deviceHost = QUrl(deviceUrl).host();
     if (deviceHost.isEmpty()) {

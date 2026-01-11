@@ -21,8 +21,15 @@ TransferPanel::TransferPanel(DeviceConnection *connection,
     , deviceConnection_(connection)
     , transferService_(transferService)
 {
+    // These dependencies are required - assert in debug builds
+    Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
+    Q_ASSERT(model && "RemoteFileModel is required");
+    Q_ASSERT(transferService_ && "TransferService is required");
+
     // Create browser widgets with their dependencies
-    remoteBrowser_ = new RemoteFileBrowserWidget(model, connection->ftpClient(), this);
+    // Guard against null ftpClient() - it should exist if deviceConnection_ is valid
+    C64UFtpClient *ftpClient = deviceConnection_ ? deviceConnection_->ftpClient() : nullptr;
+    remoteBrowser_ = new RemoteFileBrowserWidget(model, ftpClient, this);
     localBrowser_ = new LocalFileBrowserWidget(this);
     progressWidget_ = new TransferProgressWidget(this);
 
@@ -47,74 +54,90 @@ void TransferPanel::setupUi()
 void TransferPanel::setupConnections()
 {
     // Subscribe to device connection state changes
-    connect(deviceConnection_, &DeviceConnection::stateChanged,
-            this, &TransferPanel::onConnectionStateChanged);
+    if (deviceConnection_) {
+        connect(deviceConnection_, &DeviceConnection::stateChanged,
+                this, &TransferPanel::onConnectionStateChanged);
+    }
 
     // Connect upload/download/delete requests to transfer queue
-    connect(localBrowser_, &LocalFileBrowserWidget::uploadRequested,
-            this, &TransferPanel::onUploadRequested);
-    connect(remoteBrowser_, &RemoteFileBrowserWidget::downloadRequested,
-            this, &TransferPanel::onDownloadRequested);
-    connect(remoteBrowser_, &RemoteFileBrowserWidget::deleteRequested,
-            this, &TransferPanel::onDeleteRequested);
+    if (localBrowser_) {
+        connect(localBrowser_, &LocalFileBrowserWidget::uploadRequested,
+                this, &TransferPanel::onUploadRequested);
+        connect(localBrowser_, &LocalFileBrowserWidget::statusMessage,
+                this, &TransferPanel::statusMessage);
+        connect(localBrowser_, &LocalFileBrowserWidget::selectionChanged,
+                this, &TransferPanel::selectionChanged);
+        connect(localBrowser_, &LocalFileBrowserWidget::selectionChanged, this, [this]() {
+            if (localBrowser_ && deviceConnection_) {
+                localBrowser_->setUploadEnabled(deviceConnection_->canPerformOperations());
+            }
+        });
+    }
 
-    // Forward status messages from all widgets
-    connect(localBrowser_, &LocalFileBrowserWidget::statusMessage,
-            this, &TransferPanel::statusMessage);
-    connect(remoteBrowser_, &RemoteFileBrowserWidget::statusMessage,
-            this, &TransferPanel::statusMessage);
-    connect(progressWidget_, &TransferProgressWidget::statusMessage,
-            this, &TransferPanel::statusMessage);
+    if (remoteBrowser_) {
+        connect(remoteBrowser_, &RemoteFileBrowserWidget::downloadRequested,
+                this, &TransferPanel::onDownloadRequested);
+        connect(remoteBrowser_, &RemoteFileBrowserWidget::deleteRequested,
+                this, &TransferPanel::onDeleteRequested);
+        connect(remoteBrowser_, &RemoteFileBrowserWidget::statusMessage,
+                this, &TransferPanel::statusMessage);
+        connect(remoteBrowser_, &RemoteFileBrowserWidget::selectionChanged,
+                this, &TransferPanel::selectionChanged);
+        connect(remoteBrowser_, &RemoteFileBrowserWidget::selectionChanged, this, [this]() {
+            if (remoteBrowser_ && deviceConnection_) {
+                remoteBrowser_->setDownloadEnabled(deviceConnection_->canPerformOperations());
+            }
+        });
+    }
 
-    // Forward selection changes
-    connect(localBrowser_, &LocalFileBrowserWidget::selectionChanged,
-            this, &TransferPanel::selectionChanged);
-    connect(remoteBrowser_, &RemoteFileBrowserWidget::selectionChanged,
-            this, &TransferPanel::selectionChanged);
-
-    // Update upload/download button states based on connection
-    connect(localBrowser_, &LocalFileBrowserWidget::selectionChanged, this, [this]() {
-        localBrowser_->setUploadEnabled(deviceConnection_->canPerformOperations());
-    });
-    connect(remoteBrowser_, &RemoteFileBrowserWidget::selectionChanged, this, [this]() {
-        remoteBrowser_->setDownloadEnabled(deviceConnection_->canPerformOperations());
-    });
-
-    // Set up transfer service for progress widget
-    progressWidget_->setTransferService(transferService_);
+    if (progressWidget_) {
+        connect(progressWidget_, &TransferProgressWidget::statusMessage,
+                this, &TransferPanel::statusMessage);
+        progressWidget_->setTransferService(transferService_);
+    }
 
     // Forward status messages from transfer service
-    connect(transferService_, &TransferService::statusMessage,
-            this, &TransferPanel::statusMessage);
+    if (transferService_) {
+        connect(transferService_, &TransferService::statusMessage,
+                this, &TransferPanel::statusMessage);
 
-    // Suppress auto-refresh during queue operations to prevent constant reloading
-    connect(transferService_, &TransferService::operationStarted, this, [this]() {
-        remoteBrowser_->setSuppressAutoRefresh(true);
-    });
-    connect(transferService_, &TransferService::allOperationsCompleted, this, [this]() {
-        remoteBrowser_->setSuppressAutoRefresh(false);
-        remoteBrowser_->refresh();
-    });
+        // Suppress auto-refresh during queue operations to prevent constant reloading
+        connect(transferService_, &TransferService::operationStarted, this, [this]() {
+            if (remoteBrowser_) {
+                remoteBrowser_->setSuppressAutoRefresh(true);
+            }
+        });
+        connect(transferService_, &TransferService::allOperationsCompleted, this, [this]() {
+            if (remoteBrowser_) {
+                remoteBrowser_->setSuppressAutoRefresh(false);
+                remoteBrowser_->refresh();
+            }
+        });
+    }
 }
 
 void TransferPanel::setCurrentLocalDir(const QString &path)
 {
-    localBrowser_->setCurrentDirectory(path);
+    if (localBrowser_) {
+        localBrowser_->setCurrentDirectory(path);
+    }
 }
 
 void TransferPanel::setCurrentRemoteDir(const QString &path)
 {
-    remoteBrowser_->setCurrentDirectory(path);
+    if (remoteBrowser_) {
+        remoteBrowser_->setCurrentDirectory(path);
+    }
 }
 
 QString TransferPanel::currentLocalDir() const
 {
-    return localBrowser_->currentDirectory();
+    return localBrowser_ ? localBrowser_->currentDirectory() : QString();
 }
 
 QString TransferPanel::currentRemoteDir() const
 {
-    return remoteBrowser_->currentDirectory();
+    return remoteBrowser_ ? remoteBrowser_->currentDirectory() : QString();
 }
 
 void TransferPanel::loadSettings()
@@ -139,29 +162,37 @@ void TransferPanel::saveSettings()
 
 void TransferPanel::onConnectionStateChanged()
 {
-    bool canOperate = deviceConnection_->canPerformOperations();
-    remoteBrowser_->onConnectionStateChanged(canOperate);
-    localBrowser_->setUploadEnabled(canOperate);
+    bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
+    if (remoteBrowser_) {
+        remoteBrowser_->onConnectionStateChanged(canOperate);
+    }
+    if (localBrowser_) {
+        localBrowser_->setUploadEnabled(canOperate);
+    }
 }
 
 QString TransferPanel::selectedLocalPath() const
 {
-    return localBrowser_->selectedPath();
+    return localBrowser_ ? localBrowser_->selectedPath() : QString();
 }
 
 QString TransferPanel::selectedRemotePath() const
 {
-    return remoteBrowser_->selectedPath();
+    return remoteBrowser_ ? remoteBrowser_->selectedPath() : QString();
 }
 
 bool TransferPanel::isSelectedRemoteDirectory() const
 {
-    return remoteBrowser_->isSelectedDirectory();
+    return remoteBrowser_ ? remoteBrowser_->isSelectedDirectory() : false;
 }
 
 void TransferPanel::onUploadRequested(const QString &localPath, bool isDirectory)
 {
-    QString remoteDir = remoteBrowser_->currentDirectory();
+    if (!transferService_) {
+        return;
+    }
+
+    QString remoteDir = remoteBrowser_ ? remoteBrowser_->currentDirectory() : QString("/");
     if (remoteDir.isEmpty()) {
         remoteDir = "/";
     }
@@ -175,6 +206,10 @@ void TransferPanel::onUploadRequested(const QString &localPath, bool isDirectory
 
 void TransferPanel::onDownloadRequested(const QString &remotePath, bool isDirectory)
 {
+    if (!transferService_ || !localBrowser_) {
+        return;
+    }
+
     QString downloadDir = localBrowser_->currentDirectory();
 
     if (isDirectory) {
@@ -186,6 +221,10 @@ void TransferPanel::onDownloadRequested(const QString &remotePath, bool isDirect
 
 void TransferPanel::onDeleteRequested(const QString &remotePath, bool isDirectory)
 {
+    if (!transferService_) {
+        return;
+    }
+
     if (isDirectory) {
         transferService_->deleteRecursive(remotePath);
     } else {

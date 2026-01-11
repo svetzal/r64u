@@ -20,6 +20,10 @@ RemoteFileBrowserWidget::RemoteFileBrowserWidget(RemoteFileModel *model,
     , ftpClient_(ftpClient)
     , currentDirectory_("/")
 {
+    // These dependencies are required - assert in debug builds
+    Q_ASSERT(remoteFileModel_ && "RemoteFileModel is required");
+    // ftpClient_ may be null if connection not established yet
+
     setupUi();
     setupContextMenu();
     setupConnections();
@@ -70,7 +74,9 @@ void RemoteFileBrowserWidget::setupUi()
 
     // Tree view
     treeView_ = new QTreeView();
-    treeView_->setModel(remoteFileModel_);
+    if (remoteFileModel_) {
+        treeView_->setModel(remoteFileModel_);
+    }
     treeView_->setAlternatingRowColors(true);
     treeView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
     treeView_->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -80,8 +86,11 @@ void RemoteFileBrowserWidget::setupUi()
             this, &RemoteFileBrowserWidget::onContextMenu);
     connect(treeView_, &QTreeView::doubleClicked,
             this, &RemoteFileBrowserWidget::onDoubleClicked);
-    connect(treeView_->selectionModel(), &QItemSelectionModel::selectionChanged,
-            this, [this]() { updateActions(); emit selectionChanged(); });
+    // Guard against null selection model
+    if (auto *selModel = treeView_->selectionModel()) {
+        connect(selModel, &QItemSelectionModel::selectionChanged,
+                this, [this]() { updateActions(); emit selectionChanged(); });
+    }
 
     layout->addWidget(treeView_);
 
@@ -94,6 +103,9 @@ void RemoteFileBrowserWidget::setupContextMenu()
 {
     contextMenu_ = new QMenu(this);
     setDestAction_ = contextMenu_->addAction(tr("Set as Upload Destination"), this, [this]() {
+        if (!treeView_ || !remoteFileModel_) {
+            return;
+        }
         QModelIndex index = treeView_->currentIndex();
         if (index.isValid() && remoteFileModel_->isDirectory(index)) {
             QString path = remoteFileModel_->filePath(index);
@@ -110,13 +122,15 @@ void RemoteFileBrowserWidget::setupContextMenu()
 
 void RemoteFileBrowserWidget::setupConnections()
 {
-    // FTP client signals
-    connect(ftpClient_, &C64UFtpClient::directoryCreated,
-            this, &RemoteFileBrowserWidget::onDirectoryCreated);
-    connect(ftpClient_, &C64UFtpClient::fileRemoved,
-            this, &RemoteFileBrowserWidget::onFileRemoved);
-    connect(ftpClient_, &C64UFtpClient::fileRenamed,
-            this, &RemoteFileBrowserWidget::onFileRenamed);
+    // FTP client signals - guard against null ftpClient_
+    if (ftpClient_) {
+        connect(ftpClient_, &C64UFtpClient::directoryCreated,
+                this, &RemoteFileBrowserWidget::onDirectoryCreated);
+        connect(ftpClient_, &C64UFtpClient::fileRemoved,
+                this, &RemoteFileBrowserWidget::onFileRemoved);
+        connect(ftpClient_, &C64UFtpClient::fileRenamed,
+                this, &RemoteFileBrowserWidget::onFileRenamed);
+    }
 }
 
 void RemoteFileBrowserWidget::updateActions()
@@ -135,15 +149,21 @@ void RemoteFileBrowserWidget::setCurrentDirectory(const QString &path)
     currentDirectory_ = path;
 
     // Update tree view to show this folder as root
-    remoteFileModel_->setRootPath(path);
+    if (remoteFileModel_) {
+        remoteFileModel_->setRootPath(path);
+    }
 
-    navWidget_->setPath(path);
+    if (navWidget_) {
+        navWidget_->setPath(path);
+    }
     emit currentDirectoryChanged(path);
     emit statusMessage(tr("Upload destination: %1").arg(path), 2000);
 
     // Enable/disable up button based on whether we can go up
     bool canGoUp = (path != "/" && !path.isEmpty());
-    navWidget_->setUpEnabled(canGoUp && connected_);
+    if (navWidget_) {
+        navWidget_->setUpEnabled(canGoUp && connected_);
+    }
 }
 
 void RemoteFileBrowserWidget::setDownloadEnabled(bool enabled)
@@ -158,11 +178,16 @@ void RemoteFileBrowserWidget::onConnectionStateChanged(bool connected)
     updateActions();
 
     bool canGoUp = (currentDirectory_ != "/" && !currentDirectory_.isEmpty());
-    navWidget_->setUpEnabled(canGoUp && connected);
+    if (navWidget_) {
+        navWidget_->setUpEnabled(canGoUp && connected);
+    }
 }
 
 QString RemoteFileBrowserWidget::selectedPath() const
 {
+    if (!treeView_ || !remoteFileModel_) {
+        return {};
+    }
     QModelIndex index = treeView_->currentIndex();
     if (index.isValid()) {
         return remoteFileModel_->filePath(index);
@@ -172,6 +197,9 @@ QString RemoteFileBrowserWidget::selectedPath() const
 
 bool RemoteFileBrowserWidget::isSelectedDirectory() const
 {
+    if (!treeView_ || !remoteFileModel_) {
+        return false;
+    }
     QModelIndex index = treeView_->currentIndex();
     if (index.isValid()) {
         return remoteFileModel_->isDirectory(index);
@@ -190,7 +218,9 @@ void RemoteFileBrowserWidget::refreshIfStale()
         return;
     }
 
-    remoteFileModel_->refreshIfStale();
+    if (remoteFileModel_) {
+        remoteFileModel_->refreshIfStale();
+    }
 }
 
 void RemoteFileBrowserWidget::showEvent(QShowEvent *event)
@@ -203,7 +233,7 @@ void RemoteFileBrowserWidget::showEvent(QShowEvent *event)
 
 void RemoteFileBrowserWidget::onDoubleClicked(const QModelIndex &index)
 {
-    if (!index.isValid()) {
+    if (!index.isValid() || !remoteFileModel_) {
         return;
     }
 
@@ -215,11 +245,19 @@ void RemoteFileBrowserWidget::onDoubleClicked(const QModelIndex &index)
 
 void RemoteFileBrowserWidget::onContextMenu(const QPoint &pos)
 {
+    if (!treeView_ || !remoteFileModel_) {
+        return;
+    }
+
     QModelIndex index = treeView_->indexAt(pos);
     if (index.isValid()) {
         bool isDir = remoteFileModel_->isDirectory(index);
-        setDestAction_->setEnabled(isDir);
-        contextMenu_->exec(treeView_->viewport()->mapToGlobal(pos));
+        if (setDestAction_) {
+            setDestAction_->setEnabled(isDir);
+        }
+        if (contextMenu_) {
+            contextMenu_->exec(treeView_->viewport()->mapToGlobal(pos));
+        }
     }
 }
 
@@ -253,7 +291,7 @@ void RemoteFileBrowserWidget::onDownload()
 
 void RemoteFileBrowserWidget::onNewFolder()
 {
-    if (!connected_) {
+    if (!connected_ || !ftpClient_) {
         return;
     }
 
@@ -281,7 +319,7 @@ void RemoteFileBrowserWidget::onNewFolder()
 
 void RemoteFileBrowserWidget::onRename()
 {
-    if (!connected_) {
+    if (!connected_ || !ftpClient_) {
         return;
     }
 
@@ -358,7 +396,7 @@ void RemoteFileBrowserWidget::onDelete()
 
 void RemoteFileBrowserWidget::onRefresh()
 {
-    if (!connected_) {
+    if (!connected_ || !treeView_ || !remoteFileModel_) {
         return;
     }
 
@@ -378,7 +416,7 @@ void RemoteFileBrowserWidget::setSuppressAutoRefresh(bool suppress)
 void RemoteFileBrowserWidget::onDirectoryCreated(const QString &path)
 {
     emit statusMessage(tr("Folder created: %1").arg(QFileInfo(path).fileName()), 3000);
-    if (!suppressAutoRefresh_) {
+    if (!suppressAutoRefresh_ && remoteFileModel_) {
         remoteFileModel_->refresh();
     }
 }
@@ -386,7 +424,7 @@ void RemoteFileBrowserWidget::onDirectoryCreated(const QString &path)
 void RemoteFileBrowserWidget::onFileRemoved(const QString &path)
 {
     // Don't emit status messages or refresh during bulk delete operations
-    if (!suppressAutoRefresh_) {
+    if (!suppressAutoRefresh_ && remoteFileModel_) {
         emit statusMessage(tr("Deleted: %1").arg(QFileInfo(path).fileName()), 3000);
         remoteFileModel_->refresh();
     }
@@ -397,7 +435,7 @@ void RemoteFileBrowserWidget::onFileRenamed(const QString &oldPath, const QStrin
     QString oldName = QFileInfo(oldPath).fileName();
     QString newName = QFileInfo(newPath).fileName();
     emit statusMessage(tr("Renamed: %1 -> %2").arg(oldName).arg(newName), 3000);
-    if (!suppressAutoRefresh_) {
+    if (!suppressAutoRefresh_ && remoteFileModel_) {
         remoteFileModel_->refresh();
     }
 }

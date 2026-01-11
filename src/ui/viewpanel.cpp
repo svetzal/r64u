@@ -15,6 +15,9 @@ ViewPanel::ViewPanel(DeviceConnection *connection, QWidget *parent)
     : QWidget(parent)
     , deviceConnection_(connection)
 {
+    // DeviceConnection is required - assert in debug builds
+    Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
+
     setupUi();
     setupConnections();
 }
@@ -92,53 +95,67 @@ void ViewPanel::setupUi()
 void ViewPanel::setupConnections()
 {
     // Subscribe to device connection state changes
-    connect(deviceConnection_, &DeviceConnection::stateChanged,
-            this, &ViewPanel::onConnectionStateChanged);
+    if (deviceConnection_) {
+        connect(deviceConnection_, &DeviceConnection::stateChanged,
+                this, &ViewPanel::onConnectionStateChanged);
+    }
 
     // Connect streaming manager to display
-    connect(streamingManager_->videoReceiver(), &VideoStreamReceiver::frameReady,
-            videoDisplayWidget_, &VideoDisplayWidget::displayFrame);
+    if (streamingManager_ && streamingManager_->videoReceiver() && videoDisplayWidget_) {
+        connect(streamingManager_->videoReceiver(), &VideoStreamReceiver::frameReady,
+                videoDisplayWidget_, &VideoDisplayWidget::displayFrame);
+    }
 
     // Connect streaming manager signals
-    connect(streamingManager_, &StreamingManager::streamingStarted,
-            this, &ViewPanel::onStreamingStarted);
-    connect(streamingManager_, &StreamingManager::streamingStopped,
-            this, &ViewPanel::onStreamingStopped);
-    connect(streamingManager_, &StreamingManager::videoFormatDetected,
-            this, &ViewPanel::onVideoFormatDetected);
-    connect(streamingManager_, &StreamingManager::error,
-            this, &ViewPanel::onStreamingError);
-    connect(streamingManager_, &StreamingManager::statusMessage,
-            this, &ViewPanel::statusMessage);
+    if (streamingManager_) {
+        connect(streamingManager_, &StreamingManager::streamingStarted,
+                this, &ViewPanel::onStreamingStarted);
+        connect(streamingManager_, &StreamingManager::streamingStopped,
+                this, &ViewPanel::onStreamingStopped);
+        connect(streamingManager_, &StreamingManager::videoFormatDetected,
+                this, &ViewPanel::onVideoFormatDetected);
+        connect(streamingManager_, &StreamingManager::error,
+                this, &ViewPanel::onStreamingError);
+        connect(streamingManager_, &StreamingManager::statusMessage,
+                this, &ViewPanel::statusMessage);
+    }
 
     // Connect video display keyboard events to keyboard service
-    connect(videoDisplayWidget_, &VideoDisplayWidget::keyPressed,
-            this, [this](QKeyEvent *event) {
-        streamingManager_->keyboardInput()->handleKeyPress(event);
-    });
+    if (videoDisplayWidget_) {
+        connect(videoDisplayWidget_, &VideoDisplayWidget::keyPressed,
+                this, [this](QKeyEvent *event) {
+            if (streamingManager_ && streamingManager_->keyboardInput()) {
+                streamingManager_->keyboardInput()->handleKeyPress(event);
+            }
+        });
+    }
 }
 
 void ViewPanel::updateActions()
 {
-    bool canOperate = deviceConnection_->canPerformOperations();
-    bool isStreaming = streamingManager_->isStreaming();
-    startStreamAction_->setEnabled(canOperate && !isStreaming);
-    stopStreamAction_->setEnabled(isStreaming);
+    bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
+    bool isStreaming = streamingManager_ && streamingManager_->isStreaming();
+    if (startStreamAction_) {
+        startStreamAction_->setEnabled(canOperate && !isStreaming);
+    }
+    if (stopStreamAction_) {
+        stopStreamAction_->setEnabled(isStreaming);
+    }
 }
 
 void ViewPanel::onConnectionStateChanged()
 {
     updateActions();
 
-    bool canOperate = deviceConnection_->canPerformOperations();
-    if (!canOperate && streamingManager_->isStreaming()) {
+    bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
+    if (!canOperate && streamingManager_ && streamingManager_->isStreaming()) {
         streamingManager_->stopStreaming();
     }
 }
 
 void ViewPanel::stopStreamingIfActive()
 {
-    if (streamingManager_->isStreaming()) {
+    if (streamingManager_ && streamingManager_->isStreaming()) {
         streamingManager_->stopStreaming();
     }
 }
@@ -179,13 +196,13 @@ int ViewPanel::scalingMode() const
 
 void ViewPanel::onStartStreaming()
 {
-    if (!deviceConnection_->canPerformOperations()) {
+    if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
         QMessageBox::warning(this, tr("Not Connected"),
                            tr("Please connect to a C64 Ultimate device first."));
         return;
     }
 
-    if (!streamingManager_->startStreaming()) {
+    if (!streamingManager_ || !streamingManager_->startStreaming()) {
         // Error already emitted by StreamingManager
         updateActions();
     }
@@ -193,7 +210,9 @@ void ViewPanel::onStartStreaming()
 
 void ViewPanel::onStopStreaming()
 {
-    streamingManager_->stopStreaming();
+    if (streamingManager_) {
+        streamingManager_->stopStreaming();
+    }
 }
 
 void ViewPanel::onStreamingStarted(const QString &targetHost)
@@ -206,11 +225,19 @@ void ViewPanel::onStreamingStarted(const QString &targetHost)
 void ViewPanel::onStreamingStopped()
 {
     // Clear display
-    videoDisplayWidget_->clear();
+    if (videoDisplayWidget_) {
+        videoDisplayWidget_->clear();
+    }
 
-    startStreamAction_->setEnabled(deviceConnection_->canPerformOperations());
-    stopStreamAction_->setEnabled(false);
-    streamStatusLabel_->setText(tr("Not streaming"));
+    if (startStreamAction_) {
+        startStreamAction_->setEnabled(deviceConnection_ && deviceConnection_->canPerformOperations());
+    }
+    if (stopStreamAction_) {
+        stopStreamAction_->setEnabled(false);
+    }
+    if (streamStatusLabel_) {
+        streamStatusLabel_->setText(tr("Not streaming"));
+    }
 }
 
 void ViewPanel::onStreamingError(const QString &error)

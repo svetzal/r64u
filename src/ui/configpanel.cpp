@@ -12,6 +12,9 @@ ConfigPanel::ConfigPanel(DeviceConnection *connection, QWidget *parent)
     , deviceConnection_(connection)
     , configModel_(new ConfigurationModel(this))
 {
+    // DeviceConnection is required - assert in debug builds
+    Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
+
     setupUi();
     setupConnections();
 }
@@ -91,54 +94,72 @@ void ConfigPanel::setupUi()
 void ConfigPanel::setupConnections()
 {
     // Subscribe to device connection state changes
-    connect(deviceConnection_, &DeviceConnection::stateChanged,
-            this, &ConfigPanel::onConnectionStateChanged);
+    if (deviceConnection_) {
+        connect(deviceConnection_, &DeviceConnection::stateChanged,
+                this, &ConfigPanel::onConnectionStateChanged);
+    }
 
     // Connect model signals
-    connect(configModel_, &ConfigurationModel::dirtyStateChanged,
-            this, &ConfigPanel::onDirtyStateChanged);
-    connect(configModel_, &ConfigurationModel::categoriesChanged,
-            this, [this]() {
-        // Update category list when categories change
-        categoryList_->clear();
-        for (const QString &category : configModel_->categories()) {
-            categoryList_->addItem(category);
-        }
-        // Select first category if available
-        if (categoryList_->count() > 0) {
-            categoryList_->setCurrentRow(0);
-        }
-    });
+    if (configModel_) {
+        connect(configModel_, &ConfigurationModel::dirtyStateChanged,
+                this, &ConfigPanel::onDirtyStateChanged);
+        connect(configModel_, &ConfigurationModel::categoriesChanged,
+                this, [this]() {
+            // Update category list when categories change
+            if (!categoryList_ || !configModel_) {
+                return;
+            }
+            categoryList_->clear();
+            for (const QString &category : configModel_->categories()) {
+                categoryList_->addItem(category);
+            }
+            // Select first category if available
+            if (categoryList_->count() > 0) {
+                categoryList_->setCurrentRow(0);
+            }
+        });
+    }
 
-    // Connect REST client signals
-    connect(deviceConnection_->restClient(), &C64URestClient::configCategoriesReceived,
-            this, &ConfigPanel::onCategoriesReceived);
-    connect(deviceConnection_->restClient(), &C64URestClient::configCategoryItemsReceived,
-            this, &ConfigPanel::onCategoryItemsReceived);
-    connect(deviceConnection_->restClient(), &C64URestClient::configSavedToFlash,
-            this, &ConfigPanel::onSavedToFlash);
-    connect(deviceConnection_->restClient(), &C64URestClient::configLoadedFromFlash,
-            this, &ConfigPanel::onLoadedFromFlash);
-    connect(deviceConnection_->restClient(), &C64URestClient::configResetToDefaults,
-            this, &ConfigPanel::onResetComplete);
-    connect(deviceConnection_->restClient(), &C64URestClient::configItemSet,
-            this, &ConfigPanel::onItemSetResult);
+    // Connect REST client signals - guard against null restClient()
+    if (deviceConnection_ && deviceConnection_->restClient()) {
+        C64URestClient *restClient = deviceConnection_->restClient();
+        connect(restClient, &C64URestClient::configCategoriesReceived,
+                this, &ConfigPanel::onCategoriesReceived);
+        connect(restClient, &C64URestClient::configCategoryItemsReceived,
+                this, &ConfigPanel::onCategoryItemsReceived);
+        connect(restClient, &C64URestClient::configSavedToFlash,
+                this, &ConfigPanel::onSavedToFlash);
+        connect(restClient, &C64URestClient::configLoadedFromFlash,
+                this, &ConfigPanel::onLoadedFromFlash);
+        connect(restClient, &C64URestClient::configResetToDefaults,
+                this, &ConfigPanel::onResetComplete);
+        connect(restClient, &C64URestClient::configItemSet,
+                this, &ConfigPanel::onItemSetResult);
+    }
 }
 
 void ConfigPanel::updateActions()
 {
-    bool canOperate = deviceConnection_->canPerformOperations();
-    saveToFlashAction_->setEnabled(canOperate);
-    loadFromFlashAction_->setEnabled(canOperate);
-    resetToDefaultsAction_->setEnabled(canOperate);
-    refreshAction_->setEnabled(canOperate);
+    bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
+    if (saveToFlashAction_) {
+        saveToFlashAction_->setEnabled(canOperate);
+    }
+    if (loadFromFlashAction_) {
+        loadFromFlashAction_->setEnabled(canOperate);
+    }
+    if (resetToDefaultsAction_) {
+        resetToDefaultsAction_->setEnabled(canOperate);
+    }
+    if (refreshAction_) {
+        refreshAction_->setEnabled(canOperate);
+    }
 }
 
 void ConfigPanel::onConnectionStateChanged()
 {
     updateActions();
 
-    bool canOperate = deviceConnection_->canPerformOperations();
+    bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
     if (!canOperate) {
         // Could optionally clear the model here
     }
@@ -146,15 +167,20 @@ void ConfigPanel::onConnectionStateChanged()
 
 void ConfigPanel::refreshIfEmpty()
 {
-    if (deviceConnection_->canPerformOperations() && categoryList_->count() == 0) {
+    if (deviceConnection_ && deviceConnection_->canPerformOperations() &&
+        categoryList_ && categoryList_->count() == 0) {
         onRefresh();
     }
 }
 
 void ConfigPanel::onSaveToFlash()
 {
-    if (!deviceConnection_->canPerformOperations()) {
+    if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
         emit statusMessage(tr("Not connected"), 3000);
+        return;
+    }
+
+    if (!deviceConnection_->restClient()) {
         return;
     }
 
@@ -164,8 +190,12 @@ void ConfigPanel::onSaveToFlash()
 
 void ConfigPanel::onLoadFromFlash()
 {
-    if (!deviceConnection_->canPerformOperations()) {
+    if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
         emit statusMessage(tr("Not connected"), 3000);
+        return;
+    }
+
+    if (!deviceConnection_->restClient()) {
         return;
     }
 
@@ -175,8 +205,12 @@ void ConfigPanel::onLoadFromFlash()
 
 void ConfigPanel::onResetToDefaults()
 {
-    if (!deviceConnection_->canPerformOperations()) {
+    if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
         emit statusMessage(tr("Not connected"), 3000);
+        return;
+    }
+
+    if (!deviceConnection_->restClient()) {
         return;
     }
 
@@ -198,8 +232,12 @@ void ConfigPanel::onResetToDefaults()
 
 void ConfigPanel::onRefresh()
 {
-    if (!deviceConnection_->canPerformOperations()) {
+    if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
         emit statusMessage(tr("Not connected"), 3000);
+        return;
+    }
+
+    if (!deviceConnection_->restClient()) {
         return;
     }
 
@@ -209,12 +247,16 @@ void ConfigPanel::onRefresh()
 
 void ConfigPanel::onCategoriesReceived(const QStringList &categories)
 {
-    configModel_->setCategories(categories);
+    if (configModel_) {
+        configModel_->setCategories(categories);
+    }
     emit statusMessage(tr("Loaded %1 configuration categories").arg(categories.size()), 3000);
 
     // Load items for each category
-    for (const QString &category : categories) {
-        deviceConnection_->restClient()->getConfigCategoryItems(category);
+    if (deviceConnection_ && deviceConnection_->restClient()) {
+        for (const QString &category : categories) {
+            deviceConnection_->restClient()->getConfigCategoryItems(category);
+        }
     }
 }
 
@@ -250,7 +292,9 @@ void ConfigPanel::onCategoryItemsReceived(const QString &category,
 
 void ConfigPanel::onSavedToFlash()
 {
-    configModel_->clearDirtyFlags();
+    if (configModel_) {
+        configModel_->clearDirtyFlags();
+    }
     emit statusMessage(tr("Configuration saved to flash"), 3000);
 }
 
@@ -283,15 +327,21 @@ void ConfigPanel::onCategorySelected(QListWidgetItem *current, QListWidgetItem *
     Q_UNUSED(previous)
 
     if (!current) {
-        itemsPanel_->setCategory(QString());
+        if (itemsPanel_) {
+            itemsPanel_->setCategory(QString());
+        }
         return;
     }
 
     QString category = current->text();
-    itemsPanel_->setCategory(category);
+    if (itemsPanel_) {
+        itemsPanel_->setCategory(category);
+    }
 
     // Load items for this category if not already loaded
-    if (configModel_->itemCount(category) == 0 && deviceConnection_->canPerformOperations()) {
+    if (configModel_ && configModel_->itemCount(category) == 0 &&
+        deviceConnection_ && deviceConnection_->canPerformOperations() &&
+        deviceConnection_->restClient()) {
         deviceConnection_->restClient()->getConfigCategoryItems(category);
     }
 }
@@ -299,8 +349,12 @@ void ConfigPanel::onCategorySelected(QListWidgetItem *current, QListWidgetItem *
 void ConfigPanel::onItemEdited(const QString &category, const QString &item,
                                 const QVariant &value)
 {
-    if (!deviceConnection_->canPerformOperations()) {
+    if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
         emit statusMessage(tr("Not connected - changes are local only"), 3000);
+        return;
+    }
+
+    if (!deviceConnection_->restClient()) {
         return;
     }
 
