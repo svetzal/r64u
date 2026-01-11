@@ -765,6 +765,10 @@ void TransferQueue::onDirectoryListedForDelete(const QString &path, const QList<
         currentDeleteIndex_ = 0;
         deletedCount_ = 0;
         processingDelete_ = true;
+
+        // Notify that scanning is complete and we're starting actual deletes
+        emit queueChanged();
+
         processNextDelete();
     }
 }

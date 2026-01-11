@@ -65,8 +65,11 @@ public:
     [[nodiscard]] int pendingCount() const;
     [[nodiscard]] int activeCount() const;
     [[nodiscard]] bool isProcessing() const { return processing_; }
+    [[nodiscard]] bool isProcessingDelete() const { return processingDelete_; }
     [[nodiscard]] bool isScanning() const { return !pendingScans_.isEmpty() || !pendingDeleteScans_.isEmpty(); }
     [[nodiscard]] bool isScanningForDelete() const { return !pendingDeleteScans_.isEmpty(); }
+    [[nodiscard]] int deleteProgress() const { return totalDeleteItems_ > 0 ? deletedCount_ : 0; }
+    [[nodiscard]] int deleteTotalCount() const { return totalDeleteItems_; }
 
     // QAbstractListModel interface
     [[nodiscard]] int rowCount(const QModelIndex &parent = QModelIndex()) const override;

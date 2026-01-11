@@ -141,6 +141,18 @@ void TransferProgressWidget::updateProgressDisplay()
         } else {
             statusLabel_->setText(tr("Scanning directories..."));
         }
+    } else if (transferQueue_->isProcessingDelete()) {
+        // Delete operations use their own progress tracking
+        int total = transferQueue_->deleteTotalCount();
+        int completed = transferQueue_->deleteProgress();
+
+        progressBar_->setMaximum(100);
+        int progress = (total > 0) ? (completed * 100) / total : 0;
+        progressBar_->setValue(progress);
+
+        statusLabel_->setText(tr("Deleting %1 of %2 items...")
+            .arg(completed + 1)
+            .arg(total));
     } else if (operationTotalCount_ > 0) {
         progressBar_->setMaximum(100);
         int progress = (operationTotalCount_ > 0)
