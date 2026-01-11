@@ -7,6 +7,7 @@
 #include <QSplitter>
 #include <QToolBar>
 #include <QComboBox>
+#include <QTabBar>
 #include <QLabel>
 #include <QFileSystemModel>
 #include <QMenu>
@@ -197,9 +198,13 @@ private:
     QTreeView *remoteTreeView_ = nullptr;
     FileDetailsPanel *fileDetailsPanel_ = nullptr;
     QToolBar *exploreRemotePanelToolBar_ = nullptr;
+    QWidget *explorePathWidget_ = nullptr;
     QPushButton *exploreRemoteUpButton_ = nullptr;
     QLabel *exploreRemoteCurrentDirLabel_ = nullptr;
     QString currentExploreRemoteDir_;
+
+    // Mounted drives panel (Explore/Run mode)
+    QWidget *mountedDrivesPanel_ = nullptr;
 
     // Transfer mode widgets
     QWidget *transferWidget_ = nullptr;
@@ -259,7 +264,7 @@ private:
 
     // Toolbar
     QToolBar *mainToolBar_ = nullptr;
-    QComboBox *modeCombo_ = nullptr;
+    QTabBar *modeTabBar_ = nullptr;
     QAction *connectAction_ = nullptr;
 
     // Mode-specific actions

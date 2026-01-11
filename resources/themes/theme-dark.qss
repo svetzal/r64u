@@ -38,7 +38,7 @@ QMainWindow {
 }
 
 QWidget {
-    font-size: 14px;
+    font-size: 13px;
     color: #F5F5F5;
 }
 
@@ -60,8 +60,8 @@ QGroupBox {
     background-color: #2A2C31;
     border: 1px solid #3A3C42;
     border-radius: 6px;
-    margin-top: 16px;
-    padding-top: 8px;
+    margin-top: 10px;
+    padding-top: 4px;
     font-weight: 600;
 }
 
@@ -85,7 +85,7 @@ QMenuBar {
 
 QMenuBar::item {
     background-color: transparent;
-    padding: 6px 12px;
+    padding: 2px 6px;
     border-radius: 4px;
 }
 
@@ -105,7 +105,7 @@ QMenu {
 }
 
 QMenu::item {
-    padding: 8px 24px 8px 16px;
+    padding: 5px 20px 5px 12px;
     margin: 0 4px;
     border-radius: 4px;
 }
@@ -142,8 +142,8 @@ QToolButton {
     background-color: #2A2C31;
     border: 1px solid #4A4D55;
     border-radius: 4px;
-    padding: 6px 12px;
-    min-height: 28px;
+    padding: 2px 6px;
+    min-height: 22px;
     color: #F5F5F5;
 }
 
@@ -176,8 +176,8 @@ QPushButton {
     background-color: #2A2C31;
     border: 1px solid #4A4D55;
     border-radius: 4px;
-    padding: 6px 12px;
-    min-height: 28px;
+    padding: 2px 6px;
+    min-height: 22px;
     font-weight: 500;
     color: #F5F5F5;
 }
@@ -240,8 +240,8 @@ QComboBox {
     background-color: #2A2C31;
     border: 1px solid #4A4D55;
     border-radius: 4px;
-    padding: 6px 12px;
-    min-height: 28px;
+    padding: 2px 6px;
+    min-height: 22px;
     color: #F5F5F5;
 }
 
@@ -282,8 +282,8 @@ QLineEdit {
     background-color: #18191C;
     border: 1px solid #4A4D55;
     border-radius: 4px;
-    padding: 6px 12px;
-    min-height: 28px;
+    padding: 2px 6px;
+    min-height: 22px;
     color: #F5F5F5;
     selection-background-color: #4A8DFF;
     selection-color: #FFFFFF;
@@ -302,7 +302,7 @@ QTextEdit, QPlainTextEdit {
     background-color: #18191C;
     border: 1px solid #4A4D55;
     border-radius: 4px;
-    padding: 8px;
+    padding: 4px;
     color: #F5F5F5;
     selection-background-color: #4A8DFF;
     selection-color: #FFFFFF;
@@ -320,8 +320,8 @@ QSpinBox, QDoubleSpinBox {
     background-color: #18191C;
     border: 1px solid #4A4D55;
     border-radius: 4px;
-    padding: 6px 12px;
-    min-height: 28px;
+    padding: 2px 6px;
+    min-height: 22px;
     color: #F5F5F5;
 }
 
@@ -357,8 +357,8 @@ QTreeView, QListView, QTableView {
 }
 
 QTreeView::item, QListView::item, QTableView::item {
-    padding: 4px 8px;
-    min-height: 28px;
+    padding: 2px 6px;
+    min-height: 22px;
 }
 
 QTreeView::item:hover, QListView::item:hover, QTableView::item:hover {
@@ -374,18 +374,6 @@ QTreeView::item:selected:!active, QListView::item:selected:!active, QTableView::
     background-color: #3A6DC5;
 }
 
-QTreeView::branch:has-children:!has-siblings:closed,
-QTreeView::branch:closed:has-children:has-siblings {
-    border-image: none;
-    image: url(:/icons/branch-closed.png);
-}
-
-QTreeView::branch:open:has-children:!has-siblings,
-QTreeView::branch:open:has-children:has-siblings {
-    border-image: none;
-    image: url(:/icons/branch-open.png);
-}
-
 /* ==========================================================================
    Header View (for tables and trees)
    ========================================================================== */
@@ -399,9 +387,9 @@ QHeaderView::section {
     border: none;
     border-right: 1px solid #3A3C42;
     border-bottom: 1px solid #4A4D55;
-    padding: 6px 12px;
+    padding: 2px 6px;
     font-weight: 600;
-    min-height: 30px;
+    min-height: 24px;
     color: #F5F5F5;
 }
 
@@ -427,7 +415,7 @@ QListWidget {
 }
 
 QListWidget::item {
-    padding: 4px 8px;
+    padding: 2px 6px;
 }
 
 QListWidget::item:hover {
@@ -445,16 +433,16 @@ QListWidget::item:selected {
 
 QScrollBar:vertical {
     background-color: #1E1F22;
-    width: 14px;
+    width: 10px;
     border: none;
-    border-radius: 7px;
+    border-radius: 5px;
     margin: 2px;
 }
 
 QScrollBar::handle:vertical {
     background-color: #4A4D55;
     border-radius: 5px;
-    min-height: 30px;
+    min-height: 24px;
     margin: 2px;
 }
 
@@ -468,9 +456,9 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
 
 QScrollBar:horizontal {
     background-color: #1E1F22;
-    height: 14px;
+    height: 10px;
     border: none;
-    border-radius: 7px;
+    border-radius: 5px;
     margin: 2px;
 }
 
@@ -592,7 +580,7 @@ QToolTip {
     color: #F5F5F5;
     border: 1px solid #4A4D55;
     border-radius: 4px;
-    padding: 6px 10px;
+    padding: 2px 6px;
     font-size: 12px;
 }
 
@@ -698,14 +686,14 @@ QLabel#muted {
 /* Current directory labels */
 QLabel#remoteDirLabel {
     color: #4A8DFF;
-    padding: 4px 8px;
+    padding: 2px 6px;
     background-color: #1A2A3D;
     border-radius: 4px;
 }
 
 QLabel#localDirLabel {
     color: #4EC07A;
-    padding: 4px 8px;
+    padding: 2px 6px;
     background-color: #1A2D20;
     border-radius: 4px;
 }
@@ -784,7 +772,7 @@ QTextBrowser {
     background-color: #18191C;
     border: 1px solid #4A4D55;
     border-radius: 4px;
-    padding: 8px;
+    padding: 4px;
     color: #F5F5F5;
 }
 
@@ -804,4 +792,62 @@ QFrame {
 QFrame#separator {
     background-color: #3A3C42;
     max-height: 1px;
+}
+
+/* ==========================================================================
+   Path Widget (Up button + path display)
+   ========================================================================== */
+
+QWidget#pathWidget {
+    background-color: #18191C;
+    border: 1px solid #4A4D55;
+    border-radius: 4px;
+}
+
+QPushButton#pathUpButton {
+    background-color: #2A2C31;
+    border: none;
+    border-right: 1px solid #4A4D55;
+    border-radius: 0;
+    border-top-left-radius: 3px;
+    border-bottom-left-radius: 3px;
+    padding: 4px 8px;
+    min-height: 20px;
+    color: #C9C9C9;
+}
+
+QPushButton#pathUpButton:hover {
+    background-color: #3A3C42;
+    color: #F5F5F5;
+}
+
+QPushButton#pathUpButton:pressed {
+    background-color: #18191C;
+}
+
+QPushButton#pathUpButton:disabled {
+    background-color: #2A2C31;
+    color: #6F6F6F;
+}
+
+QLabel#pathLabel {
+    background-color: transparent;
+    color: #4A8DFF;
+    padding: 4px 8px;
+}
+
+/* ==========================================================================
+   Mounted Drives Panel
+   ========================================================================== */
+
+QWidget#mountedDrivesPanel {
+    background-color: #2A2C31;
+    border: 1px solid #3A3C42;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+QLabel#driveLabel {
+    color: #C9C9C9;
+    padding: 2px 4px;
 }

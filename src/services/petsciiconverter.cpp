@@ -116,8 +116,9 @@ QString PetsciiConverter::toDisplayString(const QByteArray &data)
     // PETSCII byte XX -> Unicode U+E0XX (Upper/Graph mode, Reverse Off)
     // Reference: https://style64.org/petscii/
     //
-    // The font provides complete PETSCII rendering including all graphics
-    // characters at codepoints U+E000 through U+E0FF.
+    // NOTE: The C64 Pro Mono font only has glyphs for printable characters.
+    // Control codes (0x00-0x1F and 0x80-0x9F) are missing from the font.
+    // We map these to space (0xE020) to prevent Qt font fallback issues.
 
     QString result;
     result.reserve(data.size());
@@ -130,9 +131,15 @@ QString PetsciiConverter::toDisplayString(const QByteArray &data)
             break;
         }
 
-        // Map PETSCII to C64 Pro font's Private Use Area
-        // U+E000 + petscii gives the correct glyph
-        result += QChar(0xE000 + petscii);
+        // Control codes 0x01-0x1F and 0x80-0x9F don't have glyphs in C64 Pro font
+        // Map them to space to maintain alignment and prevent font fallback
+        if ((petscii >= 0x01 && petscii <= 0x1F) ||
+            (petscii >= 0x80 && petscii <= 0x9F)) {
+            result += QChar(0xE020);  // PUA space
+        } else {
+            // Map PETSCII to C64 Pro font's Private Use Area
+            result += QChar(0xE000 + petscii);
+        }
     }
 
     return result;

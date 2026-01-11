@@ -1,7 +1,6 @@
 #include <QtTest>
 
 #include "services/diskimagereader.h"
-#include "services/petsciiconverter.h"
 
 class TestDiskImageReader : public QObject
 {
@@ -416,9 +415,7 @@ private slots:
 
         QString listing = DiskImageReader::formatDirectoryListing(dir);
 
-        // Output is PUA-encoded for C64 Pro font rendering
-        QString expected = PetsciiConverter::toC64ProString("664 BLOCKS FREE");
-        QVERIFY(listing.contains(expected));
+        QVERIFY(listing.contains("664 BLOCKS FREE"));
     }
 
     void testFormatDirectoryListingWithFile()
@@ -430,10 +427,9 @@ private slots:
 
         QString listing = DiskImageReader::formatDirectoryListing(dir);
 
-        // Output is PUA-encoded for C64 Pro font rendering
-        QVERIFY(listing.contains(PetsciiConverter::toC64ProString("PRG")));
-        QVERIFY(listing.contains(PetsciiConverter::toC64ProString("42")));
-        QVERIFY(listing.contains(PetsciiConverter::toC64ProString("BLOCKS FREE")));
+        QVERIFY(listing.contains("PRG"));
+        QVERIFY(listing.contains("42"));
+        QVERIFY(listing.contains("BLOCKS FREE"));
     }
 
     void testFormatDirectoryListingLockedFile()
@@ -445,8 +441,7 @@ private slots:
 
         QString listing = DiskImageReader::formatDirectoryListing(dir);
 
-        // Output is PUA-encoded; < indicates locked
-        QVERIFY(listing.contains(PetsciiConverter::toC64ProString("PRG<")));
+        QVERIFY(listing.contains("PRG<")); // < indicates locked
     }
 
     void testFormatDirectoryListingSplatFile()
@@ -458,8 +453,7 @@ private slots:
 
         QString listing = DiskImageReader::formatDirectoryListing(dir);
 
-        // Output is PUA-encoded; * indicates splat (unclosed)
-        QVERIFY(listing.contains(PetsciiConverter::toC64ProString("*PRG")));
+        QVERIFY(listing.contains("*PRG")); // * indicates splat (unclosed)
     }
 
     // ========== asciiToC64Font ==========

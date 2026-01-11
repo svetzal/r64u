@@ -110,25 +110,25 @@ void MainWindow::setupMenuBar()
     auto *exploreAction = viewMenu->addAction(tr("&Explore/Run Mode"));
     exploreAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_1));
     connect(exploreAction, &QAction::triggered, this, [this]() {
-        modeCombo_->setCurrentIndex(0);
+        modeTabBar_->setCurrentIndex(0);
     });
 
     auto *transferAction = viewMenu->addAction(tr("&Transfer Mode"));
     transferAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_2));
     connect(transferAction, &QAction::triggered, this, [this]() {
-        modeCombo_->setCurrentIndex(1);
+        modeTabBar_->setCurrentIndex(1);
     });
 
     auto *viewModeAction = viewMenu->addAction(tr("&View Mode"));
     viewModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_3));
     connect(viewModeAction, &QAction::triggered, this, [this]() {
-        modeCombo_->setCurrentIndex(2);
+        modeTabBar_->setCurrentIndex(2);
     });
 
     auto *configModeAction = viewMenu->addAction(tr("&Config Mode"));
     configModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_4));
     connect(configModeAction, &QAction::triggered, this, [this]() {
-        modeCombo_->setCurrentIndex(3);
+        modeTabBar_->setCurrentIndex(3);
     });
 
     viewMenu->addSeparator();
@@ -169,15 +169,17 @@ void MainWindow::setupToolBar()
     mainToolBar_->setMovable(false);
     mainToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
-    // Mode selector
-    modeCombo_ = new QComboBox();
-    modeCombo_->addItem(tr("Explore/Run"));
-    modeCombo_->addItem(tr("Transfer"));
-    modeCombo_->addItem(tr("View"));
-    modeCombo_->addItem(tr("Config"));
-    connect(modeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+    // Mode selector - tab bar style
+    modeTabBar_ = new QTabBar();
+    modeTabBar_->setDocumentMode(true);
+    modeTabBar_->setExpanding(false);
+    modeTabBar_->addTab(tr("Explore/Run"));
+    modeTabBar_->addTab(tr("Transfer"));
+    modeTabBar_->addTab(tr("View"));
+    modeTabBar_->addTab(tr("Config"));
+    connect(modeTabBar_, &QTabBar::currentChanged,
             this, &MainWindow::onModeChanged);
-    mainToolBar_->addWidget(modeCombo_);
+    mainToolBar_->addWidget(modeTabBar_);
 
     mainToolBar_->addSeparator();
 
@@ -277,22 +279,33 @@ void MainWindow::setupExploreRunMode()
     auto *remoteWidget = new QWidget();
     auto *remoteLayout = new QVBoxLayout(remoteWidget);
     remoteLayout->setContentsMargins(4, 4, 4, 4);
+    remoteLayout->setSpacing(4);
 
-    auto *remoteLabel = new QLabel(tr("C64U Files"));
-    remoteLabel->setObjectName("heading");
-    remoteLayout->addWidget(remoteLabel);
+    // Up button + path as combined control
+    explorePathWidget_ = new QWidget();
+    explorePathWidget_->setObjectName("pathWidget");
+    auto *pathLayout = new QHBoxLayout(explorePathWidget_);
+    pathLayout->setContentsMargins(0, 0, 0, 0);
+    pathLayout->setSpacing(0);
+
+    exploreRemoteUpButton_ = new QPushButton(tr("Up"));
+    exploreRemoteUpButton_->setObjectName("pathUpButton");
+    exploreRemoteUpButton_->setToolTip(tr("Go to parent folder"));
+    exploreRemoteUpButton_->setFixedWidth(40);
+    connect(exploreRemoteUpButton_, &QPushButton::clicked, this, &MainWindow::onExploreRemoteParentFolder);
+    pathLayout->addWidget(exploreRemoteUpButton_);
+
+    exploreRemoteCurrentDirLabel_ = new QLabel(tr("/"));
+    exploreRemoteCurrentDirLabel_->setObjectName("pathLabel");
+    exploreRemoteCurrentDirLabel_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    pathLayout->addWidget(exploreRemoteCurrentDirLabel_, 1);
+
+    remoteLayout->addWidget(explorePathWidget_);
 
     // Remote panel toolbar
     exploreRemotePanelToolBar_ = new QToolBar();
     exploreRemotePanelToolBar_->setIconSize(QSize(16, 16));
     exploreRemotePanelToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-
-    exploreRemoteUpButton_ = new QPushButton(tr("↑ Up"));
-    exploreRemoteUpButton_->setToolTip(tr("Go to parent folder"));
-    connect(exploreRemoteUpButton_, &QPushButton::clicked, this, &MainWindow::onExploreRemoteParentFolder);
-    exploreRemotePanelToolBar_->addWidget(exploreRemoteUpButton_);
-
-    exploreRemotePanelToolBar_->addSeparator();
 
     // File actions
     playAction_ = exploreRemotePanelToolBar_->addAction(tr("Play"));
@@ -315,12 +328,6 @@ void MainWindow::setupExploreRunMode()
 
     remoteLayout->addWidget(exploreRemotePanelToolBar_);
 
-    // Current directory indicator
-    exploreRemoteCurrentDirLabel_ = new QLabel(tr("Location: /"));
-    exploreRemoteCurrentDirLabel_->setObjectName("remoteDirLabel");
-    exploreRemoteCurrentDirLabel_->setWordWrap(true);
-    remoteLayout->addWidget(exploreRemoteCurrentDirLabel_);
-
     // File tree
     remoteTreeView_ = new QTreeView();
     remoteTreeView_->setModel(remoteFileModel_);
@@ -338,7 +345,55 @@ void MainWindow::setupExploreRunMode()
     connect(remoteTreeView_, &QTreeView::customContextMenuRequested,
             this, &MainWindow::onRemoteContextMenu);
 
-    remoteLayout->addWidget(remoteTreeView_);
+    remoteLayout->addWidget(remoteTreeView_, 1);
+
+    // Mounted drives panel
+    mountedDrivesPanel_ = new QWidget();
+    mountedDrivesPanel_->setObjectName("mountedDrivesPanel");
+    auto *drivesLayout = new QVBoxLayout(mountedDrivesPanel_);
+    drivesLayout->setContentsMargins(0, 4, 0, 0);
+    drivesLayout->setSpacing(2);
+
+    // Drive A row
+    auto *driveAWidget = new QWidget();
+    auto *driveALayout = new QHBoxLayout(driveAWidget);
+    driveALayout->setContentsMargins(0, 0, 0, 0);
+    driveALayout->setSpacing(4);
+
+    driveALabel_ = new QLabel(tr("Drive A: [none]"));
+    driveALabel_->setObjectName("driveLabel");
+    driveALayout->addWidget(driveALabel_, 1);
+
+    driveAEjectButton_ = new QToolButton();
+    driveAEjectButton_->setText(tr("⏏"));
+    driveAEjectButton_->setToolTip(tr("Eject Drive A"));
+    driveAEjectButton_->setEnabled(false);
+    connect(driveAEjectButton_, &QToolButton::clicked, this, &MainWindow::onEjectDriveA);
+    driveALayout->addWidget(driveAEjectButton_);
+
+    drivesLayout->addWidget(driveAWidget);
+
+    // Drive B row
+    auto *driveBWidget = new QWidget();
+    auto *driveBLayout = new QHBoxLayout(driveBWidget);
+    driveBLayout->setContentsMargins(0, 0, 0, 0);
+    driveBLayout->setSpacing(4);
+
+    driveBLabel_ = new QLabel(tr("Drive B: [none]"));
+    driveBLabel_->setObjectName("driveLabel");
+    driveBLayout->addWidget(driveBLabel_, 1);
+
+    driveBEjectButton_ = new QToolButton();
+    driveBEjectButton_->setText(tr("⏏"));
+    driveBEjectButton_->setToolTip(tr("Eject Drive B"));
+    driveBEjectButton_->setEnabled(false);
+    connect(driveBEjectButton_, &QToolButton::clicked, this, &MainWindow::onEjectDriveB);
+    driveBLayout->addWidget(driveBEjectButton_);
+
+    drivesLayout->addWidget(driveBWidget);
+
+    remoteLayout->addWidget(mountedDrivesPanel_);
+
     exploreRunSplitter_->addWidget(remoteWidget);
 
     // Right side: file details panel
@@ -1096,7 +1151,7 @@ void MainWindow::loadSettings()
     // Set explore remote directory (will be used when connected)
     QString savedExploreRemoteDir = settings.value("directories/exploreRemote", "/").toString();
     currentExploreRemoteDir_ = savedExploreRemoteDir;
-    exploreRemoteCurrentDirLabel_->setText(tr("Location: %1").arg(savedExploreRemoteDir));
+    exploreRemoteCurrentDirLabel_->setText(savedExploreRemoteDir);
 
     // Initialize explore remote up button state (disabled until connected)
     bool canGoUpExploreRemote = (savedExploreRemoteDir != "/" && !savedExploreRemoteDir.isEmpty());
@@ -2214,7 +2269,7 @@ void MainWindow::setCurrentExploreRemoteDir(const QString &path)
     // Update the remote file model to show this folder as root
     remoteFileModel_->setRootPath(path);
 
-    exploreRemoteCurrentDirLabel_->setText(tr("Location: %1").arg(path));
+    exploreRemoteCurrentDirLabel_->setText(path);
     statusBar()->showMessage(tr("Navigated to: %1").arg(path), 2000);
 
     // Enable/disable up button based on whether we can go up

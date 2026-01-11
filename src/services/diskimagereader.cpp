@@ -327,9 +327,9 @@ QString DiskImageReader::formatDirectoryListing(const DiskDirectory &dir)
     QString diskId = PetsciiConverter::toDisplayString(dir.diskId);
     QString dosType = PetsciiConverter::toDisplayString(dir.dosType);
 
-    // Pad disk name to 16 characters (using PUA space for consistency)
+    // Pad disk name to 16 characters
     while (diskName.length() < 16) {
-        diskName += QChar(0xE020); // PUA space
+        diskName += QChar(' ');
     }
 
     // Header line: 0 "DISK NAME       " ID 2A
@@ -350,7 +350,7 @@ QString DiskImageReader::formatDirectoryListing(const DiskDirectory &dir)
         // Convert filename from PETSCII and pad to 16 characters
         QString filename = PetsciiConverter::toDisplayString(entry.filename);
         while (filename.length() < 16) {
-            filename += QChar(0xE020); // PUA space
+            filename += QChar(' ');
         }
         QString quotedName = QString("\"") + filename + QString("\"");
 
@@ -372,8 +372,5 @@ QString DiskImageReader::formatDirectoryListing(const DiskDirectory &dir)
     result += QString("%1 BLOCKS FREE.").arg(dir.freeBlocks);
     result += QChar('\n');
 
-    // Convert entire result to use C64 Pro font's PUA encoding
-    // This ensures all characters (including formatting punctuation)
-    // render using the C64 font for consistent monospace alignment.
-    return PetsciiConverter::toC64ProString(result);
+    return result;
 }
