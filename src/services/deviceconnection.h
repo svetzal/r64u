@@ -63,6 +63,16 @@ public:
     explicit DeviceConnection(QObject *parent = nullptr);
 
     /**
+     * @brief Constructs a device connection manager with injected clients (for testing).
+     * @param restClient Pre-created REST client (ownership transferred).
+     * @param ftpClient Pre-created FTP client (ownership transferred).
+     * @param parent Optional parent QObject for memory management.
+     *
+     * This constructor is primarily for testing, allowing mock clients to be injected.
+     */
+    DeviceConnection(C64URestClient *restClient, C64UFtpClient *ftpClient, QObject *parent = nullptr);
+
+    /**
      * @brief Destructor. Disconnects if connected.
      */
     ~DeviceConnection() override;

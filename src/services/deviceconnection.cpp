@@ -1,11 +1,20 @@
 #include "deviceconnection.h"
 
 DeviceConnection::DeviceConnection(QObject *parent)
+    : DeviceConnection(new C64URestClient(nullptr), new C64UFtpClient(nullptr), parent)
+{
+}
+
+DeviceConnection::DeviceConnection(C64URestClient *restClient, C64UFtpClient *ftpClient, QObject *parent)
     : QObject(parent)
-    , restClient_(new C64URestClient(this))
-    , ftpClient_(new C64UFtpClient(this))
+    , restClient_(restClient)
+    , ftpClient_(ftpClient)
     , reconnectTimer_(new QTimer(this))
 {
+    // Take ownership of injected clients
+    restClient_->setParent(this);
+    ftpClient_->setParent(this);
+
     // REST client signals
     connect(restClient_, &C64URestClient::infoReceived,
             this, &DeviceConnection::onRestInfoReceived);

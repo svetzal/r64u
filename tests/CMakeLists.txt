@@ -80,6 +80,34 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_remotefilemodel)
 endif()
 
+# DeviceConnection tests - tests state machine using real clients with signal injection
+add_executable(test_deviceconnection
+    test_deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+)
+
+target_include_directories(test_deviceconnection PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_deviceconnection PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+# Register test with CTest
+add_test(NAME DeviceConnectionTest COMMAND test_deviceconnection)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(deviceconnection test_deviceconnection)
+    add_dependencies(coverage coverage_deviceconnection)
+endif()
+
 # ConfigurationModel tests
 add_executable(test_configurationmodel
     test_configurationmodel.cpp
