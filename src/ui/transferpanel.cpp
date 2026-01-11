@@ -8,6 +8,9 @@
 
 #include <QVBoxLayout>
 #include <QFileInfo>
+#include <QSettings>
+#include <QStandardPaths>
+#include <QDir>
 
 TransferPanel::TransferPanel(DeviceConnection *connection,
                              RemoteFileModel *model,
@@ -96,6 +99,26 @@ QString TransferPanel::currentLocalDir() const
 QString TransferPanel::currentRemoteDir() const
 {
     return remoteBrowser_->currentDirectory();
+}
+
+void TransferPanel::loadSettings()
+{
+    QSettings settings;
+    QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    QString savedLocalDir = settings.value("directories/local", homePath).toString();
+    QString savedRemoteDir = settings.value("directories/remote", "/").toString();
+
+    if (QDir(savedLocalDir).exists()) {
+        setCurrentLocalDir(savedLocalDir);
+    }
+    setCurrentRemoteDir(savedRemoteDir);
+}
+
+void TransferPanel::saveSettings()
+{
+    QSettings settings;
+    settings.setValue("directories/local", currentLocalDir());
+    settings.setValue("directories/remote", currentRemoteDir());
 }
 
 void TransferPanel::onConnectionStateChanged()

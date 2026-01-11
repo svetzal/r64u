@@ -27,6 +27,10 @@ public:
     QString currentLocalDir() const;
     QString currentRemoteDir() const;
 
+    // Settings
+    void loadSettings();
+    void saveSettings();
+
     // Selection info for MainWindow
     QString selectedLocalPath() const;
     QString selectedRemotePath() const;

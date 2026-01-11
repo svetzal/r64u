@@ -17,8 +17,6 @@
 #include <QSettings>
 #include <QCloseEvent>
 #include <QTimer>
-#include <QStandardPaths>
-#include <QDir>
 #include <QFileInfo>
 
 #include "services/credentialstore.h"
@@ -418,19 +416,9 @@ void MainWindow::loadSettings()
     restoreGeometry(settings.value("window/geometry").toByteArray());
     restoreState(settings.value("window/state").toByteArray());
 
-    // Restore panel directories
-    QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-    QString savedLocalDir = settings.value("directories/local", homePath).toString();
-    QString savedRemoteDir = settings.value("directories/remote", "/").toString();
-    QString savedExploreRemoteDir = settings.value("directories/exploreRemote", "/").toString();
-
-    if (QDir(savedLocalDir).exists()) {
-        transferPanel_->setCurrentLocalDir(savedLocalDir);
-    }
-    transferPanel_->setCurrentRemoteDir(savedRemoteDir);
-    explorePanel_->setCurrentDirectory(savedExploreRemoteDir);
-
-    // Load view panel settings
+    // Load panel settings
+    explorePanel_->loadSettings();
+    transferPanel_->loadSettings();
     viewPanel_->loadSettings();
 }
 
@@ -440,12 +428,9 @@ void MainWindow::saveSettings()
     settings.setValue("window/geometry", saveGeometry());
     settings.setValue("window/state", saveState());
 
-    // Save panel directories
-    settings.setValue("directories/local", transferPanel_->currentLocalDir());
-    settings.setValue("directories/remote", transferPanel_->currentRemoteDir());
-    settings.setValue("directories/exploreRemote", explorePanel_->currentDirectory());
-
-    // Save view panel settings
+    // Save panel settings
+    explorePanel_->saveSettings();
+    transferPanel_->saveSettings();
     viewPanel_->saveSettings();
 }
 

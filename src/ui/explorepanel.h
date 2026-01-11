@@ -30,6 +30,10 @@ public:
     void refresh();
     void updateDriveInfo();
 
+    // Settings
+    void loadSettings();
+    void saveSettings();
+
     // Selection info for MainWindow
     QString selectedPath() const;
     bool isSelectedDirectory() const;

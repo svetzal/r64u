@@ -12,6 +12,7 @@
 #include <QMessageBox>
 #include <QFileInfo>
 #include <QTimer>
+#include <QSettings>
 
 ExplorePanel::ExplorePanel(DeviceConnection *connection,
                            RemoteFileModel *model,
@@ -208,6 +209,19 @@ void ExplorePanel::updateDriveInfo()
         drive9Status_->setImageName(QString());
         drive9Status_->setMounted(false);
     }
+}
+
+void ExplorePanel::loadSettings()
+{
+    QSettings settings;
+    QString savedDir = settings.value("directories/exploreRemote", "/").toString();
+    currentDirectory_ = savedDir;
+}
+
+void ExplorePanel::saveSettings()
+{
+    QSettings settings;
+    settings.setValue("directories/exploreRemote", currentDirectory_);
 }
 
 void ExplorePanel::onConnectionStateChanged()
