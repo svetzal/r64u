@@ -304,15 +304,15 @@ void TestStatusMessageService::testMessageTimeoutClearsDisplay()
 
 void TestStatusMessageService::testMinimumDisplayTimePreventsFliicker()
 {
-    // Default minimum is 500ms
-    QCOMPARE(service_->minimumDisplayTime(), 500);
+    // Default minimum is 100ms
+    QCOMPARE(service_->minimumDisplayTime(), 100);
 
     // Can change it
     service_->setMinimumDisplayTime(1000);
     QCOMPARE(service_->minimumDisplayTime(), 1000);
 
     // Reset for other tests
-    service_->setMinimumDisplayTime(500);
+    service_->setMinimumDisplayTime(100);
 }
 
 QTEST_MAIN(TestStatusMessageService)

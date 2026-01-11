@@ -11,6 +11,7 @@
 #include <QInputDialog>
 #include <QFileInfo>
 #include <QShowEvent>
+#include <QSet>
 
 RemoteFileBrowserWidget::RemoteFileBrowserWidget(RemoteFileModel *model,
                                                  C64UFtpClient *ftpClient,
@@ -195,6 +196,31 @@ QString RemoteFileBrowserWidget::selectedPath() const
     return {};
 }
 
+QStringList RemoteFileBrowserWidget::selectedPaths() const
+{
+    QStringList paths;
+    if (!treeView_ || !treeView_->selectionModel() || !remoteFileModel_) {
+        return paths;
+    }
+
+    // Get all selected indexes, filter to column 0 only (avoid duplicates from multi-column selection)
+    QModelIndexList selectedIndexes = treeView_->selectionModel()->selectedIndexes();
+    QSet<QString> seenPaths;  // Deduplicate
+
+    for (const QModelIndex &index : selectedIndexes) {
+        if (index.column() != 0) {
+            continue;  // Only process first column to avoid duplicates
+        }
+        QString path = remoteFileModel_->filePath(index);
+        if (!path.isEmpty() && !seenPaths.contains(path)) {
+            seenPaths.insert(path);
+            paths.append(path);
+        }
+    }
+
+    return paths;
+}
+
 bool RemoteFileBrowserWidget::isSelectedDirectory() const
 {
     if (!treeView_ || !remoteFileModel_) {
@@ -280,13 +306,26 @@ void RemoteFileBrowserWidget::onParentFolder()
 
 void RemoteFileBrowserWidget::onDownload()
 {
-    QString remotePath = selectedPath();
-    if (remotePath.isEmpty()) {
+    QStringList paths = selectedPaths();
+    if (paths.isEmpty()) {
         emit statusMessage(tr("No remote file selected"), 3000);
         return;
     }
 
-    emit downloadRequested(remotePath, isSelectedDirectory());
+    // Emit download request for each selected file
+    for (const QString &remotePath : paths) {
+        QModelIndex index = remoteFileModel_->index(0, 0);  // Start search from root
+        // Find the index for this path to check if it's a directory
+        bool isDir = false;
+        QModelIndexList matches = treeView_->selectionModel()->selectedIndexes();
+        for (const QModelIndex &idx : matches) {
+            if (idx.column() == 0 && remoteFileModel_->filePath(idx) == remotePath) {
+                isDir = remoteFileModel_->isDirectory(idx);
+                break;
+            }
+        }
+        emit downloadRequested(remotePath, isDir);
+    }
 }
 
 void RemoteFileBrowserWidget::onNewFolder()
@@ -366,17 +405,22 @@ void RemoteFileBrowserWidget::onDelete()
         return;
     }
 
-    QString remotePath = selectedPath();
-    if (remotePath.isEmpty()) {
+    QStringList paths = selectedPaths();
+    if (paths.isEmpty()) {
         return;
     }
 
-    QString fileName = QFileInfo(remotePath).fileName();
-    bool isDir = isSelectedDirectory();
-
-    QString confirmMessage = isDir
-        ? tr("Are you sure you want to permanently delete the folder '%1' and all its contents?\n\nThis cannot be undone.").arg(fileName)
-        : tr("Are you sure you want to permanently delete '%1'?\n\nThis cannot be undone.").arg(fileName);
+    // Build confirmation message based on selection count
+    QString confirmMessage;
+    if (paths.size() == 1) {
+        QString fileName = QFileInfo(paths.first()).fileName();
+        bool isDir = isSelectedDirectory();
+        confirmMessage = isDir
+            ? tr("Are you sure you want to permanently delete the folder '%1' and all its contents?\n\nThis cannot be undone.").arg(fileName)
+            : tr("Are you sure you want to permanently delete '%1'?\n\nThis cannot be undone.").arg(fileName);
+    } else {
+        confirmMessage = tr("Are you sure you want to permanently delete %1 items?\n\nThis cannot be undone.").arg(paths.size());
+    }
 
     QMessageBox msgBox(this);
     msgBox.setWindowTitle(tr("Delete"));
@@ -390,8 +434,25 @@ void RemoteFileBrowserWidget::onDelete()
         return;
     }
 
-    emit deleteRequested(remotePath, isDir);
-    emit statusMessage(tr("Deleting %1...").arg(fileName));
+    // Delete each selected file
+    for (const QString &remotePath : paths) {
+        // Find the index to check if it's a directory
+        bool isDir = false;
+        QModelIndexList matches = treeView_->selectionModel()->selectedIndexes();
+        for (const QModelIndex &idx : matches) {
+            if (idx.column() == 0 && remoteFileModel_->filePath(idx) == remotePath) {
+                isDir = remoteFileModel_->isDirectory(idx);
+                break;
+            }
+        }
+        emit deleteRequested(remotePath, isDir);
+    }
+
+    if (paths.size() == 1) {
+        emit statusMessage(tr("Deleting %1...").arg(QFileInfo(paths.first()).fileName()));
+    } else {
+        emit statusMessage(tr("Deleting %1 items...").arg(paths.size()));
+    }
 }
 
 void RemoteFileBrowserWidget::onRefresh()

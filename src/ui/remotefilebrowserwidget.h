@@ -21,8 +21,9 @@ public:
 
     void setCurrentDirectory(const QString &path);
     QString currentDirectory() const { return currentDirectory_; }
-    QString selectedPath() const;
-    bool isSelectedDirectory() const;
+    [[nodiscard]] QString selectedPath() const;
+    [[nodiscard]] QStringList selectedPaths() const;
+    [[nodiscard]] bool isSelectedDirectory() const;
     void setDownloadEnabled(bool enabled);
     void onConnectionStateChanged(bool connected);
     void refresh();

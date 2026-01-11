@@ -91,19 +91,11 @@ void TransferProgressWidget::onOperationStarted(const QString &fileName, Operati
 
 void TransferProgressWidget::onOperationCompleted(const QString &fileName)
 {
-    QString actionVerb;
-    switch (currentOperationType_) {
-    case OperationType::Upload:
-        actionVerb = tr("Uploaded");
-        break;
-    case OperationType::Download:
-        actionVerb = tr("Downloaded");
-        break;
-    case OperationType::Delete:
-        actionVerb = tr("Deleted");
-        break;
-    }
-    emit statusMessage(tr("%1: %2").arg(actionVerb, fileName), 3000);
+    Q_UNUSED(fileName)
+    // Don't emit per-file status messages - they queue up and continue showing
+    // after the progress bar completes. The progress widget already shows
+    // "Downloading X of Y items..." which provides sufficient feedback.
+    // The "All operations completed" message at the end summarizes the result.
     operationCompletedCount_++;
     onQueueChanged();
 }

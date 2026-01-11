@@ -47,6 +47,11 @@ void RemoteFileModel::setRootPath(const QString &path)
 {
     beginResetModel();
 
+    // Clear pending operations BEFORE deleting nodes to prevent dangling pointer access
+    // if a signal is delivered between deletion and clearing
+    pendingFetches_.clear();
+    requestedListings_.clear();
+
     rootPath_ = path;
     delete rootNode_;
     rootNode_ = new TreeNode;
@@ -54,8 +59,6 @@ void RemoteFileModel::setRootPath(const QString &path)
     rootNode_->fullPath = path;
     rootNode_->isDirectory = true;
     rootNode_->fileType = FileType::Directory;
-    pendingFetches_.clear();
-    requestedListings_.clear();
 
     endResetModel();
 }
@@ -309,6 +312,10 @@ void RemoteFileModel::clear()
 {
     beginResetModel();
 
+    // Clear pending operations BEFORE deleting nodes to prevent dangling pointer access
+    pendingFetches_.clear();
+    requestedListings_.clear();
+
     // Clear all children but keep the root node structure
     if (rootNode_) {
         qDeleteAll(rootNode_->children);
@@ -317,8 +324,6 @@ void RemoteFileModel::clear()
         rootNode_->fetching = false;
         rootNode_->fetchedAt = QDateTime();
     }
-    pendingFetches_.clear();
-    requestedListings_.clear();
 
     endResetModel();
 }
@@ -476,6 +481,14 @@ void RemoteFileModel::onDirectoryListed(const QString &path, const QList<FtpEntr
         }
     } else {
         qDebug() << "Model: Found pending node:" << node->name << "fullPath:" << node->fullPath;
+    }
+
+    // Validate that the node is still valid (not a dangling pointer to freed memory)
+    // A valid node should have a non-empty fullPath, and the path should match what we requested
+    if (node != rootNode_ && (node->fullPath.isEmpty() || node->fullPath != path)) {
+        qWarning() << "Model: Node pointer is invalid (dangling pointer?) - expected path:" << path
+                   << "got:" << node->fullPath << "- ignoring!";
+        return;
     }
 
     node->fetching = false;

@@ -152,7 +152,7 @@ private:
     QString currentMessage_;
     Priority currentPriority_ = Priority::Info;
     bool isDisplaying_ = false;
-    int minimumDisplayTime_ = 500;  // 500ms minimum to prevent flickering
+    int minimumDisplayTime_ = 100;  // 100ms minimum to prevent flickering
 };
 
 #endif // STATUSMESSAGESERVICE_H
