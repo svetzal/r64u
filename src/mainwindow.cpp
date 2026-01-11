@@ -81,9 +81,9 @@ MainWindow::~MainWindow()
 void MainWindow::setupUi()
 {
     // Create tabbed mode widget
+    // Note: Signal connection is deferred to setupConnections() to avoid
+    // triggering onModeChanged before all widgets are initialized
     modeTabWidget_ = new QTabWidget(this);
-    connect(modeTabWidget_, &QTabWidget::currentChanged,
-            this, &MainWindow::onModeChanged);
     setCentralWidget(modeTabWidget_);
 }
 
@@ -754,6 +754,10 @@ void MainWindow::setupConfigMode()
 
 void MainWindow::setupConnections()
 {
+    // Mode tab widget (deferred from setupUi to avoid early signal triggers)
+    connect(modeTabWidget_, &QTabWidget::currentChanged,
+            this, &MainWindow::onModeChanged);
+
     // Device connection signals
     connect(deviceConnection_, &DeviceConnection::stateChanged,
             this, &MainWindow::onConnectionStateChanged);
