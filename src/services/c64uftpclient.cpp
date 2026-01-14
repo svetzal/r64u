@@ -47,13 +47,17 @@ C64UFtpClient::~C64UFtpClient()
         // unique_ptr automatically deletes when cmd goes out of scope
     }
 
-    // Close files - unique_ptr handles deletion automatically
+    // Close files - shared_ptr handles deletion automatically
     if (transferFile_) {
         transferFile_->close();
     }
 
     if (currentRetrFile_) {
         currentRetrFile_->close();
+    }
+
+    if (currentStorFile_) {
+        currentStorFile_->close();
     }
 
     if (pendingRetr_ && pendingRetr_->file) {
@@ -163,6 +167,21 @@ void C64UFtpClient::queueRetrCommand(const QString &remotePath, const QString &l
     }
 }
 
+void C64UFtpClient::queueStorCommand(const QString &remotePath, const QString &localPath,
+                                      std::shared_ptr<QFile> file)
+{
+    PendingCommand pending;
+    pending.cmd = Command::Stor;
+    pending.arg = remotePath;
+    pending.localPath = localPath;
+    pending.transferFile = std::move(file);
+    commandQueue_.enqueue(std::move(pending));
+
+    if (state_ == State::Ready) {
+        processNextCommand();
+    }
+}
+
 void C64UFtpClient::processNextCommand()
 {
     if (commandQueue_.isEmpty()) {
@@ -208,6 +227,10 @@ void C64UFtpClient::processNextCommand()
         sendCommand("RETR " + currentArg_);
         break;
     case Command::Stor:
+        // Extract the file handle from the queued command, similar to RETR
+        // This prevents corruption when another upload is queued during signal handling
+        currentStorFile_ = std::move(pending.transferFile);
+        qDebug() << "FTP: Processing STOR, file:" << currentStorFile_.get();
         sendCommand("STOR " + currentArg_);
         break;
     case Command::Mkd:
@@ -265,6 +288,10 @@ void C64UFtpClient::onControlDisconnected()
         currentRetrFile_->close();
         currentRetrFile_.reset();
     }
+    if (currentStorFile_) {
+        currentStorFile_->close();
+        currentStorFile_.reset();
+    }
     currentRetrIsMemory_ = false;
     pendingList_.reset();
     if (pendingRetr_ && pendingRetr_->file) {
@@ -297,6 +324,10 @@ void C64UFtpClient::onControlError(QAbstractSocket::SocketError socketError)
     if (currentRetrFile_) {
         currentRetrFile_->close();
         currentRetrFile_.reset();
+    }
+    if (currentStorFile_) {
+        currentStorFile_->close();
+        currentStorFile_.reset();
     }
     currentRetrIsMemory_ = false;
     pendingList_.reset();
@@ -490,12 +521,16 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                 qDebug() << "FTP: LIST complete, total data:" << listBuffer_.size() << "bytes";
                 QList<FtpEntry> entries = parseDirectoryListing(listBuffer_);
                 qDebug() << "FTP: Parsed" << entries.size() << "entries";
+                listBuffer_.clear();  // Clear buffer before emitting to prevent accumulation
                 emit directoryListed(path, entries);
                 processNextCommand();
             } else {
                 // Wait for data socket to close before processing
-                qDebug() << "FTP: 226 received, waiting for data socket to finish";
-                pendingList_ = PendingListState{path};
+                // Save the buffer with the pending state to prevent race conditions
+                // if another list() call clears listBuffer_ while we're waiting
+                qDebug() << "FTP: 226 received, waiting for data socket to finish, saving" << listBuffer_.size() << "bytes";
+                pendingList_ = PendingListState{path, listBuffer_};
+                listBuffer_.clear();  // Clear so new operations can use it
                 // Don't process next command yet - wait for data socket
             }
         } else if (code >= FtpReplyErrorThreshold) {
@@ -565,34 +600,45 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
     case Command::Stor:
         if (code == FtpReplyFileStatusOk || code == FtpReplyDataConnectionOpen) {
             // Ready to receive data, start sending
-            if (transferFile_ && transferFile_->isOpen()) {
-                QByteArray data = transferFile_->readAll();
+            // Use currentStorFile_ which was extracted from the queued command
+            // to prevent corruption when another upload is queued during signal handling
+            if (currentStorFile_ && currentStorFile_->isOpen()) {
+                QByteArray data = currentStorFile_->readAll();
                 dataSocket_->write(data);
                 dataSocket_->disconnectFromHost();
+            } else {
+                qDebug() << "FTP: ERROR - STOR 150 but no file handle! currentStorFile_:" << currentStorFile_.get();
             }
         } else if (code == FtpReplyTransferComplete) {
-            // Transfer complete
-            if (transferFile_) {
-                transferFile_->close();
-                emit uploadFinished(currentLocalPath_, currentArg_);
-                transferFile_.reset();
+            // Transfer complete - close and reset BEFORE emitting signal
+            // to prevent the signal handler's upload() call from being affected
+            QString localPath = currentLocalPath_;
+            QString remotePath = currentArg_;
+            if (currentStorFile_) {
+                currentStorFile_->close();
+                currentStorFile_.reset();
             }
+            emit uploadFinished(localPath, remotePath);
             processNextCommand();
         } else if (code >= FtpReplyErrorThreshold) {
             emit error(tr("Upload failed for '%1': %2").arg(currentArg_, text));
-            if (transferFile_) {
-                transferFile_->close();
-                transferFile_.reset();
+            if (currentStorFile_) {
+                currentStorFile_->close();
+                currentStorFile_.reset();
             }
             processNextCommand();
         }
         break;
 
     case Command::Mkd:
+        qDebug() << "FTP: MKD response code:" << code << "for" << currentArg_
+                 << "(257=created, 553=exists)";
         if (code == FtpReplyPathCreated || code == FtpReplyFileExists) {
             // 257 = created, 553 = already exists (both are success for our purposes)
+            qDebug() << "FTP: MKD success - emitting directoryCreated for" << currentArg_;
             emit directoryCreated(currentArg_);
         } else {
+            qDebug() << "FTP: MKD failure - emitting error for" << currentArg_;
             emit error(tr("Cannot create directory '%1': %2").arg(currentArg_, text));
         }
         processNextCommand();
@@ -645,7 +691,12 @@ void C64UFtpClient::onDataReadyRead()
     qDebug() << "FTP: Data received:" << data.size() << "bytes";
 
     if (currentCommand_ == Command::List) {
-        listBuffer_.append(data);
+        // If we have a pending LIST (226 arrived but socket still open), append to its buffer
+        if (pendingList_) {
+            pendingList_->buffer.append(data);
+        } else {
+            listBuffer_.append(data);
+        }
     } else if (currentCommand_ == Command::Retr) {
         // Check pending state first (226 may have arrived but data still coming)
         // then fall back to current RETR state (set when RETR was dequeued)
@@ -673,12 +724,14 @@ void C64UFtpClient::onDataDisconnected()
 
     // If we received 226 and were waiting for data socket to close, process now
     if (pendingList_) {
-        qDebug() << "FTP: Processing pending LIST, total data:" << listBuffer_.size() << "bytes";
-        qDebug() << "FTP: Data buffer contents:" << listBuffer_;
-        QList<FtpEntry> entries = parseDirectoryListing(listBuffer_);
+        // Use the saved buffer from pendingList_, not listBuffer_
+        // (which may have been cleared by a new list() call)
+        qDebug() << "FTP: Processing pending LIST, total data:" << pendingList_->buffer.size() << "bytes";
+        QList<FtpEntry> entries = parseDirectoryListing(pendingList_->buffer);
         qDebug() << "FTP: Parsed" << entries.size() << "entries";
-        emit directoryListed(pendingList_->path, entries);
+        QString path = pendingList_->path;
         pendingList_.reset();  // Clear all pending LIST state with one call
+        emit directoryListed(path, entries);
         processNextCommand();
     } else if (pendingRetr_) {
         qDebug() << "FTP: Processing pending RETR for" << pendingRetr_->remotePath
@@ -750,7 +803,9 @@ QList<FtpEntry> C64UFtpClient::parseDirectoryListing(const QByteArray &data)
         "(\\w+\\s+\\d+\\s+[\\d:]+)\\s+(.+)$");
 
     for (const QString &line : lines) {
-        if (line.isEmpty()) continue;
+        if (line.isEmpty()) {
+            continue;
+        }
 
         FtpEntry entry;
         auto match = unixRx.match(line);
@@ -782,7 +837,10 @@ void C64UFtpClient::list(const QString &path)
         emit error(tr("Cannot list directory: not connected to server"));
         return;
     }
-    listBuffer_.clear();  // Clear buffer at start of list operation
+    // Don't clear listBuffer_ here - it would wipe data from an in-flight LIST.
+    // The buffer is properly cleared after processing each LIST response:
+    // - In handleBusyResponse after parsing (226 with socket closed)
+    // - When saving to pendingList_ (226 with socket still open)
     queueCommand(Command::Type, "A");  // ASCII mode for listing
     queueCommand(Command::Pasv);
     queueCommand(Command::List, path);
@@ -858,17 +916,18 @@ void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
         return;
     }
 
-    transferFile_ = std::make_shared<QFile>(localPath);
-    if (!transferFile_->open(QIODevice::ReadOnly)) {
+    // Create file handle and store it in the queued command, not as a global member
+    // This prevents corruption when another upload is queued during signal handling
+    auto file = std::make_shared<QFile>(localPath);
+    if (!file->open(QIODevice::ReadOnly)) {
         emit error(tr("Cannot read file '%1': file not found or access denied").arg(localPath));
-        transferFile_.reset();
         return;
     }
 
-    transferSize_ = transferFile_->size();
+    transferSize_ = file->size();
     queueCommand(Command::Type, "I");  // Binary mode
     queueCommand(Command::Pasv);
-    queueCommand(Command::Stor, remotePath, localPath);
+    queueStorCommand(remotePath, localPath, std::move(file));
 }
 
 void C64UFtpClient::remove(const QString &path)
@@ -893,24 +952,30 @@ void C64UFtpClient::rename(const QString &oldPath, const QString &newPath)
 void C64UFtpClient::abort()
 {
     // Clean up any file handles in queued commands
-    // unique_ptr handles cleanup automatically
+    // shared_ptr handles cleanup automatically
     while (!commandQueue_.isEmpty()) {
         PendingCommand cmd = std::move(commandQueue_.head());
         commandQueue_.dequeue();
         if (cmd.transferFile) {
             cmd.transferFile->close();
         }
-        // unique_ptr automatically deletes when cmd goes out of scope
+        // shared_ptr automatically deletes when cmd goes out of scope
     }
 
     if (dataSocket_->state() != QAbstractSocket::UnconnectedState) {
         dataSocket_->abort();
     }
 
-    // Clean up upload file handle
+    // Clean up legacy upload file handle
     if (transferFile_) {
         transferFile_->close();
         transferFile_.reset();
+    }
+
+    // Clean up current STOR state
+    if (currentStorFile_) {
+        currentStorFile_->close();
+        currentStorFile_.reset();
     }
 
     // Clean up current RETR state

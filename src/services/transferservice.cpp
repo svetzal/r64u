@@ -29,6 +29,22 @@ TransferService::TransferService(DeviceConnection *connection,
             this, &TransferService::overwriteConfirmationNeeded);
     connect(queue_, &TransferQueue::folderExistsConfirmationNeeded,
             this, &TransferService::folderExistsConfirmationNeeded);
+    connect(queue_, &TransferQueue::batchStarted,
+            this, &TransferService::batchStarted);
+    connect(queue_, &TransferQueue::batchProgressUpdate,
+            this, &TransferService::batchProgressUpdate);
+    connect(queue_, &TransferQueue::batchCompleted,
+            this, &TransferService::batchCompleted);
+    connect(queue_, &TransferQueue::statusMessage,
+            this, &TransferService::statusMessage);
+
+    // Forward scanning progress signals
+    connect(queue_, &TransferQueue::scanningStarted,
+            this, &TransferService::scanningStarted);
+    connect(queue_, &TransferQueue::scanningProgress,
+            this, &TransferService::scanningProgress);
+    connect(queue_, &TransferQueue::directoryCreationProgress,
+            this, &TransferService::directoryCreationProgress);
 }
 
 TransferService::~TransferService() = default;
@@ -117,6 +133,11 @@ void TransferService::cancelAll()
     queue_->cancelAll();
 }
 
+void TransferService::cancelBatch(int batchId)
+{
+    queue_->cancelBatch(batchId);
+}
+
 void TransferService::removeCompleted()
 {
     queue_->removeCompleted();
@@ -200,4 +221,24 @@ void TransferService::respondToFolderExists(FolderExistsResponse response)
 void TransferService::setAutoMerge(bool autoMerge)
 {
     queue_->setAutoMerge(autoMerge);
+}
+
+BatchProgress TransferService::activeBatchProgress() const
+{
+    return queue_->activeBatchProgress();
+}
+
+BatchProgress TransferService::batchProgress(int batchId) const
+{
+    return queue_->batchProgress(batchId);
+}
+
+QList<int> TransferService::allBatchIds() const
+{
+    return queue_->allBatchIds();
+}
+
+bool TransferService::hasActiveBatch() const
+{
+    return queue_->hasActiveBatch();
 }

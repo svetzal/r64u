@@ -471,23 +471,22 @@ void RemoteFileModel::onDirectoryListed(const QString &path, const QList<FtpEntr
 
     TreeNode *node = pendingFetches_.take(path);
     if (!node) {
-        // Might be for root
-        if (path == rootPath_ || path.isEmpty()) {
-            qDebug() << "Model: Using root node for path:" << path;
-            node = rootNode_;
-        } else {
-            qDebug() << "Model: No node found for path:" << path << "- ignoring!";
-            return;
-        }
-    } else {
-        qDebug() << "Model: Found pending node:" << node->name << "fullPath:" << node->fullPath;
+        // If we requested this listing (it was in requestedListings_) but there's no
+        // corresponding node in pendingFetches_, something is wrong. Don't try to guess
+        // which node to use - this could cause entries to be added to the wrong node.
+        qWarning() << "Model: Listing for" << path << "was in requestedListings_ but not in pendingFetches_"
+                   << "- this indicates a bug. Ignoring to prevent corruption.";
+        qWarning() << "Model: rootPath_:" << rootPath_ << "pendingFetches_ keys:" << pendingFetches_.keys();
+        return;
     }
 
-    // Validate that the node is still valid (not a dangling pointer to freed memory)
-    // A valid node should have a non-empty fullPath, and the path should match what we requested
-    if (node != rootNode_ && (node->fullPath.isEmpty() || node->fullPath != path)) {
-        qWarning() << "Model: Node pointer is invalid (dangling pointer?) - expected path:" << path
-                   << "got:" << node->fullPath << "- ignoring!";
+    qDebug() << "Model: Found pending node:" << node->name << "fullPath:" << node->fullPath;
+
+    // Validate that the node's path matches what we requested
+    // This catches dangling pointers or state corruption
+    if (node->fullPath != path) {
+        qWarning() << "Model: Node path mismatch - expected:" << path
+                   << "got:" << node->fullPath << "- ignoring to prevent corruption!";
         return;
     }
 
@@ -506,6 +505,7 @@ void RemoteFileModel::onFtpError(const QString &message)
         node->fetching = false;
     }
     pendingFetches_.clear();
+    requestedListings_.clear();  // Also clear this to prevent stale listings from being processed
 
     emit errorOccurred(message);
 }
@@ -564,6 +564,16 @@ void RemoteFileModel::populateNode(TreeNode *node, const QList<FtpEntry> &entrie
     QModelIndex parentIndex = indexFromNode(node);
     qDebug() << "Model: populateNode for" << node->name << "parentIndex valid:" << parentIndex.isValid()
              << "entries:" << entries.count() << "existing children:" << node->children.count();
+
+    // Defensive check: clear any existing children before populating
+    // This prevents model corruption if a listing is processed twice due to edge cases
+    if (!node->children.isEmpty()) {
+        qWarning() << "Model: populateNode called on node with existing children - clearing them first";
+        beginRemoveRows(parentIndex, 0, node->children.count() - 1);
+        qDeleteAll(node->children);
+        node->children.clear();
+        endRemoveRows();
+    }
 
     if (!entries.isEmpty()) {
         qDebug() << "Model: beginInsertRows parentIndex:" << parentIndex << "rows 0 to" << entries.count() - 1;

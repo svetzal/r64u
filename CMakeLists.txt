@@ -48,6 +48,8 @@ set(SOURCES
     src/ui/localfilebrowserwidget.cpp
     src/ui/remotefilebrowserwidget.cpp
     src/ui/transferprogresswidget.cpp
+    src/ui/batchprogresswidget.cpp
+    src/ui/transferprogresscontainer.cpp
     src/ui/explorepanel.cpp
     src/ui/transferpanel.cpp
     src/ui/viewpanel.cpp
@@ -95,6 +97,8 @@ set(HEADERS
     src/ui/localfilebrowserwidget.h
     src/ui/remotefilebrowserwidget.h
     src/ui/transferprogresswidget.h
+    src/ui/batchprogresswidget.h
+    src/ui/transferprogresscontainer.h
     src/ui/explorepanel.h
     src/ui/transferpanel.h
     src/ui/viewpanel.h

@@ -14,6 +14,31 @@ private:
     TransferQueue *queue;
     QTemporaryDir tempDir;
 
+    // Helper to flush the event queue and process mock operations
+    // This is needed because TransferQueue now uses deferred event processing
+    // Loops until all operations are complete (no more pending ops and no more events)
+    void flushAndProcess()
+    {
+        int iterations = 0;
+        const int kMaxIterations = 100;  // Safety limit to prevent infinite loops
+
+        while (iterations++ < kMaxIterations) {
+            queue->flushEventQueue();
+            if (mockFtp->mockPendingOperationCount() == 0) {
+                break;  // No more pending mock operations
+            }
+            mockFtp->mockProcessAllOperations();
+        }
+        queue->flushEventQueue();  // Final flush to process any remaining events
+    }
+
+    void flushAndProcessNext()
+    {
+        queue->flushEventQueue();
+        mockFtp->mockProcessNextOperation();
+        queue->flushEventQueue();
+    }
+
 private slots:
     void init()
     {
@@ -60,7 +85,7 @@ private slots:
         QCOMPARE(queue->rowCount(), 1);
 
         // Process the download
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         // Item is now Completed
         QCOMPARE(queue->rowCount(), 1);  // Still there but completed
@@ -112,7 +137,7 @@ private slots:
         QCOMPARE(mockFtp->mockGetDownloadRequests().size(), 0);
 
         // Process first LIST - should discover 2 subdirs
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Now we should have queued LIST for subdir1 (next scan)
         QCOMPARE(mockFtp->mockGetListRequests().size(), 2);
@@ -123,7 +148,7 @@ private slots:
         QCOMPARE(mockFtp->mockGetDownloadRequests().size(), 0);
 
         // Process LIST for subdir1 - should find file1.txt
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Now we should have queued LIST for subdir2 (next scan)
         QCOMPARE(mockFtp->mockGetListRequests().size(), 3);
@@ -133,19 +158,19 @@ private slots:
         QVERIFY(queue->isScanning());
 
         // Process LIST for subdir2 - should find file2.txt and finish scanning
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // NOW scanning should be complete
         QVERIFY(!queue->isScanning());
 
-        // Both files should be queued in TransferQueue (downloads happen sequentially)
+        // Both files should be queued in TransferQueue
         QCOMPARE(queue->rowCount(), 2);
 
-        // First download should have started (processNext called after scanning)
+        // First download should have started (sequential processing - one at a time)
         QCOMPARE(mockFtp->mockGetDownloadRequests().size(), 1);
 
         // Process all downloads
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         // Verify files were created in correct locations (this is the real success criterion)
         QString file1Path = tempDir.path() + "/folder/subdir1/file1.txt";
@@ -191,9 +216,9 @@ private slots:
         queue->enqueueRecursiveDownload("/remote/root", tempDir.path());
 
         // Process all LIST operations
-        mockFtp->mockProcessNextOperation();  // /remote/root
-        mockFtp->mockProcessNextOperation();  // /remote/root/level1
-        mockFtp->mockProcessNextOperation();  // /remote/root/level1/level2
+        flushAndProcessNext();  // /remote/root
+        flushAndProcessNext();  // /remote/root/level1
+        flushAndProcessNext();  // /remote/root/level1/level2
 
         // Scanning complete, download queued
         QVERIFY(!queue->isScanning());
@@ -203,7 +228,7 @@ private slots:
         QVERIFY(mockFtp->mockGetDownloadRequests().contains("/remote/root/level1/level2/file.txt"));
 
         // Process download
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         QString filePath = tempDir.path() + "/root/level1/level2/file.txt";
         QVERIFY2(QFile::exists(filePath), qPrintable("File should exist at " + filePath));
@@ -257,7 +282,7 @@ private slots:
         queue->enqueueRecursiveDownload("/remote/empty", tempDir.path());
 
         // Process the LIST
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Should complete with no downloads
         QVERIFY(!queue->isScanning());
@@ -281,7 +306,7 @@ private slots:
         queue->enqueueRecursiveDownload("/remote/folder/", tempDir.path());
 
         // Process the LIST
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Scanning should complete
         QVERIFY(!queue->isScanning());
@@ -290,7 +315,7 @@ private slots:
         QCOMPARE(queue->rowCount(), 1);
 
         // Process download
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         // File should be in correct location (folder/test.txt, not just test.txt)
         QString filePath = tempDir.path() + "/folder/test.txt";
@@ -317,6 +342,7 @@ private slots:
         QSignalSpy startedSpy(queue, &TransferQueue::operationStarted);
 
         queue->enqueueUpload(localPath, remotePath);
+        queue->flushEventQueue();  // Trigger deferred processNext
 
         // Item should be in queue
         QCOMPARE(queue->rowCount(), 1);
@@ -325,7 +351,7 @@ private slots:
         QCOMPARE(mockFtp->mockGetUploadRequests().size(), 1);
 
         // Process the upload
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         // Verify signals
         QCOMPARE(startedSpy.count(), 1);
@@ -344,7 +370,7 @@ private slots:
 
         // Simulate error on next operation
         mockFtp->mockSetNextOperationFails("Network error");
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Verify failure signal was emitted
         QCOMPARE(failedSpy.count(), 1);
@@ -358,6 +384,7 @@ private slots:
         mockFtp->mockSetDownloadData(remotePath, "test");
 
         queue->enqueueDownload(remotePath, localPath);
+        queue->flushEventQueue();  // Trigger deferred processNext
 
         QModelIndex index = queue->index(0);
         QVERIFY(index.isValid());
@@ -383,7 +410,7 @@ private slots:
         QCOMPARE(status.toInt(), static_cast<int>(TransferItem::Status::InProgress));
 
         // Process the download
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         // Test StatusRole after completion
         status = queue->data(index, TransferQueue::StatusRole);
@@ -407,7 +434,7 @@ private slots:
         QCOMPARE(queue->rowCount(), 2);
 
         // Process first download only
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // First item should be completed
         QCOMPARE(queue->rowCount(), 2);
@@ -419,7 +446,7 @@ private slots:
         QCOMPARE(queue->rowCount(), 1);
 
         // Complete remaining
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
         queue->removeCompleted();
 
         // All completed items should be removed
@@ -436,7 +463,7 @@ private slots:
         QSignalSpy allCompletedSpy(queue, &TransferQueue::allOperationsCompleted);
 
         queue->enqueueDownload(remotePath, localPath);
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         // Signal should be emitted when last transfer completes
         QCOMPARE(allCompletedSpy.count(), 1);
@@ -451,6 +478,7 @@ private slots:
             mockFtp->mockSetDownloadData(remotePath, QString("content%1").arg(i).toUtf8());
             queue->enqueueDownload(remotePath, localPath);
         }
+        queue->flushEventQueue();  // Trigger deferred processNext
 
         QCOMPARE(queue->rowCount(), 3);
 
@@ -458,7 +486,7 @@ private slots:
         QCOMPARE(mockFtp->mockGetDownloadRequests().size(), 1);
 
         // Process all
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         // All should have been requested
         QCOMPARE(mockFtp->mockGetDownloadRequests().size(), 3);
@@ -481,11 +509,12 @@ private slots:
         mockFtp->mockSetDownloadData(remotePath, "content");
 
         queue->enqueueDownload(remotePath, localPath);
+        queue->flushEventQueue();  // Trigger deferred processNext
 
         // After enqueue, item goes to InProgress (due to processNext)
         QCOMPARE(queue->activeCount(), 1);
 
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         // After completion
         QCOMPARE(queue->pendingCount(), 0);
@@ -523,7 +552,7 @@ private slots:
         QSignalSpy dataChangedSpy(queue, &TransferQueue::dataChanged);
 
         queue->enqueueDownload(remotePath, localPath);
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         // dataChanged signal should have been emitted for progress updates
         QVERIFY(dataChangedSpy.count() >= 1);
@@ -580,13 +609,13 @@ private slots:
         QCOMPARE(mockFtp->mockGetMkdirRequests().first(), QString("/remote/upload_dir"));
 
         // Process the mkdir - this should trigger onDirectoryCreated
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // After mkdir completes, files should be queued for upload
         QVERIFY(queue->rowCount() >= 1);
 
         // Process the upload
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
     }
 
     // Test recursive upload with nested subdirectories
@@ -611,10 +640,84 @@ private slots:
         QVERIFY(mockFtp->mockGetMkdirRequests().size() >= 1);
 
         // Process all mkdirs and uploads
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         // At least one file should have been queued
         QVERIFY(queue->rowCount() >= 1);
+    }
+
+    // Bug fix test: Recursive upload must include files from ALL directories
+    // Previously, processRecursiveUpload used the last dequeued PendingMkdir's
+    // localDir, which was a subdirectory path, not the root directory.
+    // This caused only files from the last subdirectory to be uploaded.
+    void testRecursiveUploadIncludesAllSubdirectoryFiles()
+    {
+        // Create a local directory structure:
+        // root/
+        //   file_in_root.txt
+        //   subdir1/
+        //     file_in_sub1.txt
+        //   subdir2/
+        //     file_in_sub2.txt
+        QString localDir = tempDir.path() + "/multi_subdir_upload";
+        QString subDir1 = localDir + "/subdir1";
+        QString subDir2 = localDir + "/subdir2";
+        QDir().mkpath(subDir1);
+        QDir().mkpath(subDir2);
+
+        // Create file in root
+        QFile rootFile(localDir + "/file_in_root.txt");
+        QVERIFY(rootFile.open(QIODevice::WriteOnly));
+        rootFile.write("root content");
+        rootFile.close();
+
+        // Create file in subdir1
+        QFile sub1File(subDir1 + "/file_in_sub1.txt");
+        QVERIFY(sub1File.open(QIODevice::WriteOnly));
+        sub1File.write("sub1 content");
+        sub1File.close();
+
+        // Create file in subdir2
+        QFile sub2File(subDir2 + "/file_in_sub2.txt");
+        QVERIFY(sub2File.open(QIODevice::WriteOnly));
+        sub2File.write("sub2 content");
+        sub2File.close();
+
+        QSignalSpy completedSpy(queue, &TransferQueue::operationCompleted);
+
+        // Enqueue recursive upload
+        queue->enqueueRecursiveUpload(localDir, "/remote");
+
+        // First mkdir is sent immediately (root dir)
+        QCOMPARE(mockFtp->mockGetMkdirRequests().size(), 1);
+
+        // Process all mkdirs and uploads
+        // (mkdirs are sent sequentially, one after each completes)
+        flushAndProcess();
+
+        // All 3 mkdirs should have been requested by now
+        QCOMPARE(mockFtp->mockGetMkdirRequests().size(), 3);
+
+        // All 3 files from all directories should have been uploaded
+        QCOMPARE(completedSpy.count(), 3);
+
+        // Verify upload requests include files from ALL directories
+        QStringList uploads = mockFtp->mockGetUploadRequests();
+        QCOMPARE(uploads.size(), 3);
+
+        // Check that root file was included (bug: without fix, only last subdir files uploaded)
+        bool hasRootFile = false;
+        bool hasSub1File = false;
+        bool hasSub2File = false;
+        for (const QString &path : uploads) {
+            if (path.contains("file_in_root.txt")) hasRootFile = true;
+            if (path.contains("file_in_sub1.txt")) hasSub1File = true;
+            if (path.contains("file_in_sub2.txt")) hasSub2File = true;
+        }
+
+        QVERIFY2(hasRootFile, "File in root directory should have been uploaded");
+        QVERIFY2(hasSub1File, "File in subdir1 should have been uploaded");
+        QVERIFY2(hasSub2File, "File in subdir2 should have been uploaded");
     }
 
     // Test cancel when processing is active
@@ -625,6 +728,7 @@ private slots:
         mockFtp->mockSetDownloadData(remotePath, "content");
 
         queue->enqueueDownload(remotePath, localPath);
+        queue->flushEventQueue();  // Trigger deferred processNext
 
         // Item should be in progress (processing started)
         QVERIFY(queue->isProcessing());
@@ -651,7 +755,7 @@ private slots:
         queue->enqueueDownload(remotePath1, localPath1);
 
         // Process to completion
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         // Verify item is completed
         QModelIndex index = queue->index(0);
@@ -681,7 +785,7 @@ private slots:
         queue->enqueueUpload(localPath, remotePath);
 
         // Process the upload
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         // dataChanged should have been emitted for progress
         QVERIFY(dataChangedSpy.count() >= 1);
@@ -721,7 +825,7 @@ private slots:
         mockFtp->mockSetDownloadData(remotePath, "test content here");
 
         queue->enqueueDownload(remotePath, localPath);
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         QModelIndex index = queue->index(0);
         QVariant totalBytes = queue->data(index, TransferQueue::TotalBytesRole);
@@ -736,7 +840,7 @@ private slots:
         mockFtp->mockSetDownloadData(remotePath, "test content here");
 
         queue->enqueueDownload(remotePath, localPath);
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         QModelIndex index = queue->index(0);
         QVariant bytesTransferred = queue->data(index, TransferQueue::BytesTransferredRole);
@@ -760,7 +864,7 @@ private slots:
 
         // Simulate error on upload
         mockFtp->mockSetNextOperationFails("Upload failed");
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Verify failure signal
         QCOMPARE(failedSpy.count(), 1);
@@ -794,13 +898,14 @@ private slots:
         QSignalSpy failedSpy(queue, &TransferQueue::operationFailed);
 
         queue->enqueueDownload(remotePath, localPath);
+        queue->flushEventQueue();  // Trigger deferred processNext
 
         // Verify item is in progress
         QCOMPARE(queue->activeCount(), 1);
 
         // Simulate connection loss (emits error)
         mockFtp->mockSetNextOperationFails("Connection lost");
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Verify failure was signaled
         QCOMPARE(failedSpy.count(), 1);
@@ -834,14 +939,14 @@ private slots:
         queue->enqueueRecursiveDownload("/remote/folder", tempDir.path());
 
         // Process the LIST
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Two files should be queued
         QCOMPARE(queue->rowCount(), 2);
 
         // Fail the first download
         mockFtp->mockSetNextOperationFails("Network error");
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // First item should be failed
         QCOMPARE(failedSpy.count(), 1);
@@ -849,7 +954,7 @@ private slots:
                  static_cast<int>(TransferItem::Status::Failed));
 
         // Second download should continue
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Second item should complete successfully
         QCOMPARE(completedSpy.count(), 1);
@@ -868,7 +973,7 @@ private slots:
 
         // Simulate error before completion
         mockFtp->mockSetNextOperationFails("Transfer interrupted");
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Mock doesn't create partial files since it completes atomically,
         // but verify the item is marked as failed
@@ -897,7 +1002,7 @@ private slots:
 
         // Fail the mkdir operation
         mockFtp->mockSetNextOperationFails("Permission denied: cannot create directory");
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // The mkdir failure doesn't currently emit operationFailed,
         // but upload operations that follow should not proceed
@@ -917,11 +1022,11 @@ private slots:
         queue->enqueueRecursiveDelete("/remote/folder");
 
         // Process the LIST to scan directory
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Fail the delete operation
         mockFtp->mockSetNextOperationFails("Permission denied");
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Delete operation failure should be handled gracefully
         // Current implementation continues with remaining deletes
@@ -938,13 +1043,14 @@ private slots:
             mockFtp->mockSetDownloadData(remotePath, QString("content%1").arg(i).toUtf8());
             queue->enqueueDownload(remotePath, localPath);
         }
+        queue->flushEventQueue();  // Trigger deferred processNext for first item
 
         QSignalSpy failedSpy(queue, &TransferQueue::operationFailed);
 
         // Fail all operations
         for (int i = 0; i < 3; ++i) {
             mockFtp->mockSetNextOperationFails(QString("Error %1").arg(i));
-            mockFtp->mockProcessNextOperation();
+            flushAndProcessNext();
         }
 
         // All should be failed
@@ -975,10 +1081,10 @@ private slots:
         QVERIFY(queue->isScanning());
 
         // Fail the list operation for the subdirectory
-        mockFtp->mockProcessNextOperation();  // Process root listing
+        flushAndProcessNext();  // Process root listing
 
         mockFtp->mockSetNextOperationFails("Directory listing failed");
-        mockFtp->mockProcessNextOperation();  // Fail subdir listing
+        flushAndProcessNext();  // Fail subdir listing
 
         // Scanning should handle the error gracefully
         // Current implementation may leave scanning in incomplete state
@@ -1028,7 +1134,7 @@ private slots:
         }
 
         // Process first item
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Disconnect mid-queue
         mockFtp->mockSimulateDisconnect();
@@ -1054,7 +1160,7 @@ private slots:
         queue->enqueueDownload(remotePath, localPath);
 
         mockFtp->mockSetNextOperationFails(expectedError);
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         QModelIndex index = queue->index(0);
         QString errorMsg = queue->data(index, TransferQueue::ErrorMessageRole).toString();
@@ -1076,10 +1182,10 @@ private slots:
         queue->enqueueDownload(remotePath2, localPath2);
 
         // Complete first, fail second
-        mockFtp->mockProcessNextOperation();  // Complete first
+        flushAndProcessNext();  // Complete first
 
         mockFtp->mockSetNextOperationFails("Error");
-        mockFtp->mockProcessNextOperation();  // Fail second
+        flushAndProcessNext();  // Fail second
 
         QCOMPARE(queue->rowCount(), 2);
 
@@ -1108,7 +1214,7 @@ private slots:
         queue->enqueueUpload(localPath, remotePath);
 
         mockFtp->mockSetNextOperationFails("Disk full");
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         QCOMPARE(failedSpy.count(), 1);
 
@@ -1138,7 +1244,7 @@ private slots:
 
         // Fail the first mkdir
         mockFtp->mockSetNextOperationFails("Cannot create directory");
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Queue should handle the failure gracefully
         // This documents current behavior - may need improvement
@@ -1175,12 +1281,14 @@ private slots:
 
         // Enqueue the download
         queue->enqueueDownload(remotePath, localPath);
+        queue->flushEventQueue();  // Trigger deferred processNext
 
         // The overwrite confirmation should be requested exactly ONCE
         QCOMPARE(overwriteSpy.count(), 1);
 
         // User clicks "Overwrite" (single file, not "Overwrite All")
         queue->respondToOverwrite(OverwriteResponse::Overwrite);
+        queue->flushEventQueue();  // Trigger deferred processNext after response
 
         // Bug: The dialog should NOT appear again
         // Currently this fails because processNext() re-checks file existence
@@ -1190,7 +1298,7 @@ private slots:
         QCOMPARE(mockFtp->mockGetDownloadRequests().size(), 1);
 
         // Complete the download
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         // Verify completion
         QCOMPARE(completedSpy.count(), 1);
@@ -1229,21 +1337,23 @@ private slots:
 
         queue->enqueueDownload(remotePath1, localPath1);
         queue->enqueueDownload(remotePath2, localPath2);
+        queue->flushEventQueue();  // Trigger deferred processNext
 
         // First file should trigger confirmation
         QCOMPARE(overwriteSpy.count(), 1);
 
         // User clicks "Overwrite All"
         queue->respondToOverwrite(OverwriteResponse::OverwriteAll);
+        queue->flushEventQueue();  // Trigger processNext after response
 
         // Process first download
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Second file should NOT trigger confirmation (OverwriteAll is set)
         QCOMPARE(overwriteSpy.count(), 1);  // Still only 1
 
         // Process second download
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Both files should be overwritten
         QFile checkFile1(localPath1);
@@ -1275,11 +1385,13 @@ private slots:
         QSignalSpy allCompletedSpy(queue, &TransferQueue::allOperationsCompleted);
 
         queue->enqueueDownload(remotePath, localPath);
+        queue->flushEventQueue();  // Trigger deferred processNext
 
         QCOMPARE(overwriteSpy.count(), 1);
 
         // User clicks "Skip"
         queue->respondToOverwrite(OverwriteResponse::Skip);
+        queue->flushEventQueue();  // Process response
 
         // Should complete without downloading
         QCOMPARE(mockFtp->mockGetDownloadRequests().size(), 0);
@@ -1327,6 +1439,7 @@ private slots:
 
         // Enqueue the upload
         queue->enqueueUpload(localPath, remotePath);
+        queue->flushEventQueue();  // Trigger deferred processNext
 
         // The queue should first issue a LIST to check if remote file exists
         // (This is the missing behavior we're testing for)
@@ -1334,7 +1447,7 @@ private slots:
                  "Upload should check if remote file exists before uploading");
 
         // Process the LIST operation
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Since the file exists, overwrite confirmation should be requested
         QCOMPARE(overwriteSpy.count(), 1);
@@ -1349,12 +1462,13 @@ private slots:
 
         // User confirms overwrite
         queue->respondToOverwrite(OverwriteResponse::Overwrite);
+        queue->flushEventQueue();  // Trigger deferred processNext after response
 
         // Now upload should proceed
         QCOMPARE(mockFtp->mockGetUploadRequests().size(), 1);
 
         // Process the upload
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Upload should complete
         QCOMPARE(completedSpy.count(), 1);
@@ -1382,7 +1496,7 @@ private slots:
         queue->enqueueUpload(localPath, remotePath);
 
         // Process the LIST to check file existence
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // No confirmation needed - file doesn't exist
         QCOMPARE(overwriteSpy.count(), 0);
@@ -1425,7 +1539,7 @@ private slots:
         queue->enqueueUpload(localPath2, remotePath2);
 
         // Process first file's LIST
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // First file should trigger confirmation
         QCOMPARE(overwriteSpy.count(), 1);
@@ -1434,12 +1548,12 @@ private slots:
         queue->respondToOverwrite(OverwriteResponse::OverwriteAll);
 
         // First upload should proceed
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         // Second file should NOT require confirmation (OverwriteAll is set)
         // It may or may not need a LIST depending on implementation,
         // but should NOT emit overwriteConfirmationNeeded
-        mockFtp->mockProcessAllOperations();
+        flushAndProcess();
 
         // Only one confirmation was needed
         QCOMPARE(overwriteSpy.count(), 1);
@@ -1472,7 +1586,7 @@ private slots:
         queue->enqueueUpload(localPath, remotePath);
 
         // Process the LIST
-        mockFtp->mockProcessNextOperation();
+        flushAndProcessNext();
 
         QCOMPARE(overwriteSpy.count(), 1);
 
@@ -1484,6 +1598,488 @@ private slots:
 
         // Should complete (item skipped)
         QCOMPARE(allCompletedSpy.count(), 1);
+    }
+
+    // =========================================================================
+    // Folder Upload Hang Bug Tests
+    // =========================================================================
+
+    // Bug: When uploading a folder with multiple files, the queue hangs.
+    // Root cause: processNext() doesn't guard against checkingUploadFileExists_,
+    // so when processRecursiveUpload() enqueues multiple files, each enqueueUpload()
+    // call triggers processNext() (because processing_=false), causing multiple
+    // LIST requests to be sent simultaneously. This can corrupt the state machine.
+    void testRecursiveUploadMultipleFilesDoesNotHang()
+    {
+        // Disable auto-overwrite to trigger file existence checks
+        queue->setAutoOverwrite(false);
+
+        // Create a local directory with multiple files
+        QString localDir = tempDir.path() + "/multi_upload";
+        QDir().mkpath(localDir);
+
+        // Create 3 files
+        for (int i = 0; i < 3; ++i) {
+            QString filePath = localDir + QString("/file%1.txt").arg(i);
+            QFile file(filePath);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(QString("content%1").arg(i).toUtf8());
+            file.close();
+        }
+
+        // Remote directory is empty (files don't exist yet)
+        mockFtp->mockSetDirectoryListing("/remote/multi_upload", QList<FtpEntry>());
+
+        QSignalSpy completedSpy(queue, &TransferQueue::operationCompleted);
+        QSignalSpy allCompletedSpy(queue, &TransferQueue::allOperationsCompleted);
+
+        // Enqueue recursive upload
+        queue->enqueueRecursiveUpload(localDir, "/remote");
+
+        // Process the mkdir for the root directory
+        QCOMPARE(mockFtp->mockGetMkdirRequests().size(), 1);
+        flushAndProcessNext();
+
+        // After mkdir completes, processRecursiveUpload() is called which
+        // enqueues all files. Each enqueueUpload() might trigger processNext().
+
+        // Critical assertion: Only ONE LIST request should be pending at a time
+        // because processNext() should guard against checkingUploadFileExists_.
+        // If more than one LIST is pending, the bug is present.
+        int listRequestsAfterMkdir = mockFtp->mockGetListRequests().size();
+
+        // BUG: Without the fix, multiple LIST requests are sent simultaneously
+        // because processNext() doesn't check checkingUploadFileExists_ before
+        // finding the next pending item and sending another LIST.
+        QVERIFY2(listRequestsAfterMkdir <= 1,
+                 qPrintable(QString("Expected at most 1 LIST request, got %1. "
+                           "This indicates processNext() re-entrancy bug.")
+                           .arg(listRequestsAfterMkdir)));
+
+        // Now process all operations
+        flushAndProcess();
+
+        // All 3 files should have completed
+        QCOMPARE(completedSpy.count(), 3);
+        QCOMPARE(allCompletedSpy.count(), 1);
+    }
+
+    // Test that error during file existence check clears the checking flag
+    void testErrorDuringFileExistenceCheckClearsState()
+    {
+        queue->setAutoOverwrite(false);
+
+        QString localDir = tempDir.path() + "/error_upload";
+        QDir().mkpath(localDir);
+
+        QString filePath = localDir + "/file.txt";
+        QFile file(filePath);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("content");
+        file.close();
+
+        // Remote directory listing will fail
+        mockFtp->mockSetDirectoryListing("/remote/error_upload", QList<FtpEntry>());
+
+        queue->enqueueRecursiveUpload(localDir, "/remote");
+
+        // Process the mkdir
+        flushAndProcessNext();
+
+        // Now a LIST should be pending for file existence check
+        int listCount = mockFtp->mockGetListRequests().size();
+        QVERIFY(listCount >= 1);
+
+        // Simulate error during LIST
+        mockFtp->mockSetNextOperationFails("Network error during LIST");
+        flushAndProcessNext();
+
+        // After error, the queue should recover and be able to process more items
+        // (not hang due to checkingUploadFileExists_ being stuck true)
+
+        // Enqueue another file to verify queue is not stuck
+        QString filePath2 = tempDir.path() + "/another_file.txt";
+        QFile file2(filePath2);
+        QVERIFY(file2.open(QIODevice::WriteOnly));
+        file2.write("content2");
+        file2.close();
+
+        // This should be accepted (queue should not be stuck)
+        queue->enqueueUpload(filePath2, "/remote/another_file.txt");
+
+        // Should be able to start processing the new item
+        // (if checkingUploadFileExists_ wasn't cleared, this would hang)
+        flushAndProcess();
+    }
+
+    // Bug: When uploading multiple files sequentially, the second file's upload
+    // hangs because the file handle is corrupted by a race condition in the FTP client.
+    // The uploadFinished signal triggers the next upload() call, which sets a new
+    // file handle. But then the 226 handler does transferFile_.reset(), resetting
+    // the NEW file handle, causing the next STOR to have no file to send.
+    void testSequentialUploadsDoNotCorruptFileHandle()
+    {
+        // Create two files to upload
+        QString localPath1 = tempDir.path() + "/upload1.txt";
+        QString localPath2 = tempDir.path() + "/upload2.txt";
+        QString remotePath1 = "/remote/upload1.txt";
+        QString remotePath2 = "/remote/upload2.txt";
+
+        QFile file1(localPath1);
+        QVERIFY(file1.open(QIODevice::WriteOnly));
+        file1.write("content1");
+        file1.close();
+
+        QFile file2(localPath2);
+        QVERIFY(file2.open(QIODevice::WriteOnly));
+        file2.write("content2");
+        file2.close();
+
+        // No files exist on remote
+        mockFtp->mockSetDirectoryListing("/remote", QList<FtpEntry>());
+
+        QSignalSpy completedSpy(queue, &TransferQueue::operationCompleted);
+        QSignalSpy allCompletedSpy(queue, &TransferQueue::allOperationsCompleted);
+
+        // Enqueue both uploads
+        queue->enqueueUpload(localPath1, remotePath1);
+        queue->enqueueUpload(localPath2, remotePath2);
+
+        // Process all operations
+        // Bug: Without fix, second upload will hang because its file handle is null
+        flushAndProcess();
+
+        // Both uploads should complete
+        QCOMPARE(completedSpy.count(), 2);
+        QCOMPARE(allCompletedSpy.count(), 1);
+
+        // Verify both files were uploaded (mock stores local paths)
+        QVERIFY(mockFtp->mockGetUploadRequests().contains(localPath1));
+        QVERIFY(mockFtp->mockGetUploadRequests().contains(localPath2));
+    }
+
+    // Bug: After completing a folder upload, user cannot re-upload the same folder
+    // because the completed batch is still being checked for duplicates.
+    void testCanReuploadFolderAfterCompletion()
+    {
+        // Create a local directory with a file
+        QString localDir = tempDir.path() + "/reupload_test";
+        QDir().mkpath(localDir);
+
+        QString filePath = localDir + "/file.txt";
+        QFile file(filePath);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("content");
+        file.close();
+
+        // Remote directory is empty
+        mockFtp->mockSetDirectoryListing("/remote/reupload_test", QList<FtpEntry>());
+
+        QSignalSpy allCompletedSpy(queue, &TransferQueue::allOperationsCompleted);
+
+        // First upload
+        queue->enqueueRecursiveUpload(localDir, "/remote");
+
+        // Process mkdir and upload
+        flushAndProcess();
+
+        // First upload should complete
+        QCOMPARE(allCompletedSpy.count(), 1);
+
+        // Now try to upload the same folder again (simulating user making changes)
+        // This should NOT be rejected as a duplicate
+        allCompletedSpy.clear();
+
+        queue->enqueueRecursiveUpload(localDir, "/remote");
+
+        // Should have queued a new mkdir (not rejected)
+        // Bug: Without fix, this would be rejected as "already being uploaded"
+        QVERIFY2(mockFtp->mockGetMkdirRequests().size() >= 2,
+                 "Second upload should be accepted after first completes");
+
+        // Process second upload
+        flushAndProcess();
+
+        // Second upload should also complete
+        QCOMPARE(allCompletedSpy.count(), 1);
+    }
+
+    // Test that error during directory creation clears the creating flag
+    void testErrorDuringDirectoryCreationClearsState()
+    {
+        QString localDir = tempDir.path() + "/mkdir_error";
+        QDir().mkpath(localDir);
+
+        QString filePath = localDir + "/file.txt";
+        QFile file(filePath);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("content");
+        file.close();
+
+        queue->enqueueRecursiveUpload(localDir, "/remote");
+
+        // mkdir should be pending
+        QCOMPARE(mockFtp->mockGetMkdirRequests().size(), 1);
+        QVERIFY(queue->isCreatingDirectories());
+
+        // Simulate error during mkdir
+        mockFtp->mockSetNextOperationFails("Permission denied: cannot create directory");
+        flushAndProcessNext();
+
+        // After error, the queue should NOT be stuck in "creating directories" state
+        // If creatingDirectory_ and pendingMkdirs_ aren't cleared, queue hangs
+        QVERIFY2(!queue->isCreatingDirectories(),
+                 "Queue should not be stuck in 'creating directories' state after error");
+
+        // Should be able to enqueue and process new operations
+        QString localPath = tempDir.path() + "/new_file.txt";
+        QFile newFile(localPath);
+        QVERIFY(newFile.open(QIODevice::WriteOnly));
+        newFile.write("new content");
+        newFile.close();
+
+        mockFtp->mockSetDirectoryListing("/remote", QList<FtpEntry>());
+
+        queue->enqueueUpload(localPath, "/remote/new_file.txt");
+
+        // Should be able to process (queue not stuck)
+        flushAndProcess();
+    }
+
+    // =========================================================================
+    // Recursive Delete Error Recovery Tests
+    // =========================================================================
+
+    // Bug: When a recursive delete encounters a 550 "directory not empty" error
+    // (e.g., because a file was created between scan and delete), the queue would
+    // hang instead of continuing with remaining items.
+    void testRecursiveDeleteContinuesOnItemFailure()
+    {
+        // Setup a directory with multiple files and subdirs
+        QList<FtpEntry> rootEntries;
+        FtpEntry file1; file1.name = "file1.txt"; file1.isDirectory = false;
+        FtpEntry file2; file2.name = "file2.txt"; file2.isDirectory = false;
+        FtpEntry subdir; subdir.name = "subdir"; subdir.isDirectory = true;
+        rootEntries << file1 << file2 << subdir;
+        mockFtp->mockSetDirectoryListing("/remote/delete_test", rootEntries);
+
+        // Subdir is empty
+        mockFtp->mockSetDirectoryListing("/remote/delete_test/subdir", QList<FtpEntry>());
+
+        QSignalSpy failedSpy(queue, &TransferQueue::operationFailed);
+        QSignalSpy completedSpy(queue, &TransferQueue::operationCompleted);
+
+        // Start recursive delete
+        queue->enqueueRecursiveDelete("/remote/delete_test");
+
+        // Process the LIST operations to scan the directory tree
+        flushAndProcessNext();  // LIST /remote/delete_test
+        flushAndProcessNext();  // LIST /remote/delete_test/subdir
+
+        // Now delete operations should be queued
+        // Order: files first, then subdir, then root
+        QVERIFY(queue->isProcessingDelete());
+
+        // First delete (file1) succeeds
+        flushAndProcessNext();
+
+        // Second delete (file2) fails with 550 error
+        mockFtp->mockSetNextOperationFails("Requested action not taken.");
+        flushAndProcessNext();
+
+        // Bug: Without fix, queue would hang here
+        // With fix, it should continue to subdir deletion
+        QCOMPARE(failedSpy.count(), 1);
+        QVERIFY2(queue->isProcessingDelete() || queue->deleteProgress() > 0,
+                 "Delete should continue after item failure");
+
+        // Continue processing remaining deletes
+        flushAndProcess();
+
+        // Some operations should have completed despite the failure
+        // (the deletion of items after the failed one should have continued)
+    }
+
+    // Test that recursive delete reports all failed items
+    void testRecursiveDeleteReportsMultipleFailures()
+    {
+        // Setup a directory with multiple files
+        QList<FtpEntry> entries;
+        for (int i = 0; i < 5; ++i) {
+            FtpEntry file;
+            file.name = QString("file%1.txt").arg(i);
+            file.isDirectory = false;
+            entries << file;
+        }
+        mockFtp->mockSetDirectoryListing("/remote/multi_fail", entries);
+
+        QSignalSpy failedSpy(queue, &TransferQueue::operationFailed);
+
+        queue->enqueueRecursiveDelete("/remote/multi_fail");
+
+        // Process LIST
+        flushAndProcessNext();
+
+        // Fail every other delete
+        for (int i = 0; i < 5; ++i) {
+            if (i % 2 == 1) {
+                mockFtp->mockSetNextOperationFails("Permission denied");
+            }
+            flushAndProcessNext();
+        }
+
+        // Continue with directory deletion (which will also fail since not empty)
+        mockFtp->mockSetNextOperationFails("Directory not empty");
+        flushAndProcessNext();
+
+        // Should have reported multiple failures (files 1, 3 and the directory)
+        QVERIFY(failedSpy.count() >= 2);
+
+        // Queue should not be stuck - delete operation should complete (with errors)
+        QVERIFY(!queue->isProcessingDelete());
+    }
+
+    // Test that delete error doesn't corrupt queue state for other operations
+    void testDeleteErrorDoesNotAffectOtherOperations()
+    {
+        // Setup a simple directory
+        QList<FtpEntry> entries;
+        FtpEntry file; file.name = "file.txt"; file.isDirectory = false;
+        entries << file;
+        mockFtp->mockSetDirectoryListing("/remote/folder", entries);
+
+        // Also setup a download
+        mockFtp->mockSetDownloadData("/remote/other_file.txt", "content");
+
+        // Start recursive delete
+        queue->enqueueRecursiveDelete("/remote/folder");
+
+        // Process LIST
+        flushAndProcessNext();
+
+        // Fail the file deletion
+        mockFtp->mockSetNextOperationFails("Permission denied");
+        flushAndProcessNext();
+
+        // Fail the directory deletion
+        mockFtp->mockSetNextOperationFails("Directory not empty");
+        flushAndProcessNext();
+
+        // Delete should be done (with failures)
+        QVERIFY(!queue->isProcessingDelete());
+
+        // Now queue a download - it should work normally
+        QString localPath = tempDir.path() + "/other_file.txt";
+        queue->enqueueDownload("/remote/other_file.txt", localPath);
+
+        // Download should proceed
+        flushAndProcess();
+
+        // Verify download completed
+        QVERIFY(QFile::exists(localPath));
+    }
+
+    // Test that concurrent recursive downloads create separate batches
+    void testConcurrentRecursiveDownloadsCreateSeparateBatches()
+    {
+        // Setup two directories with files
+        QList<FtpEntry> entries1;
+        FtpEntry file1; file1.name = "file1.txt"; file1.isDirectory = false;
+        entries1 << file1;
+        mockFtp->mockSetDirectoryListing("/remote/folder1", entries1);
+
+        QList<FtpEntry> entries2;
+        FtpEntry file2; file2.name = "file2.txt"; file2.isDirectory = false;
+        entries2 << file2;
+        mockFtp->mockSetDirectoryListing("/remote/folder2", entries2);
+
+        mockFtp->mockSetDownloadData("/remote/folder1/file1.txt", "content1");
+        mockFtp->mockSetDownloadData("/remote/folder2/file2.txt", "content2");
+
+        // Start first recursive download
+        queue->enqueueRecursiveDownload("/remote/folder1", tempDir.path());
+
+        // Should have one batch immediately
+        QCOMPARE(queue->allBatchIds().size(), 1);
+        int batch1Id = queue->allBatchIds().first();
+        QVERIFY(batch1Id > 0);
+
+        // Start second recursive download while first is scanning
+        queue->enqueueRecursiveDownload("/remote/folder2", tempDir.path());
+
+        // Should now have two separate batches
+        QCOMPARE(queue->allBatchIds().size(), 2);
+        QList<int> batchIds = queue->allBatchIds();
+        QVERIFY(batchIds.contains(batch1Id));
+        int batch2Id = (batchIds[0] == batch1Id) ? batchIds[1] : batchIds[0];
+        QVERIFY(batch2Id > 0);
+        QVERIFY(batch1Id != batch2Id);
+
+        // Process scanning (LIST) for both directories
+        flushAndProcessNext();  // LIST for folder1
+        flushAndProcessNext();  // LIST for folder2
+
+        // Each batch should have exactly 1 item (each folder has 1 file)
+        BatchProgress progress1 = queue->batchProgress(batch1Id);
+        BatchProgress progress2 = queue->batchProgress(batch2Id);
+        QCOMPARE(progress1.totalItems, 1);
+        QCOMPARE(progress2.totalItems, 1);
+
+        // Process downloads
+        flushAndProcess();
+
+        // Verify files were downloaded
+        QVERIFY(QFile::exists(tempDir.path() + "/folder1/file1.txt"));
+        QVERIFY(QFile::exists(tempDir.path() + "/folder2/file2.txt"));
+    }
+
+    // Test that files discovered during scanning are added to correct batch
+    void testFilesAddedToCorrectBatchDuringScanning()
+    {
+        // Setup directory with multiple files
+        QList<FtpEntry> entries;
+        for (int i = 0; i < 3; ++i) {
+            FtpEntry file;
+            file.name = QString("file%1.txt").arg(i);
+            file.isDirectory = false;
+            entries << file;
+        }
+        mockFtp->mockSetDirectoryListing("/remote/folder", entries);
+
+        for (int i = 0; i < 3; ++i) {
+            mockFtp->mockSetDownloadData(QString("/remote/folder/file%1.txt").arg(i), "content");
+        }
+
+        // Start recursive download
+        queue->enqueueRecursiveDownload("/remote/folder", tempDir.path());
+
+        // Get the batch ID
+        QCOMPARE(queue->allBatchIds().size(), 1);
+        int batchId = queue->allBatchIds().first();
+
+        // Process LIST to discover files
+        flushAndProcessNext();
+
+        // All 3 files should be in the same batch
+        BatchProgress progress = queue->batchProgress(batchId);
+        QCOMPARE(progress.totalItems, 3);
+
+        // Now verify by checking items_ through the model
+        for (int i = 0; i < queue->rowCount(); ++i) {
+            QModelIndex index = queue->index(i);
+            // All items should have the same batch ID
+            int itemBatchId = queue->data(index, Qt::UserRole + 10).toInt();  // Check via internal item
+            // Since we don't expose batchId through model roles, verify via batch progress
+            // The key point is all items are in the single batch
+        }
+
+        // Process downloads
+        flushAndProcess();
+
+        // All files should exist
+        for (int i = 0; i < 3; ++i) {
+            QVERIFY(QFile::exists(tempDir.path() + QString("/folder/file%1.txt").arg(i)));
+        }
     }
 };
 

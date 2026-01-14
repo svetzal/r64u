@@ -238,6 +238,76 @@ private slots:
         QFAIL("Test file not found in model");
     }
 
+    // ========== Sorting ==========
+
+    void testSortingDirectoriesFirst()
+    {
+        // Create test files and directories with names that would sort
+        // alphabetically interleaved if not for folder-first sorting
+        QDir().mkpath(tempDir->filePath("b_dir"));
+        QFile file1(tempDir->filePath("a_file.txt"));
+        QVERIFY(file1.open(QIODevice::WriteOnly));
+        file1.write("test");
+        file1.close();
+        QDir().mkpath(tempDir->filePath("c_dir"));
+        QFile file2(tempDir->filePath("d_file.txt"));
+        QVERIFY(file2.open(QIODevice::WriteOnly));
+        file2.write("test");
+        file2.close();
+
+        QModelIndex rootIdx = fsModel->index(tempDir->path());
+        fsModel->fetchMore(rootIdx);
+        QTest::qWait(200);  // Wait for async loading
+
+        // Set up sorting on the proxy
+        proxyModel->sort(0, Qt::AscendingOrder);
+        QTest::qWait(50);  // Wait for sort
+
+        QModelIndex proxyRoot = proxyModel->mapFromSource(rootIdx);
+        int rowCount = proxyModel->rowCount(proxyRoot);
+
+        if (rowCount < 4) {
+            QSKIP("Files not yet loaded by QFileSystemModel");
+        }
+
+        // Collect all items in sorted order
+        QStringList sortedNames;
+        QList<bool> isDir;
+        for (int i = 0; i < rowCount; i++) {
+            QModelIndex idx = proxyModel->index(i, 0, proxyRoot);
+            sortedNames << proxyModel->data(idx, Qt::DisplayRole).toString();
+            QModelIndex sourceIdx = proxyModel->mapToSource(idx);
+            isDir << fsModel->isDir(sourceIdx);
+        }
+
+        // Verify directories come before files
+        bool seenFile = false;
+        for (int i = 0; i < sortedNames.size(); i++) {
+            if (!isDir[i]) {
+                seenFile = true;
+            } else if (seenFile) {
+                QFAIL("Directory found after file - sorting is incorrect");
+            }
+        }
+
+        // If we have the expected items, verify order
+        if (sortedNames.contains("b_dir") && sortedNames.contains("c_dir") &&
+            sortedNames.contains("a_file.txt") && sortedNames.contains("d_file.txt")) {
+            // Directories should come first (b_dir, c_dir)
+            // Then files (a_file.txt, d_file.txt)
+            int bDirPos = sortedNames.indexOf("b_dir");
+            int cDirPos = sortedNames.indexOf("c_dir");
+            int aFilePos = sortedNames.indexOf("a_file.txt");
+            int dFilePos = sortedNames.indexOf("d_file.txt");
+
+            // Both directories should come before both files
+            QVERIFY2(bDirPos < aFilePos, "b_dir should come before a_file.txt");
+            QVERIFY2(cDirPos < aFilePos, "c_dir should come before a_file.txt");
+            QVERIFY2(bDirPos < dFilePos, "b_dir should come before d_file.txt");
+            QVERIFY2(cDirPos < dFilePos, "c_dir should come before d_file.txt");
+        }
+    }
+
     // ========== Edge cases ==========
 
     void testDataWithNoSourceModel()

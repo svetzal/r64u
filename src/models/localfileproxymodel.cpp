@@ -28,6 +28,32 @@ QVariant LocalFileProxyModel::data(const QModelIndex &index, int role) const
     return QSortFilterProxyModel::data(index, role);
 }
 
+bool LocalFileProxyModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
+{
+    QFileSystemModel *fsModel = sourceFileModel();
+    if (!fsModel) {
+        return QSortFilterProxyModel::lessThan(left, right);
+    }
+
+    // Get column 0 indices for directory check
+    QModelIndex leftName = left.sibling(left.row(), 0);
+    QModelIndex rightName = right.sibling(right.row(), 0);
+
+    bool leftIsDir = fsModel->isDir(leftName);
+    bool rightIsDir = fsModel->isDir(rightName);
+
+    // Directories come before files
+    if (leftIsDir && !rightIsDir) {
+        return sortOrder() == Qt::AscendingOrder;
+    }
+    if (!leftIsDir && rightIsDir) {
+        return sortOrder() != Qt::AscendingOrder;
+    }
+
+    // Both are directories or both are files - use default sorting
+    return QSortFilterProxyModel::lessThan(left, right);
+}
+
 QFileSystemModel *LocalFileProxyModel::sourceFileModel() const
 {
     return qobject_cast<QFileSystemModel*>(sourceModel());

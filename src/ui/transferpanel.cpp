@@ -1,7 +1,7 @@
 #include "transferpanel.h"
 #include "localfilebrowserwidget.h"
 #include "remotefilebrowserwidget.h"
-#include "transferprogresswidget.h"
+#include "transferprogresscontainer.h"
 #include "services/deviceconnection.h"
 #include "services/transferservice.h"
 #include "models/remotefilemodel.h"
@@ -31,7 +31,7 @@ TransferPanel::TransferPanel(DeviceConnection *connection,
     C64UFtpClient *ftpClient = deviceConnection_ ? deviceConnection_->ftpClient() : nullptr;
     remoteBrowser_ = new RemoteFileBrowserWidget(model, ftpClient, this);
     localBrowser_ = new LocalFileBrowserWidget(this);
-    progressWidget_ = new TransferProgressWidget(this);
+    progressContainer_ = new TransferProgressContainer(this);
 
     setupUi();
     setupConnections();
@@ -48,7 +48,7 @@ void TransferPanel::setupUi()
     splitter_->setSizes({400, 400});
 
     layout->addWidget(splitter_, 1);
-    layout->addWidget(progressWidget_);
+    layout->addWidget(progressContainer_);
 }
 
 void TransferPanel::setupConnections()
@@ -90,12 +90,12 @@ void TransferPanel::setupConnections()
         });
     }
 
-    if (progressWidget_) {
-        connect(progressWidget_, &TransferProgressWidget::statusMessage,
+    if (progressContainer_) {
+        connect(progressContainer_, &TransferProgressContainer::statusMessage,
                 this, &TransferPanel::statusMessage);
-        connect(progressWidget_, &TransferProgressWidget::clearStatusMessages,
+        connect(progressContainer_, &TransferProgressContainer::clearStatusMessages,
                 this, &TransferPanel::clearStatusMessages);
-        progressWidget_->setTransferService(transferService_);
+        progressContainer_->setTransferService(transferService_);
     }
 
     // Forward status messages from transfer service

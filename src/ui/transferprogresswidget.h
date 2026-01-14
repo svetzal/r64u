@@ -34,7 +34,10 @@ private slots:
     void onShowProgress();
     void onDeleteProgressUpdate(const QString &fileName, int current, int total);
     void onOverwriteConfirmationNeeded(const QString &fileName, OperationType type);
-    void onFolderExistsConfirmationNeeded(const QString &folderName);
+    void onFolderExistsConfirmationNeeded(const QStringList &folderNames);
+    void onScanningStarted(const QString &folderName, OperationType type);
+    void onScanningProgress(int directoriesScanned, int directoriesRemaining, int filesDiscovered);
+    void onDirectoryCreationProgress(int created, int total);
 
 private:
     void setupUi();
@@ -44,10 +47,7 @@ private:
     TransferService *transferService_ = nullptr;
 
     // State
-    int operationTotalCount_ = 0;
-    int operationCompletedCount_ = 0;
     bool progressPending_ = false;
-    bool waitingForNewBatch_ = true;  // Start true so first batch is detected
     OperationType currentOperationType_ = OperationType::Upload;
 
     // UI widgets

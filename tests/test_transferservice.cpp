@@ -228,10 +228,10 @@ void TestTransferService::testFolderExistsConfirmationForwarded()
 {
     QSignalSpy spy(service_, &TransferService::folderExistsConfirmationNeeded);
 
-    emit queue_->folderExistsConfirmationNeeded("myfolder");
+    emit queue_->folderExistsConfirmationNeeded(QStringList{"myfolder"});
 
     QCOMPARE(spy.count(), 1);
-    QCOMPARE(spy.at(0).at(0).toString(), QString("myfolder"));
+    QCOMPARE(spy.at(0).at(0).toStringList(), QStringList{"myfolder"});
 }
 
 // Queue state query tests

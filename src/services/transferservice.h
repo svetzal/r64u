@@ -125,6 +125,12 @@ public:
     void cancelAll();
 
     /**
+     * @brief Cancels a specific batch by ID.
+     * @param batchId The batch to cancel.
+     */
+    void cancelBatch(int batchId);
+
+    /**
      * @brief Removes completed items from the queue.
      */
     void removeCompleted();
@@ -203,6 +209,31 @@ public:
      * @return True if scanning directories for delete.
      */
     [[nodiscard]] bool isScanningForDelete() const;
+
+    /**
+     * @brief Returns progress information for the active batch.
+     * @return BatchProgress with current batch state.
+     */
+    [[nodiscard]] BatchProgress activeBatchProgress() const;
+
+    /**
+     * @brief Returns progress information for a specific batch.
+     * @param batchId The batch ID to query.
+     * @return BatchProgress for the batch, or invalid if not found.
+     */
+    [[nodiscard]] BatchProgress batchProgress(int batchId) const;
+
+    /**
+     * @brief Returns list of all current batch IDs.
+     * @return List of batch IDs in queue order.
+     */
+    [[nodiscard]] QList<int> allBatchIds() const;
+
+    /**
+     * @brief Checks if there is an active batch.
+     * @return True if a batch is currently active.
+     */
+    [[nodiscard]] bool hasActiveBatch() const;
     /// @}
 
     /// @name Overwrite Handling
@@ -307,9 +338,29 @@ signals:
 
     /**
      * @brief Emitted when folder exists confirmation is needed.
-     * @param folderName The folder that exists.
+     * @param folderNames List of folders that already exist.
      */
-    void folderExistsConfirmationNeeded(const QString &folderName);
+    void folderExistsConfirmationNeeded(const QStringList &folderNames);
+
+    /**
+     * @brief Emitted when a batch starts processing.
+     * @param batchId The batch identifier.
+     */
+    void batchStarted(int batchId);
+
+    /**
+     * @brief Emitted when batch progress updates.
+     * @param batchId The batch identifier.
+     * @param completed Number of completed items.
+     * @param total Total items in batch.
+     */
+    void batchProgressUpdate(int batchId, int completed, int total);
+
+    /**
+     * @brief Emitted when a batch completes.
+     * @param batchId The batch identifier.
+     */
+    void batchCompleted(int batchId);
     /// @}
 
     /// @name Status Signals
@@ -321,6 +372,32 @@ signals:
      * @param timeout Display timeout in milliseconds (0 for no timeout).
      */
     void statusMessage(const QString &message, int timeout = 0);
+    /// @}
+
+    /// @name Scanning Progress Signals
+    /// @{
+
+    /**
+     * @brief Emitted when directory scanning starts.
+     * @param folderName The name of the folder being scanned.
+     * @param type The operation type (Download or Delete).
+     */
+    void scanningStarted(const QString &folderName, OperationType type);
+
+    /**
+     * @brief Emitted when scanning progress updates.
+     * @param directoriesScanned Number of directories scanned.
+     * @param directoriesRemaining Number of directories left to scan.
+     * @param filesDiscovered Number of files found so far.
+     */
+    void scanningProgress(int directoriesScanned, int directoriesRemaining, int filesDiscovered);
+
+    /**
+     * @brief Emitted when directory creation progress updates.
+     * @param created Number of directories created.
+     * @param total Total directories to create.
+     */
+    void directoryCreationProgress(int created, int total);
     /// @}
 
 private:

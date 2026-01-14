@@ -60,7 +60,13 @@ void MockFtpClient::makeDirectory(const QString &path)
 
 void MockFtpClient::removeDirectory(const QString &path)
 {
-    Q_UNUSED(path)
+    // Track for test assertions (reuses deleteRequests_ since it's the same semantic operation)
+    deleteRequests_.append(path);
+
+    PendingOp op;
+    op.type = PendingOp::RemoveDir;
+    op.path = path;
+    pendingOps_.enqueue(op);
 }
 
 void MockFtpClient::download(const QString &remotePath, const QString &localPath)
@@ -198,6 +204,10 @@ void MockFtpClient::mockProcessNextOperation()
     }
     case PendingOp::Delete: {
         emit fileRemoved(op.path);
+        break;
+    }
+    case PendingOp::RemoveDir: {
+        emit fileRemoved(op.path);  // Same signal as remove - directory was removed
         break;
     }
     case PendingOp::Rename: {

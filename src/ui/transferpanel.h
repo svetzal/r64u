@@ -10,7 +10,7 @@ class TransferQueue;
 class TransferService;
 class LocalFileBrowserWidget;
 class RemoteFileBrowserWidget;
-class TransferProgressWidget;
+class TransferProgressContainer;
 
 class TransferPanel : public QWidget
 {
@@ -60,7 +60,7 @@ private:
     QSplitter *splitter_ = nullptr;
     RemoteFileBrowserWidget *remoteBrowser_ = nullptr;
     LocalFileBrowserWidget *localBrowser_ = nullptr;
-    TransferProgressWidget *progressWidget_ = nullptr;
+    TransferProgressContainer *progressContainer_ = nullptr;
 };
 
 #endif // TRANSFERPANEL_H

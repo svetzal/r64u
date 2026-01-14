@@ -290,6 +290,7 @@ private:
     // RAII struct for pending LIST state - cleared with single reset()
     struct PendingListState {
         QString path;
+        QByteArray buffer;  // Save buffer when 226 arrives before data socket closes
     };
 
     // RAII struct for pending RETR state - cleared with single reset()
@@ -306,6 +307,8 @@ private:
                       const QString &localPath = QString());
     void queueRetrCommand(const QString &remotePath, const QString &localPath,
                           std::shared_ptr<QFile> file, bool isMemory);
+    void queueStorCommand(const QString &remotePath, const QString &localPath,
+                          std::shared_ptr<QFile> file);
     void processNextCommand();
     void handleResponse(int code, const QString &text);
     void handleBusyResponse(int code, const QString &text);
@@ -345,8 +348,9 @@ private:
     QByteArray retrBuffer_;   // Buffer for RETR (file download to memory) data
     qint64 transferSize_ = 0;
     bool downloading_ = false;
-    std::shared_ptr<QFile> transferFile_;  // For uploads (STOR command)
+    std::shared_ptr<QFile> transferFile_;  // Legacy - no longer used for STOR
     std::shared_ptr<QFile> currentRetrFile_;  // Current RETR command file
+    std::shared_ptr<QFile> currentStorFile_;  // Current STOR command file
     bool currentRetrIsMemory_ = false;
 
     // Pending operation state

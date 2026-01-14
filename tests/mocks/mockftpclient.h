@@ -189,7 +189,7 @@ public:
 
 private:
     struct PendingOp {
-        enum Type { List, Download, Upload, Mkdir, DownloadToMemory, Delete, Rename };
+        enum Type { List, Download, Upload, Mkdir, DownloadToMemory, Delete, RemoveDir, Rename };
         Type type;
         QString path;
         QString localPath;
