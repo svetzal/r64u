@@ -143,7 +143,7 @@ public:
     void setFtpClient(IFtpClient *client);
 
     // Queue operations
-    void enqueueUpload(const QString &localPath, const QString &remotePath);
+    void enqueueUpload(const QString &localPath, const QString &remotePath, int targetBatchId = -1);
     void enqueueDownload(const QString &remotePath, const QString &localPath, int targetBatchId = -1);
 
     // Recursive operations
@@ -340,6 +340,7 @@ private:
         QString remoteDir;
         QString targetDir;  // The actual target path (remoteDir + folderName)
         bool exists = false;  // Set after checking if folder exists on remote
+        int batchId = -1;  // Batch ID for this folder upload (assigned when upload starts)
     };
     QQueue<PendingFolderUpload> pendingFolderUploads_;  // Queue of folders waiting to check/upload
     QList<PendingFolderUpload> foldersToUpload_;  // Folders ready to upload (after confirmation)

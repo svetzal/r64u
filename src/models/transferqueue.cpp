@@ -218,20 +218,33 @@ void TransferQueue::setFtpClient(IFtpClient *client)
     }
 }
 
-void TransferQueue::enqueueUpload(const QString &localPath, const QString &remotePath)
+void TransferQueue::enqueueUpload(const QString &localPath, const QString &remotePath, int targetBatchId)
 {
-    // Ensure we have an active batch for uploads
-    int batchIdx = activeBatchIndex_;
-    if (batchIdx < 0 || batches_[batchIdx].operationType != OperationType::Upload) {
-        QString fileName = QFileInfo(localPath).fileName();
-        // For recursive uploads, use the base path as source for duplicate detection
-        QString sourcePath = !currentFolderUpload_.localDir.isEmpty() ? currentFolderUpload_.localDir : QString();
-        int batchId = createBatch(OperationType::Upload, tr("Uploading %1").arg(fileName), sourcePath);
-        // Find the batch we just created
+    // Use the target batch if specified, otherwise find/create one
+    int batchIdx = -1;
+    if (targetBatchId >= 0) {
         for (int i = 0; i < batches_.size(); ++i) {
-            if (batches_[i].batchId == batchId) {
+            if (batches_[i].batchId == targetBatchId) {
                 batchIdx = i;
                 break;
+            }
+        }
+    }
+
+    // Fall back to finding/creating a batch if target not found
+    if (batchIdx < 0) {
+        batchIdx = activeBatchIndex_;
+        if (batchIdx < 0 || batches_[batchIdx].operationType != OperationType::Upload) {
+            QString fileName = QFileInfo(localPath).fileName();
+            // For recursive uploads, use the base path as source for duplicate detection
+            QString sourcePath = !currentFolderUpload_.localDir.isEmpty() ? currentFolderUpload_.localDir : QString();
+            int batchId = createBatch(OperationType::Upload, tr("Uploading %1").arg(fileName), sourcePath);
+            // Find the batch we just created
+            for (int i = 0; i < batches_.size(); ++i) {
+                if (batches_[i].batchId == batchId) {
+                    batchIdx = i;
+                    break;
+                }
             }
         }
     }
@@ -394,8 +407,13 @@ void TransferQueue::startRecursiveUpload()
 
     qDebug() << "TransferQueue: Starting recursive upload from" << localDir << "to" << targetDir;
 
-    // Emit operationStarted to keep refresh suppressed during directory creation and file uploads
+    // Create the batch immediately so the progress widget appears during directory creation
     QString folderName = QFileInfo(localDir).fileName();
+    int batchId = createBatch(OperationType::Upload, tr("Uploading %1").arg(folderName), localDir);
+    currentFolderUpload_.batchId = batchId;
+    qDebug() << "TransferQueue: Created batch" << batchId << "for recursive upload of" << folderName;
+
+    // Emit operationStarted to keep refresh suppressed during directory creation and file uploads
     emit operationStarted(folderName, OperationType::Upload);
 
     // Collect all directories that need to be created first
@@ -426,7 +444,7 @@ void TransferQueue::startRecursiveUpload()
     directoriesCreated_ = 0;
     totalDirectoriesToCreate_ = pendingMkdirs_.size();
 
-    // Emit initial progress
+    // Emit initial progress - the batch was created above so the widget should show this
     emit directoryCreationProgress(0, totalDirectoriesToCreate_);
 
     // Start creating directories
@@ -503,7 +521,8 @@ void TransferQueue::onFolderUploadComplete()
 
 void TransferQueue::processRecursiveUpload(const QString &localDir, const QString &remoteDir)
 {
-    // Queue all files for upload
+    // Queue all files for upload to the batch created in startRecursiveUpload
+    int batchId = currentFolderUpload_.batchId;
     QDir dir(localDir);
     QDirIterator it(localDir, QDir::Files, QDirIterator::Subdirectories);
 
@@ -512,7 +531,7 @@ void TransferQueue::processRecursiveUpload(const QString &localDir, const QStrin
         QString relativePath = dir.relativeFilePath(filePath);
         QString remotePath = remoteDir + '/' + relativePath;
 
-        enqueueUpload(filePath, remotePath);
+        enqueueUpload(filePath, remotePath, batchId);
     }
 }
 
