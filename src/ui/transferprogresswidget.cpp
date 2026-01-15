@@ -223,8 +223,10 @@ void TransferProgressWidget::updateProgressDisplay()
         int progress = (total > 0) ? (completed * 100) / total : 0;
         progressBar_->setValue(progress);
 
+        // Cap at total to avoid showing "17 of 16" when complete
+        int displayItem = qMin(completed + 1, total);
         statusLabel_->setText(tr("Deleting %1 of %2 items...")
-            .arg(completed + 1)
+            .arg(displayItem)
             .arg(total));
     } else if (batchProgress.isValid() && batchProgress.totalItems > 0) {
         progressBar_->setMaximum(100);
@@ -244,9 +246,11 @@ void TransferProgressWidget::updateProgressDisplay()
             actionVerb = tr("Deleting");
             break;
         }
+        // Cap at totalItems to avoid showing "17 of 16" when complete
+        int displayItem = qMin(completed + 1, batchProgress.totalItems);
         statusLabel_->setText(tr("%1 %2 of %3 items...")
             .arg(actionVerb)
-            .arg(completed + 1)
+            .arg(displayItem)
             .arg(batchProgress.totalItems));
     }
 }

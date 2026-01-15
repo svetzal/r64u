@@ -75,8 +75,10 @@ void BatchProgressWidget::updateProgress(const BatchProgress &progress)
         int completed = progress.deleteProgress;
         int pct = (total > 0) ? (completed * 100) / total : 0;
         progressBar_->setValue(pct);
+        // Cap at total to avoid showing "17 of 16" when complete
+        int displayItem = qMin(completed + 1, total);
         statusLabel_->setText(tr("Deleting %1 of %2 items...")
-            .arg(completed + 1)
+            .arg(displayItem)
             .arg(total));
     } else if (progress.totalItems > 0) {
         setState(State::Active);
@@ -97,9 +99,12 @@ void BatchProgressWidget::updateProgress(const BatchProgress &progress)
             actionVerb = tr("Deleting");
             break;
         }
+        // Show "X of Y" where X is the item currently being processed (1-indexed)
+        // Cap at totalItems to avoid showing "17 of 16" when complete
+        int displayItem = qMin(completed + 1, progress.totalItems);
         statusLabel_->setText(tr("%1 %2 of %3 items...")
             .arg(actionVerb)
-            .arg(completed + 1)
+            .arg(displayItem)
             .arg(progress.totalItems));
     }
 
