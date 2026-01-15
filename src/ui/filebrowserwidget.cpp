@@ -56,6 +56,8 @@ void FileBrowserWidget::setupUi()
     treeView_->setAlternatingRowColors(true);
     treeView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
     treeView_->setContextMenuPolicy(Qt::CustomContextMenu);
+    treeView_->setSortingEnabled(true);
+    treeView_->sortByColumn(0, Qt::AscendingOrder);  // Sort by name, folders first via proxy
     treeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     layout->addWidget(treeView_);
 

@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QDebug>
 #include <functional>
+#include <algorithm>
 
 RemoteFileModel::RemoteFileModel(QObject *parent)
     : QAbstractItemModel(parent)
@@ -576,10 +577,21 @@ void RemoteFileModel::populateNode(TreeNode *node, const QList<FtpEntry> &entrie
     }
 
     if (!entries.isEmpty()) {
-        qDebug() << "Model: beginInsertRows parentIndex:" << parentIndex << "rows 0 to" << entries.count() - 1;
-        beginInsertRows(parentIndex, 0, entries.count() - 1);
+        // Sort entries: directories first, then alphabetically by name (case-insensitive)
+        QList<FtpEntry> sortedEntries = entries;
+        std::sort(sortedEntries.begin(), sortedEntries.end(), [](const FtpEntry &a, const FtpEntry &b) {
+            // Directories come before files
+            if (a.isDirectory != b.isDirectory) {
+                return a.isDirectory;  // true (dir) < false (file)
+            }
+            // Same type: sort alphabetically (case-insensitive)
+            return a.name.compare(b.name, Qt::CaseInsensitive) < 0;
+        });
 
-        for (const FtpEntry &entry : entries) {
+        qDebug() << "Model: beginInsertRows parentIndex:" << parentIndex << "rows 0 to" << sortedEntries.count() - 1;
+        beginInsertRows(parentIndex, 0, sortedEntries.count() - 1);
+
+        for (const FtpEntry &entry : sortedEntries) {
             TreeNode *child = new TreeNode;
             child->name = entry.name;
             child->isDirectory = entry.isDirectory;
