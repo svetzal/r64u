@@ -57,6 +57,11 @@ void LocalFileBrowserWidget::setupUi()
     treeView_->setModel(proxyModel_);
     treeView_->setRootIndex(proxyModel_->mapFromSource(fileModel_->index(currentDirectory_)));
 
+    // Hide Type and Date Modified columns to match remote view (Name + Size only)
+    // QFileSystemModel columns: 0=Name, 1=Size, 2=Type, 3=Date Modified
+    treeView_->hideColumn(2);  // Type
+    treeView_->hideColumn(3);  // Date Modified
+
     updateActions();
 }
 
