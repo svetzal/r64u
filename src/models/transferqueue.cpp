@@ -1464,11 +1464,20 @@ void TransferQueue::onDirectoryListed(const QString &path, const QList<FtpEntry>
         qDebug() << "TransferQueue: Next scan:" << next.remotePath;
         ftpClient_->list(next.remotePath);
     } else {
-        qDebug() << "TransferQueue: All scans complete, starting transfers";
+        qDebug() << "TransferQueue: All scans complete, filesDiscovered:" << filesDiscovered_;
         // All directories scanned - now start processing the download queue
         scanningDirectories_ = false;
-        transitionTo(QueueState::Idle);
-        scheduleProcessNext();
+
+        // If no files were discovered (empty folder), complete the batch immediately
+        if (filesDiscovered_ == 0 && hasActiveBatch()) {
+            int batchId = batches_[activeBatchIndex_].batchId;
+            qDebug() << "TransferQueue: Empty folder - completing batch" << batchId << "immediately";
+            emit statusMessage(tr("Folder is empty - nothing to download"), 3000);
+            completeBatch(batchId);
+        } else {
+            transitionTo(QueueState::Idle);
+            scheduleProcessNext();
+        }
     }
 }
 
