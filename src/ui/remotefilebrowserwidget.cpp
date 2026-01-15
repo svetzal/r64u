@@ -81,7 +81,11 @@ void RemoteFileBrowserWidget::setupUi()
     treeView_->setAlternatingRowColors(true);
     treeView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
     treeView_->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    // Set column widths: Size and Type get fixed widths, Name stretches
     treeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+    treeView_->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    treeView_->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
 
     connect(treeView_, &QTreeView::customContextMenuRequested,
             this, &RemoteFileBrowserWidget::onContextMenu);

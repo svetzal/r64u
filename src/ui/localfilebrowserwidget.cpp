@@ -9,6 +9,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QTreeView>
+#include <QHeaderView>
 #include <QToolBar>
 #include <QMenu>
 #include <QSet>
@@ -51,16 +52,20 @@ void LocalFileBrowserWidget::setupUi()
     fileModel_ = new QFileSystemModel(this);
     fileModel_->setRootPath(currentDirectory_);
 
-    // Use proxy model to show file sizes in bytes instead of KB/MB
+    // Use proxy model for C64-specific file types and byte-sized display
     proxyModel_ = new LocalFileProxyModel(this);
     proxyModel_->setSourceModel(fileModel_);
     treeView_->setModel(proxyModel_);
     treeView_->setRootIndex(proxyModel_->mapFromSource(fileModel_->index(currentDirectory_)));
 
-    // Hide Type and Date Modified columns to match remote view (Name + Size only)
     // QFileSystemModel columns: 0=Name, 1=Size, 2=Type, 3=Date Modified
-    treeView_->hideColumn(2);  // Type
+    // Show Name, Size, Type (with C64-specific types); hide Date Modified
     treeView_->hideColumn(3);  // Date Modified
+
+    // Set column widths: Size and Type get fixed widths, Name stretches
+    treeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+    treeView_->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    treeView_->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
 
     updateActions();
 }
