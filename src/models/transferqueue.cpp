@@ -273,6 +273,7 @@ void TransferQueue::enqueueUpload(const QString &localPath, const QString &remot
     if (activeBatchIndex_ < 0) {
         activeBatchIndex_ = batchIdx;
         batches_[batchIdx].isActive = true;
+        batches_[batchIdx].hasBeenProcessed = true;
         emit batchStarted(batches_[batchIdx].batchId);
     }
 
@@ -339,6 +340,7 @@ void TransferQueue::enqueueDownload(const QString &remotePath, const QString &lo
     if (activeBatchIndex_ < 0) {
         activeBatchIndex_ = batchIdx;
         batches_[batchIdx].isActive = true;
+        batches_[batchIdx].hasBeenProcessed = true;
         emit batchStarted(batches_[batchIdx].batchId);
     }
 
@@ -1522,6 +1524,7 @@ void TransferQueue::enqueueDelete(const QString &remotePath, bool isDirectory)
     if (activeBatchIndex_ < 0) {
         activeBatchIndex_ = batchIdx;
         batches_[batchIdx].isActive = true;
+        batches_[batchIdx].hasBeenProcessed = true;
         emit batchStarted(batches_[batchIdx].batchId);
     }
 
@@ -2026,6 +2029,7 @@ void TransferQueue::activateNextBatch()
         if (!batches_[i].isActive && !batches_[i].isComplete()) {
             activeBatchIndex_ = i;
             batches_[i].isActive = true;
+            batches_[i].hasBeenProcessed = true;
             qDebug() << "TransferQueue: Activated batch" << batches_[i].batchId;
             emit batchStarted(batches_[i].batchId);
             return;

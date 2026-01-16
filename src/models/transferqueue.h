@@ -83,11 +83,13 @@ struct TransferBatch {
 
     // Batch state
     bool isActive = false;
+    bool hasBeenProcessed = false;  // True once scanning/processing has started
 
     // Computed properties
     [[nodiscard]] int totalCount() const { return items.size(); }
     [[nodiscard]] int pendingCount() const { return totalCount() - completedCount - failedCount; }
-    [[nodiscard]] bool isComplete() const { return pendingCount() == 0; }
+    /// A batch is complete if it has been processed AND has no pending items
+    [[nodiscard]] bool isComplete() const { return hasBeenProcessed && pendingCount() == 0; }
 };
 
 /**
