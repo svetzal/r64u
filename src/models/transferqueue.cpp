@@ -664,6 +664,7 @@ void TransferQueue::clear()
     pendingConfirmation_.clear();
     waitingForOverwriteResponse_ = false;
     waitingForFolderExistsResponse_ = false;
+    overwriteAll_ = false;
 
     // Clear compound operation
     compoundOp_.clear();
@@ -745,6 +746,7 @@ void TransferQueue::cancelAll()
     pendingConfirmation_.clear();
     waitingForOverwriteResponse_ = false;
     waitingForFolderExistsResponse_ = false;
+    overwriteAll_ = false;
 
     // Clear compound operation
     compoundOp_.clear();
@@ -1064,7 +1066,7 @@ void TransferQueue::processNext()
     stopOperationTimeout();
     processing_ = false;
     currentIndex_ = -1;
-    overwriteAll_ = false;  // Reset for next batch
+    // Note: overwriteAll_ is preserved across batches and only reset when all operations complete
 
     // Note: allOperationsCompleted is now emitted by completeBatch()
     // when all batches are done. If we get here without any batches,
@@ -2078,13 +2080,10 @@ void TransferQueue::completeBatch(int batchId)
         return;
     }
 
-    // Reset overwrite flag only when no more folder uploads are pending
-    overwriteAll_ = false;
-
     // Activate next batch if available
     activateNextBatch();
 
-    // If no more active batches, emit allOperationsCompleted and start processing next
+    // If no more active batches, emit allOperationsCompleted and reset overwrite flag
     bool hasActiveBatches = false;
     for (const auto &b : batches_) {
         if (b.isActive || !b.isComplete()) {
@@ -2095,9 +2094,10 @@ void TransferQueue::completeBatch(int batchId)
 
     if (!hasActiveBatches) {
         qDebug() << "TransferQueue: All batches complete";
+        overwriteAll_ = false;  // Reset only when all operations are done
         emit allOperationsCompleted();
     } else if (activeBatchIndex_ >= 0) {
-        // Start processing the next batch
+        // Start processing the next batch - preserve overwriteAll_ for continuity
         scheduleProcessNext();
     }
 }
