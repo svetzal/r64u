@@ -1043,8 +1043,11 @@ void TransferQueue::processNext()
             // Start operation timeout timer
             startOperationTimeout();
 
-            qDebug() << "TransferQueue: Starting operation" << i << "remote:" << items_[i].remotePath
-                     << "local:" << items_[i].localPath;
+            qDebug() << "[QUEUE] Starting transfer for item" << i
+                     << "batchId:" << items_[i].batchId
+                     << "remote:" << items_[i].remotePath
+                     << "local:" << items_[i].localPath
+                     << "operationType:" << static_cast<int>(items_[i].operationType);
 
             if (items_[i].operationType == OperationType::Upload) {
                 ftpClient_->upload(items_[i].localPath, items_[i].remotePath);
@@ -1144,10 +1147,19 @@ void TransferQueue::respondToOverwrite(OverwriteResponse response)
 
 int TransferQueue::findItemIndex(const QString &localPath, const QString &remotePath) const
 {
+    qDebug() << "[FIND] Looking for local:" << localPath << "remote:" << remotePath;
     for (int i = 0; i < items_.size(); ++i) {
         if (items_[i].localPath == localPath && items_[i].remotePath == remotePath) {
+            qDebug() << "[FIND] Found match at index" << i;
             return i;
         }
+    }
+    qDebug() << "[FIND] NO MATCH FOUND - queue contents:";
+    for (int i = 0; i < items_.size(); ++i) {
+        qDebug() << "  [FIND] Item" << i
+                 << "local:" << items_[i].localPath
+                 << "remote:" << items_[i].remotePath
+                 << "status:" << static_cast<int>(items_[i].status);
     }
     return -1;
 }
@@ -1216,10 +1228,16 @@ void TransferQueue::onDownloadFinished(const QString &remotePath, const QString 
 {
     stopOperationTimeout();
 
-    qDebug() << "TransferQueue: onDownloadFinished remotePath:" << remotePath << "localPath:" << localPath;
+    qDebug() << "[QUEUE] onDownloadFinished received"
+             << "remotePath:" << remotePath
+             << "localPath:" << localPath
+             << "items_.size():" << items_.size()
+             << "processing_:" << processing_
+             << "state_:" << static_cast<int>(state_)
+             << "currentIndex_:" << currentIndex_;
 
     int idx = findItemIndex(localPath, remotePath);
-    qDebug() << "TransferQueue: findItemIndex returned:" << idx;
+    qDebug() << "[QUEUE] findItemIndex returned:" << idx;
 
     if (idx >= 0) {
         items_[idx].status = TransferItem::Status::Completed;

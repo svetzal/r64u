@@ -457,6 +457,33 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_filepreviewstrategies)
 endif()
 
+# Real Device Download integration test (optional - requires actual hardware)
+# Build only when BUILD_INTEGRATION_TESTS is ON
+option(BUILD_INTEGRATION_TESTS "Build integration tests that require real hardware" OFF)
+
+if(BUILD_INTEGRATION_TESTS)
+    add_executable(test_realdevice_download
+        integration/test_realdevice_download.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+        ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    )
+
+    target_include_directories(test_realdevice_download PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+    )
+
+    target_link_libraries(test_realdevice_download PRIVATE
+        Qt6::Core
+        Qt6::Test
+        Qt6::Network
+    )
+
+    # Note: Not registered with CTest as it requires hardware
+    # Run manually with:
+    # DEVICE_HOST=192.168.1.137 TEST_FOLDERS="/SD/folder1,/SD/folder2" ./test_realdevice_download
+endif()
+
 # FileBrowserSync integration tests
 add_executable(test_filebrowsersync
     test_filebrowsersync.cpp

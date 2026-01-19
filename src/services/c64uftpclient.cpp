@@ -552,10 +552,15 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
         } else if (code == FtpReplyTransferComplete) {
             // Transfer complete on server side, but data may still be in flight
             // Use currentRetrFile_/currentRetrIsMemory_ which were set when RETR was dequeued
+            qDebug() << "[RETR] 226 received for" << currentArg_
+                     << "dataSocket state:" << dataSocket_->state()
+                     << "bytesAvailable:" << dataSocket_->bytesAvailable()
+                     << "pendingRetr_ exists:" << pendingRetr_.has_value()
+                     << "isMemory:" << currentRetrIsMemory_
+                     << "file:" << currentRetrFile_.get();
             if (dataSocket_->state() == QAbstractSocket::UnconnectedState) {
                 // Data socket already closed, process immediately
-                qDebug() << "FTP: RETR 226 received, data socket already closed, processing"
-                         << "isMemory:" << currentRetrIsMemory_ << "file:" << currentRetrFile_.get();
+                qDebug() << "[RETR] Data socket already closed, processing immediately";
                 if (currentRetrIsMemory_) {
                     emit downloadToMemoryFinished(currentArg_, retrBuffer_);
                     retrBuffer_.clear();
@@ -571,7 +576,8 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                 processNextCommand();
             } else {
                 // Wait for data socket to close before processing
-                qDebug() << "FTP: RETR 226 received, waiting for data socket to finish";
+                qDebug() << "[RETR] Creating pendingRetr_, waiting for data socket to finish"
+                         << "socketState:" << dataSocket_->state();
                 pendingRetr_ = PendingRetrState{
                     currentArg_,
                     currentLocalPath_,
@@ -581,6 +587,11 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                 // Clear current state (saved in pending struct)
                 currentRetrFile_.reset();
                 currentRetrIsMemory_ = false;
+
+                // CRITICAL: Check if socket is ALREADY disconnected (race condition)
+                if (dataSocket_->state() == QAbstractSocket::UnconnectedState) {
+                    qCritical() << "[RETR] BUG: Socket already disconnected but we just created pendingRetr_!";
+                }
                 // Don't process next command yet - wait for data socket
             }
         } else if (code >= FtpReplyErrorThreshold) {
@@ -715,7 +726,11 @@ void C64UFtpClient::onDataReadyRead()
 
 void C64UFtpClient::onDataDisconnected()
 {
-    qDebug() << "FTP: Data socket disconnected, bytes available:" << dataSocket_->bytesAvailable();
+    qDebug() << "[DATA] Socket disconnected"
+             << "bytesAvailable:" << dataSocket_->bytesAvailable()
+             << "pendingRetr_ exists:" << pendingRetr_.has_value()
+             << "pendingList_ exists:" << pendingList_.has_value()
+             << "currentCommand_:" << static_cast<int>(currentCommand_);
     // Read any remaining data before disconnect completes
     if (dataSocket_->bytesAvailable() > 0) {
         onDataReadyRead();
@@ -734,8 +749,10 @@ void C64UFtpClient::onDataDisconnected()
         emit directoryListed(path, entries);
         processNextCommand();
     } else if (pendingRetr_) {
-        qDebug() << "FTP: Processing pending RETR for" << pendingRetr_->remotePath
-                 << "isMemory:" << pendingRetr_->isMemory << "file:" << pendingRetr_->file.get();
+        qDebug() << "[RETR] Processing pending RETR for" << pendingRetr_->remotePath
+                 << "localPath:" << pendingRetr_->localPath
+                 << "isMemory:" << pendingRetr_->isMemory
+                 << "file:" << pendingRetr_->file.get();
         // Use the SAVED state, not the current global state (which may have been
         // corrupted by other operations like downloadToMemory for file preview)
         if (pendingRetr_->isMemory) {

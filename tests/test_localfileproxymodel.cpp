@@ -70,9 +70,9 @@ private slots:
         // Force the model to fetch children
         fsModel->fetchMore(rootIdx);
 
-        // Wait for async operations
+        // Wait for async operations - QFileSystemModel can be slow
         QSignalSpy spy(fsModel, &QAbstractItemModel::layoutChanged);
-        QTest::qWait(100);
+        QTest::qWait(500);
 
         // Find our test file
         for (int i = 0; i < fsModel->rowCount(rootIdx); i++) {
