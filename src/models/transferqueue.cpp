@@ -1276,6 +1276,12 @@ void TransferQueue::onDownloadFinished(const QString &remotePath, const QString 
 
 void TransferQueue::onFtpError(const QString &message)
 {
+    qDebug() << "[QUEUE] onFtpError received:" << message
+             << "currentIndex_:" << currentIndex_
+             << "items_.size():" << items_.size()
+             << "state_:" << static_cast<int>(state_)
+             << "processing_:" << processing_;
+
     stopOperationTimeout();
 
     // Check if this error is from a recursive delete operation
@@ -1315,6 +1321,9 @@ void TransferQueue::onFtpError(const QString &message)
     pendingMkdirs_.clear();
 
     if (currentIndex_ >= 0 && currentIndex_ < items_.size()) {
+        qDebug() << "[QUEUE] Marking item" << currentIndex_ << "as Failed"
+                 << "batchId:" << items_[currentIndex_].batchId
+                 << "remote:" << items_[currentIndex_].remotePath;
         items_[currentIndex_].status = TransferItem::Status::Failed;
         items_[currentIndex_].errorMessage = message;
         emit dataChanged(index(currentIndex_), index(currentIndex_));
@@ -1330,6 +1339,10 @@ void TransferQueue::onFtpError(const QString &message)
         int batchId = items_[currentIndex_].batchId;
         if (TransferBatch *batch = findBatch(batchId)) {
             batch->failedCount++;
+            qDebug() << "[QUEUE] Batch" << batchId << "failedCount now:" << batch->failedCount
+                     << "completedCount:" << batch->completedCount
+                     << "totalCount:" << batch->totalCount()
+                     << "isComplete:" << batch->isComplete();
             emit batchProgressUpdate(batchId, batch->completedCount + batch->failedCount, batch->totalCount());
 
             // Check if batch is complete (all items processed, even if some failed)
@@ -1338,6 +1351,8 @@ void TransferQueue::onFtpError(const QString &message)
                 return;  // processNext will be called after batch cleanup
             }
         }
+    } else {
+        qDebug() << "[QUEUE] onFtpError: currentIndex_ invalid, cannot mark item as failed";
     }
 
     // Reset processing state before scheduling next operation
