@@ -74,3 +74,4 @@ CPackSourceConfig.cmake
 # Generated source files (in-source builds)
 generated/
 logs.txt
+logs2.txt

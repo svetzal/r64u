@@ -1030,6 +1030,17 @@ void TransferQueue::processNext()
             items_[i].status = TransferItem::Status::InProgress;
             processing_ = true;
 
+            // Mark batch as having been processed when its first item starts
+            // This is needed because items may be processed before the batch becomes "active"
+            // (e.g., if items from multiple batches are interleaved in the queue)
+            int batchId = items_[i].batchId;
+            if (TransferBatch *batch = findBatch(batchId)) {
+                if (!batch->hasBeenProcessed) {
+                    batch->hasBeenProcessed = true;
+                    qDebug() << "[QUEUE] Marked batch" << batchId << "as processed (first item started)";
+                }
+            }
+
             // Use appropriate state based on operation type
             if (items_[i].operationType == OperationType::Delete) {
                 transitionTo(QueueState::Deleting);
