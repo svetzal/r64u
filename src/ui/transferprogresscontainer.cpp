@@ -11,6 +11,12 @@ TransferProgressContainer::TransferProgressContainer(QWidget *parent)
     : QWidget(parent)
 {
     setupUi();
+
+    // Create debounce timer for queueChanged signals
+    queueChangedDebounceTimer_ = new QTimer(this);
+    queueChangedDebounceTimer_->setSingleShot(true);
+    connect(queueChangedDebounceTimer_, &QTimer::timeout,
+            this, &TransferProgressContainer::processQueueChanged);
 }
 
 void TransferProgressContainer::setupUi()
@@ -77,13 +83,20 @@ void TransferProgressContainer::setTransferService(TransferService *service)
 
 void TransferProgressContainer::onQueueChanged()
 {
+    // Debounce rapid-fire queueChanged signals to prevent UI freeze
+    // during fast transfers (e.g., many small files)
+    queueChangedDebounceTimer_->start(kQueueChangedDebounceMs);
+}
+
+void TransferProgressContainer::processQueueChanged()
+{
     if (!transferService_) {
         return;
     }
 
     // Create widgets for any new batches
     QList<int> allBatchIds = transferService_->allBatchIds();
-    qDebug() << "TransferProgressContainer::onQueueChanged - batches:" << allBatchIds.size()
+    qDebug() << "TransferProgressContainer::processQueueChanged - batches:" << allBatchIds.size()
              << "widgets:" << widgets_.size() << "batchIds:" << allBatchIds;
     for (int batchId : allBatchIds) {
         if (!widgets_.contains(batchId)) {

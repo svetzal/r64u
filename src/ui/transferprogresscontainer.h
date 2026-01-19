@@ -72,11 +72,16 @@ private:
     void updateVisibility();
     BatchProgressWidget* findOrCreateWidget(int batchId);
     void updateAllBatchWidgets();
+    void processQueueChanged();  // Actual processing after debounce
 
     TransferService *transferService_ = nullptr;
     QVBoxLayout *layout_ = nullptr;
     QMap<int, BatchProgressWidget*> widgets_;
     OperationType currentOperationType_ = OperationType::Download;
+
+    // Debounce timer for queueChanged signals to prevent UI flood
+    QTimer *queueChangedDebounceTimer_ = nullptr;
+    static constexpr int kQueueChangedDebounceMs = 50;  // 50ms debounce
 };
 
 #endif // TRANSFERPROGRESSCONTAINER_H
