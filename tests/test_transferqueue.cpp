@@ -2460,6 +2460,56 @@ private slots:
         // Clean up
         queue->setAutoMerge(false);
     }
+
+    // Test that batch progress includes folder name during folder download
+    // Bug: UI was showing "Downloading X of Y items..." without the folder name
+    // Expected: "FolderName - Downloading X of Y items..."
+    void testBatchProgressIncludesFolderNameDuringDownload()
+    {
+        // Setup remote directory with some files
+        QList<FtpEntry> entries;
+        for (int i = 0; i < 3; ++i) {
+            FtpEntry file;
+            file.name = QString("file%1.txt").arg(i);
+            file.isDirectory = false;
+            file.size = 100;
+            entries << file;
+        }
+        mockFtp->mockSetDirectoryListing("/remote/testfolder", entries);
+
+        for (int i = 0; i < 3; ++i) {
+            mockFtp->mockSetDownloadData(QString("/remote/testfolder/file%1.txt").arg(i), "content");
+        }
+
+        // Start recursive download
+        queue->enqueueRecursiveDownload("/remote/testfolder", tempDir.path());
+
+        // Get the batch ID
+        QVERIFY(!queue->allBatchIds().isEmpty());
+        int batchId = queue->allBatchIds().first();
+
+        // Process LIST to discover files
+        flushAndProcessNext();
+
+        // All 3 files should be in the batch
+        BatchProgress progress = queue->batchProgress(batchId);
+        QCOMPARE(progress.totalItems, 3);
+
+        // Key assertion: folderName should be "testfolder" (the folder being downloaded)
+        QCOMPARE(progress.folderName, QString("testfolder"));
+
+        // Also check activeBatchProgress which is used by the UI
+        BatchProgress activeProgress = queue->activeBatchProgress();
+        QCOMPARE(activeProgress.folderName, QString("testfolder"));
+
+        // Process downloads to complete
+        flushAndProcess();
+
+        // Verify files were downloaded
+        for (int i = 0; i < 3; ++i) {
+            QVERIFY(QFile::exists(tempDir.path() + QString("/testfolder/file%1.txt").arg(i)));
+        }
+    }
 };
 
 QTEST_MAIN(TestTransferQueue)

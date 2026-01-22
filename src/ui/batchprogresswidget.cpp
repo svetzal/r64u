@@ -102,10 +102,18 @@ void BatchProgressWidget::updateProgress(const BatchProgress &progress)
         // Show "X of Y" where X is the item currently being processed (1-indexed)
         // Cap at totalItems to avoid showing "17 of 16" when complete
         int displayItem = qMin(completed + 1, progress.totalItems);
-        statusLabel_->setText(tr("%1 %2 of %3 items...")
-            .arg(actionVerb)
-            .arg(displayItem)
-            .arg(progress.totalItems));
+        if (!progress.folderName.isEmpty()) {
+            statusLabel_->setText(tr("%1 - %2 %3 of %4 items...")
+                .arg(progress.folderName)
+                .arg(actionVerb)
+                .arg(displayItem)
+                .arg(progress.totalItems));
+        } else {
+            statusLabel_->setText(tr("%1 %2 of %3 items...")
+                .arg(actionVerb)
+                .arg(displayItem)
+                .arg(progress.totalItems));
+        }
     }
 
     // Update icon based on operation type

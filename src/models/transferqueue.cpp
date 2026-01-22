@@ -271,6 +271,8 @@ void TransferQueue::enqueueRecursiveUpload(const QString &localDir, const QStrin
     if (autoMerge_) {
         // Skip confirmation, go straight to processing
         if (state_ == QueueState::Idle) {
+            // New user operation starting - reset overwrite preference
+            overwriteAll_ = false;
             startFolderOperation(op);
         } else {
             pendingFolderOps_.enqueue(op);
@@ -282,6 +284,8 @@ void TransferQueue::enqueueRecursiveUpload(const QString &localDir, const QStrin
     pendingFolderOps_.enqueue(op);
 
     if (state_ == QueueState::Idle) {
+        // New user operation starting - reset overwrite preference
+        overwriteAll_ = false;
         transitionTo(QueueState::CollectingItems);
         debounceTimer_->start(DebounceMs);
     }
@@ -317,6 +321,8 @@ void TransferQueue::enqueueRecursiveDownload(const QString &remoteDir, const QSt
     if (autoMerge_ || !op.destExists) {
         // Skip confirmation, go straight to processing
         if (state_ == QueueState::Idle) {
+            // New user operation starting - reset overwrite preference
+            overwriteAll_ = false;
             startFolderOperation(op);
         } else {
             pendingFolderOps_.enqueue(op);
@@ -328,6 +334,8 @@ void TransferQueue::enqueueRecursiveDownload(const QString &remoteDir, const QSt
     pendingFolderOps_.enqueue(op);
 
     if (state_ == QueueState::Idle) {
+        // New user operation starting - reset overwrite preference
+        overwriteAll_ = false;
         transitionTo(QueueState::CollectingItems);
         debounceTimer_->start(DebounceMs);
     }
@@ -1005,6 +1013,8 @@ void TransferQueue::onUploadFinished(const QString &localPath, const QString &re
 
     int idx = findItemIndex(localPath, remotePath);
     if (idx >= 0) {
+        // Use the found index, not currentIndex_, in case another operation started
+        currentIndex_ = idx;
         markCurrentComplete(TransferItem::Status::Completed);
 
         QString fileName = QFileInfo(localPath).fileName();
@@ -1038,6 +1048,8 @@ void TransferQueue::onDownloadFinished(const QString &remotePath, const QString 
 
     int idx = findItemIndex(localPath, remotePath);
     if (idx >= 0) {
+        // Use the found index, not currentIndex_, in case another operation started
+        currentIndex_ = idx;
         markCurrentComplete(TransferItem::Status::Completed);
 
         QString fileName = QFileInfo(remotePath).fileName();
