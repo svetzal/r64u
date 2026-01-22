@@ -69,8 +69,10 @@ bool LocalFileProxyModel::lessThan(const QModelIndex &left, const QModelIndex &r
         return sortOrder() != Qt::AscendingOrder;
     }
 
-    // Both are directories or both are files - use default sorting
-    return QSortFilterProxyModel::lessThan(left, right);
+    // Both are directories or both are files - use case-insensitive sorting
+    QString leftFileName = fsModel->fileName(leftName);
+    QString rightFileName = fsModel->fileName(rightName);
+    return leftFileName.compare(rightFileName, Qt::CaseInsensitive) < 0;
 }
 
 QFileSystemModel *LocalFileProxyModel::sourceFileModel() const

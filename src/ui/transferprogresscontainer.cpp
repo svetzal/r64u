@@ -173,14 +173,21 @@ void TransferProgressContainer::onBatchProgressUpdate(int batchId, int completed
 
 void TransferProgressContainer::onBatchCompleted(int batchId)
 {
+    qDebug() << "TransferProgressContainer::onBatchCompleted - batchId:" << batchId
+             << "widgets_.contains:" << widgets_.contains(batchId)
+             << "widget count:" << widgets_.size();
+
     if (widgets_.contains(batchId)) {
         BatchProgressWidget *widget = widgets_[batchId];
         widget->setState(BatchProgressWidget::State::Completed);
 
         // Remove widget after brief delay for visual feedback
         QTimer::singleShot(500, this, [this, batchId]() {
+            qDebug() << "TransferProgressContainer: Timer fired, removing widget for batch" << batchId;
             onRemoveBatchWidget(batchId);
         });
+    } else {
+        qDebug() << "TransferProgressContainer: No widget found for batch" << batchId;
     }
 }
 

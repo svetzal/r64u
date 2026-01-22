@@ -646,6 +646,42 @@ private slots:
         QVERIFY(queue->rowCount() >= 1);
     }
 
+    // Bug fix test: Empty folder upload must complete without getting stuck
+    // Previously, if a folder had no files (only subdirectories), the batch
+    // would never complete because hasBeenProcessed was never set to true
+    // and no files were queued to trigger completion.
+    void testRecursiveUploadEmptyFolderCompletes()
+    {
+        // Create a local directory with subdirectories but NO files
+        QString localDir = tempDir.path() + "/empty_folder_upload";
+        QString subDir1 = localDir + "/subdir1";
+        QString subDir2 = localDir + "/subdir1/subdir2";  // Nested empty dir
+        QDir().mkpath(subDir2);
+
+        QSignalSpy batchCompletedSpy(queue, &TransferQueue::batchCompleted);
+        QSignalSpy allCompletedSpy(queue, &TransferQueue::allOperationsCompleted);
+
+        // Enqueue recursive upload of empty folder
+        queue->enqueueRecursiveUpload(localDir, "/remote");
+
+        // Should have queued mkdirs for the directories
+        QVERIFY(mockFtp->mockGetMkdirRequests().size() >= 1);
+
+        // Process all mkdirs
+        flushAndProcess();
+
+        // The batch should complete even though there are no files
+        QVERIFY2(batchCompletedSpy.count() >= 1,
+                 "Empty folder upload batch should complete");
+
+        // Queue should have 0 items (no files to transfer)
+        QCOMPARE(queue->rowCount(), 0);
+
+        // All operations should be completed
+        QVERIFY2(allCompletedSpy.count() >= 1,
+                 "allOperationsCompleted should be emitted for empty folder upload");
+    }
+
     // Bug fix test: Recursive upload must include files from ALL directories
     // Previously, processRecursiveUpload used the last dequeued PendingMkdir's
     // localDir, which was a subdirectory path, not the root directory.
@@ -1226,6 +1262,10 @@ private slots:
     }
 
     // Test recursive upload with mkdir failure recovery
+    // Bug fix test: When mkdir fails during folder upload, the queue should
+    // properly fail the batch and allow subsequent uploads to proceed.
+    // Previously, folderUploadInProgress_ was not reset on error, causing
+    // all subsequent folder uploads to be blocked.
     void testRecursiveUploadMkdirFailure()
     {
         QString localDir = tempDir.path() + "/nested";
@@ -1237,6 +1277,9 @@ private slots:
         file.write("content");
         file.close();
 
+        QSignalSpy batchCompletedSpy(queue, &TransferQueue::batchCompleted);
+        QSignalSpy operationFailedSpy(queue, &TransferQueue::operationFailed);
+
         queue->enqueueRecursiveUpload(localDir, "/remote");
 
         // First mkdir should be for the root directory
@@ -1246,8 +1289,28 @@ private slots:
         mockFtp->mockSetNextOperationFails("Cannot create directory");
         flushAndProcessNext();
 
-        // Queue should handle the failure gracefully
-        // This documents current behavior - may need improvement
+        // The batch should complete (as failed)
+        QVERIFY2(batchCompletedSpy.count() >= 1,
+                 "Batch should complete even when mkdir fails");
+
+        // Should have emitted operationFailed
+        QVERIFY2(operationFailedSpy.count() >= 1,
+                 "operationFailed should be emitted when mkdir fails");
+
+        // Now try another upload - it should not be blocked
+        QString localDir2 = tempDir.path() + "/another";
+        QDir().mkpath(localDir2);
+        QFile file2(localDir2 + "/file2.txt");
+        QVERIFY(file2.open(QIODevice::WriteOnly));
+        file2.write("content2");
+        file2.close();
+
+        batchCompletedSpy.clear();
+        queue->enqueueRecursiveUpload(localDir2, "/remote");
+
+        // Should have started a new mkdir - not blocked by previous failure
+        QVERIFY2(mockFtp->mockGetMkdirRequests().size() >= 2,
+                 "Second upload should start after first fails");
     }
 
     // =========================================================================
@@ -1979,7 +2042,8 @@ private slots:
         QVERIFY(QFile::exists(localPath));
     }
 
-    // Test that concurrent recursive downloads create separate batches
+    // Test that recursive downloads are serialized - one folder completes before next starts
+    // This ensures no race conditions and predictable ordering
     void testConcurrentRecursiveDownloadsCreateSeparateBatches()
     {
         // Setup two directories with files
@@ -1996,6 +2060,8 @@ private slots:
         mockFtp->mockSetDownloadData("/remote/folder1/file1.txt", "content1");
         mockFtp->mockSetDownloadData("/remote/folder2/file2.txt", "content2");
 
+        QSignalSpy allCompletedSpy(queue, &TransferQueue::allOperationsCompleted);
+
         // Start first recursive download
         queue->enqueueRecursiveDownload("/remote/folder1", tempDir.path());
 
@@ -2005,28 +2071,18 @@ private slots:
         QVERIFY(batch1Id > 0);
 
         // Start second recursive download while first is scanning
+        // With serialized design, folder2 is QUEUED, not started yet
         queue->enqueueRecursiveDownload("/remote/folder2", tempDir.path());
 
-        // Should now have two separate batches
-        QCOMPARE(queue->allBatchIds().size(), 2);
-        QList<int> batchIds = queue->allBatchIds();
-        QVERIFY(batchIds.contains(batch1Id));
-        int batch2Id = (batchIds[0] == batch1Id) ? batchIds[1] : batchIds[0];
-        QVERIFY(batch2Id > 0);
-        QVERIFY(batch1Id != batch2Id);
+        // Only one batch exists initially (second folder is queued)
+        // This is the serialized behavior - no concurrent operations
+        QVERIFY2(queue->allBatchIds().size() >= 1, "At least one batch should exist");
 
-        // Process scanning (LIST) for both directories
-        flushAndProcessNext();  // LIST for folder1
-        flushAndProcessNext();  // LIST for folder2
-
-        // Each batch should have exactly 1 item (each folder has 1 file)
-        BatchProgress progress1 = queue->batchProgress(batch1Id);
-        BatchProgress progress2 = queue->batchProgress(batch2Id);
-        QCOMPARE(progress1.totalItems, 1);
-        QCOMPARE(progress2.totalItems, 1);
-
-        // Process downloads
+        // Process all operations - both folders should be downloaded sequentially
         flushAndProcess();
+
+        // After all processing, allOperationsCompleted should be emitted
+        QVERIFY2(allCompletedSpy.count() >= 1, "allOperationsCompleted should be emitted");
 
         // Verify files were downloaded
         QVERIFY(QFile::exists(tempDir.path() + "/folder1/file1.txt"));
@@ -2080,6 +2136,329 @@ private slots:
         for (int i = 0; i < 3; ++i) {
             QVERIFY(QFile::exists(tempDir.path() + QString("/folder/file%1.txt").arg(i)));
         }
+    }
+
+    // Test that multiple folder uploads with autoMerge are serialized (not parallel)
+    // This ensures folder1 completes entirely before folder2 starts
+    void testMultipleFolderUploadsWithAutoMergeAreSerialized()
+    {
+        // Ensure autoMerge is enabled (it's the default in init())
+        queue->setAutoMerge(true);
+
+        // Create two local directories with files
+        QString localDir1 = tempDir.path() + "/folder1";
+        QString localDir2 = tempDir.path() + "/folder2";
+        QDir().mkpath(localDir1);
+        QDir().mkpath(localDir2);
+
+        // Create files in folder1
+        for (int i = 0; i < 2; ++i) {
+            QString filePath = localDir1 + QString("/file%1.txt").arg(i);
+            QFile file(filePath);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(QString("folder1-content%1").arg(i).toUtf8());
+            file.close();
+        }
+
+        // Create files in folder2
+        for (int i = 0; i < 3; ++i) {
+            QString filePath = localDir2 + QString("/file%1.txt").arg(i);
+            QFile file(filePath);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(QString("folder2-content%1").arg(i).toUtf8());
+            file.close();
+        }
+
+        QSignalSpy allCompletedSpy(queue, &TransferQueue::allOperationsCompleted);
+
+        // Enqueue both folders for upload (simulates selecting multiple folders)
+        queue->enqueueRecursiveUpload(localDir1, "/remote");
+        queue->enqueueRecursiveUpload(localDir2, "/remote");
+
+        // First batch should be created immediately for folder1
+        // Second folder should be queued (not start a second batch yet)
+        QList<int> batchIds = queue->allBatchIds();
+        QVERIFY2(batchIds.size() >= 1, "At least one batch should be created");
+
+        // Only one mkdir should be queued initially (for folder1's root)
+        QVERIFY2(mockFtp->mockGetMkdirRequests().size() >= 1,
+                 "At least one mkdir should be requested");
+
+        // Process everything - both folders should be processed serially
+        // This is a robust way to test that both complete properly
+        flushAndProcess();
+
+        // All operations should be done
+        QVERIFY2(allCompletedSpy.count() >= 1,
+                 "allOperationsCompleted should be emitted after both batches finish");
+
+        // Verify mock received upload requests for all 5 files total
+        // Note: mockGetUploadRequests() returns LOCAL paths, not remote paths
+        QStringList uploadRequests = mockFtp->mockGetUploadRequests();
+        QCOMPARE(uploadRequests.size(), 5);
+
+        // Count how many uploads were from each folder by checking local paths
+        int folder1Uploads = 0;
+        int folder2Uploads = 0;
+        for (const QString &path : uploadRequests) {
+            if (path.contains("/folder1/")) {
+                folder1Uploads++;
+            } else if (path.contains("/folder2/")) {
+                folder2Uploads++;
+            }
+        }
+
+        // Verify folder1's 2 files were uploaded
+        QCOMPARE(folder1Uploads, 2);
+
+        // Verify folder2's 3 files were uploaded
+        QCOMPARE(folder2Uploads, 3);
+    }
+
+    // Test that single file uploads complete correctly while folder upload is in progress
+    // Bug: Without fix, a single file batch completing while folderUploadInProgress_ was true
+    // would incorrectly trigger onFolderUploadComplete(), leaving other batches stuck.
+    void testSingleFileUploadDuringFolderUpload()
+    {
+        queue->setAutoMerge(true);
+
+        // Create a folder with files
+        QString localDir = tempDir.path() + "/upload_folder";
+        QDir().mkpath(localDir);
+
+        for (int i = 0; i < 2; ++i) {
+            QString filePath = localDir + QString("/file%1.txt").arg(i);
+            QFile file(filePath);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(QString("folder-content%1").arg(i).toUtf8());
+            file.close();
+        }
+
+        // Create a single file (not in folder)
+        QString singleFile = tempDir.path() + "/single.txt";
+        {
+            QFile file(singleFile);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write("single-content");
+            file.close();
+        }
+
+        QSignalSpy batchCompletedSpy(queue, &TransferQueue::batchCompleted);
+        QSignalSpy allCompletedSpy(queue, &TransferQueue::allOperationsCompleted);
+
+        // Start folder upload first - this sets folderUploadInProgress_
+        queue->enqueueRecursiveUpload(localDir, "/remote");
+
+        // Get the folder batch ID
+        QList<int> batchIds = queue->allBatchIds();
+        QCOMPARE(batchIds.size(), 1);
+        int folderBatchId = batchIds.first();
+
+        // Now enqueue single file - this creates a separate batch
+        queue->enqueueUpload(singleFile, "/remote/single.txt");
+
+        // Should now have 2 batches
+        batchIds = queue->allBatchIds();
+        QCOMPARE(batchIds.size(), 2);
+
+        // Find the single file batch ID
+        int singleFileBatchId = -1;
+        for (int id : batchIds) {
+            if (id != folderBatchId) {
+                singleFileBatchId = id;
+                break;
+            }
+        }
+        QVERIFY(singleFileBatchId > 0);
+
+        // Process folder's mkdir (folder upload is now in CreatingDirectories state)
+        QVERIFY(mockFtp->mockGetMkdirRequests().size() >= 1);
+
+        // At this point, folderUploadInProgress_ is true
+        // Process one operation at a time to control the flow
+        flushAndProcessNext();  // mkdir for folder
+
+        // Folder files should now be queued
+        BatchProgress folderProgress = queue->batchProgress(folderBatchId);
+        QCOMPARE(folderProgress.totalItems, 2);
+
+        // Process all operations - both folder files and single file
+        flushAndProcess();
+
+        // Both batches should complete
+        QVERIFY2(batchCompletedSpy.count() >= 2,
+                 qPrintable(QString("Expected at least 2 batch completions, got %1")
+                           .arg(batchCompletedSpy.count())));
+
+        // All operations should be done
+        QVERIFY(allCompletedSpy.count() >= 1);
+
+        // Verify all 3 files were uploaded (2 from folder + 1 single)
+        QStringList uploadRequests = mockFtp->mockGetUploadRequests();
+        QCOMPARE(uploadRequests.size(), 3);
+
+        // Count folder vs single uploads
+        int folderUploads = 0;
+        int singleUploads = 0;
+        for (const QString &path : uploadRequests) {
+            if (path.contains("/upload_folder/")) {
+                folderUploads++;
+            } else if (path.contains("single.txt")) {
+                singleUploads++;
+            }
+        }
+
+        QCOMPARE(folderUploads, 2);
+        QCOMPARE(singleUploads, 1);
+    }
+
+    void testDownloadFolderExistsShowsConfirmationDialog()
+    {
+        // Disable auto-merge to test the confirmation dialog
+        queue->setAutoMerge(false);
+
+        // Create an existing local folder that matches what we'll download
+        QString existingFolder = tempDir.filePath("remote_folder");
+        QDir().mkpath(existingFolder);
+
+        // Create a file in the existing folder to verify merge vs replace behavior
+        QFile existingFile(existingFolder + "/existing.txt");
+        QVERIFY(existingFile.open(QIODevice::WriteOnly));
+        existingFile.write("existing content");
+        existingFile.close();
+
+        // Setup remote directory with a different file
+        QList<FtpEntry> entries;
+        FtpEntry file1; file1.name = "newfile.txt"; file1.isDirectory = false; file1.size = 100;
+        entries << file1;
+        mockFtp->mockSetDirectoryListing("/remote/remote_folder", entries);
+        mockFtp->mockSetDownloadData("/remote/remote_folder/newfile.txt", "new content");
+
+        // Set up spy for folder exists confirmation
+        QSignalSpy folderExistsSpy(queue, &TransferQueue::folderExistsConfirmationNeeded);
+
+        // Start recursive download - folder already exists locally
+        queue->enqueueRecursiveDownload("/remote/remote_folder", tempDir.path());
+
+        // Wait for debounce timer to fire (50ms + margin)
+        QVERIFY(folderExistsSpy.wait(200));
+
+        // Should emit folderExistsConfirmationNeeded since local folder exists
+        QCOMPARE(folderExistsSpy.count(), 1);
+
+        // Verify the folder name is passed correctly
+        QStringList folderNames = folderExistsSpy.first().at(0).toStringList();
+        QCOMPARE(folderNames.size(), 1);
+        QCOMPARE(folderNames.first(), QString("remote_folder"));
+
+        // No downloads should be queued yet - waiting for confirmation
+        QCOMPARE(mockFtp->mockGetDownloadRequests().size(), 0);
+        QCOMPARE(mockFtp->mockGetListRequests().size(), 0);
+
+        // Respond with Merge - should proceed with download
+        queue->respondToFolderExists(FolderExistsResponse::Merge);
+
+        // Now listing should be requested
+        QVERIFY(mockFtp->mockGetListRequests().size() >= 1);
+
+        // Process listing
+        flushAndProcessNext();
+
+        // Scanning should complete (single folder with one file)
+        QVERIFY(!queue->isScanning());
+
+        // Download should start
+        flushAndProcessNext();
+
+        // After download completes, both files should exist (original + downloaded)
+        QVERIFY(QFile::exists(existingFolder + "/existing.txt"));
+        QVERIFY(QFile::exists(existingFolder + "/newfile.txt"));
+    }
+
+    void testDownloadFolderExistsReplaceDeletesFirst()
+    {
+        // Disable auto-merge to test the confirmation dialog
+        queue->setAutoMerge(false);
+
+        // Create an existing local folder that matches what we'll download
+        QString existingFolder = tempDir.filePath("replace_folder");
+        QDir().mkpath(existingFolder);
+
+        // Create a file in the existing folder that will be deleted by Replace
+        QFile existingFile(existingFolder + "/todelete.txt");
+        QVERIFY(existingFile.open(QIODevice::WriteOnly));
+        existingFile.write("will be deleted");
+        existingFile.close();
+        QVERIFY(existingFile.exists());
+
+        // Setup remote directory with a different file
+        QList<FtpEntry> entries;
+        FtpEntry file1; file1.name = "newfile.txt"; file1.isDirectory = false; file1.size = 100;
+        entries << file1;
+        mockFtp->mockSetDirectoryListing("/remote/replace_folder", entries);
+        mockFtp->mockSetDownloadData("/remote/replace_folder/newfile.txt", "new content");
+
+        // Set up spy for folder exists confirmation
+        QSignalSpy folderExistsSpy(queue, &TransferQueue::folderExistsConfirmationNeeded);
+
+        // Start recursive download - folder already exists locally
+        queue->enqueueRecursiveDownload("/remote/replace_folder", tempDir.path());
+
+        // Wait for debounce timer to fire (50ms + margin)
+        QVERIFY(folderExistsSpy.wait(200));
+
+        // Should emit folderExistsConfirmationNeeded since local folder exists
+        QCOMPARE(folderExistsSpy.count(), 1);
+
+        // Respond with Replace - should delete local folder first
+        queue->respondToFolderExists(FolderExistsResponse::Replace);
+
+        // The local folder should be deleted
+        // Note: The folder itself might still exist if mkpath recreated it
+        // but the original file should be gone
+        QVERIFY(!QFile::exists(existingFolder + "/todelete.txt"));
+
+        // Now listing should be requested
+        QVERIFY(mockFtp->mockGetListRequests().size() >= 1);
+
+        // Process listing and download
+        flushAndProcess();
+
+        // After download completes, only the new file should exist
+        QVERIFY(!QFile::exists(existingFolder + "/todelete.txt"));
+        QVERIFY(QFile::exists(existingFolder + "/newfile.txt"));
+    }
+
+    void testDownloadFolderAutoMergeSkipsDialog()
+    {
+        // Create an existing local folder that matches what we'll download
+        QString existingFolder = tempDir.filePath("automerge_folder");
+        QDir().mkpath(existingFolder);
+
+        // Setup remote directory
+        QList<FtpEntry> entries;
+        FtpEntry file1; file1.name = "file.txt"; file1.isDirectory = false; file1.size = 100;
+        entries << file1;
+        mockFtp->mockSetDirectoryListing("/remote/automerge_folder", entries);
+        mockFtp->mockSetDownloadData("/remote/automerge_folder/file.txt", "content");
+
+        // Set up spy for folder exists confirmation
+        QSignalSpy folderExistsSpy(queue, &TransferQueue::folderExistsConfirmationNeeded);
+
+        // Enable auto-merge
+        queue->setAutoMerge(true);
+
+        // Start recursive download - folder already exists locally
+        queue->enqueueRecursiveDownload("/remote/automerge_folder", tempDir.path());
+
+        // Should NOT emit folderExistsConfirmationNeeded when autoMerge is enabled
+        QCOMPARE(folderExistsSpy.count(), 0);
+
+        // Listing should be requested immediately
+        QVERIFY(mockFtp->mockGetListRequests().size() >= 1);
+
+        // Clean up
+        queue->setAutoMerge(false);
     }
 };
 

@@ -33,8 +33,8 @@ private slots:
     void onOperationsCancelled();
     void onShowProgress();
     void onDeleteProgressUpdate(const QString &fileName, int current, int total);
-    void onOverwriteConfirmationNeeded(const QString &fileName, OperationType type);
-    void onFolderExistsConfirmationNeeded(const QStringList &folderNames);
+    // Note: overwriteConfirmationNeeded and folderExistsConfirmationNeeded signals
+    // are handled by TransferProgressContainer, not this widget
     void onScanningStarted(const QString &folderName, OperationType type);
     void onScanningProgress(int directoriesScanned, int directoriesRemaining, int filesDiscovered);
     void onDirectoryCreationProgress(int created, int total);

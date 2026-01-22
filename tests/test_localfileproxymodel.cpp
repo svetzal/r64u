@@ -1,8 +1,10 @@
 #include <QtTest>
-#include <QFileSystemModel>
-#include <QTemporaryDir>
+#include <QCoreApplication>
+#include <QDir>
 #include <QFile>
+#include <QFileSystemModel>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 
 #include "models/localfileproxymodel.h"
 
@@ -221,7 +223,7 @@ private slots:
 
         QModelIndex rootIdx = fsModel->index(tempDir->path());
         fsModel->fetchMore(rootIdx);
-        QTest::qWait(100);
+        QTest::qWait(200);  // Wait for async loading
 
         for (int i = 0; i < fsModel->rowCount(rootIdx); i++) {
             QModelIndex nameIdx = fsModel->index(i, 0, rootIdx);
@@ -305,6 +307,95 @@ private slots:
             QVERIFY2(cDirPos < aFilePos, "c_dir should come before a_file.txt");
             QVERIFY2(bDirPos < dFilePos, "b_dir should come before d_file.txt");
             QVERIFY2(cDirPos < dFilePos, "c_dir should come before d_file.txt");
+        }
+    }
+
+    void testSortingCaseInsensitive()
+    {
+        // Create test files with mixed-case names that would sort differently
+        // under case-sensitive vs case-insensitive sorting.
+        // Use unique names to avoid filesystem collisions on case-insensitive systems.
+        // Case-sensitive sort:  Alfa, Charlie, bravo, delta (uppercase before lowercase)
+        // Case-insensitive sort: Alfa, bravo, Charlie, delta (alphabetical regardless of case)
+        QFile file1(tempDir->filePath("bravo.txt"));
+        QVERIFY(file1.open(QIODevice::WriteOnly));
+        file1.write("test");
+        file1.close();
+        QFile file2(tempDir->filePath("Alfa.txt"));
+        QVERIFY(file2.open(QIODevice::WriteOnly));
+        file2.write("test");
+        file2.close();
+        QFile file3(tempDir->filePath("delta.txt"));
+        QVERIFY(file3.open(QIODevice::WriteOnly));
+        file3.write("test");
+        file3.close();
+        QFile file4(tempDir->filePath("Charlie.txt"));
+        QVERIFY(file4.open(QIODevice::WriteOnly));
+        file4.write("test");
+        file4.close();
+
+        // Verify files were created
+        QDir testDir(tempDir->path());
+        QCOMPARE(testDir.entryList(QDir::Files).size(), 4);
+
+        QModelIndex rootIdx = fsModel->index(tempDir->path());
+        QVERIFY(rootIdx.isValid());
+
+        // Force the model to watch this directory and load contents
+        fsModel->fetchMore(rootIdx);
+
+        // Wait for async loading by polling row count with longer timeout
+        for (int attempts = 0; attempts < 50; ++attempts) {
+            QCoreApplication::processEvents();
+            QTest::qWait(50);
+            if (fsModel->rowCount(rootIdx) >= 4) {
+                break;
+            }
+            // Re-fetch periodically to ensure model is loading
+            if (attempts % 10 == 9) {
+                fsModel->fetchMore(rootIdx);
+            }
+        }
+
+        proxyModel->sort(0, Qt::AscendingOrder);
+        QTest::qWait(100);
+
+        QModelIndex proxyRoot = proxyModel->mapFromSource(rootIdx);
+        int rowCount = proxyModel->rowCount(proxyRoot);
+
+        if (rowCount < 4) {
+            QSKIP("Files not yet loaded by QFileSystemModel");
+        }
+
+        // Collect all items in sorted order
+        QStringList sortedNames;
+        for (int i = 0; i < rowCount; i++) {
+            QModelIndex idx = proxyModel->index(i, 0, proxyRoot);
+            sortedNames << proxyModel->data(idx, Qt::DisplayRole).toString();
+        }
+
+        // Verify case-insensitive ordering:
+        // With case-insensitive sorting: Alfa, bravo, Charlie, delta
+        // With case-sensitive (ASCII) sorting: Alfa, Charlie, bravo, delta
+        int alfaPos = sortedNames.indexOf("Alfa.txt");
+        int bravoPos = sortedNames.indexOf("bravo.txt");
+        int charliePos = sortedNames.indexOf("Charlie.txt");
+        int deltaPos = sortedNames.indexOf("delta.txt");
+
+        if (alfaPos >= 0 && bravoPos >= 0 && charliePos >= 0 && deltaPos >= 0) {
+            // Case-insensitive sort order: Alfa < bravo < Charlie < delta
+            QVERIFY2(alfaPos < bravoPos,
+                     "Alfa.txt should come before bravo.txt (case-insensitive sort)");
+            QVERIFY2(bravoPos < charliePos,
+                     "bravo.txt should come before Charlie.txt (case-insensitive sort)");
+            QVERIFY2(charliePos < deltaPos,
+                     "Charlie.txt should come before delta.txt (case-insensitive sort)");
+
+            // The key test: bravo (lowercase) should come BEFORE Charlie (uppercase)
+            // This would fail with case-sensitive sorting where uppercase comes first
+            QVERIFY2(bravoPos < charliePos,
+                     "bravo.txt (lowercase) must come before Charlie.txt (uppercase) - "
+                     "this proves case-insensitive sorting is working");
         }
     }
 
