@@ -246,10 +246,18 @@ void TransferProgressWidget::updateProgressDisplay()
         }
         // Cap at totalItems to avoid showing "17 of 16" when complete
         int displayItem = qMin(completed + 1, batchProgress.totalItems);
-        statusLabel_->setText(tr("%1 %2 of %3 items...")
-            .arg(actionVerb)
-            .arg(displayItem)
-            .arg(batchProgress.totalItems));
+        if (!batchProgress.folderName.isEmpty()) {
+            statusLabel_->setText(tr("%1 - %2 %3 of %4 items...")
+                .arg(batchProgress.folderName)
+                .arg(actionVerb)
+                .arg(displayItem)
+                .arg(batchProgress.totalItems));
+        } else {
+            statusLabel_->setText(tr("%1 %2 of %3 items...")
+                .arg(actionVerb)
+                .arg(displayItem)
+                .arg(batchProgress.totalItems));
+        }
     }
 }
 

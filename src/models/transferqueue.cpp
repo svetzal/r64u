@@ -136,7 +136,7 @@ void TransferQueue::enqueueUpload(const QString &localPath, const QString &remot
         if (batchIdx < 0 || batches_[batchIdx].operationType != OperationType::Upload) {
             QString fileName = QFileInfo(localPath).fileName();
             QString sourcePath = currentFolderOp_.sourcePath.isEmpty() ? QString() : currentFolderOp_.sourcePath;
-            int batchId = createBatch(OperationType::Upload, tr("Uploading %1").arg(fileName), sourcePath);
+            int batchId = createBatch(OperationType::Upload, tr("Uploading %1").arg(fileName), fileName, sourcePath);
             for (int i = 0; i < batches_.size(); ++i) {
                 if (batches_[i].batchId == batchId) {
                     batchIdx = i;
@@ -197,7 +197,7 @@ void TransferQueue::enqueueDownload(const QString &remotePath, const QString &lo
         if (batchIdx < 0 || batches_[batchIdx].operationType != OperationType::Download) {
             QString fileName = QFileInfo(remotePath).fileName();
             QString sourcePath = (state_ == QueueState::Scanning) ? currentFolderOp_.sourcePath : QString();
-            int batchId = createBatch(OperationType::Download, tr("Downloading %1").arg(fileName), sourcePath);
+            int batchId = createBatch(OperationType::Download, tr("Downloading %1").arg(fileName), fileName, sourcePath);
             for (int i = 0; i < batches_.size(); ++i) {
                 if (batches_[i].batchId == batchId) {
                     batchIdx = i;
@@ -399,6 +399,7 @@ void TransferQueue::startFolderOperation(const PendingFolderOp &op)
                               op.operationType == OperationType::Upload
                                   ? tr("Uploading %1").arg(folderName)
                                   : tr("Downloading %1").arg(folderName),
+                              folderName,
                               op.sourcePath);
     currentFolderOp_.batchId = batchId;
 
@@ -690,7 +691,7 @@ void TransferQueue::enqueueDelete(const QString &remotePath, bool isDirectory)
     if (batchIdx < 0 || batches_[batchIdx].operationType != OperationType::Delete) {
         QString fileName = QFileInfo(remotePath).fileName();
         QString sourcePath = !recursiveDeleteBase_.isEmpty() ? recursiveDeleteBase_ : QString();
-        int batchId = createBatch(OperationType::Delete, tr("Deleting %1").arg(fileName), sourcePath);
+        int batchId = createBatch(OperationType::Delete, tr("Deleting %1").arg(fileName), fileName, sourcePath);
         for (int i = 0; i < batches_.size(); ++i) {
             if (batches_[i].batchId == batchId) {
                 batchIdx = i;
@@ -1355,7 +1356,7 @@ void TransferQueue::respondToFolderExists(FolderExistsResponse response)
 // Batch management
 // ============================================================================
 
-int TransferQueue::createBatch(OperationType type, const QString &description, const QString &sourcePath)
+int TransferQueue::createBatch(OperationType type, const QString &description, const QString &folderName, const QString &sourcePath)
 {
     // Purge completed batches
     for (int i = batches_.size() - 1; i >= 0; --i) {
@@ -1377,6 +1378,7 @@ int TransferQueue::createBatch(OperationType type, const QString &description, c
     batch.batchId = nextBatchId_++;
     batch.operationType = type;
     batch.description = description;
+    batch.folderName = folderName;
     batch.sourcePath = sourcePath;
     batch.scanned = false;
     batch.folderConfirmed = false;
@@ -1893,6 +1895,7 @@ BatchProgress TransferQueue::activeBatchProgress() const
         const TransferBatch &batch = batches_[activeBatchIndex_];
         progress.batchId = batch.batchId;
         progress.description = batch.description;
+        progress.folderName = batch.folderName;
         progress.operationType = batch.operationType;
         progress.totalItems = batch.totalCount();
         progress.completedItems = batch.completedCount;
@@ -1924,6 +1927,7 @@ BatchProgress TransferQueue::batchProgress(int batchId) const
         if (batch.batchId == batchId) {
             progress.batchId = batch.batchId;
             progress.description = batch.description;
+            progress.folderName = batch.folderName;
             progress.operationType = batch.operationType;
             progress.totalItems = batch.totalCount();
             progress.completedItems = batch.completedCount;

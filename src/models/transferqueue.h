@@ -77,6 +77,7 @@ struct TransferItem {
 struct TransferBatch {
     int batchId = 0;
     QString description;
+    QString folderName;  // Top-level folder name for progress display
     OperationType operationType = OperationType::Download;
     QString sourcePath;  // Root path being operated on (for duplicate detection)
     QList<TransferItem> items;
@@ -101,6 +102,7 @@ struct TransferBatch {
 struct BatchProgress {
     int batchId = -1;
     QString description;
+    QString folderName;  // Top-level folder name for progress display
     OperationType operationType = OperationType::Download;
     int totalItems = 0;
     int completedItems = 0;
@@ -283,7 +285,7 @@ private:
     void processNextDelete();
 
     // Batch management
-    int createBatch(OperationType type, const QString &description, const QString &sourcePath = QString());
+    int createBatch(OperationType type, const QString &description, const QString &folderName, const QString &sourcePath = QString());
     void activateNextBatch();
     void completeBatch(int batchId);
     void purgeBatch(int batchId);
