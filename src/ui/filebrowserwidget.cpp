@@ -58,7 +58,7 @@ void FileBrowserWidget::setupUi()
     treeView_->setContextMenuPolicy(Qt::CustomContextMenu);
     treeView_->setSortingEnabled(true);
     treeView_->sortByColumn(0, Qt::AscendingOrder);  // Sort by name, folders first via proxy
-    treeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+    // Note: setSectionResizeMode is called by subclasses after they set the model
     layout->addWidget(treeView_);
 
     // Initialize nav widget with current directory
