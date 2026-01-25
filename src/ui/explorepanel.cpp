@@ -8,6 +8,7 @@
 #include "services/filepreviewservice.h"
 #include "services/favoritesmanager.h"
 #include "services/playlistmanager.h"
+#include "services/songlengthsdatabase.h"
 #include "models/remotefilemodel.h"
 
 #include <QVBoxLayout>
@@ -350,6 +351,13 @@ void ExplorePanel::saveSettings()
 {
     QSettings settings;
     settings.setValue("directories/exploreRemote", currentDirectory_);
+}
+
+void ExplorePanel::setSonglengthsDatabase(SonglengthsDatabase *database)
+{
+    if (fileDetailsPanel_ != nullptr) {
+        fileDetailsPanel_->setSonglengthsDatabase(database);
+    }
 }
 
 void ExplorePanel::onConnectionStateChanged()
@@ -772,6 +780,11 @@ void ExplorePanel::onPreviewReady(const QString &remotePath, const QByteArray &d
         fileDetailsPanel_->showDiskDirectory(data, remotePath);
     } else if (fileDetailsPanel_->isSidFile(remotePath)) {
         fileDetailsPanel_->showSidDetails(data, remotePath);
+
+        // Update playlist durations if this SID is in the playlist
+        if (playlistManager_ != nullptr) {
+            playlistManager_->updateDurationFromData(remotePath, data);
+        }
     } else {
         // Display the content in the file details panel as text
         QString content = QString::fromUtf8(data);

@@ -6,6 +6,7 @@
 #include "playlistmanager.h"
 #include "deviceconnection.h"
 #include "c64urestclient.h"
+#include "songlengthsdatabase.h"
 
 #include <QSettings>
 #include <QFile>
@@ -25,6 +26,11 @@ PlaylistManager::PlaylistManager(DeviceConnection *connection, QObject *parent)
     connect(advanceTimer_, &QTimer::timeout, this, &PlaylistManager::onAdvanceTimer);
 
     loadSettings();
+}
+
+void PlaylistManager::setSonglengthsDatabase(SonglengthsDatabase *database)
+{
+    songlengthsDatabase_ = database;
 }
 
 void PlaylistManager::addItem(const QString &path, int subsong)
@@ -267,6 +273,41 @@ void PlaylistManager::setItemDuration(int index, int seconds)
     }
 
     emit playlistChanged();
+}
+
+void PlaylistManager::updateDurationFromData(const QString &path, const QByteArray &sidData)
+{
+    if (songlengthsDatabase_ == nullptr || !songlengthsDatabase_->isLoaded()) {
+        return;
+    }
+
+    SonglengthsDatabase::SongLengths lengths = songlengthsDatabase_->lookupByData(sidData);
+    if (!lengths.found || lengths.durations.isEmpty()) {
+        return;
+    }
+
+    bool updated = false;
+    for (int i = 0; i < items_.count(); ++i) {
+        if (items_[i].path == path) {
+            int subsongIndex = items_[i].subsong - 1;  // Convert to 0-indexed
+            if (subsongIndex >= 0 && subsongIndex < lengths.durations.size()) {
+                int newDuration = lengths.durations.at(subsongIndex);
+                if (items_[i].durationSecs != newDuration) {
+                    items_[i].durationSecs = newDuration;
+                    updated = true;
+
+                    // If this is the current item and we're playing, restart timer
+                    if (i == currentIndex_ && playing_) {
+                        startTimer();
+                    }
+                }
+            }
+        }
+    }
+
+    if (updated) {
+        emit playlistChanged();
+    }
 }
 
 bool PlaylistManager::savePlaylist(const QString &filePath)

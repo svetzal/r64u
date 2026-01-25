@@ -1,6 +1,7 @@
 #include "preferencesdialog.h"
 #include "../services/c64urestclient.h"
 #include "../services/credentialstore.h"
+#include "../services/songlengthsdatabase.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -106,6 +107,28 @@ void PreferencesDialog::setupUi()
     viewLayout->addRow(tr("Scaling Mode:"), scalingModeCombo_);
 
     mainLayout->addWidget(viewGroup);
+
+    // HVSC Database settings group
+    auto *databaseGroup = new QGroupBox(tr("HVSC Songlengths Database"));
+    auto *databaseLayout = new QVBoxLayout(databaseGroup);
+
+    databaseStatusLabel_ = new QLabel(tr("Database: Not loaded"));
+    databaseLayout->addWidget(databaseStatusLabel_);
+
+    databaseProgressBar_ = new QProgressBar();
+    databaseProgressBar_->setVisible(false);
+    databaseLayout->addWidget(databaseProgressBar_);
+
+    auto *buttonLayout = new QHBoxLayout();
+    downloadDatabaseButton_ = new QPushButton(tr("Download/Update Database"));
+    downloadDatabaseButton_->setToolTip(tr("Download the HVSC Songlengths database for accurate SID song durations"));
+    connect(downloadDatabaseButton_, &QPushButton::clicked,
+            this, &PreferencesDialog::onDownloadDatabase);
+    buttonLayout->addWidget(downloadDatabaseButton_);
+    buttonLayout->addStretch();
+    databaseLayout->addLayout(buttonLayout);
+
+    mainLayout->addWidget(databaseGroup);
 
     // Buttons
     mainLayout->addStretch();
@@ -250,4 +273,81 @@ void PreferencesDialog::onTestConnectionError(const QString &error)
         testClient_->deleteLater();
         testClient_ = nullptr;
     }
+}
+
+void PreferencesDialog::setSonglengthsDatabase(SonglengthsDatabase *database)
+{
+    // Disconnect from any previous database
+    if (songlengthsDatabase_ != nullptr) {
+        disconnect(songlengthsDatabase_, nullptr, this, nullptr);
+    }
+
+    songlengthsDatabase_ = database;
+
+    if (songlengthsDatabase_ != nullptr) {
+        // Connect signals
+        connect(songlengthsDatabase_, &SonglengthsDatabase::downloadProgress,
+                this, &PreferencesDialog::onDatabaseDownloadProgress);
+        connect(songlengthsDatabase_, &SonglengthsDatabase::downloadFinished,
+                this, &PreferencesDialog::onDatabaseDownloadFinished);
+        connect(songlengthsDatabase_, &SonglengthsDatabase::downloadFailed,
+                this, &PreferencesDialog::onDatabaseDownloadFailed);
+
+        // Update status label
+        if (songlengthsDatabase_->isLoaded()) {
+            databaseStatusLabel_->setText(tr("Database: %1 entries loaded")
+                .arg(songlengthsDatabase_->entryCount()));
+        } else if (songlengthsDatabase_->hasCachedDatabase()) {
+            databaseStatusLabel_->setText(tr("Database: Cached (not loaded)"));
+        } else {
+            databaseStatusLabel_->setText(tr("Database: Not downloaded"));
+        }
+    }
+}
+
+void PreferencesDialog::onDownloadDatabase()
+{
+    if (songlengthsDatabase_ == nullptr) {
+        QMessageBox::warning(this, tr("Download Database"),
+            tr("Database service not available."));
+        return;
+    }
+
+    downloadDatabaseButton_->setEnabled(false);
+    databaseProgressBar_->setVisible(true);
+    databaseProgressBar_->setValue(0);
+    databaseStatusLabel_->setText(tr("Downloading..."));
+
+    songlengthsDatabase_->downloadDatabase();
+}
+
+void PreferencesDialog::onDatabaseDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
+{
+    if (bytesTotal > 0) {
+        databaseProgressBar_->setMaximum(static_cast<int>(bytesTotal));
+        databaseProgressBar_->setValue(static_cast<int>(bytesReceived));
+    } else {
+        databaseProgressBar_->setMaximum(0);  // Indeterminate
+    }
+}
+
+void PreferencesDialog::onDatabaseDownloadFinished(int entryCount)
+{
+    downloadDatabaseButton_->setEnabled(true);
+    databaseProgressBar_->setVisible(false);
+    databaseStatusLabel_->setText(tr("Database: %1 entries loaded").arg(entryCount));
+
+    QMessageBox::information(this, tr("Download Complete"),
+        tr("Successfully downloaded HVSC Songlengths database.\n%1 entries loaded.")
+            .arg(entryCount));
+}
+
+void PreferencesDialog::onDatabaseDownloadFailed(const QString &error)
+{
+    downloadDatabaseButton_->setEnabled(true);
+    databaseProgressBar_->setVisible(false);
+    databaseStatusLabel_->setText(tr("Database: Download failed"));
+
+    QMessageBox::warning(this, tr("Download Failed"),
+        tr("Failed to download database:\n%1").arg(error));
 }

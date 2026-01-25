@@ -17,6 +17,7 @@ class ErrorHandler;
 class StatusMessageService;
 class FavoritesManager;
 class PlaylistManager;
+class SonglengthsDatabase;
 class ConnectionStatusWidget;
 class ExplorePanel;
 class TransferPanel;
@@ -92,6 +93,7 @@ private:
     StatusMessageService *statusMessageService_ = nullptr;
     FavoritesManager *favoritesManager_ = nullptr;
     PlaylistManager *playlistManager_ = nullptr;
+    SonglengthsDatabase *songlengthsDatabase_ = nullptr;
 
     // Central widget
     QTabWidget *modeTabWidget_ = nullptr;

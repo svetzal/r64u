@@ -13,6 +13,7 @@ class ConfigFileLoader;
 class FilePreviewService;
 class FavoritesManager;
 class PlaylistManager;
+class SonglengthsDatabase;
 class FileDetailsPanel;
 class PathNavigationWidget;
 class DriveStatusWidget;
@@ -41,6 +42,9 @@ public:
     // Settings
     void loadSettings();
     void saveSettings();
+
+    // Database injection
+    void setSonglengthsDatabase(SonglengthsDatabase *database);
 
     // Selection info for MainWindow
     QString selectedPath() const;

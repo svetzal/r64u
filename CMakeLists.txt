@@ -81,6 +81,7 @@ set(SOURCES
     src/services/favoritesmanager.cpp
     src/services/videorecordingservice.cpp
     src/services/playlistmanager.cpp
+    src/services/songlengthsdatabase.cpp
     src/models/remotefilemodel.cpp
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
@@ -135,6 +136,7 @@ set(HEADERS
     src/services/favoritesmanager.h
     src/services/videorecordingservice.h
     src/services/playlistmanager.h
+    src/services/songlengthsdatabase.h
     src/models/remotefilemodel.h
     src/models/localfileproxymodel.h
     src/models/transferqueue.h

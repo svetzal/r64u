@@ -13,6 +13,7 @@
 #include "services/statusmessageservice.h"
 #include "services/favoritesmanager.h"
 #include "services/playlistmanager.h"
+#include "services/songlengthsdatabase.h"
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 
@@ -56,6 +57,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Create the playlist manager for SID jukebox functionality
     playlistManager_ = new PlaylistManager(deviceConnection_, this);
+
+    // Create the songlengths database for SID duration lookup
+    songlengthsDatabase_ = new SonglengthsDatabase(this);
+
+    // Wire up the songlengths database to the playlist manager
+    playlistManager_->setSonglengthsDatabase(songlengthsDatabase_);
 
     // Configure the config file loader
     configFileLoader_->setFtpClient(deviceConnection_->ftpClient());
@@ -256,6 +263,7 @@ void MainWindow::setupPanels()
 {
     // Create mode panels with their dependencies
     explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, configFileLoader_, filePreviewService_, favoritesManager_, playlistManager_);
+    explorePanel_->setSonglengthsDatabase(songlengthsDatabase_);
     transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferService_);
     viewPanel_ = new ViewPanel(deviceConnection_);
     configPanel_ = new ConfigPanel(deviceConnection_);
@@ -529,6 +537,7 @@ void MainWindow::onPreferences()
 {
     if (!preferencesDialog_) {
         preferencesDialog_ = new PreferencesDialog(this);
+        preferencesDialog_->setSonglengthsDatabase(songlengthsDatabase_);
     }
 
     if (preferencesDialog_->exec() == QDialog::Accepted) {

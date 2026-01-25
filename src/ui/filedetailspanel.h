@@ -10,12 +10,19 @@
 #include "services/diskimagereader.h"
 #include "services/sidfileparser.h"
 
+class SonglengthsDatabase;
+
 class FileDetailsPanel : public QWidget
 {
     Q_OBJECT
 
 public:
     explicit FileDetailsPanel(QWidget *parent = nullptr);
+
+    /**
+     * @brief Sets the songlengths database for SID duration lookup.
+     */
+    void setSonglengthsDatabase(SonglengthsDatabase *database);
 
     void showFileDetails(const QString &path, qint64 size, const QString &type);
     void showTextContent(const QString &content);
@@ -62,6 +69,9 @@ private:
     QLabel *statusLabel_ = nullptr;
 
     QString currentPath_;
+
+    // Optional songlengths database (not owned)
+    SonglengthsDatabase *songlengthsDatabase_ = nullptr;
 };
 
 #endif // FILEDETAILSPANEL_H

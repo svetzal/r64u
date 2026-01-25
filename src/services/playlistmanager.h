@@ -15,6 +15,7 @@
 #include <QTimer>
 
 class DeviceConnection;
+class SonglengthsDatabase;
 
 /**
  * @brief Manages SID music playlists with playback control.
@@ -54,6 +55,12 @@ public:
 
     explicit PlaylistManager(DeviceConnection *connection, QObject *parent = nullptr);
     ~PlaylistManager() override = default;
+
+    /**
+     * @brief Sets the songlengths database for duration lookup.
+     * @param database The database (not owned by PlaylistManager).
+     */
+    void setSonglengthsDatabase(SonglengthsDatabase *database);
 
     /// @name Playlist Management
     /// @{
@@ -184,6 +191,16 @@ public:
      */
     void setItemDuration(int index, int seconds);
 
+    /**
+     * @brief Updates item durations from the database using SID file data.
+     * @param path The remote file path.
+     * @param sidData The complete SID file data.
+     *
+     * Looks up the duration in the songlengths database and updates
+     * any matching playlist items.
+     */
+    void updateDurationFromData(const QString &path, const QByteArray &sidData);
+
     /// @}
 
     /// @name Persistence
@@ -275,6 +292,7 @@ private:
     [[nodiscard]] int unshuffledIndex(int shuffledIdx) const;
 
     DeviceConnection *deviceConnection_ = nullptr;
+    SonglengthsDatabase *songlengthsDatabase_ = nullptr;
 
     QList<PlaylistItem> items_;
     QList<int> shuffleOrder_;  // Maps shuffled position to actual index

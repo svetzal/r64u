@@ -1,4 +1,5 @@
 #include "filedetailspanel.h"
+#include "services/songlengthsdatabase.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -12,6 +13,11 @@ FileDetailsPanel::FileDetailsPanel(QWidget *parent)
     : QWidget(parent)
 {
     setupUi();
+}
+
+void FileDetailsPanel::setSonglengthsDatabase(SonglengthsDatabase *database)
+{
+    songlengthsDatabase_ = database;
 }
 
 void FileDetailsPanel::setupUi()
@@ -254,6 +260,32 @@ void FileDetailsPanel::showSidDetails(const QByteArray &sidData, const QString &
     }
 
     QString details = SidFileParser::formatForDisplay(info);
+
+    // Look up song lengths from database
+    if (songlengthsDatabase_ != nullptr && songlengthsDatabase_->isLoaded()) {
+        SonglengthsDatabase::SongLengths lengths = songlengthsDatabase_->lookupByData(sidData);
+
+        details += "\n";
+        if (lengths.found) {
+            details += tr("─────────────────────────────────\n");
+            details += tr("HVSC Database: Found\n");
+            details += tr("Song Lengths:\n");
+
+            for (int i = 0; i < lengths.formattedTimes.size(); ++i) {
+                details += tr("  Song %1: %2\n")
+                    .arg(i + 1)
+                    .arg(lengths.formattedTimes.at(i));
+            }
+        } else {
+            details += tr("─────────────────────────────────\n");
+            details += tr("HVSC Database: Not found\n");
+            details += tr("(Using default 3:00 duration)\n");
+        }
+    } else if (songlengthsDatabase_ != nullptr && !songlengthsDatabase_->isLoaded()) {
+        details += "\n";
+        details += tr("─────────────────────────────────\n");
+        details += tr("HVSC Database: Not loaded\n");
+    }
 
     QFileInfo fi(filename);
     textFileNameLabel_->setText(fi.fileName());
