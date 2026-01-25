@@ -7,12 +7,13 @@
 #define PLAYLISTWIDGET_H
 
 #include <QWidget>
-#include <QListWidget>
+#include <QTreeWidget>
 #include <QToolBar>
 #include <QSpinBox>
 #include <QMenu>
 #include <QLabel>
 #include <QPushButton>
+#include <QTimer>
 
 class PlaylistManager;
 
@@ -66,11 +67,14 @@ private slots:
     void onLoadPlaylist();
 
     // List interactions
-    void onItemDoubleClicked(QListWidgetItem *item);
+    void onItemDoubleClicked(QTreeWidgetItem *item, int column);
     void onContextMenu(const QPoint &pos);
     void onRemoveSelected();
     void onMoveUp();
     void onMoveDown();
+
+    // Timer
+    void onElapsedTimerTick();
 
 private:
     void setupUi();
@@ -80,14 +84,19 @@ private:
     void updateShuffleButton();
     void updateRepeatButton();
     void highlightCurrentItem();
+    void updateElapsedTimeDisplay();
+    [[nodiscard]] static QString formatTime(int seconds);
 
     PlaylistManager *manager_ = nullptr;
 
     // UI Components
     QLabel *headerLabel_ = nullptr;
     QToolBar *controlBar_ = nullptr;
-    QListWidget *listWidget_ = nullptr;
+    QTreeWidget *treeWidget_ = nullptr;
     QSpinBox *durationSpinBox_ = nullptr;
+    QLabel *elapsedTimeLabel_ = nullptr;
+    QTimer *elapsedTimer_ = nullptr;
+    int elapsedSeconds_ = 0;
 
     // Control actions
     QAction *playPauseAction_ = nullptr;

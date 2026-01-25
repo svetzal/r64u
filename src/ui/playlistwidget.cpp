@@ -13,12 +13,17 @@
 #include <QRegularExpression>
 #include <QFileDialog>
 #include <QStandardPaths>
+#include <QHeaderView>
 
 PlaylistWidget::PlaylistWidget(PlaylistManager *manager, QWidget *parent)
     : QWidget(parent)
     , manager_(manager)
+    , elapsedTimer_(new QTimer(this))
 {
     Q_ASSERT(manager_ && "PlaylistManager is required");
+
+    elapsedTimer_->setInterval(1000);  // 1 second updates
+    connect(elapsedTimer_, &QTimer::timeout, this, &PlaylistWidget::onElapsedTimerTick);
 
     setupUi();
     setupConnections();
@@ -76,6 +81,13 @@ void PlaylistWidget::setupUi()
 
     controlBar_->addSeparator();
 
+    // Elapsed time label
+    elapsedTimeLabel_ = new QLabel(tr("--:-- / --:--"));
+    elapsedTimeLabel_->setToolTip(tr("Elapsed / Total duration"));
+    controlBar_->addWidget(elapsedTimeLabel_);
+
+    controlBar_->addSeparator();
+
     shuffleAction_ = controlBar_->addAction(QString::fromUtf8("\U0001F500"));  // Shuffle
     shuffleAction_->setToolTip(tr("Toggle shuffle"));
     shuffleAction_->setCheckable(true);
@@ -105,17 +117,25 @@ void PlaylistWidget::setupUi()
 
     layout->addWidget(controlBar_);
 
-    // List widget
-    listWidget_ = new QListWidget();
-    listWidget_->setAlternatingRowColors(true);
-    listWidget_->setContextMenuPolicy(Qt::CustomContextMenu);
-    listWidget_->setSelectionMode(QAbstractItemView::SingleSelection);
-    connect(listWidget_, &QListWidget::itemDoubleClicked,
+    // Tree widget with columns
+    treeWidget_ = new QTreeWidget();
+    treeWidget_->setAlternatingRowColors(true);
+    treeWidget_->setContextMenuPolicy(Qt::CustomContextMenu);
+    treeWidget_->setSelectionMode(QAbstractItemView::SingleSelection);
+    treeWidget_->setRootIsDecorated(false);
+    treeWidget_->setHeaderLabels({QString(), tr("#"), tr("Title"), tr("Length")});
+    treeWidget_->setColumnWidth(0, 24);   // Play marker
+    treeWidget_->setColumnWidth(1, 30);   // Track number
+    treeWidget_->setColumnWidth(3, 50);   // Length
+    treeWidget_->header()->setStretchLastSection(false);
+    treeWidget_->header()->setSectionResizeMode(2, QHeaderView::Stretch);  // Title stretches
+
+    connect(treeWidget_, &QTreeWidget::itemDoubleClicked,
             this, &PlaylistWidget::onItemDoubleClicked);
-    connect(listWidget_, &QListWidget::customContextMenuRequested,
+    connect(treeWidget_, &QTreeWidget::customContextMenuRequested,
             this, &PlaylistWidget::onContextMenu);
 
-    layout->addWidget(listWidget_);
+    layout->addWidget(treeWidget_);
 
     // Context menu
     contextMenu_ = new QMenu(this);
@@ -166,6 +186,11 @@ void PlaylistWidget::onPlaybackStarted(int index)
     playPauseAction_->setText(QString::fromUtf8("\u23F8"));  // Pause
     playPauseAction_->setToolTip(tr("Pause (stop)"));
     highlightCurrentItem();
+
+    // Start elapsed timer
+    elapsedSeconds_ = 0;
+    updateElapsedTimeDisplay();
+    elapsedTimer_->start();
 }
 
 void PlaylistWidget::onPlaybackStopped()
@@ -173,6 +198,10 @@ void PlaylistWidget::onPlaybackStopped()
     playPauseAction_->setText(QString::fromUtf8("\u25B6"));  // Play
     playPauseAction_->setToolTip(tr("Play"));
     highlightCurrentItem();
+
+    // Stop elapsed timer and reset display
+    elapsedTimer_->stop();
+    elapsedTimeLabel_->setText(tr("--:-- / --:--"));
 }
 
 void PlaylistWidget::onShuffleChanged(bool enabled)
@@ -283,62 +312,63 @@ void PlaylistWidget::onLoadPlaylist()
     }
 }
 
-void PlaylistWidget::onItemDoubleClicked(QListWidgetItem *item)
+void PlaylistWidget::onItemDoubleClicked(QTreeWidgetItem *item, int column)
 {
-    int index = listWidget_->row(item);
+    Q_UNUSED(column)
+    int index = treeWidget_->indexOfTopLevelItem(item);
     manager_->play(index);
 }
 
 void PlaylistWidget::onContextMenu(const QPoint &pos)
 {
-    QListWidgetItem *item = listWidget_->itemAt(pos);
+    QTreeWidgetItem *item = treeWidget_->itemAt(pos);
     if (!item) {
         return;
     }
 
-    int index = listWidget_->row(item);
+    int index = treeWidget_->indexOfTopLevelItem(item);
     moveUpAction_->setEnabled(index > 0);
-    moveDownAction_->setEnabled(index < listWidget_->count() - 1);
+    moveDownAction_->setEnabled(index < treeWidget_->topLevelItemCount() - 1);
 
-    contextMenu_->exec(listWidget_->mapToGlobal(pos));
+    contextMenu_->exec(treeWidget_->mapToGlobal(pos));
 }
 
 void PlaylistWidget::onRemoveSelected()
 {
-    QListWidgetItem *item = listWidget_->currentItem();
+    QTreeWidgetItem *item = treeWidget_->currentItem();
     if (item) {
-        int index = listWidget_->row(item);
+        int index = treeWidget_->indexOfTopLevelItem(item);
         manager_->removeItem(index);
     }
 }
 
 void PlaylistWidget::onMoveUp()
 {
-    QListWidgetItem *item = listWidget_->currentItem();
+    QTreeWidgetItem *item = treeWidget_->currentItem();
     if (item) {
-        int index = listWidget_->row(item);
+        int index = treeWidget_->indexOfTopLevelItem(item);
         if (index > 0) {
             manager_->moveItem(index, index - 1);
-            listWidget_->setCurrentRow(index - 1);
+            treeWidget_->setCurrentItem(treeWidget_->topLevelItem(index - 1));
         }
     }
 }
 
 void PlaylistWidget::onMoveDown()
 {
-    QListWidgetItem *item = listWidget_->currentItem();
+    QTreeWidgetItem *item = treeWidget_->currentItem();
     if (item) {
-        int index = listWidget_->row(item);
-        if (index < listWidget_->count() - 1) {
+        int index = treeWidget_->indexOfTopLevelItem(item);
+        if (index < treeWidget_->topLevelItemCount() - 1) {
             manager_->moveItem(index, index + 1);
-            listWidget_->setCurrentRow(index + 1);
+            treeWidget_->setCurrentItem(treeWidget_->topLevelItem(index + 1));
         }
     }
 }
 
 void PlaylistWidget::updatePlaylistDisplay()
 {
-    listWidget_->clear();
+    treeWidget_->clear();
 
     const auto items = manager_->items();
     for (int i = 0; i < items.count(); ++i) {
@@ -358,9 +388,18 @@ void PlaylistWidget::updatePlaylistDisplay()
             displayText += QString(" [%1/%2]").arg(item.subsong).arg(item.totalSubsongs);
         }
 
-        auto *listItem = new QListWidgetItem(QString("%1. %2").arg(i + 1).arg(displayText));
-        listItem->setData(Qt::UserRole, i);
-        listWidget_->addItem(listItem);
+        // Format duration as mm:ss
+        QString durationStr = formatTime(item.durationSecs);
+
+        auto *treeItem = new QTreeWidgetItem();
+        treeItem->setText(0, QString());  // Play marker (set in highlightCurrentItem)
+        treeItem->setText(1, QString::number(i + 1));
+        treeItem->setText(2, displayText);
+        treeItem->setText(3, durationStr);
+        treeItem->setData(0, Qt::UserRole, i);
+        treeItem->setTextAlignment(1, Qt::AlignRight | Qt::AlignVCenter);
+        treeItem->setTextAlignment(3, Qt::AlignRight | Qt::AlignVCenter);
+        treeWidget_->addTopLevelItem(treeItem);
     }
 
     highlightCurrentItem();
@@ -419,37 +458,48 @@ void PlaylistWidget::highlightCurrentItem()
     int currentIndex = manager_->currentIndex();
     bool isPlaying = manager_->isPlaying();
 
-    for (int i = 0; i < listWidget_->count(); ++i) {
-        QListWidgetItem *item = listWidget_->item(i);
-        QFont font = item->font();
+    for (int i = 0; i < treeWidget_->topLevelItemCount(); ++i) {
+        QTreeWidgetItem *item = treeWidget_->topLevelItem(i);
+        QFont font = item->font(0);
 
         if (i == currentIndex) {
             font.setBold(true);
-            if (isPlaying) {
-                // Add play indicator to current item
-                QString text = item->text();
-                if (!text.startsWith(QString::fromUtf8("\u25B6 "))) {
-                    // Remove any existing indicator and add new one
-                    text = text.remove(QRegularExpression("^[0-9]+\\."));
-                    item->setText(QString::fromUtf8("\u25B6 %1.%2").arg(i + 1).arg(text));
-                }
-            } else {
-                // Remove play indicator if stopped
-                QString text = item->text();
-                if (text.startsWith(QString::fromUtf8("\u25B6 "))) {
-                    text = text.mid(2);
-                    item->setText(text);
-                }
-            }
+            // Show play indicator in first column
+            item->setText(0, isPlaying ? QString::fromUtf8("\u25B6") : QString());
         } else {
             font.setBold(false);
-            // Ensure no play indicator on non-current items
-            QString text = item->text();
-            if (text.startsWith(QString::fromUtf8("\u25B6 "))) {
-                text = text.mid(2);
-                item->setText(text);
-            }
+            item->setText(0, QString());
         }
-        item->setFont(font);
+
+        // Apply font to all columns
+        for (int col = 0; col < 4; ++col) {
+            item->setFont(col, font);
+        }
     }
+}
+
+QString PlaylistWidget::formatTime(int seconds)
+{
+    int mins = seconds / 60;
+    int secs = seconds % 60;
+    return QString("%1:%2").arg(mins).arg(secs, 2, 10, QChar('0'));
+}
+
+void PlaylistWidget::updateElapsedTimeDisplay()
+{
+    if (!manager_->isPlaying() || manager_->currentIndex() < 0) {
+        elapsedTimeLabel_->setText(tr("--:-- / --:--"));
+        return;
+    }
+
+    const auto &item = manager_->itemAt(manager_->currentIndex());
+    QString elapsed = formatTime(elapsedSeconds_);
+    QString total = formatTime(item.durationSecs);
+    elapsedTimeLabel_->setText(QString("%1 / %2").arg(elapsed).arg(total));
+}
+
+void PlaylistWidget::onElapsedTimerTick()
+{
+    elapsedSeconds_++;
+    updateElapsedTimeDisplay();
 }
