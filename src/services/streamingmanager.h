@@ -96,6 +96,12 @@ public:
      */
     [[nodiscard]] KeyboardInputService* keyboardInput() const { return keyboardInput_; }
 
+    /**
+     * @brief Returns the audio receiver for recording support.
+     * @return Pointer to the audio receiver.
+     */
+    [[nodiscard]] AudioStreamReceiver* audioReceiver() const { return audioReceiver_; }
+
 signals:
     /**
      * @brief Emitted when streaming has started successfully.

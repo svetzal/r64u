@@ -48,6 +48,7 @@ private slots:
     void onRecordingStopped(const QString &filePath, int frameCount);
     void onRecordingError(const QString &error);
     void onFrameReadyForRecording(const QByteArray &frameData, quint16 frameNumber, VideoStreamReceiver::VideoFormat format);
+    void onAudioSamplesForRecording(const QByteArray &samples, int sampleCount);
 
 private:
     void setupUi();

@@ -41,8 +41,8 @@ bool VideoRecordingService::startRecording(const QString &filePath)
     height_ = 0;
     startTime_ = QDateTime::currentDateTime();
     lastFrameTime_ = startTime_;
-    frameOffsets_.clear();
-    frameSizes_.clear();
+    chunkIndex_.clear();
+    audioSampleCount_ = 0;
 
     // Write placeholder AVI header (will be updated when finalizing)
     writeAviHeader();
@@ -112,13 +112,42 @@ void VideoRecordingService::addFrame(const QImage &frame)
         jpegData.append('\0');
     }
 
-    // Record frame offset and size
-    frameOffsets_.append(file_.pos() - moviListStart_);
-    frameSizes_.append(jpegData.size());
+    // Record chunk info for index
+    ChunkInfo info;
+    info.fourCC = "00dc";
+    info.offset = file_.pos() - moviListStart_;
+    info.size = jpegData.size();
+    chunkIndex_.append(info);
 
     // Write video frame chunk
     writeChunk("00dc", jpegData);
     frameCount_++;
+}
+
+void VideoRecordingService::addAudioSamples(const QByteArray &samples, int sampleCount)
+{
+    QMutexLocker locker(&mutex_);
+
+    if (!recording_ || samples.isEmpty()) {
+        return;
+    }
+
+    // Pad to even size (AVI requirement)
+    QByteArray audioData = samples;
+    if (audioData.size() % 2 != 0) {
+        audioData.append('\0');
+    }
+
+    // Record chunk info for index
+    ChunkInfo info;
+    info.fourCC = "01wb";
+    info.offset = file_.pos() - moviListStart_;
+    info.size = audioData.size();
+    chunkIndex_.append(info);
+
+    // Write audio chunk
+    writeChunk("01wb", audioData);
+    audioSampleCount_ += sampleCount;
 }
 
 void VideoRecordingService::writeChunk(const QByteArray &fourCC, const QByteArray &data)
@@ -162,7 +191,7 @@ void VideoRecordingService::writeAviHeader()
     ds << quint32(0x110);   // dwFlags (AVIF_HASINDEX | AVIF_ISINTERLEAVED)
     ds << quint32(0);       // dwTotalFrames (placeholder)
     ds << quint32(0);       // dwInitialFrames
-    ds << quint32(1);       // dwStreams
+    ds << quint32(2);       // dwStreams (video + audio)
     ds << quint32(1000000); // dwSuggestedBufferSize
     ds << quint32(384);     // dwWidth (placeholder)
     ds << quint32(272);     // dwHeight (placeholder)
@@ -223,7 +252,7 @@ void VideoRecordingService::writeAviHeader()
 
     writeChunk("strf", strf);
 
-    // Update strl LIST size
+    // Update video strl LIST size
     qint64 strlEnd = file_.pos();
     qint64 strlSize = strlEnd - strlSizePos - 4;
     file_.seek(strlSizePos);
@@ -234,6 +263,64 @@ void VideoRecordingService::writeAviHeader()
     strlSizeBytes[3] = static_cast<char>((strlSize >> 24) & 0xFF);
     file_.write(strlSizeBytes, 4);
     file_.seek(strlEnd);
+
+    // Write audio strl LIST
+    file_.write("LIST");
+    qint64 audioStrlSizePos = file_.pos();
+    file_.write(QByteArray(4, '\0'));
+    file_.write("strl");
+
+    // Write audio strh (stream header)
+    QByteArray audioStrh;
+    QDataStream ds4(&audioStrh, QIODevice::WriteOnly);
+    ds4.setByteOrder(QDataStream::LittleEndian);
+
+    ds4.writeRawData("auds", 4);  // fccType (audio stream)
+    ds4 << quint32(1);            // fccHandler (PCM = 1)
+    ds4 << quint32(0);            // dwFlags
+    ds4 << quint16(0);            // wPriority
+    ds4 << quint16(0);            // wLanguage
+    ds4 << quint32(0);            // dwInitialFrames
+    ds4 << quint32(1);            // dwScale (1 for audio)
+    ds4 << quint32(AudioSampleRate);  // dwRate
+    ds4 << quint32(0);            // dwStart
+    ds4 << quint32(0);            // dwLength (placeholder - total samples)
+    ds4 << quint32(AudioSampleRate * AudioChannels * (AudioBitsPerSample / 8));  // dwSuggestedBufferSize
+    ds4 << quint32(0);            // dwQuality
+    ds4 << quint32(AudioChannels * (AudioBitsPerSample / 8));  // dwSampleSize (block align)
+    ds4 << quint16(0);            // rcFrame (left)
+    ds4 << quint16(0);            // rcFrame (top)
+    ds4 << quint16(0);            // rcFrame (right)
+    ds4 << quint16(0);            // rcFrame (bottom)
+
+    writeChunk("strh", audioStrh);
+
+    // Write audio strf (stream format - WAVEFORMATEX)
+    QByteArray audioStrf;
+    QDataStream ds5(&audioStrf, QIODevice::WriteOnly);
+    ds5.setByteOrder(QDataStream::LittleEndian);
+
+    ds5 << quint16(1);            // wFormatTag (PCM = 1)
+    ds5 << quint16(AudioChannels);  // nChannels
+    ds5 << quint32(AudioSampleRate);  // nSamplesPerSec
+    ds5 << quint32(AudioSampleRate * AudioChannels * (AudioBitsPerSample / 8));  // nAvgBytesPerSec
+    ds5 << quint16(AudioChannels * (AudioBitsPerSample / 8));  // nBlockAlign
+    ds5 << quint16(AudioBitsPerSample);  // wBitsPerSample
+    ds5 << quint16(0);            // cbSize (extra format info - none for PCM)
+
+    writeChunk("strf", audioStrf);
+
+    // Update audio strl LIST size
+    qint64 audioStrlEnd = file_.pos();
+    qint64 audioStrlSize = audioStrlEnd - audioStrlSizePos - 4;
+    file_.seek(audioStrlSizePos);
+    char audioStrlSizeBytes[4];
+    audioStrlSizeBytes[0] = static_cast<char>(audioStrlSize & 0xFF);
+    audioStrlSizeBytes[1] = static_cast<char>((audioStrlSize >> 8) & 0xFF);
+    audioStrlSizeBytes[2] = static_cast<char>((audioStrlSize >> 16) & 0xFF);
+    audioStrlSizeBytes[3] = static_cast<char>((audioStrlSize >> 24) & 0xFF);
+    file_.write(audioStrlSizeBytes, 4);
+    file_.seek(audioStrlEnd);
 
     // Update hdrl LIST size
     qint64 hdrlEnd = file_.pos();
@@ -278,11 +365,13 @@ void VideoRecordingService::finalizeAvi()
     QDataStream idxStream(&idx1Data, QIODevice::WriteOnly);
     idxStream.setByteOrder(QDataStream::LittleEndian);
 
-    for (int i = 0; i < frameCount_; ++i) {
-        idxStream.writeRawData("00dc", 4);                  // ckid
-        idxStream << quint32(0x10);                         // dwFlags (AVIIF_KEYFRAME)
-        idxStream << quint32(frameOffsets_[i]);             // dwChunkOffset
-        idxStream << quint32(frameSizes_[i]);               // dwChunkLength
+    for (const auto &chunk : chunkIndex_) {
+        idxStream.writeRawData(chunk.fourCC.constData(), 4);  // ckid
+        // Video frames are keyframes, audio chunks are not
+        quint32 flags = (chunk.fourCC == "00dc") ? 0x10 : 0x00;
+        idxStream << flags;                                   // dwFlags
+        idxStream << quint32(chunk.offset);                   // dwChunkOffset
+        idxStream << quint32(chunk.size);                     // dwChunkLength
     }
 
     writeChunk("idx1", idx1Data);
@@ -324,7 +413,7 @@ void VideoRecordingService::finalizeAvi()
     ds << quint32(0x110);           // dwFlags
     ds << quint32(frameCount_);     // dwTotalFrames
     ds << quint32(0);               // dwInitialFrames
-    ds << quint32(1);               // dwStreams
+    ds << quint32(2);               // dwStreams (video + audio)
     ds << quint32(1000000);         // dwSuggestedBufferSize
     ds << quint32(width_);          // dwWidth
     ds << quint32(height_);         // dwHeight
@@ -384,4 +473,32 @@ void VideoRecordingService::finalizeAvi()
     ds3 << quint32(0);              // biClrImportant
 
     file_.write(strf);
+
+    // Update audio strh header with actual sample count
+    // Audio strh starts after video strf: 172 + 40 + LIST[8] + strl[4] + strh[8] = 232
+    file_.seek(232);
+
+    QByteArray audioStrh;
+    QDataStream ds4(&audioStrh, QIODevice::WriteOnly);
+    ds4.setByteOrder(QDataStream::LittleEndian);
+
+    ds4.writeRawData("auds", 4);
+    ds4 << quint32(1);              // fccHandler (PCM)
+    ds4 << quint32(0);              // dwFlags
+    ds4 << quint16(0);              // wPriority
+    ds4 << quint16(0);              // wLanguage
+    ds4 << quint32(0);              // dwInitialFrames
+    ds4 << quint32(1);              // dwScale
+    ds4 << quint32(AudioSampleRate);  // dwRate
+    ds4 << quint32(0);              // dwStart
+    ds4 << quint32(audioSampleCount_);  // dwLength (total samples)
+    ds4 << quint32(AudioSampleRate * AudioChannels * (AudioBitsPerSample / 8));
+    ds4 << quint32(0);              // dwQuality
+    ds4 << quint32(AudioChannels * (AudioBitsPerSample / 8));  // dwSampleSize
+    ds4 << quint16(0);              // rcFrame
+    ds4 << quint16(0);
+    ds4 << quint16(0);
+    ds4 << quint16(0);
+
+    file_.write(audioStrh);
 }

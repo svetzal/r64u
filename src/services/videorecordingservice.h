@@ -14,15 +14,17 @@
 #include <QDateTime>
 
 /**
- * @brief Records video frames to an AVI file with MJPEG encoding.
+ * @brief Records video and audio to an AVI file.
  *
- * This service receives QImage frames and writes them to an AVI container
- * using MJPEG encoding for reasonable file sizes and wide compatibility.
+ * This service receives QImage frames and audio samples and writes them
+ * to an AVI container using MJPEG video encoding and PCM audio for
+ * reasonable file sizes and wide compatibility.
  *
  * Usage:
  * 1. Call startRecording() with the output file path
- * 2. Call addFrame() for each frame to record
- * 3. Call stopRecording() to finalize the file
+ * 2. Call addFrame() for each video frame
+ * 3. Call addAudioSamples() for audio data
+ * 4. Call stopRecording() to finalize the file
  *
  * The frame rate is calculated based on the time between the first
  * and last frames.
@@ -72,6 +74,15 @@ public slots:
      */
     void addFrame(const QImage &frame);
 
+    /**
+     * @brief Adds audio samples to the recording.
+     * @param samples Interleaved stereo samples (16-bit signed, little-endian).
+     * @param sampleCount Number of stereo sample pairs.
+     *
+     * Does nothing if not currently recording.
+     */
+    void addAudioSamples(const QByteArray &samples, int sampleCount);
+
 signals:
     /**
      * @brief Emitted when recording starts.
@@ -110,8 +121,20 @@ private:
     // AVI file structure tracking
     qint64 moviListStart_ = 0;
     qint64 moviListSizePos_ = 0;
-    QList<qint64> frameOffsets_;
-    QList<int> frameSizes_;
+
+    // Index entries for all chunks (video and audio)
+    struct ChunkInfo {
+        QByteArray fourCC;  // "00dc" for video, "01wb" for audio
+        qint64 offset;
+        int size;
+    };
+    QList<ChunkInfo> chunkIndex_;
+
+    // Audio tracking
+    int audioSampleCount_ = 0;
+    static constexpr int AudioSampleRate = 48000;  // Close to actual ~47983 Hz
+    static constexpr int AudioChannels = 2;
+    static constexpr int AudioBitsPerSample = 16;
 };
 
 #endif // VIDEORECORDINGSERVICE_H

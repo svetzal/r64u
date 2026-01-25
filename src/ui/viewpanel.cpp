@@ -5,6 +5,7 @@
 #include "services/videostreamreceiver.h"
 #include "services/keyboardinputservice.h"
 #include "services/videorecordingservice.h"
+#include "services/audiostreamreceiver.h"
 #include "utils/logging.h"
 
 #include <QVBoxLayout>
@@ -170,6 +171,12 @@ void ViewPanel::setupConnections()
     if (streamingManager_ && streamingManager_->videoReceiver()) {
         connect(streamingManager_->videoReceiver(), &VideoStreamReceiver::frameReady,
                 this, &ViewPanel::onFrameReadyForRecording);
+    }
+
+    // Connect audio receiver to recording service (for recording audio)
+    if (streamingManager_ && streamingManager_->audioReceiver()) {
+        connect(streamingManager_->audioReceiver(), &AudioStreamReceiver::samplesReady,
+                this, &ViewPanel::onAudioSamplesForRecording);
     }
 }
 
@@ -504,4 +511,13 @@ void ViewPanel::onFrameReadyForRecording(const QByteArray &frameData, quint16 fr
     }
 
     recordingService_->addFrame(frame);
+}
+
+void ViewPanel::onAudioSamplesForRecording(const QByteArray &samples, int sampleCount)
+{
+    if (!recordingService_ || !recordingService_->isRecording()) {
+        return;
+    }
+
+    recordingService_->addAudioSamples(samples, sampleCount);
 }
