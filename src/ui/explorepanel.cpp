@@ -521,8 +521,15 @@ void ExplorePanel::onContextMenu(const QPoint &pos)
         bool canMount = fileType == RemoteFileModel::FileType::DiskImage;
         bool canLoadConfig = fileType == RemoteFileModel::FileType::Config;
 
-        // SID files can be added to playlist (not MOD - only SID supported for now)
-        bool canAddToPlaylist = fileType == RemoteFileModel::FileType::SidMusic;
+        // Check if any selected item is a SID file (for multi-selection support)
+        bool canAddToPlaylist = false;
+        QModelIndexList selectedIndices = treeView_->selectionModel()->selectedRows();
+        for (const QModelIndex &selIndex : selectedIndices) {
+            if (remoteFileModel_->fileType(selIndex) == RemoteFileModel::FileType::SidMusic) {
+                canAddToPlaylist = true;
+                break;
+            }
+        }
 
         contextPlayAction_->setEnabled(canOperate && canPlay);
         contextAddToPlaylistAction_->setEnabled(canAddToPlaylist);
@@ -884,26 +891,32 @@ void ExplorePanel::onFavoritesChanged()
 
 void ExplorePanel::onAddToPlaylist()
 {
-    QString path = selectedPath();
-    if (path.isEmpty()) {
+    if (!playlistManager_ || !treeView_ || !remoteFileModel_) {
         return;
     }
 
-    if (!playlistManager_) {
+    // Get all selected indices
+    QModelIndexList selectedIndices = treeView_->selectionModel()->selectedRows();
+    if (selectedIndices.isEmpty()) {
         return;
     }
 
-    // Get file type to verify it's a SID
-    if (!treeView_ || !remoteFileModel_) {
-        return;
+    // Filter to only SID files and add them
+    int addedCount = 0;
+    for (const QModelIndex &index : selectedIndices) {
+        RemoteFileModel::FileType type = remoteFileModel_->fileType(index);
+        if (type == RemoteFileModel::FileType::SidMusic) {
+            QString path = remoteFileModel_->filePath(index);
+            playlistManager_->addItem(path);
+            addedCount++;
+        }
     }
 
-    RemoteFileModel::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
-    if (type != RemoteFileModel::FileType::SidMusic) {
-        emit statusMessage(tr("Only SID files can be added to the playlist"), 3000);
-        return;
+    if (addedCount == 0) {
+        emit statusMessage(tr("No SID files in selection"), 3000);
+    } else if (addedCount == 1) {
+        emit statusMessage(tr("Added 1 SID to playlist"), 3000);
+    } else {
+        emit statusMessage(tr("Added %1 SIDs to playlist").arg(addedCount), 3000);
     }
-
-    playlistManager_->addItem(path);
-    emit statusMessage(tr("Added to playlist: %1").arg(path), 3000);
 }
