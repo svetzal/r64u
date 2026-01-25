@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(r64u
-    VERSION 0.8.1
+    VERSION 0.9.0
     DESCRIPTION "Remote access tool for Commodore 64 Ultimate devices"
     LANGUAGES CXX
 )
