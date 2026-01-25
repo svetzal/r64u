@@ -13,6 +13,7 @@
 #include <QString>
 #include <QList>
 #include <QTimer>
+#include <QSet>
 
 class DeviceConnection;
 class SonglengthsDatabase;
@@ -280,6 +281,7 @@ signals:
 
 private slots:
     void onAdvanceTimer();
+    void onSidDataReceived(const QString &remotePath, const QByteArray &data);
 
 private:
     void startTimer();
@@ -303,6 +305,10 @@ private:
     int defaultDuration_ = 180;  // 3 minutes default
 
     QTimer *advanceTimer_ = nullptr;
+
+    // Paths for which we're waiting for SID data to look up duration
+    QSet<QString> pendingDurationLookups_;
+    bool ftpConnected_ = false;
 };
 
 #endif // PLAYLISTMANAGER_H

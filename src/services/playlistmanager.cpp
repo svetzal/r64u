@@ -6,6 +6,7 @@
 #include "playlistmanager.h"
 #include "deviceconnection.h"
 #include "c64urestclient.h"
+#include "c64uftpclient.h"
 #include "songlengthsdatabase.h"
 
 #include <QSettings>
@@ -24,6 +25,12 @@ PlaylistManager::PlaylistManager(DeviceConnection *connection, QObject *parent)
 {
     advanceTimer_->setSingleShot(true);
     connect(advanceTimer_, &QTimer::timeout, this, &PlaylistManager::onAdvanceTimer);
+
+    // Connect to FTP client for SID data fetching (for duration lookup)
+    if (deviceConnection_ != nullptr && deviceConnection_->ftpClient() != nullptr) {
+        connect(deviceConnection_->ftpClient(), &C64UFtpClient::downloadToMemoryFinished,
+                this, &PlaylistManager::onSidDataReceived);
+    }
 
     loadSettings();
 }
@@ -54,6 +61,18 @@ void PlaylistManager::addItem(const PlaylistItem &item)
     // Regenerate shuffle order if shuffle is enabled
     if (shuffle_) {
         generateShuffleOrder();
+    }
+
+    // Request SID data to look up duration from database
+    if (songlengthsDatabase_ != nullptr && songlengthsDatabase_->isLoaded() &&
+        deviceConnection_ != nullptr && deviceConnection_->ftpClient() != nullptr &&
+        deviceConnection_->canPerformOperations()) {
+
+        // Only request if we haven't already requested this path
+        if (!pendingDurationLookups_.contains(item.path)) {
+            pendingDurationLookups_.insert(item.path);
+            deviceConnection_->ftpClient()->downloadToMemory(item.path);
+        }
     }
 
     emit playlistChanged();
@@ -549,4 +568,48 @@ int PlaylistManager::shuffledIndex(int index) const
 int PlaylistManager::unshuffledIndex(int shuffledIdx) const
 {
     return shuffleOrder_.indexOf(shuffledIdx);
+}
+
+void PlaylistManager::onSidDataReceived(const QString &remotePath, const QByteArray &data)
+{
+    // Check if this is a path we requested for duration lookup
+    if (!pendingDurationLookups_.contains(remotePath)) {
+        return;  // Not our request
+    }
+
+    pendingDurationLookups_.remove(remotePath);
+
+    // Look up duration in database
+    if (songlengthsDatabase_ == nullptr || !songlengthsDatabase_->isLoaded()) {
+        return;
+    }
+
+    SonglengthsDatabase::SongLengths lengths = songlengthsDatabase_->lookupByData(data);
+    if (!lengths.found || lengths.durations.isEmpty()) {
+        return;
+    }
+
+    // Update all playlist items with this path
+    bool updated = false;
+    for (int i = 0; i < items_.count(); ++i) {
+        if (items_[i].path == remotePath) {
+            int subsongIndex = items_[i].subsong - 1;  // Convert to 0-indexed
+            if (subsongIndex >= 0 && subsongIndex < lengths.durations.size()) {
+                int newDuration = lengths.durations.at(subsongIndex);
+                if (items_[i].durationSecs != newDuration) {
+                    items_[i].durationSecs = newDuration;
+                    updated = true;
+
+                    // If this is the current item and we're playing, restart timer
+                    if (i == currentIndex_ && playing_) {
+                        startTimer();
+                    }
+                }
+            }
+        }
+    }
+
+    if (updated) {
+        emit playlistChanged();
+    }
 }
