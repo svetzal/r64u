@@ -54,6 +54,7 @@ set(SOURCES
     src/ui/transferpanel.cpp
     src/ui/viewpanel.cpp
     src/ui/configpanel.cpp
+    src/ui/playlistwidget.cpp
     src/ui/filepreview/textfilepreview.cpp
     src/ui/filepreview/diskimagepreview.cpp
     src/ui/filepreview/sidfilepreview.cpp
@@ -79,6 +80,7 @@ set(SOURCES
     src/services/sidfileparser.cpp
     src/services/favoritesmanager.cpp
     src/services/videorecordingservice.cpp
+    src/services/playlistmanager.cpp
     src/models/remotefilemodel.cpp
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
@@ -105,6 +107,7 @@ set(HEADERS
     src/ui/transferpanel.h
     src/ui/viewpanel.h
     src/ui/configpanel.h
+    src/ui/playlistwidget.h
     src/ui/filepreview/filepreviewstrategy.h
     src/ui/filepreview/textfilepreview.h
     src/ui/filepreview/diskimagepreview.h
@@ -131,6 +134,7 @@ set(HEADERS
     src/services/sidfileparser.h
     src/services/favoritesmanager.h
     src/services/videorecordingservice.h
+    src/services/playlistmanager.h
     src/models/remotefilemodel.h
     src/models/localfileproxymodel.h
     src/models/transferqueue.h

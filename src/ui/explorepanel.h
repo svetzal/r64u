@@ -12,9 +12,11 @@ class RemoteFileModel;
 class ConfigFileLoader;
 class FilePreviewService;
 class FavoritesManager;
+class PlaylistManager;
 class FileDetailsPanel;
 class PathNavigationWidget;
 class DriveStatusWidget;
+class PlaylistWidget;
 
 class ExplorePanel : public QWidget
 {
@@ -26,6 +28,7 @@ public:
                           ConfigFileLoader *configLoader,
                           FilePreviewService *previewService,
                           FavoritesManager *favoritesManager,
+                          PlaylistManager *playlistManager,
                           QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
@@ -74,6 +77,9 @@ private slots:
     void onFavoriteSelected(QAction *action);
     void onFavoritesChanged();
 
+    // Playlist slots
+    void onAddToPlaylist();
+
     // Config file loading slots
     void onConfigLoadFinished(const QString &path);
     void onConfigLoadFailed(const QString &path, const QString &error);
@@ -93,14 +99,17 @@ private:
     ConfigFileLoader *configFileLoader_ = nullptr;
     FilePreviewService *previewService_ = nullptr;
     FavoritesManager *favoritesManager_ = nullptr;
+    PlaylistManager *playlistManager_ = nullptr;
 
     // State
     QString currentDirectory_;
 
     // UI widgets
     QSplitter *splitter_ = nullptr;
+    QSplitter *rightSplitter_ = nullptr;  // For details + playlist
     QTreeView *treeView_ = nullptr;
     FileDetailsPanel *fileDetailsPanel_ = nullptr;
+    PlaylistWidget *playlistWidget_ = nullptr;
     QToolBar *toolBar_ = nullptr;
     PathNavigationWidget *navWidget_ = nullptr;
     DriveStatusWidget *drive8Status_ = nullptr;
@@ -121,6 +130,7 @@ private:
     QAction *contextMountBAction_ = nullptr;
     QAction *contextDownloadAction_ = nullptr;
     QAction *contextToggleFavoriteAction_ = nullptr;
+    QAction *contextAddToPlaylistAction_ = nullptr;
 
     // Favorites UI
     QAction *toggleFavoriteAction_ = nullptr;

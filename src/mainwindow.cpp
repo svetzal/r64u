@@ -12,6 +12,7 @@
 #include "services/errorhandler.h"
 #include "services/statusmessageservice.h"
 #include "services/favoritesmanager.h"
+#include "services/playlistmanager.h"
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 
@@ -52,6 +53,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Create the favorites manager for bookmarking remote paths
     favoritesManager_ = new FavoritesManager(this);
+
+    // Create the playlist manager for SID jukebox functionality
+    playlistManager_ = new PlaylistManager(deviceConnection_, this);
 
     // Configure the config file loader
     configFileLoader_->setFtpClient(deviceConnection_->ftpClient());
@@ -251,7 +255,7 @@ void MainWindow::setupStatusBar()
 void MainWindow::setupPanels()
 {
     // Create mode panels with their dependencies
-    explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, configFileLoader_, filePreviewService_, favoritesManager_);
+    explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, configFileLoader_, filePreviewService_, favoritesManager_, playlistManager_);
     transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferService_);
     viewPanel_ = new ViewPanel(deviceConnection_);
     configPanel_ = new ConfigPanel(deviceConnection_);

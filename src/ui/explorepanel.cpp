@@ -2,10 +2,12 @@
 #include "filedetailspanel.h"
 #include "pathnavigationwidget.h"
 #include "drivestatuswidget.h"
+#include "playlistwidget.h"
 #include "services/deviceconnection.h"
 #include "services/configfileloader.h"
 #include "services/filepreviewservice.h"
 #include "services/favoritesmanager.h"
+#include "services/playlistmanager.h"
 #include "models/remotefilemodel.h"
 
 #include <QVBoxLayout>
@@ -23,6 +25,7 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection,
                            ConfigFileLoader *configLoader,
                            FilePreviewService *previewService,
                            FavoritesManager *favoritesManager,
+                           PlaylistManager *playlistManager,
                            QWidget *parent)
     : QWidget(parent)
     , deviceConnection_(connection)
@@ -30,6 +33,7 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection,
     , configFileLoader_(configLoader)
     , previewService_(previewService)
     , favoritesManager_(favoritesManager)
+    , playlistManager_(playlistManager)
     , currentDirectory_("/")
 {
     // These dependencies are required - assert in debug builds
@@ -38,6 +42,7 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection,
     Q_ASSERT(configFileLoader_ && "ConfigFileLoader is required");
     Q_ASSERT(previewService_ && "FilePreviewService is required");
     Q_ASSERT(favoritesManager_ && "FavoritesManager is required");
+    Q_ASSERT(playlistManager_ && "PlaylistManager is required");
 
     setupUi();
     setupContextMenu();
@@ -145,13 +150,27 @@ void ExplorePanel::setupUi()
 
     splitter_->addWidget(remoteWidget);
 
-    // Right side: file details panel
+    // Right side: vertical splitter for details and playlist
+    rightSplitter_ = new QSplitter(Qt::Vertical);
+
+    // File details panel
     fileDetailsPanel_ = new FileDetailsPanel();
     connect(fileDetailsPanel_, &FileDetailsPanel::contentRequested,
             this, &ExplorePanel::onFileContentRequested);
-    splitter_->addWidget(fileDetailsPanel_);
+    rightSplitter_->addWidget(fileDetailsPanel_);
 
-    // Set initial splitter sizes (40% tree, 60% details)
+    // Playlist widget
+    playlistWidget_ = new PlaylistWidget(playlistManager_);
+    connect(playlistWidget_, &PlaylistWidget::statusMessage,
+            this, &ExplorePanel::statusMessage);
+    rightSplitter_->addWidget(playlistWidget_);
+
+    // Set initial right splitter sizes (70% details, 30% playlist)
+    rightSplitter_->setSizes({350, 150});
+
+    splitter_->addWidget(rightSplitter_);
+
+    // Set initial splitter sizes (40% tree, 60% details+playlist)
     splitter_->setSizes({400, 600});
 
     layout->addWidget(splitter_);
@@ -161,6 +180,7 @@ void ExplorePanel::setupContextMenu()
 {
     contextMenu_ = new QMenu(this);
     contextPlayAction_ = contextMenu_->addAction(tr("Play"), this, &ExplorePanel::onPlay);
+    contextAddToPlaylistAction_ = contextMenu_->addAction(tr("Add to Playlist"), this, &ExplorePanel::onAddToPlaylist);
     contextRunAction_ = contextMenu_->addAction(tr("Run"), this, &ExplorePanel::onRun);
     contextLoadConfigAction_ = contextMenu_->addAction(tr("Load Config"), this, &ExplorePanel::onLoadConfig);
     contextMenu_->addSeparator();
@@ -501,7 +521,11 @@ void ExplorePanel::onContextMenu(const QPoint &pos)
         bool canMount = fileType == RemoteFileModel::FileType::DiskImage;
         bool canLoadConfig = fileType == RemoteFileModel::FileType::Config;
 
+        // SID files can be added to playlist (not MOD - only SID supported for now)
+        bool canAddToPlaylist = fileType == RemoteFileModel::FileType::SidMusic;
+
         contextPlayAction_->setEnabled(canOperate && canPlay);
+        contextAddToPlaylistAction_->setEnabled(canAddToPlaylist);
         contextRunAction_->setEnabled(canOperate && canRun);
         contextLoadConfigAction_->setEnabled(canOperate && canLoadConfig);
         contextMountAAction_->setEnabled(canOperate && canMount);
@@ -856,4 +880,30 @@ void ExplorePanel::onFavoritesChanged()
         action->setData(path);
         action->setToolTip(path);
     }
+}
+
+void ExplorePanel::onAddToPlaylist()
+{
+    QString path = selectedPath();
+    if (path.isEmpty()) {
+        return;
+    }
+
+    if (!playlistManager_) {
+        return;
+    }
+
+    // Get file type to verify it's a SID
+    if (!treeView_ || !remoteFileModel_) {
+        return;
+    }
+
+    RemoteFileModel::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
+    if (type != RemoteFileModel::FileType::SidMusic) {
+        emit statusMessage(tr("Only SID files can be added to the playlist"), 3000);
+        return;
+    }
+
+    playlistManager_->addItem(path);
+    emit statusMessage(tr("Added to playlist: %1").arg(path), 3000);
 }
