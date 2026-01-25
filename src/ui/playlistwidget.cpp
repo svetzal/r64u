@@ -68,7 +68,7 @@ void PlaylistWidget::setupUi()
     connect(playPauseAction_, &QAction::triggered, this, &PlaylistWidget::onPlayPause);
 
     stopAction_ = controlBar_->addAction(QString::fromUtf8("\u25A0"));  // Stop square
-    stopAction_->setToolTip(tr("Stop"));
+    stopAction_->setToolTip(tr("Stop (resets C64)"));
     connect(stopAction_, &QAction::triggered, this, &PlaylistWidget::onStop);
 
     prevAction_ = controlBar_->addAction(QString::fromUtf8("\u23EE"));  // Previous
@@ -183,9 +183,8 @@ void PlaylistWidget::onCurrentIndexChanged(int index)
 void PlaylistWidget::onPlaybackStarted(int index)
 {
     Q_UNUSED(index)
-    playPauseAction_->setText(QString::fromUtf8("\u23F8"));  // Pause
-    playPauseAction_->setToolTip(tr("Pause (stop)"));
     highlightCurrentItem();
+    updateControlsState();
 
     // Start elapsed timer
     elapsedSeconds_ = 0;
@@ -195,9 +194,8 @@ void PlaylistWidget::onPlaybackStarted(int index)
 
 void PlaylistWidget::onPlaybackStopped()
 {
-    playPauseAction_->setText(QString::fromUtf8("\u25B6"));  // Play
-    playPauseAction_->setToolTip(tr("Play"));
     highlightCurrentItem();
+    updateControlsState();
 
     // Stop elapsed timer and reset display
     elapsedTimer_->stop();
@@ -217,11 +215,8 @@ void PlaylistWidget::onRepeatModeChanged()
 
 void PlaylistWidget::onPlayPause()
 {
-    if (manager_->isPlaying()) {
-        manager_->stop();
-    } else {
-        manager_->play();
-    }
+    // Just play - stop is a separate action
+    manager_->play();
 }
 
 void PlaylistWidget::onStop()
@@ -418,12 +413,15 @@ void PlaylistWidget::updateControlsState()
     bool hasItems = !manager_->isEmpty();
     bool isPlaying = manager_->isPlaying();
 
+    // Play enabled when has items and not already playing
+    playPauseAction_->setEnabled(hasItems && !isPlaying);
+    // Stop enabled only when playing
     stopAction_->setEnabled(isPlaying);
+    // Prev/next enabled when has items
     prevAction_->setEnabled(hasItems);
     nextAction_->setEnabled(hasItems);
-    clearAction_->setEnabled(hasItems);
+    clearAction_->setEnabled(hasItems && !isPlaying);
     saveAction_->setEnabled(hasItems);
-    playPauseAction_->setEnabled(hasItems);
 }
 
 void PlaylistWidget::updateShuffleButton()

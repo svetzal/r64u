@@ -191,6 +191,12 @@ void PlaylistManager::stop()
 {
     stopTimer();
     playing_ = false;
+
+    // Reset the C64 to stop the music
+    if (deviceConnection_ != nullptr && deviceConnection_->canPerformOperations()) {
+        deviceConnection_->restClient()->resetMachine();
+    }
+
     emit playbackStopped();
 }
 
