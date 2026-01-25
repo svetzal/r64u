@@ -269,8 +269,9 @@ void MainWindow::setupPanels()
     viewPanel_ = new ViewPanel(deviceConnection_);
     configPanel_ = new ConfigPanel(deviceConnection_);
 
-    // Wire up the streaming manager to the playlist manager for auto stream start/stop
+    // Wire up the streaming manager for auto stream start/stop
     playlistManager_->setStreamingManager(viewPanel_->streamingManager());
+    explorePanel_->setStreamingManager(viewPanel_->streamingManager());
 
     // Add panels to tab widget
     modeTabWidget_->addTab(explorePanel_, tr("Explore/Run"));

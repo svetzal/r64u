@@ -14,6 +14,7 @@ class FilePreviewService;
 class FavoritesManager;
 class PlaylistManager;
 class SonglengthsDatabase;
+class StreamingManager;
 class FileDetailsPanel;
 class PathNavigationWidget;
 class DriveStatusWidget;
@@ -45,6 +46,9 @@ public:
 
     // Database injection
     void setSonglengthsDatabase(SonglengthsDatabase *database);
+
+    // Streaming manager injection (for auto-start on play/run)
+    void setStreamingManager(StreamingManager *manager);
 
     // Selection info for MainWindow
     QString selectedPath() const;
@@ -104,6 +108,7 @@ private:
     FilePreviewService *previewService_ = nullptr;
     FavoritesManager *favoritesManager_ = nullptr;
     PlaylistManager *playlistManager_ = nullptr;
+    StreamingManager *streamingManager_ = nullptr;
 
     // State
     QString currentDirectory_;

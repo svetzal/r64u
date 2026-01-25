@@ -9,6 +9,7 @@
 #include "services/favoritesmanager.h"
 #include "services/playlistmanager.h"
 #include "services/songlengthsdatabase.h"
+#include "services/streamingmanager.h"
 #include "models/remotefilemodel.h"
 
 #include <QVBoxLayout>
@@ -360,6 +361,11 @@ void ExplorePanel::setSonglengthsDatabase(SonglengthsDatabase *database)
     }
 }
 
+void ExplorePanel::setStreamingManager(StreamingManager *manager)
+{
+    streamingManager_ = manager;
+}
+
 void ExplorePanel::onConnectionStateChanged()
 {
     bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
@@ -587,6 +593,11 @@ void ExplorePanel::onPlay()
         return;
     }
 
+    // Start streaming if available
+    if (streamingManager_ != nullptr && !streamingManager_->isStreaming()) {
+        streamingManager_->startStreaming();
+    }
+
     RemoteFileModel::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
 
     if (type == RemoteFileModel::FileType::SidMusic) {
@@ -607,6 +618,11 @@ void ExplorePanel::onRun()
 
     if (!treeView_ || !remoteFileModel_ || !deviceConnection_ || !deviceConnection_->restClient()) {
         return;
+    }
+
+    // Start streaming if available
+    if (streamingManager_ != nullptr && !streamingManager_->isStreaming()) {
+        streamingManager_->startStreaming();
     }
 
     RemoteFileModel::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
