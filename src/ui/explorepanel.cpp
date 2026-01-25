@@ -5,6 +5,7 @@
 #include "services/deviceconnection.h"
 #include "services/configfileloader.h"
 #include "services/filepreviewservice.h"
+#include "services/favoritesmanager.h"
 #include "models/remotefilemodel.h"
 
 #include <QVBoxLayout>
@@ -15,17 +16,20 @@
 #include <QTimer>
 #include <QSettings>
 #include <QShowEvent>
+#include <QToolButton>
 
 ExplorePanel::ExplorePanel(DeviceConnection *connection,
                            RemoteFileModel *model,
                            ConfigFileLoader *configLoader,
                            FilePreviewService *previewService,
+                           FavoritesManager *favoritesManager,
                            QWidget *parent)
     : QWidget(parent)
     , deviceConnection_(connection)
     , remoteFileModel_(model)
     , configFileLoader_(configLoader)
     , previewService_(previewService)
+    , favoritesManager_(favoritesManager)
     , currentDirectory_("/")
 {
     // These dependencies are required - assert in debug builds
@@ -33,6 +37,7 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection,
     Q_ASSERT(remoteFileModel_ && "RemoteFileModel is required");
     Q_ASSERT(configFileLoader_ && "ConfigFileLoader is required");
     Q_ASSERT(previewService_ && "FilePreviewService is required");
+    Q_ASSERT(favoritesManager_ && "FavoritesManager is required");
 
     setupUi();
     setupContextMenu();
@@ -84,6 +89,26 @@ void ExplorePanel::setupUi()
     refreshAction_ = toolBar_->addAction(tr("Refresh"));
     refreshAction_->setToolTip(tr("Refresh file listing"));
     connect(refreshAction_, &QAction::triggered, this, &ExplorePanel::onRefresh);
+
+    toolBar_->addSeparator();
+
+    // Favorites toggle action
+    toggleFavoriteAction_ = toolBar_->addAction(tr("Favorite"));
+    toggleFavoriteAction_->setToolTip(tr("Add/remove selected path from favorites"));
+    toggleFavoriteAction_->setCheckable(true);
+    toggleFavoriteAction_->setEnabled(false);
+    connect(toggleFavoriteAction_, &QAction::triggered, this, &ExplorePanel::onToggleFavorite);
+
+    // Favorites dropdown menu
+    favoritesMenu_ = new QMenu(tr("Favorites"), this);
+    auto *favoritesMenuAction = toolBar_->addAction(tr("Favorites"));
+    favoritesMenuAction->setToolTip(tr("Quick access to favorite locations"));
+    favoritesMenuAction->setMenu(favoritesMenu_);
+    // Make it a proper dropdown button
+    if (auto *button = qobject_cast<QToolButton *>(toolBar_->widgetForAction(favoritesMenuAction))) {
+        button->setPopupMode(QToolButton::InstantPopup);
+    }
+    connect(favoritesMenu_, &QMenu::triggered, this, &ExplorePanel::onFavoriteSelected);
 
     remoteLayout->addWidget(toolBar_);
 
@@ -144,6 +169,8 @@ void ExplorePanel::setupContextMenu()
     contextMenu_->addSeparator();
     contextDownloadAction_ = contextMenu_->addAction(tr("Download"), this, &ExplorePanel::onDownload);
     contextMenu_->addSeparator();
+    contextToggleFavoriteAction_ = contextMenu_->addAction(tr("Toggle Favorite"), this, &ExplorePanel::onToggleFavorite);
+    contextMenu_->addSeparator();
     contextMenu_->addAction(tr("Refresh"), this, &ExplorePanel::onRefresh);
 }
 
@@ -187,6 +214,14 @@ void ExplorePanel::setupConnections()
                 emit statusMessage(tr("Ejecting Drive B"), 3000);
             }
         });
+    }
+
+    // Connect to favorites manager
+    if (favoritesManager_) {
+        connect(favoritesManager_, &FavoritesManager::favoritesChanged,
+                this, &ExplorePanel::onFavoritesChanged);
+        // Initialize the favorites menu
+        onFavoritesChanged();
     }
 }
 
@@ -373,6 +408,16 @@ void ExplorePanel::onSelectionChanged()
         mountAction_->setEnabled(canOperate && canMount);
     }
 
+    // Update favorites toggle button
+    if (toggleFavoriteAction_) {
+        toggleFavoriteAction_->setEnabled(hasSelection);
+        if (hasSelection && favoritesManager_) {
+            toggleFavoriteAction_->setChecked(favoritesManager_->isFavorite(selected));
+        } else {
+            toggleFavoriteAction_->setChecked(false);
+        }
+    }
+
     // Update file details panel
     if (!treeView_ || !remoteFileModel_ || !fileDetailsPanel_) {
         return;
@@ -457,6 +502,13 @@ void ExplorePanel::onContextMenu(const QPoint &pos)
         contextMountAAction_->setEnabled(canOperate && canMount);
         contextMountBAction_->setEnabled(canOperate && canMount);
         contextDownloadAction_->setEnabled(canOperate);
+
+        // Update favorites context action text
+        if (contextToggleFavoriteAction_ && favoritesManager_) {
+            QString path = remoteFileModel_->filePath(index);
+            bool isFav = favoritesManager_->isFavorite(path);
+            contextToggleFavoriteAction_->setText(isFav ? tr("Remove from Favorites") : tr("Add to Favorites"));
+        }
 
         contextMenu_->exec(treeView_->viewport()->mapToGlobal(pos));
     }
@@ -709,4 +761,85 @@ void ExplorePanel::onConfigLoadFailed(const QString &path, const QString &error)
     emit statusMessage(tr("Failed to load %1: %2").arg(QFileInfo(path).fileName()).arg(error), 5000);
     QMessageBox::warning(this, tr("Configuration Error"),
         tr("Failed to load configuration file:\n%1\n\nError: %2").arg(path).arg(error));
+}
+
+void ExplorePanel::onToggleFavorite()
+{
+    QString path = selectedPath();
+    if (path.isEmpty() || !favoritesManager_) {
+        return;
+    }
+
+    bool isNowFavorite = favoritesManager_->toggleFavorite(path);
+    if (isNowFavorite) {
+        emit statusMessage(tr("Added to favorites: %1").arg(path), 3000);
+    } else {
+        emit statusMessage(tr("Removed from favorites: %1").arg(path), 3000);
+    }
+
+    // Update the toggle button state
+    if (toggleFavoriteAction_) {
+        toggleFavoriteAction_->setChecked(isNowFavorite);
+    }
+}
+
+void ExplorePanel::onFavoriteSelected(QAction *action)
+{
+    if (!action) {
+        return;
+    }
+
+    QString path = action->data().toString();
+    if (path.isEmpty()) {
+        return;
+    }
+
+    // Navigate to the favorite path
+    // If it's a file, navigate to its directory
+    QFileInfo fileInfo(path);
+    if (fileInfo.suffix().isEmpty()) {
+        // Assume it's a directory
+        setCurrentDirectory(path);
+    } else {
+        // It's a file - navigate to its parent and try to select it
+        QString dir = path.left(path.lastIndexOf('/'));
+        if (dir.isEmpty()) {
+            dir = "/";
+        }
+        setCurrentDirectory(dir);
+        // Note: Selection of the file would require additional work with the model
+        emit statusMessage(tr("Navigated to favorite: %1").arg(path), 3000);
+    }
+}
+
+void ExplorePanel::onFavoritesChanged()
+{
+    if (!favoritesMenu_ || !favoritesManager_) {
+        return;
+    }
+
+    favoritesMenu_->clear();
+
+    QStringList favorites = favoritesManager_->favorites();
+    if (favorites.isEmpty()) {
+        auto *emptyAction = favoritesMenu_->addAction(tr("(No favorites)"));
+        emptyAction->setEnabled(false);
+        return;
+    }
+
+    for (const QString &path : favorites) {
+        // Use the file/folder name as the display text
+        QString displayName = path;
+        int lastSlash = path.lastIndexOf('/');
+        if (lastSlash >= 0 && lastSlash < path.length() - 1) {
+            displayName = path.mid(lastSlash + 1);
+        }
+        if (displayName.isEmpty()) {
+            displayName = "/";
+        }
+
+        QAction *action = favoritesMenu_->addAction(displayName);
+        action->setData(path);
+        action->setToolTip(path);
+    }
 }

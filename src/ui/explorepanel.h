@@ -11,6 +11,7 @@ class DeviceConnection;
 class RemoteFileModel;
 class ConfigFileLoader;
 class FilePreviewService;
+class FavoritesManager;
 class FileDetailsPanel;
 class PathNavigationWidget;
 class DriveStatusWidget;
@@ -24,6 +25,7 @@ public:
                           RemoteFileModel *model,
                           ConfigFileLoader *configLoader,
                           FilePreviewService *previewService,
+                          FavoritesManager *favoritesManager,
                           QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
@@ -67,6 +69,11 @@ private slots:
     void onPreviewReady(const QString &remotePath, const QByteArray &data);
     void onPreviewFailed(const QString &remotePath, const QString &error);
 
+    // Favorites slots
+    void onToggleFavorite();
+    void onFavoriteSelected(QAction *action);
+    void onFavoritesChanged();
+
     // Config file loading slots
     void onConfigLoadFinished(const QString &path);
     void onConfigLoadFailed(const QString &path, const QString &error);
@@ -85,6 +92,7 @@ private:
     RemoteFileModel *remoteFileModel_ = nullptr;
     ConfigFileLoader *configFileLoader_ = nullptr;
     FilePreviewService *previewService_ = nullptr;
+    FavoritesManager *favoritesManager_ = nullptr;
 
     // State
     QString currentDirectory_;
@@ -112,6 +120,11 @@ private:
     QAction *contextMountAAction_ = nullptr;
     QAction *contextMountBAction_ = nullptr;
     QAction *contextDownloadAction_ = nullptr;
+    QAction *contextToggleFavoriteAction_ = nullptr;
+
+    // Favorites UI
+    QAction *toggleFavoriteAction_ = nullptr;
+    QMenu *favoritesMenu_ = nullptr;
 };
 
 #endif // EXPLOREPANEL_H

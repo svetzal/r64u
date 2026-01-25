@@ -111,6 +111,14 @@ void VideoDisplayWidget::setScalingMode(ScalingMode mode)
     }
 }
 
+QImage VideoDisplayWidget::currentFrame() const
+{
+    if (!hasFrame_) {
+        return {};
+    }
+    return displayImage_.copy();
+}
+
 void VideoDisplayWidget::paintEvent(QPaintEvent * /*event*/)
 {
     QPainter painter(this);

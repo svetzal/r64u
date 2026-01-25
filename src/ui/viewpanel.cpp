@@ -4,12 +4,18 @@
 #include "services/streamingmanager.h"
 #include "services/videostreamreceiver.h"
 #include "services/keyboardinputservice.h"
+#include "services/videorecordingservice.h"
 #include "utils/logging.h"
 
 #include <QVBoxLayout>
 #include <QMessageBox>
 #include <QSettings>
 #include <QKeyEvent>
+#include <QDateTime>
+#include <QDir>
+#include <QStandardPaths>
+#include <QFileDialog>
+#include <QFileInfo>
 
 ViewPanel::ViewPanel(DeviceConnection *connection, QWidget *parent)
     : QWidget(parent)
@@ -43,6 +49,23 @@ void ViewPanel::setupUi()
     stopStreamAction_->setToolTip(tr("Stop streaming"));
     stopStreamAction_->setEnabled(false);
     connect(stopStreamAction_, &QAction::triggered, this, &ViewPanel::onStopStreaming);
+
+    toolBar_->addSeparator();
+
+    captureScreenshotAction_ = toolBar_->addAction(tr("Screenshot"));
+    captureScreenshotAction_->setToolTip(tr("Capture screenshot (saves to Pictures folder)"));
+    captureScreenshotAction_->setEnabled(false);
+    connect(captureScreenshotAction_, &QAction::triggered, this, &ViewPanel::onCaptureScreenshot);
+
+    startRecordingAction_ = toolBar_->addAction(tr("Record"));
+    startRecordingAction_->setToolTip(tr("Start recording video"));
+    startRecordingAction_->setEnabled(false);
+    connect(startRecordingAction_, &QAction::triggered, this, &ViewPanel::onStartRecording);
+
+    stopRecordingAction_ = toolBar_->addAction(tr("Stop Recording"));
+    stopRecordingAction_->setToolTip(tr("Stop recording video"));
+    stopRecordingAction_->setEnabled(false);
+    connect(stopRecordingAction_, &QAction::triggered, this, &ViewPanel::onStopRecording);
 
     toolBar_->addSeparator();
 
@@ -90,6 +113,9 @@ void ViewPanel::setupUi()
 
     // Create streaming manager (owns all streaming services)
     streamingManager_ = new StreamingManager(deviceConnection_, this);
+
+    // Create recording service
+    recordingService_ = new VideoRecordingService(this);
 }
 
 void ViewPanel::setupConnections()
@@ -128,6 +154,22 @@ void ViewPanel::setupConnections()
                 streamingManager_->keyboardInput()->handleKeyPress(event);
             }
         });
+    }
+
+    // Connect recording service signals
+    if (recordingService_) {
+        connect(recordingService_, &VideoRecordingService::recordingStarted,
+                this, &ViewPanel::onRecordingStarted);
+        connect(recordingService_, &VideoRecordingService::recordingStopped,
+                this, &ViewPanel::onRecordingStopped);
+        connect(recordingService_, &VideoRecordingService::error,
+                this, &ViewPanel::onRecordingError);
+    }
+
+    // Connect video receiver to recording service (for recording frames)
+    if (streamingManager_ && streamingManager_->videoReceiver()) {
+        connect(streamingManager_->videoReceiver(), &VideoStreamReceiver::frameReady,
+                this, &ViewPanel::onFrameReadyForRecording);
     }
 }
 
@@ -219,11 +261,18 @@ void ViewPanel::onStreamingStarted(const QString &targetHost)
 {
     startStreamAction_->setEnabled(false);
     stopStreamAction_->setEnabled(true);
+    captureScreenshotAction_->setEnabled(true);
+    startRecordingAction_->setEnabled(true);
     streamStatusLabel_->setText(tr("Starting stream to %1...").arg(targetHost));
 }
 
 void ViewPanel::onStreamingStopped()
 {
+    // Stop recording if active
+    if (recordingService_ && recordingService_->isRecording()) {
+        recordingService_->stopRecording();
+    }
+
     // Clear display
     if (videoDisplayWidget_) {
         videoDisplayWidget_->clear();
@@ -234,6 +283,15 @@ void ViewPanel::onStreamingStopped()
     }
     if (stopStreamAction_) {
         stopStreamAction_->setEnabled(false);
+    }
+    if (captureScreenshotAction_) {
+        captureScreenshotAction_->setEnabled(false);
+    }
+    if (startRecordingAction_) {
+        startRecordingAction_->setEnabled(false);
+    }
+    if (stopRecordingAction_) {
+        stopRecordingAction_->setEnabled(false);
     }
     if (streamStatusLabel_) {
         streamStatusLabel_->setText(tr("Not streaming"));
@@ -273,4 +331,177 @@ void ViewPanel::onScalingModeChanged(int id)
     // Save immediately so preference is persisted
     QSettings settings;
     settings.setValue("view/scalingMode", id);
+}
+
+void ViewPanel::onCaptureScreenshot()
+{
+    if (!videoDisplayWidget_) {
+        return;
+    }
+
+    QImage frame = videoDisplayWidget_->currentFrame();
+    if (frame.isNull()) {
+        emit statusMessage(tr("No frame to capture"), 3000);
+        return;
+    }
+
+    // Get the capture directory from settings or use Pictures folder
+    QSettings settings;
+    QString captureDir = settings.value("capture/directory",
+        QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)).toString();
+
+    // Ensure the directory exists
+    QDir dir(captureDir);
+    if (!dir.exists()) {
+        dir.mkpath(".");
+    }
+
+    // Generate a timestamp-based filename
+    QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss_zzz");
+    QString filename = QString("r64u_screenshot_%1.png").arg(timestamp);
+    QString filePath = dir.filePath(filename);
+
+    // Save the image
+    if (frame.save(filePath, "PNG")) {
+        emit statusMessage(tr("Screenshot saved: %1").arg(filename), 5000);
+    } else {
+        emit statusMessage(tr("Failed to save screenshot"), 5000);
+    }
+}
+
+void ViewPanel::onStartRecording()
+{
+    if (!recordingService_) {
+        return;
+    }
+
+    // Get the capture directory from settings or use Videos folder
+    QSettings settings;
+    QString captureDir = settings.value("capture/directory",
+        QStandardPaths::writableLocation(QStandardPaths::MoviesLocation)).toString();
+
+    // Ensure the directory exists
+    QDir dir(captureDir);
+    if (!dir.exists()) {
+        dir.mkpath(".");
+    }
+
+    // Generate a timestamp-based filename
+    QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+    QString filename = QString("r64u_recording_%1.avi").arg(timestamp);
+    QString filePath = dir.filePath(filename);
+
+    recordingService_->startRecording(filePath);
+}
+
+void ViewPanel::onStopRecording()
+{
+    if (recordingService_) {
+        recordingService_->stopRecording();
+    }
+}
+
+void ViewPanel::onRecordingStarted(const QString &filePath)
+{
+    Q_UNUSED(filePath)
+    if (startRecordingAction_) {
+        startRecordingAction_->setEnabled(false);
+    }
+    if (stopRecordingAction_) {
+        stopRecordingAction_->setEnabled(true);
+    }
+    emit statusMessage(tr("Recording started..."), 3000);
+}
+
+void ViewPanel::onRecordingStopped(const QString &filePath, int frameCount)
+{
+    if (startRecordingAction_) {
+        // Re-enable if still streaming
+        startRecordingAction_->setEnabled(streamingManager_ && streamingManager_->isStreaming());
+    }
+    if (stopRecordingAction_) {
+        stopRecordingAction_->setEnabled(false);
+    }
+
+    QFileInfo fileInfo(filePath);
+    emit statusMessage(tr("Recording saved: %1 (%2 frames)")
+        .arg(fileInfo.fileName())
+        .arg(frameCount), 5000);
+}
+
+void ViewPanel::onRecordingError(const QString &error)
+{
+    emit statusMessage(tr("Recording error: %1").arg(error), 5000);
+
+    // Reset button states
+    if (startRecordingAction_) {
+        startRecordingAction_->setEnabled(streamingManager_ && streamingManager_->isStreaming());
+    }
+    if (stopRecordingAction_) {
+        stopRecordingAction_->setEnabled(false);
+    }
+}
+
+void ViewPanel::onFrameReadyForRecording(const QByteArray &frameData, quint16 frameNumber, VideoStreamReceiver::VideoFormat format)
+{
+    Q_UNUSED(frameNumber)
+
+    if (!recordingService_ || !recordingService_->isRecording()) {
+        return;
+    }
+
+    // Convert frame data to QImage (same logic as VideoDisplayWidget)
+    VideoStreamReceiver::VideoFormat videoFormat = format;
+    int height = (videoFormat == VideoStreamReceiver::VideoFormat::NTSC)
+                     ? VideoDisplayWidget::NtscHeight
+                     : VideoDisplayWidget::PalHeight;
+
+    QImage frame(VideoDisplayWidget::FrameWidth, height, QImage::Format_RGB32);
+
+    const auto *src = reinterpret_cast<const quint8 *>(frameData.constData());
+    int srcSize = frameData.size();
+
+    // VIC-II color palette (same as VideoDisplayWidget)
+    static const QRgb vicPalette[16] = {
+        qRgb(0x00, 0x00, 0x00),  // Black
+        qRgb(0xFF, 0xFF, 0xFF),  // White
+        qRgb(0x9F, 0x4E, 0x44),  // Red
+        qRgb(0x6A, 0xBF, 0xC6),  // Cyan
+        qRgb(0xA0, 0x57, 0xA3),  // Purple
+        qRgb(0x5C, 0xAB, 0x5E),  // Green
+        qRgb(0x50, 0x45, 0x9B),  // Blue
+        qRgb(0xC9, 0xD4, 0x87),  // Yellow
+        qRgb(0xA1, 0x68, 0x3C),  // Orange
+        qRgb(0x6D, 0x54, 0x12),  // Brown
+        qRgb(0xCB, 0x7E, 0x75),  // Light Red
+        qRgb(0x62, 0x62, 0x62),  // Dark Grey
+        qRgb(0x89, 0x89, 0x89),  // Medium Grey
+        qRgb(0x9A, 0xE2, 0x9B),  // Light Green
+        qRgb(0x88, 0x7E, 0xCB),  // Light Blue
+        qRgb(0xAD, 0xAD, 0xAD)   // Light Grey
+    };
+
+    for (int y = 0; y < height && y * VideoDisplayWidget::BytesPerLine < srcSize; ++y) {
+        auto *destLine = reinterpret_cast<QRgb *>(frame.scanLine(y));
+        const quint8 *srcLine = src + (static_cast<ptrdiff_t>(y) * VideoDisplayWidget::BytesPerLine);
+
+        for (int byteIdx = 0; byteIdx < VideoDisplayWidget::BytesPerLine; ++byteIdx) {
+            quint8 packedPixels = srcLine[byteIdx];
+
+            // Lower 4 bits = first pixel
+            quint8 pixel1 = packedPixels & 0x0F;
+            // Upper 4 bits = second pixel
+            quint8 pixel2 = (packedPixels >> 4) & 0x0F;
+
+            int x = byteIdx * 2;
+            if (x < VideoDisplayWidget::FrameWidth) {
+                destLine[x] = vicPalette[pixel1];
+            }
+            if (x + 1 < VideoDisplayWidget::FrameWidth) {
+                destLine[x + 1] = vicPalette[pixel2];
+            }
+        }
+    }
+
+    recordingService_->addFrame(frame);
 }

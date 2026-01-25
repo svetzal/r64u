@@ -77,6 +77,8 @@ set(SOURCES
     src/services/diskimagereader.cpp
     src/services/petsciiconverter.cpp
     src/services/sidfileparser.cpp
+    src/services/favoritesmanager.cpp
+    src/services/videorecordingservice.cpp
     src/models/remotefilemodel.cpp
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
@@ -127,6 +129,8 @@ set(HEADERS
     src/services/diskimagereader.h
     src/services/petsciiconverter.h
     src/services/sidfileparser.h
+    src/services/favoritesmanager.h
+    src/services/videorecordingservice.h
     src/models/remotefilemodel.h
     src/models/localfileproxymodel.h
     src/models/transferqueue.h

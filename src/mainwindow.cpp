@@ -11,6 +11,7 @@
 #include "services/transferservice.h"
 #include "services/errorhandler.h"
 #include "services/statusmessageservice.h"
+#include "services/favoritesmanager.h"
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 
@@ -48,6 +49,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Create the status message service for coordinated status bar messages
     statusMessageService_ = new StatusMessageService(this);
+
+    // Create the favorites manager for bookmarking remote paths
+    favoritesManager_ = new FavoritesManager(this);
 
     // Configure the config file loader
     configFileLoader_->setFtpClient(deviceConnection_->ftpClient());
@@ -247,7 +251,7 @@ void MainWindow::setupStatusBar()
 void MainWindow::setupPanels()
 {
     // Create mode panels with their dependencies
-    explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, configFileLoader_, filePreviewService_);
+    explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, configFileLoader_, filePreviewService_, favoritesManager_);
     transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferService_);
     viewPanel_ = new ViewPanel(deviceConnection_);
     configPanel_ = new ConfigPanel(deviceConnection_);

@@ -78,6 +78,12 @@ public:
     [[nodiscard]] ScalingMode scalingMode() const { return scalingMode_; }
 
     /**
+     * @brief Returns the current displayed frame as a QImage.
+     * @return The current frame, or a null QImage if no frame is being displayed.
+     */
+    [[nodiscard]] QImage currentFrame() const;
+
+    /**
      * @brief Sets the scaling mode.
      * @param mode The scaling mode to use.
      */

@@ -6,10 +6,12 @@
 #include <QLabel>
 #include <QButtonGroup>
 #include <QRadioButton>
+#include "services/videostreamreceiver.h"
 
 class DeviceConnection;
 class VideoDisplayWidget;
 class StreamingManager;
+class VideoRecordingService;
 
 class ViewPanel : public QWidget
 {
@@ -39,6 +41,13 @@ private slots:
     void onStreamingStopped();
     void onStreamingError(const QString &error);
     void onScalingModeChanged(int id);
+    void onCaptureScreenshot();
+    void onStartRecording();
+    void onStopRecording();
+    void onRecordingStarted(const QString &filePath);
+    void onRecordingStopped(const QString &filePath, int frameCount);
+    void onRecordingError(const QString &error);
+    void onFrameReadyForRecording(const QByteArray &frameData, quint16 frameNumber, VideoStreamReceiver::VideoFormat format);
 
 private:
     void setupUi();
@@ -51,11 +60,17 @@ private:
     // Owned streaming manager
     StreamingManager *streamingManager_ = nullptr;
 
+    // Owned recording service
+    VideoRecordingService *recordingService_ = nullptr;
+
     // UI widgets
     QToolBar *toolBar_ = nullptr;
     VideoDisplayWidget *videoDisplayWidget_ = nullptr;
     QAction *startStreamAction_ = nullptr;
     QAction *stopStreamAction_ = nullptr;
+    QAction *captureScreenshotAction_ = nullptr;
+    QAction *startRecordingAction_ = nullptr;
+    QAction *stopRecordingAction_ = nullptr;
     QLabel *streamStatusLabel_ = nullptr;
     QButtonGroup *scalingModeGroup_ = nullptr;
     QRadioButton *sharpRadio_ = nullptr;
