@@ -8,6 +8,7 @@
 #include "c64urestclient.h"
 #include "c64uftpclient.h"
 #include "songlengthsdatabase.h"
+#include "streamingmanager.h"
 
 #include <QSettings>
 #include <QFile>
@@ -38,6 +39,11 @@ PlaylistManager::PlaylistManager(DeviceConnection *connection, QObject *parent)
 void PlaylistManager::setSonglengthsDatabase(SonglengthsDatabase *database)
 {
     songlengthsDatabase_ = database;
+}
+
+void PlaylistManager::setStreamingManager(StreamingManager *manager)
+{
+    streamingManager_ = manager;
 }
 
 void PlaylistManager::addItem(const QString &path, int subsong)
@@ -181,6 +187,12 @@ void PlaylistManager::play(int index)
     }
 
     playing_ = true;
+
+    // Start streaming if available and not already streaming
+    if (streamingManager_ != nullptr && !streamingManager_->isStreaming()) {
+        streamingManager_->startStreaming();
+    }
+
     playCurrentItem();
 
     emit playbackStarted(currentIndex_);
@@ -195,6 +207,11 @@ void PlaylistManager::stop()
     // Reset the C64 to stop the music
     if (deviceConnection_ != nullptr && deviceConnection_->canPerformOperations()) {
         deviceConnection_->restClient()->resetMachine();
+    }
+
+    // Stop streaming if active
+    if (streamingManager_ != nullptr && streamingManager_->isStreaming()) {
+        streamingManager_->stopStreaming();
     }
 
     emit playbackStopped();

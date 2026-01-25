@@ -17,6 +17,7 @@
 
 class DeviceConnection;
 class SonglengthsDatabase;
+class StreamingManager;
 
 /**
  * @brief Manages SID music playlists with playback control.
@@ -62,6 +63,12 @@ public:
      * @param database The database (not owned by PlaylistManager).
      */
     void setSonglengthsDatabase(SonglengthsDatabase *database);
+
+    /**
+     * @brief Sets the streaming manager for automatic stream start/stop.
+     * @param manager The streaming manager (not owned by PlaylistManager).
+     */
+    void setStreamingManager(StreamingManager *manager);
 
     /// @name Playlist Management
     /// @{
@@ -295,6 +302,7 @@ private:
 
     DeviceConnection *deviceConnection_ = nullptr;
     SonglengthsDatabase *songlengthsDatabase_ = nullptr;
+    StreamingManager *streamingManager_ = nullptr;
 
     QList<PlaylistItem> items_;
     QList<int> shuffleOrder_;  // Maps shuffled position to actual index

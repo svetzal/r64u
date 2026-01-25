@@ -24,6 +24,12 @@ public:
     // Public API for MainWindow coordination
     void stopStreamingIfActive();
 
+    /**
+     * @brief Returns the streaming manager for external control.
+     * @return Pointer to the streaming manager.
+     */
+    [[nodiscard]] StreamingManager* streamingManager() const { return streamingManager_; }
+
     // Settings
     void loadSettings();
     void saveSettings();

@@ -14,6 +14,7 @@
 #include "services/favoritesmanager.h"
 #include "services/playlistmanager.h"
 #include "services/songlengthsdatabase.h"
+#include "services/streamingmanager.h"
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 
@@ -267,6 +268,9 @@ void MainWindow::setupPanels()
     transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferService_);
     viewPanel_ = new ViewPanel(deviceConnection_);
     configPanel_ = new ConfigPanel(deviceConnection_);
+
+    // Wire up the streaming manager to the playlist manager for auto stream start/stop
+    playlistManager_->setStreamingManager(viewPanel_->streamingManager());
 
     // Add panels to tab widget
     modeTabWidget_->addTab(explorePanel_, tr("Explore/Run"));
