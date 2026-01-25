@@ -93,10 +93,10 @@ void ExplorePanel::setupUi()
     toolBar_->addSeparator();
 
     // Favorites toggle action
-    toggleFavoriteAction_ = toolBar_->addAction(tr("Favorite"));
-    toggleFavoriteAction_->setToolTip(tr("Add/remove selected path from favorites"));
+    toggleFavoriteAction_ = toolBar_->addAction(QString::fromUtf8("☆"));
+    toggleFavoriteAction_->setToolTip(tr("Add/remove current path from favorites"));
     toggleFavoriteAction_->setCheckable(true);
-    toggleFavoriteAction_->setEnabled(false);
+    toggleFavoriteAction_->setEnabled(true);
     connect(toggleFavoriteAction_, &QAction::triggered, this, &ExplorePanel::onToggleFavorite);
 
     // Favorites dropdown menu
@@ -243,6 +243,13 @@ void ExplorePanel::setCurrentDirectory(const QString &path)
     bool canGoUp = (path != "/" && !path.isEmpty());
     if (navWidget_) {
         navWidget_->setUpEnabled(canGoUp);
+    }
+
+    // Update favorites star for the new directory
+    if (toggleFavoriteAction_ && favoritesManager_) {
+        bool isFavorite = favoritesManager_->isFavorite(path);
+        toggleFavoriteAction_->setChecked(isFavorite);
+        toggleFavoriteAction_->setText(isFavorite ? QString::fromUtf8("⭐") : QString::fromUtf8("☆"));
     }
 }
 
@@ -408,14 +415,12 @@ void ExplorePanel::onSelectionChanged()
         mountAction_->setEnabled(canOperate && canMount);
     }
 
-    // Update favorites toggle button
-    if (toggleFavoriteAction_) {
-        toggleFavoriteAction_->setEnabled(hasSelection);
-        if (hasSelection && favoritesManager_) {
-            toggleFavoriteAction_->setChecked(favoritesManager_->isFavorite(selected));
-        } else {
-            toggleFavoriteAction_->setChecked(false);
-        }
+    // Update favorites toggle button - use selected item or current directory
+    if (toggleFavoriteAction_ && favoritesManager_) {
+        QString pathToCheck = hasSelection ? selected : currentDirectory_;
+        bool isFavorite = favoritesManager_->isFavorite(pathToCheck);
+        toggleFavoriteAction_->setChecked(isFavorite);
+        toggleFavoriteAction_->setText(isFavorite ? QString::fromUtf8("⭐") : QString::fromUtf8("☆"));
     }
 
     // Update file details panel
@@ -765,8 +770,16 @@ void ExplorePanel::onConfigLoadFailed(const QString &path, const QString &error)
 
 void ExplorePanel::onToggleFavorite()
 {
+    if (!favoritesManager_) {
+        return;
+    }
+
+    // Use selected path if available, otherwise use current directory
     QString path = selectedPath();
-    if (path.isEmpty() || !favoritesManager_) {
+    if (path.isEmpty()) {
+        path = currentDirectory_;
+    }
+    if (path.isEmpty()) {
         return;
     }
 
@@ -777,9 +790,10 @@ void ExplorePanel::onToggleFavorite()
         emit statusMessage(tr("Removed from favorites: %1").arg(path), 3000);
     }
 
-    // Update the toggle button state
+    // Update the toggle button state and icon
     if (toggleFavoriteAction_) {
         toggleFavoriteAction_->setChecked(isNowFavorite);
+        toggleFavoriteAction_->setText(isNowFavorite ? QString::fromUtf8("⭐") : QString::fromUtf8("☆"));
     }
 }
 
