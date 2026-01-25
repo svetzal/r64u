@@ -25,10 +25,10 @@ public:
     ~FavoritesManager() override = default;
 
     /**
-     * @brief Returns all favorite paths.
-     * @return List of favorite paths in user-defined order.
+     * @brief Returns all favorite paths sorted alphabetically.
+     * @return List of favorite paths sorted case-insensitively.
      */
-    [[nodiscard]] QStringList favorites() const { return favorites_; }
+    [[nodiscard]] QStringList favorites() const;
 
     /**
      * @brief Checks if a path is in the favorites list.

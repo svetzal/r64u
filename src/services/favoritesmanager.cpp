@@ -12,6 +12,13 @@ FavoritesManager::FavoritesManager(QObject *parent)
     loadSettings();
 }
 
+QStringList FavoritesManager::favorites() const
+{
+    QStringList sorted = favorites_;
+    sorted.sort(Qt::CaseInsensitive);
+    return sorted;
+}
+
 bool FavoritesManager::isFavorite(const QString &path) const
 {
     return favorites_.contains(path);
