@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **HVSC STIL integration** - Display tune commentary, cover information, and history for SID files from the HVSC STIL.txt database
+- **HVSC BUGlist integration** - Show warnings for known playback issues from the HVSC BUGlist.txt database
+- Download controls in Preferences for STIL and BUGlist databases
+- HVSC path tracking in Songlengths database for metadata cross-referencing
 - **Recursive folder delete** - Delete folders with all their contents from the remote filesystem
 - **Cancel button** - Abort long-running transfer or delete operations from the progress bar
 - Progress bar now shows delete operation progress (previously only showed copy progress)
@@ -15,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Progress bar is now a generic operation progress indicator (uploads, downloads, deletes)
+- HVSC Databases section in Preferences reorganized with separate download buttons for Songlengths, STIL, and BUGlist
 
 ## [0.7.0] - 2026-01-10
 
