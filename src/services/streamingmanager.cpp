@@ -6,6 +6,7 @@
 #include "audiostreamreceiver.h"
 #include "audioplaybackservice.h"
 #include "keyboardinputservice.h"
+#include "streamingdiagnostics.h"
 #include "utils/logging.h"
 
 #include <QUrl>
@@ -27,6 +28,27 @@ StreamingManager::StreamingManager(DeviceConnection *connection, QObject *parent
     // Guard against null restClient
     C64URestClient *restClient = deviceConnection_ ? deviceConnection_->restClient() : nullptr;
     keyboardInput_ = new KeyboardInputService(restClient, this);
+    diagnostics_ = new StreamingDiagnostics(this);
+
+    // Attach diagnostics to receivers
+    diagnostics_->attachVideoReceiver(videoReceiver_);
+    diagnostics_->attachAudioReceiver(audioReceiver_);
+
+    // Set up diagnostics callbacks for high-frequency timing data
+    auto videoCallback = diagnostics_->videoCallback();
+    videoReceiver_->setDiagnosticsCallback({
+        videoCallback.onPacketReceived,
+        videoCallback.onFrameStarted,
+        videoCallback.onFrameCompleted,
+        videoCallback.onOutOfOrderPacket
+    });
+
+    auto audioCallback = diagnostics_->audioCallback();
+    audioReceiver_->setDiagnosticsCallback({
+        audioCallback.onPacketReceived,
+        audioCallback.onBufferUnderrun,
+        audioCallback.onSampleDiscontinuity
+    });
 
     // Connect video receiver format detection
     connect(videoReceiver_, &VideoStreamReceiver::formatDetected,
@@ -128,6 +150,12 @@ bool StreamingManager::startStreaming()
 
     isStreaming_ = true;
     currentTargetHost_ = targetHost;
+
+    // Enable diagnostics collection
+    if (diagnostics_) {
+        diagnostics_->setEnabled(true);
+    }
+
     emit streamingStarted(targetHost);
 
     return true;
@@ -137,6 +165,11 @@ void StreamingManager::stopStreaming()
 {
     if (!isStreaming_) {
         return;
+    }
+
+    // Disable diagnostics collection
+    if (diagnostics_) {
+        diagnostics_->setEnabled(false);
     }
 
     // Send stop commands
@@ -201,7 +234,7 @@ QString StreamingManager::findLocalHostForDevice() const
     if (deviceAddr.isNull() || deviceAddr.protocol() != QAbstractSocket::IPv4Protocol) {
         LOG_VERBOSE() << "StreamingManager::findLocalHostForDevice: Invalid device IP - isNull:" << deviceAddr.isNull()
                  << "protocol:" << deviceAddr.protocol();
-        return QString();
+        return {};
     }
     LOG_VERBOSE() << "StreamingManager::findLocalHostForDevice: device IP address:" << deviceAddr.toString();
 

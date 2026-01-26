@@ -11,7 +11,11 @@
 
 #include <QWidget>
 #include <QImage>
+#include <QQueue>
+#include <QTimer>
+#include <QElapsedTimer>
 #include <array>
+#include <functional>
 #include "services/videostreamreceiver.h"
 
 /**
@@ -59,11 +63,25 @@ public:
     /// Bytes per line (384 pixels at 4 bits = 192 bytes)
     static constexpr int BytesPerLine = 192;
 
+    /// Default frame buffer size
+    static constexpr int DefaultFrameBufferSize = 3;
+
+    /// PAL frame rate (Hz)
+    static constexpr double PalFrameRate = 50.0;
+
+    /// NTSC frame rate (Hz)
+    static constexpr double NtscFrameRate = 60.0;
+
     /**
      * @brief Constructs a video display widget.
      * @param parent Optional parent widget.
      */
     explicit VideoDisplayWidget(QWidget *parent = nullptr);
+
+    /**
+     * @brief Destructor.
+     */
+    ~VideoDisplayWidget() override;
 
     /**
      * @brief Returns the current video format.
@@ -88,6 +106,42 @@ public:
      * @param mode The scaling mode to use.
      */
     void setScalingMode(ScalingMode mode);
+
+    /**
+     * @brief Enables or disables frame pacing.
+     * @param enabled true to enable pacing (smoother), false for low latency.
+     *
+     * When enabled, frames are buffered and displayed at a steady rate.
+     * When disabled, frames are displayed immediately on arrival.
+     */
+    void setFramePacingEnabled(bool enabled);
+
+    /**
+     * @brief Returns whether frame pacing is enabled.
+     * @return true if pacing is enabled.
+     */
+    [[nodiscard]] bool isFramePacingEnabled() const;
+
+    /**
+     * @brief Returns the current frame buffer level.
+     * @return Number of frames in the buffer.
+     */
+    [[nodiscard]] int bufferedFrames() const;
+
+    /**
+     * @brief Callback interface for diagnostics timing data.
+     */
+    struct DiagnosticsCallback {
+        std::function<void(qint64 displayTimeUs)> onFrameDisplayed;
+        std::function<void()> onDisplayUnderrun;
+        std::function<void(int bufferLevel)> onBufferLevelChanged;
+    };
+
+    /**
+     * @brief Sets the diagnostics callback for timing data.
+     * @param callback Callback structure with timing functions.
+     */
+    void setDiagnosticsCallback(const DiagnosticsCallback &callback);
 
     /**
      * @brief Returns the recommended size for the widget.
@@ -143,9 +197,21 @@ protected:
     void focusOutEvent(QFocusEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
 
+private slots:
+    void onDisplayTimer();
+
 private:
+    struct BufferedFrame {
+        QByteArray frameData;
+        quint16 frameNumber;
+        VideoStreamReceiver::VideoFormat format;
+    };
+
     void convertFrameToRgb(const QByteArray &frameData, int height);
     [[nodiscard]] QRect calculateDisplayRect() const;
+    void displayBufferedFrame(const BufferedFrame &frame);
+    void startDisplayTimer();
+    void stopDisplayTimer();
 
     /// Standard VIC-II color palette (RGB values)
     static const std::array<QRgb, 16> VicPalette;
@@ -155,6 +221,17 @@ private:
     VideoStreamReceiver::VideoFormat videoFormat_ = VideoStreamReceiver::VideoFormat::Unknown;
     ScalingMode scalingMode_ = ScalingMode::Integer;
     bool hasFrame_ = false;
+
+    // Frame pacing
+    bool framePacingEnabled_ = true;
+    QQueue<BufferedFrame> frameBuffer_;
+    QTimer *displayTimer_ = nullptr;
+    int frameBufferSize_ = DefaultFrameBufferSize;
+    bool bufferPrimed_ = false;
+
+    // Diagnostics
+    DiagnosticsCallback diagnosticsCallback_;
+    QElapsedTimer diagnosticsTimer_;
 };
 
 #endif // VIDEODISPLAYWIDGET_H

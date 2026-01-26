@@ -1,11 +1,13 @@
 #include "viewpanel.h"
 #include "videodisplaywidget.h"
+#include "streamingdiagnosticswidget.h"
 #include "services/deviceconnection.h"
 #include "services/streamingmanager.h"
 #include "services/videostreamreceiver.h"
 #include "services/keyboardinputservice.h"
 #include "services/videorecordingservice.h"
 #include "services/audiostreamreceiver.h"
+#include "services/streamingdiagnostics.h"
 #include "utils/logging.h"
 
 #include <QVBoxLayout>
@@ -68,6 +70,12 @@ void ViewPanel::setupUi()
     stopRecordingAction_->setEnabled(false);
     connect(stopRecordingAction_, &QAction::triggered, this, &ViewPanel::onStopRecording);
 
+    statsAction_ = toolBar_->addAction(tr("Stats"));
+    statsAction_->setToolTip(tr("Toggle streaming statistics display"));
+    statsAction_->setCheckable(true);
+    statsAction_->setEnabled(false);
+    connect(statsAction_, &QAction::toggled, this, &ViewPanel::onStatsToggled);
+
     toolBar_->addSeparator();
 
     streamStatusLabel_ = new QLabel(tr("Not streaming"));
@@ -106,6 +114,11 @@ void ViewPanel::setupUi()
             this, &ViewPanel::onScalingModeChanged);
 
     layout->addWidget(toolBar_);
+
+    // Create diagnostics widget (hidden by default)
+    diagnosticsWidget_ = new StreamingDiagnosticsWidget();
+    diagnosticsWidget_->setVisible(false);
+    layout->addWidget(diagnosticsWidget_);
 
     // Create video display widget
     videoDisplayWidget_ = new VideoDisplayWidget();
@@ -177,6 +190,12 @@ void ViewPanel::setupConnections()
     if (streamingManager_ && streamingManager_->audioReceiver()) {
         connect(streamingManager_->audioReceiver(), &AudioStreamReceiver::samplesReady,
                 this, &ViewPanel::onAudioSamplesForRecording);
+    }
+
+    // Connect diagnostics service to widget
+    if (streamingManager_ && streamingManager_->diagnostics() && diagnosticsWidget_) {
+        connect(streamingManager_->diagnostics(), &StreamingDiagnostics::diagnosticsUpdated,
+                this, &ViewPanel::onDiagnosticsUpdated);
     }
 }
 
@@ -270,6 +289,9 @@ void ViewPanel::onStreamingStarted(const QString &targetHost)
     stopStreamAction_->setEnabled(true);
     captureScreenshotAction_->setEnabled(true);
     startRecordingAction_->setEnabled(true);
+    if (statsAction_) {
+        statsAction_->setEnabled(true);
+    }
     streamStatusLabel_->setText(tr("Starting stream to %1...").arg(targetHost));
 }
 
@@ -299,6 +321,14 @@ void ViewPanel::onStreamingStopped()
     }
     if (stopRecordingAction_) {
         stopRecordingAction_->setEnabled(false);
+    }
+    if (statsAction_) {
+        statsAction_->setEnabled(false);
+        statsAction_->setChecked(false);
+    }
+    if (diagnosticsWidget_) {
+        diagnosticsWidget_->setVisible(false);
+        diagnosticsWidget_->clear();
     }
     if (streamStatusLabel_) {
         streamStatusLabel_->setText(tr("Not streaming"));
@@ -520,4 +550,18 @@ void ViewPanel::onAudioSamplesForRecording(const QByteArray &samples, int sample
     }
 
     recordingService_->addAudioSamples(samples, sampleCount);
+}
+
+void ViewPanel::onStatsToggled(bool checked)
+{
+    if (diagnosticsWidget_) {
+        diagnosticsWidget_->setVisible(checked);
+    }
+}
+
+void ViewPanel::onDiagnosticsUpdated(const DiagnosticsSnapshot &snapshot)
+{
+    if (diagnosticsWidget_ && diagnosticsWidget_->isVisible()) {
+        diagnosticsWidget_->updateDiagnostics(snapshot);
+    }
 }

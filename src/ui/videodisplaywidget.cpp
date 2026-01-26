@@ -31,6 +31,7 @@ const std::array<QRgb, 16> VideoDisplayWidget::VicPalette = {{
 
 VideoDisplayWidget::VideoDisplayWidget(QWidget *parent)
     : QWidget(parent)
+    , displayTimer_(new QTimer(this))
 {
     // Set black background
     setAutoFillBackground(true);
@@ -47,6 +48,16 @@ VideoDisplayWidget::VideoDisplayWidget(QWidget *parent)
 
     // Enable keyboard focus
     setFocusPolicy(Qt::StrongFocus);
+
+    // Set up display timer for frame pacing
+    displayTimer_->setTimerType(Qt::PreciseTimer);
+    connect(displayTimer_, &QTimer::timeout,
+            this, &VideoDisplayWidget::onDisplayTimer);
+}
+
+VideoDisplayWidget::~VideoDisplayWidget()
+{
+    stopDisplayTimer();
 }
 
 QSize VideoDisplayWidget::sizeHint() const
@@ -64,7 +75,7 @@ QSize VideoDisplayWidget::minimumSizeHint() const
 }
 
 void VideoDisplayWidget::displayFrame(const QByteArray &frameData,
-                                       quint16 /*frameNumber*/,
+                                       quint16 frameNumber,
                                        VideoStreamReceiver::VideoFormat format)
 {
     static int frameCount = 0;
@@ -75,7 +86,7 @@ void VideoDisplayWidget::displayFrame(const QByteArray &frameData,
                  << "format:" << static_cast<int>(format);
     }
 
-    // Handle format change
+    // Handle format change - this affects timing so handle before buffering
     if (format != videoFormat_ && format != VideoStreamReceiver::VideoFormat::Unknown) {
         LOG_VERBOSE() << "VideoDisplayWidget: Format changed to"
                  << (format == VideoStreamReceiver::VideoFormat::PAL ? "PAL" : "NTSC");
@@ -83,20 +94,48 @@ void VideoDisplayWidget::displayFrame(const QByteArray &frameData,
         int height = (format == VideoStreamReceiver::VideoFormat::NTSC)
                          ? NtscHeight : PalHeight;
         displayImage_ = QImage(FrameWidth, height, QImage::Format_RGB32);
+
+        // Restart timer with new frame rate if running
+        if (displayTimer_->isActive()) {
+            stopDisplayTimer();
+            startDisplayTimer();
+        }
+
         emit formatChanged(format);
     }
 
-    // Convert and display
-    int height = (videoFormat_ == VideoStreamReceiver::VideoFormat::NTSC)
-                     ? NtscHeight : PalHeight;
-    convertFrameToRgb(frameData, height);
-    hasFrame_ = true;
+    if (framePacingEnabled_) {
+        // Buffer the frame for paced display
+        BufferedFrame bufferedFrame{frameData, frameNumber, format};
+        frameBuffer_.enqueue(bufferedFrame);
 
-    update();
+        // Report buffer level change
+        if (diagnosticsCallback_.onBufferLevelChanged) {
+            diagnosticsCallback_.onBufferLevelChanged(frameBuffer_.size());
+        }
+
+        // Check if buffer is primed and start timer
+        if (!bufferPrimed_ && frameBuffer_.size() >= frameBufferSize_ / 2) {
+            bufferPrimed_ = true;
+            startDisplayTimer();
+        }
+
+        // Prevent buffer overflow - drop oldest frames if too full
+        while (frameBuffer_.size() > static_cast<qsizetype>(frameBufferSize_) * 2) {
+            frameBuffer_.dequeue();
+        }
+    } else {
+        // Display immediately (low latency mode)
+        BufferedFrame frame{frameData, frameNumber, format};
+        displayBufferedFrame(frame);
+    }
 }
 
 void VideoDisplayWidget::clear()
 {
+    stopDisplayTimer();
+    frameBuffer_.clear();
+    bufferPrimed_ = false;
     displayImage_.fill(Qt::black);
     hasFrame_ = false;
     update();
@@ -250,4 +289,94 @@ void VideoDisplayWidget::mousePressEvent(QMouseEvent *event)
     // Click to focus
     setFocus(Qt::MouseFocusReason);
     QWidget::mousePressEvent(event);
+}
+
+void VideoDisplayWidget::setFramePacingEnabled(bool enabled)
+{
+    if (framePacingEnabled_ == enabled) {
+        return;
+    }
+
+    framePacingEnabled_ = enabled;
+
+    if (!enabled) {
+        // Switching to low latency mode - stop timer and clear buffer
+        stopDisplayTimer();
+        frameBuffer_.clear();
+        bufferPrimed_ = false;
+    }
+    // If enabling, timer will start when buffer is primed
+}
+
+bool VideoDisplayWidget::isFramePacingEnabled() const
+{
+    return framePacingEnabled_;
+}
+
+int VideoDisplayWidget::bufferedFrames() const
+{
+    return frameBuffer_.size();
+}
+
+void VideoDisplayWidget::setDiagnosticsCallback(const DiagnosticsCallback &callback)
+{
+    diagnosticsCallback_ = callback;
+    if (callback.onFrameDisplayed || callback.onDisplayUnderrun || callback.onBufferLevelChanged) {
+        diagnosticsTimer_.start();
+    }
+}
+
+void VideoDisplayWidget::onDisplayTimer()
+{
+    if (frameBuffer_.isEmpty()) {
+        // Buffer underrun
+        if (diagnosticsCallback_.onDisplayUnderrun) {
+            diagnosticsCallback_.onDisplayUnderrun();
+        }
+        return;
+    }
+
+    BufferedFrame frame = frameBuffer_.dequeue();
+    displayBufferedFrame(frame);
+
+    // Report buffer level change
+    if (diagnosticsCallback_.onBufferLevelChanged) {
+        diagnosticsCallback_.onBufferLevelChanged(frameBuffer_.size());
+    }
+}
+
+void VideoDisplayWidget::displayBufferedFrame(const BufferedFrame &frame)
+{
+    // Convert and display
+    int height = (videoFormat_ == VideoStreamReceiver::VideoFormat::NTSC)
+                     ? NtscHeight : PalHeight;
+    convertFrameToRgb(frame.frameData, height);
+    hasFrame_ = true;
+
+    // Report frame display time
+    if (diagnosticsCallback_.onFrameDisplayed && diagnosticsTimer_.isValid()) {
+        qint64 timeUs = diagnosticsTimer_.nsecsElapsed() / 1000;
+        diagnosticsCallback_.onFrameDisplayed(timeUs);
+    }
+
+    update();
+}
+
+void VideoDisplayWidget::startDisplayTimer()
+{
+    if (!displayTimer_->isActive()) {
+        // Calculate interval based on video format
+        // PAL: 50 Hz = 20ms, NTSC: 60 Hz ≈ 16.67ms
+        double frameRate = (videoFormat_ == VideoStreamReceiver::VideoFormat::NTSC)
+                               ? NtscFrameRate : PalFrameRate;
+        int intervalMs = static_cast<int>(1000.0 / frameRate);
+        displayTimer_->start(intervalMs);
+    }
+}
+
+void VideoDisplayWidget::stopDisplayTimer()
+{
+    if (displayTimer_->isActive()) {
+        displayTimer_->stop();
+    }
 }

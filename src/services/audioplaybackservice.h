@@ -15,7 +15,9 @@
 #include <QIODevice>
 #include <QByteArray>
 #include <QMutex>
+#include <QElapsedTimer>
 #include <memory>
+#include <functional>
 
 /**
  * @brief Service for audio playback using Qt Multimedia.
@@ -110,6 +112,20 @@ public:
      */
     [[nodiscard]] qreal volume() const;
 
+    /**
+     * @brief Callback interface for diagnostics timing data.
+     */
+    struct DiagnosticsCallback {
+        std::function<void(qint64 writeTimeUs, qint64 bytesWritten, qint64 bytesDropped)> onSamplesWritten;
+        std::function<void()> onPlaybackUnderrun;
+    };
+
+    /**
+     * @brief Sets the diagnostics callback for timing data.
+     * @param callback Callback structure with timing functions.
+     */
+    void setDiagnosticsCallback(const DiagnosticsCallback &callback);
+
 public slots:
     /**
      * @brief Writes audio samples for playback.
@@ -154,6 +170,10 @@ private:
     // State
     bool isPlaying_ = false;
     QMutex writeMutex_;
+
+    // Diagnostics
+    DiagnosticsCallback diagnosticsCallback_;
+    QElapsedTimer diagnosticsTimer_;
 };
 
 #endif // AUDIOPLAYBACKSERVICE_H

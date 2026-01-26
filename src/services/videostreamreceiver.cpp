@@ -80,6 +80,14 @@ quint16 VideoStreamReceiver::port() const
     return socket_->localPort();
 }
 
+void VideoStreamReceiver::setDiagnosticsCallback(const DiagnosticsCallback &callback)
+{
+    diagnosticsCallback_ = callback;
+    if (callback.onPacketReceived || callback.onFrameStarted || callback.onFrameCompleted) {
+        diagnosticsTimer_.start();
+    }
+}
+
 void VideoStreamReceiver::onReadyRead()
 {
     static int packetLogCounter = 0;
@@ -107,9 +115,14 @@ void VideoStreamReceiver::processPacket(const QByteArray &packet)
 {
     totalPacketsReceived_++;
 
+    // Call diagnostics callback for packet arrival timing
+    if (diagnosticsCallback_.onPacketReceived && diagnosticsTimer_.isValid()) {
+        diagnosticsCallback_.onPacketReceived(diagnosticsTimer_.nsecsElapsed() / 1000);
+    }
+
     PacketHeader header = parseHeader(packet);
 
-    // Track sequence numbers for packet loss detection
+    // Track sequence numbers for packet loss and out-of-order detection
     if (!firstPacket_) {
         quint16 expectedSeq = lastSequenceNumber_ + 1;
         if (header.sequenceNumber != expectedSeq) {
@@ -119,6 +132,11 @@ void VideoStreamReceiver::processPacket(const QByteArray &packet)
                 quint16 gap = header.sequenceNumber - expectedSeq;
                 if (gap < 1000) { // Reasonable gap (not wraparound)
                     totalPacketsLost_ += gap;
+                } else if (gap > 0xF000) {
+                    // Sequence went backwards - out of order packet
+                    if (diagnosticsCallback_.onOutOfOrderPacket) {
+                        diagnosticsCallback_.onOutOfOrderPacket();
+                    }
                 }
             }
         }
@@ -130,7 +148,11 @@ void VideoStreamReceiver::processPacket(const QByteArray &packet)
     if (!frameInProgress_ || header.frameNumber != currentFrameNum_) {
         // If we were working on a frame, it's now incomplete - discard it
         if (frameInProgress_) {
-            // Frame was incomplete, could emit signal here if needed
+            // Notify diagnostics that frame was incomplete
+            if (diagnosticsCallback_.onFrameCompleted && diagnosticsTimer_.isValid()) {
+                qint64 endTimeUs = diagnosticsTimer_.nsecsElapsed() / 1000;
+                diagnosticsCallback_.onFrameCompleted(currentFrameNum_, endTimeUs, false);
+            }
         }
         startNewFrame(header.frameNumber);
     }
@@ -197,6 +219,14 @@ void VideoStreamReceiver::startNewFrame(quint16 frameNumber)
     expectedPackets_ = 0;
     frameInProgress_ = true;
 
+    // Record frame start time for diagnostics
+    if (diagnosticsTimer_.isValid()) {
+        frameStartTimeUs_ = diagnosticsTimer_.nsecsElapsed() / 1000;
+        if (diagnosticsCallback_.onFrameStarted) {
+            diagnosticsCallback_.onFrameStarted(frameNumber, frameStartTimeUs_);
+        }
+    }
+
     // Clear frame buffer (fill with black - color index 0)
     frameBuffer_.fill(0);
 }
@@ -205,6 +235,12 @@ void VideoStreamReceiver::completeFrame()
 {
     totalFramesCompleted_++;
     frameInProgress_ = false;
+
+    // Call diagnostics callback for frame completion timing
+    if (diagnosticsCallback_.onFrameCompleted && diagnosticsTimer_.isValid()) {
+        qint64 endTimeUs = diagnosticsTimer_.nsecsElapsed() / 1000;
+        diagnosticsCallback_.onFrameCompleted(currentFrameNum_, endTimeUs, true);
+    }
 
     // Determine actual frame height based on format
     int frameHeight = (videoFormat_ == VideoFormat::NTSC) ? NtscHeight : PalHeight;

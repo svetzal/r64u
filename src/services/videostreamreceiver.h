@@ -14,6 +14,8 @@
 #include <QByteArray>
 #include <QVector>
 #include <QSet>
+#include <QElapsedTimer>
+#include <functional>
 
 /**
  * @brief UDP receiver for C64 Ultimate video stream packets.
@@ -138,6 +140,25 @@ public:
      */
     [[nodiscard]] quint16 currentFrameNumber() const { return currentFrameNum_; }
 
+    /**
+     * @brief Callback interface for diagnostics timing data.
+     */
+    struct DiagnosticsCallback {
+        std::function<void(qint64 arrivalTimeUs)> onPacketReceived;
+        std::function<void(quint16 frameNumber, qint64 startTimeUs)> onFrameStarted;
+        std::function<void(quint16 frameNumber, qint64 endTimeUs, bool complete)> onFrameCompleted;
+        std::function<void()> onOutOfOrderPacket;
+    };
+
+    /**
+     * @brief Sets the diagnostics callback for timing data.
+     * @param callback Callback structure with timing functions.
+     *
+     * When set, these callbacks are invoked during packet processing
+     * to provide high-frequency timing data for diagnostics.
+     */
+    void setDiagnosticsCallback(const DiagnosticsCallback &callback);
+
 signals:
     /**
      * @brief Emitted when a complete frame has been assembled.
@@ -212,6 +233,11 @@ private:
     quint64 totalPacketsLost_ = 0;
     quint16 lastSequenceNumber_ = 0;
     bool firstPacket_ = true;
+
+    // Diagnostics
+    DiagnosticsCallback diagnosticsCallback_;
+    QElapsedTimer diagnosticsTimer_;
+    qint64 frameStartTimeUs_ = 0;
 };
 
 #endif // VIDEOSTREAMRECEIVER_H

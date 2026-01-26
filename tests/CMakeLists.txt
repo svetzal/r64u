@@ -514,3 +514,54 @@ if(BUILD_COVERAGE)
     add_coverage_target(filebrowsersync test_filebrowsersync)
     add_dependencies(coverage coverage_filebrowsersync)
 endif()
+
+# RollingStats tests - header-only utility
+add_executable(test_rollingstats
+    test_rollingstats.cpp
+)
+
+target_include_directories(test_rollingstats PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_rollingstats PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+# Register test with CTest
+add_test(NAME RollingStatsTest COMMAND test_rollingstats)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(rollingstats test_rollingstats)
+    add_dependencies(coverage coverage_rollingstats)
+endif()
+
+# StreamingDiagnostics tests
+add_executable(test_streamingdiagnostics
+    test_streamingdiagnostics.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiver.cpp
+)
+
+target_include_directories(test_streamingdiagnostics PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_streamingdiagnostics PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Gui
+    Qt6::Network
+)
+
+# Register test with CTest
+add_test(NAME StreamingDiagnosticsTest COMMAND test_streamingdiagnostics)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(streamingdiagnostics test_streamingdiagnostics)
+    add_dependencies(coverage coverage_streamingdiagnostics)
+endif()

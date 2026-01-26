@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(r64u
-    VERSION 0.9.0
+    VERSION 0.9.1
     DESCRIPTION "Remote access tool for Commodore 64 Ultimate devices"
     LANGUAGES CXX
 )
@@ -82,6 +82,8 @@ set(SOURCES
     src/services/videorecordingservice.cpp
     src/services/playlistmanager.cpp
     src/services/songlengthsdatabase.cpp
+    src/services/streamingdiagnostics.cpp
+    src/ui/streamingdiagnosticswidget.cpp
     src/models/remotefilemodel.cpp
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
@@ -137,6 +139,9 @@ set(HEADERS
     src/services/videorecordingservice.h
     src/services/playlistmanager.h
     src/services/songlengthsdatabase.h
+    src/services/streamingdiagnostics.h
+    src/ui/streamingdiagnosticswidget.h
+    src/utils/rollingstats.h
     src/models/remotefilemodel.h
     src/models/localfileproxymodel.h
     src/models/transferqueue.h

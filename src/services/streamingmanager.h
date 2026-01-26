@@ -18,6 +18,7 @@ class VideoStreamReceiver;
 class AudioStreamReceiver;
 class AudioPlaybackService;
 class KeyboardInputService;
+class StreamingDiagnostics;
 
 /**
  * @brief Manager for C64 Ultimate streaming services.
@@ -102,6 +103,12 @@ public:
      */
     [[nodiscard]] AudioStreamReceiver* audioReceiver() const { return audioReceiver_; }
 
+    /**
+     * @brief Returns the streaming diagnostics service.
+     * @return Pointer to the diagnostics service.
+     */
+    [[nodiscard]] StreamingDiagnostics* diagnostics() const { return diagnostics_; }
+
 signals:
     /**
      * @brief Emitted when streaming has started successfully.
@@ -139,7 +146,7 @@ private slots:
     void onStreamCommandFailed(const QString &command, const QString &error);
 
 private:
-    QString findLocalHostForDevice() const;
+    [[nodiscard]] QString findLocalHostForDevice() const;
 
     // Dependencies (not owned)
     DeviceConnection *deviceConnection_ = nullptr;
@@ -150,6 +157,7 @@ private:
     AudioStreamReceiver *audioReceiver_ = nullptr;
     AudioPlaybackService *audioPlayback_ = nullptr;
     KeyboardInputService *keyboardInput_ = nullptr;
+    StreamingDiagnostics *diagnostics_ = nullptr;
 
     // State
     bool isStreaming_ = false;

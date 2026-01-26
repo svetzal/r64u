@@ -14,6 +14,9 @@
 #include <QByteArray>
 #include <QQueue>
 #include <QMutex>
+#include <QElapsedTimer>
+#include <QTimer>
+#include <functional>
 
 /**
  * @brief UDP receiver for C64 Ultimate audio stream packets.
@@ -153,6 +156,24 @@ public:
      */
     [[nodiscard]] double sampleRate() const;
 
+    /**
+     * @brief Callback interface for diagnostics timing data.
+     */
+    struct DiagnosticsCallback {
+        std::function<void(qint64 arrivalTimeUs)> onPacketReceived;
+        std::function<void()> onBufferUnderrun;
+        std::function<void(int gap)> onSampleDiscontinuity;
+    };
+
+    /**
+     * @brief Sets the diagnostics callback for timing data.
+     * @param callback Callback structure with timing functions.
+     *
+     * When set, these callbacks are invoked during packet processing
+     * to provide high-frequency timing data for diagnostics.
+     */
+    void setDiagnosticsCallback(const DiagnosticsCallback &callback);
+
 signals:
     /**
      * @brief Emitted when audio samples are ready for playback.
@@ -182,6 +203,7 @@ signals:
 
 private slots:
     void onReadyRead();
+    void onFlushTimer();
 
 private:
     struct AudioPacket {
@@ -192,6 +214,10 @@ private:
     void processPacket(const QByteArray &packet);
     void flushBuffer();
 
+    void startFlushTimer();
+    void stopFlushTimer();
+    [[nodiscard]] int calculateFlushIntervalUs() const;
+
     // Network
     QUdpSocket *socket_ = nullptr;
 
@@ -201,6 +227,9 @@ private:
     mutable QMutex bufferMutex_;
     bool bufferPrimed_ = false;
 
+    // Flush timer for steady playback timing
+    QTimer *flushTimer_ = nullptr;
+
     // Format
     AudioFormat audioFormat_ = AudioFormat::PAL;
 
@@ -209,6 +238,10 @@ private:
     quint64 totalPacketsLost_ = 0;
     quint16 lastSequenceNumber_ = 0;
     bool firstPacket_ = true;
+
+    // Diagnostics
+    DiagnosticsCallback diagnosticsCallback_;
+    QElapsedTimer diagnosticsTimer_;
 };
 
 #endif // AUDIOSTREAMRECEIVER_H

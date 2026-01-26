@@ -7,10 +7,12 @@
 #include <QNetworkDatagram>
 #include <QMutexLocker>
 #include <QVariant>
+#include <algorithm>
 
 AudioStreamReceiver::AudioStreamReceiver(QObject *parent)
     : QObject(parent)
     , socket_(new QUdpSocket(this))
+    , flushTimer_(new QTimer(this))
 {
     connect(socket_, &QUdpSocket::readyRead,
             this, &AudioStreamReceiver::onReadyRead);
@@ -18,6 +20,11 @@ AudioStreamReceiver::AudioStreamReceiver(QObject *parent)
             this, [this](QAbstractSocket::SocketError) {
         emit socketError(socket_->errorString());
     });
+
+    // Set up flush timer for steady playback timing
+    flushTimer_->setTimerType(Qt::PreciseTimer);
+    connect(flushTimer_, &QTimer::timeout,
+            this, &AudioStreamReceiver::onFlushTimer);
 }
 
 AudioStreamReceiver::~AudioStreamReceiver()
@@ -57,6 +64,8 @@ bool AudioStreamReceiver::bind(quint16 port)
 
 void AudioStreamReceiver::close()
 {
+    stopFlushTimer();
+
     if (socket_->state() != QAbstractSocket::UnconnectedState) {
         socket_->close();
     }
@@ -97,6 +106,14 @@ double AudioStreamReceiver::sampleRate() const
     return (audioFormat_ == AudioFormat::NTSC) ? NtscSampleRate : PalSampleRate;
 }
 
+void AudioStreamReceiver::setDiagnosticsCallback(const DiagnosticsCallback &callback)
+{
+    diagnosticsCallback_ = callback;
+    if (callback.onPacketReceived || callback.onBufferUnderrun || callback.onSampleDiscontinuity) {
+        diagnosticsTimer_.start();
+    }
+}
+
 void AudioStreamReceiver::onReadyRead()
 {
     while (socket_->hasPendingDatagrams()) {
@@ -115,11 +132,16 @@ void AudioStreamReceiver::processPacket(const QByteArray &packet)
 {
     totalPacketsReceived_++;
 
+    // Call diagnostics callback for packet arrival timing
+    if (diagnosticsCallback_.onPacketReceived && diagnosticsTimer_.isValid()) {
+        diagnosticsCallback_.onPacketReceived(diagnosticsTimer_.nsecsElapsed() / 1000);
+    }
+
     // Parse header (2-byte sequence number, little-endian)
     const auto *data = reinterpret_cast<const quint8 *>(packet.constData());
     auto sequenceNumber = static_cast<quint16>(data[0] | (data[1] << 8));
 
-    // Track sequence numbers for packet loss detection
+    // Track sequence numbers for packet loss and sample discontinuity detection
     if (!firstPacket_) {
         quint16 expectedSeq = lastSequenceNumber_ + 1;
         if (sequenceNumber != expectedSeq) {
@@ -129,6 +151,10 @@ void AudioStreamReceiver::processPacket(const QByteArray &packet)
                 quint16 gap = sequenceNumber - expectedSeq;
                 if (gap < 1000) { // Reasonable gap
                     totalPacketsLost_ += gap;
+                    // Report sample discontinuity
+                    if (diagnosticsCallback_.onSampleDiscontinuity) {
+                        diagnosticsCallback_.onSampleDiscontinuity(static_cast<int>(gap));
+                    }
                 }
             }
         }
@@ -148,17 +174,15 @@ void AudioStreamReceiver::processPacket(const QByteArray &packet)
         QMutexLocker locker(&bufferMutex_);
         jitterBuffer_.enqueue(audioPacket);
 
-        // Check if buffer is primed
+        // Check if buffer is primed and start flush timer
         if (!bufferPrimed_ && jitterBuffer_.size() >= jitterBufferSize_ / 2) {
             bufferPrimed_ = true;
+            // Start timer outside of mutex lock
+            QMetaObject::invokeMethod(this, &AudioStreamReceiver::startFlushTimer,
+                                      Qt::QueuedConnection);
         }
 
-        // If buffer is primed and has enough data, flush samples
-        if (bufferPrimed_ && jitterBuffer_.size() >= 1) {
-            flushBuffer();
-        }
-
-        // Prevent buffer overflow
+        // Prevent buffer overflow - drop oldest packets if too full
         while (jitterBuffer_.size() > static_cast<qsizetype>(jitterBufferSize_) * 2) {
             jitterBuffer_.dequeue();
         }
@@ -175,9 +199,48 @@ void AudioStreamReceiver::flushBuffer()
     // Called with mutex held
     if (jitterBuffer_.isEmpty()) {
         emit bufferUnderrun();
+        if (diagnosticsCallback_.onBufferUnderrun) {
+            diagnosticsCallback_.onBufferUnderrun();
+        }
         return;
     }
 
-    AudioPacket packet = jitterBuffer_.dequeue();
-    emit samplesReady(packet.samples, SamplesPerPacket);
+    AudioPacket audioPacket = jitterBuffer_.dequeue();
+    emit samplesReady(audioPacket.samples, SamplesPerPacket);
+}
+
+void AudioStreamReceiver::onFlushTimer()
+{
+    QMutexLocker locker(&bufferMutex_);
+
+    if (!bufferPrimed_) {
+        return;
+    }
+
+    flushBuffer();
+}
+
+void AudioStreamReceiver::startFlushTimer()
+{
+    if (!flushTimer_->isActive()) {
+        // Calculate interval: samples per packet / sample rate * 1000 for ms
+        // 192 samples / 48000 Hz = 4ms per packet
+        int intervalMs = std::max(1, calculateFlushIntervalUs() / 1000);
+        flushTimer_->start(intervalMs);
+    }
+}
+
+void AudioStreamReceiver::stopFlushTimer()
+{
+    if (flushTimer_->isActive()) {
+        flushTimer_->stop();
+    }
+}
+
+int AudioStreamReceiver::calculateFlushIntervalUs() const
+{
+    // Calculate microseconds per packet based on sample rate
+    // interval = samples_per_packet / sample_rate * 1,000,000
+    double rate = sampleRate();
+    return static_cast<int>((SamplesPerPacket / rate) * 1000000.0);
 }

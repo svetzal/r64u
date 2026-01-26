@@ -95,6 +95,14 @@ qreal AudioPlaybackService::volume() const
     return volume_;
 }
 
+void AudioPlaybackService::setDiagnosticsCallback(const DiagnosticsCallback &callback)
+{
+    diagnosticsCallback_ = callback;
+    if (callback.onSamplesWritten || callback.onPlaybackUnderrun) {
+        diagnosticsTimer_.start();
+    }
+}
+
 void AudioPlaybackService::writeSamples(const QByteArray &samples, int /*sampleCount*/)
 {
     QMutexLocker locker(&writeMutex_);
@@ -105,9 +113,12 @@ void AudioPlaybackService::writeSamples(const QByteArray &samples, int /*sampleC
 
     // Write samples directly to audio device
     qint64 written = audioDevice_->write(samples);
-    if (written < samples.size()) {
-        // Buffer may be full, this is normal
-        // The audio system will catch up
+    qint64 dropped = samples.size() - written;
+
+    // Report to diagnostics
+    if (diagnosticsCallback_.onSamplesWritten && diagnosticsTimer_.isValid()) {
+        qint64 timeUs = diagnosticsTimer_.nsecsElapsed() / 1000;
+        diagnosticsCallback_.onSamplesWritten(timeUs, written, dropped);
     }
 }
 
@@ -117,6 +128,9 @@ void AudioPlaybackService::onStateChanged(QAudio::State state)
     case QAudio::IdleState:
         // No more data available - buffer underrun
         emit bufferUnderrun();
+        if (diagnosticsCallback_.onPlaybackUnderrun) {
+            diagnosticsCallback_.onPlaybackUnderrun();
+        }
         break;
     case QAudio::StoppedState:
         if (audioSink_ && audioSink_->error() != QAudio::NoError) {

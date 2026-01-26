@@ -12,6 +12,8 @@ class DeviceConnection;
 class VideoDisplayWidget;
 class StreamingManager;
 class VideoRecordingService;
+class StreamingDiagnosticsWidget;
+struct DiagnosticsSnapshot;
 
 class ViewPanel : public QWidget
 {
@@ -33,7 +35,7 @@ public:
     // Settings
     void loadSettings();
     void saveSettings();
-    int scalingMode() const;
+    [[nodiscard]] int scalingMode() const;
 
 signals:
     void statusMessage(const QString &message, int timeout = 0);
@@ -55,6 +57,8 @@ private slots:
     void onRecordingError(const QString &error);
     void onFrameReadyForRecording(const QByteArray &frameData, quint16 frameNumber, VideoStreamReceiver::VideoFormat format);
     void onAudioSamplesForRecording(const QByteArray &samples, int sampleCount);
+    void onStatsToggled(bool checked);
+    void onDiagnosticsUpdated(const DiagnosticsSnapshot &snapshot);
 
 private:
     void setupUi();
@@ -83,6 +87,8 @@ private:
     QRadioButton *sharpRadio_ = nullptr;
     QRadioButton *smoothRadio_ = nullptr;
     QRadioButton *integerRadio_ = nullptr;
+    QAction *statsAction_ = nullptr;
+    StreamingDiagnosticsWidget *diagnosticsWidget_ = nullptr;
 };
 
 #endif // VIEWPANEL_H
