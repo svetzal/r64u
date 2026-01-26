@@ -63,6 +63,7 @@ SonglengthsDatabase::SongLengths SonglengthsDatabase::lookup(const QString &md5H
 
     if (database_.contains(hash)) {
         result.found = true;
+        result.hvscPath = md5ToPath_.value(hash);
         result.durations = database_.value(hash);
         result.formattedTimes = formattedTimes_.value(hash);
     }
@@ -158,6 +159,7 @@ bool SonglengthsDatabase::parseDatabase(const QByteArray &data)
 {
     database_.clear();
     formattedTimes_.clear();
+    md5ToPath_.clear();
 
     QTextStream stream(data);
     stream.setEncoding(QStringConverter::Encoding::Latin1);
@@ -168,11 +170,29 @@ bool SonglengthsDatabase::parseDatabase(const QByteArray &data)
         R"(^([0-9a-fA-F]{32})=(.+)$)"
     );
 
+    // Regular expression to match path comments
+    // Format: ; /PATH/TO/FILE.sid
+    static const QRegularExpression pathCommentRegex(
+        R"(^; (/[^\s]+\.sid)$)",
+        QRegularExpression::CaseInsensitiveOption
+    );
+
+    QString currentPath;
+
     while (!stream.atEnd()) {
         QString line = stream.readLine().trimmed();
 
-        // Skip empty lines, comments, and section headers
-        if (line.isEmpty() || line.startsWith(';') || line.startsWith('[')) {
+        // Skip empty lines and section headers
+        if (line.isEmpty() || line.startsWith('[')) {
+            continue;
+        }
+
+        // Check for path comment
+        if (line.startsWith(';')) {
+            QRegularExpressionMatch pathMatch = pathCommentRegex.match(line);
+            if (pathMatch.hasMatch()) {
+                currentPath = pathMatch.captured(1);
+            }
             continue;
         }
 
@@ -184,6 +204,11 @@ bool SonglengthsDatabase::parseDatabase(const QByteArray &data)
             QList<int> durations = parseTimeList(timesStr);
             if (!durations.isEmpty()) {
                 database_.insert(md5, durations);
+
+                // Store the HVSC path for this MD5
+                if (!currentPath.isEmpty()) {
+                    md5ToPath_.insert(md5, currentPath);
+                }
 
                 // Store formatted times too
                 QList<QString> formatted;

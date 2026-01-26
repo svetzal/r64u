@@ -42,6 +42,7 @@ public:
      */
     struct SongLengths {
         bool found = false;              ///< True if the SID was found in database
+        QString hvscPath;                ///< HVSC path (e.g., "/MUSICIANS/T/Tel_Jeroen/Cybernoid_II.sid")
         QList<int> durations;            ///< Duration in seconds for each subsong
         QList<QString> formattedTimes;   ///< Formatted times (e.g., "3:57") for each subsong
     };
@@ -164,6 +165,9 @@ private:
 
     // Also store formatted times for display
     QHash<QString, QList<QString>> formattedTimes_;
+
+    // MD5 hash -> HVSC path mapping for metadata lookup
+    QHash<QString, QString> md5ToPath_;
 };
 
 #endif // SONGLENGTHSDATABASE_H

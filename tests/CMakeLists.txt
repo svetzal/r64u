@@ -565,3 +565,28 @@ if(BUILD_COVERAGE)
     add_coverage_target(streamingdiagnostics test_streamingdiagnostics)
     add_dependencies(coverage coverage_streamingdiagnostics)
 endif()
+
+# HVSCMetadataService tests
+add_executable(test_hvscmetadataservice
+    test_hvscmetadataservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
+)
+
+target_include_directories(test_hvscmetadataservice PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_hvscmetadataservice PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+# Register test with CTest
+add_test(NAME HVSCMetadataServiceTest COMMAND test_hvscmetadataservice)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(hvscmetadataservice test_hvscmetadataservice)
+    add_dependencies(coverage coverage_hvscmetadataservice)
+endif()

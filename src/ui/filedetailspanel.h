@@ -11,6 +11,7 @@
 #include "services/sidfileparser.h"
 
 class SonglengthsDatabase;
+class HVSCMetadataService;
 
 class FileDetailsPanel : public QWidget
 {
@@ -23,6 +24,11 @@ public:
      * @brief Sets the songlengths database for SID duration lookup.
      */
     void setSonglengthsDatabase(SonglengthsDatabase *database);
+
+    /**
+     * @brief Sets the HVSC metadata service for STIL/BUGlist lookup.
+     */
+    void setHVSCMetadataService(HVSCMetadataService *service);
 
     void showFileDetails(const QString &path, qint64 size, const QString &type);
     void showTextContent(const QString &content);
@@ -72,6 +78,9 @@ private:
 
     // Optional songlengths database (not owned)
     SonglengthsDatabase *songlengthsDatabase_ = nullptr;
+
+    // Optional HVSC metadata service (not owned)
+    HVSCMetadataService *hvscMetadataService_ = nullptr;
 };
 
 #endif // FILEDETAILSPANEL_H

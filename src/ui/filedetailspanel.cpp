@@ -1,5 +1,6 @@
 #include "filedetailspanel.h"
 #include "services/songlengthsdatabase.h"
+#include "services/hvscmetadataservice.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -18,6 +19,11 @@ FileDetailsPanel::FileDetailsPanel(QWidget *parent)
 void FileDetailsPanel::setSonglengthsDatabase(SonglengthsDatabase *database)
 {
     songlengthsDatabase_ = database;
+}
+
+void FileDetailsPanel::setHVSCMetadataService(HVSCMetadataService *service)
+{
+    hvscMetadataService_ = service;
 }
 
 void FileDetailsPanel::setupUi()
@@ -260,6 +266,7 @@ void FileDetailsPanel::showSidDetails(const QByteArray &sidData, const QString &
     }
 
     QString details = SidFileParser::formatForDisplay(info);
+    QString hvscPath;
 
     // Look up song lengths from database
     if (songlengthsDatabase_ != nullptr && songlengthsDatabase_->isLoaded()) {
@@ -267,6 +274,7 @@ void FileDetailsPanel::showSidDetails(const QByteArray &sidData, const QString &
 
         details += "\n";
         if (lengths.found) {
+            hvscPath = lengths.hvscPath;
             details += tr("─────────────────────────────────\n");
             details += tr("HVSC Database: Found\n");
             details += tr("Song Lengths:\n");
@@ -285,6 +293,74 @@ void FileDetailsPanel::showSidDetails(const QByteArray &sidData, const QString &
         details += "\n";
         details += tr("─────────────────────────────────\n");
         details += tr("HVSC Database: Not loaded\n");
+    }
+
+    // Look up STIL and BUGlist metadata if we have the HVSC path
+    if (hvscMetadataService_ != nullptr && !hvscPath.isEmpty()) {
+        // Check for bug reports first (important warnings)
+        if (hvscMetadataService_->isBuglistLoaded()) {
+            HVSCMetadataService::BugInfo bugInfo = hvscMetadataService_->lookupBuglist(hvscPath);
+            if (bugInfo.found && !bugInfo.entries.isEmpty()) {
+                details += tr("\n─────────────────────────────────\n");
+                details += tr("⚠ KNOWN ISSUES:\n");
+                for (const HVSCMetadataService::BugEntry &bug : bugInfo.entries) {
+                    if (bug.subtune > 0) {
+                        details += tr("  Song #%1: %2\n").arg(bug.subtune).arg(bug.description);
+                    } else {
+                        details += tr("  %1\n").arg(bug.description);
+                    }
+                }
+            }
+        }
+
+        // Show STIL commentary and cover info
+        if (hvscMetadataService_->isStilLoaded()) {
+            HVSCMetadataService::StilInfo stilInfo = hvscMetadataService_->lookupStil(hvscPath);
+            if (stilInfo.found && !stilInfo.entries.isEmpty()) {
+                details += tr("\n─────────────────────────────────\n");
+                details += tr("STIL INFORMATION:\n");
+
+                for (const HVSCMetadataService::SubtuneEntry &entry : stilInfo.entries) {
+                    // Show subtune header if specific to a song
+                    if (entry.subtune > 0) {
+                        details += tr("\n  Song #%1:\n").arg(entry.subtune);
+                    }
+
+                    // Show tune name if different from header
+                    if (!entry.name.isEmpty()) {
+                        details += tr("  Name: %1\n").arg(entry.name);
+                    }
+
+                    // Show author if different from header
+                    if (!entry.author.isEmpty()) {
+                        details += tr("  Author: %1\n").arg(entry.author);
+                    }
+
+                    // Show cover information
+                    for (const HVSCMetadataService::CoverInfo &cover : entry.covers) {
+                        QString coverLine = tr("  Cover: %1").arg(cover.title);
+                        if (!cover.artist.isEmpty()) {
+                            coverLine += tr(" by %1").arg(cover.artist);
+                        }
+                        if (!cover.timestamp.isEmpty()) {
+                            coverLine += tr(" (%1)").arg(cover.timestamp);
+                        }
+                        details += coverLine + "\n";
+                    }
+
+                    // Show commentary
+                    if (!entry.comment.isEmpty()) {
+                        // Word-wrap long comments
+                        QString comment = entry.comment;
+                        if (entry.subtune > 0 || !entry.name.isEmpty()) {
+                            details += tr("  Comment: %1\n").arg(comment);
+                        } else {
+                            details += tr("  %1\n").arg(comment);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     QFileInfo fi(filename);

@@ -14,6 +14,7 @@
 #include "services/favoritesmanager.h"
 #include "services/playlistmanager.h"
 #include "services/songlengthsdatabase.h"
+#include "services/hvscmetadataservice.h"
 #include "services/streamingmanager.h"
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
@@ -61,6 +62,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Create the songlengths database for SID duration lookup
     songlengthsDatabase_ = new SonglengthsDatabase(this);
+
+    // Create the HVSC metadata service for STIL/BUGlist lookup
+    hvscMetadataService_ = new HVSCMetadataService(this);
 
     // Wire up the songlengths database to the playlist manager
     playlistManager_->setSonglengthsDatabase(songlengthsDatabase_);
@@ -265,6 +269,7 @@ void MainWindow::setupPanels()
     // Create mode panels with their dependencies
     explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, configFileLoader_, filePreviewService_, favoritesManager_, playlistManager_);
     explorePanel_->setSonglengthsDatabase(songlengthsDatabase_);
+    explorePanel_->setHVSCMetadataService(hvscMetadataService_);
     transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferService_);
     viewPanel_ = new ViewPanel(deviceConnection_);
     configPanel_ = new ConfigPanel(deviceConnection_);
@@ -543,6 +548,7 @@ void MainWindow::onPreferences()
     if (!preferencesDialog_) {
         preferencesDialog_ = new PreferencesDialog(this);
         preferencesDialog_->setSonglengthsDatabase(songlengthsDatabase_);
+        preferencesDialog_->setHVSCMetadataService(hvscMetadataService_);
     }
 
     if (preferencesDialog_->exec() == QDialog::Accepted) {

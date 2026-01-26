@@ -13,6 +13,7 @@
 #include "videodisplaywidget.h"
 
 class SonglengthsDatabase;
+class HVSCMetadataService;
 
 class PreferencesDialog : public QDialog
 {
@@ -23,6 +24,7 @@ public:
     ~PreferencesDialog() override;
 
     void setSonglengthsDatabase(SonglengthsDatabase *database);
+    void setHVSCMetadataService(HVSCMetadataService *service);
 
 private slots:
     void onAccept();
@@ -30,11 +32,22 @@ private slots:
     void onTestConnectionSuccess(const DeviceInfo &info);
     void onTestConnectionError(const QString &error);
 
-    // Database slots
+    // Songlengths Database slots
     void onDownloadDatabase();
     void onDatabaseDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
     void onDatabaseDownloadFinished(int entryCount);
     void onDatabaseDownloadFailed(const QString &error);
+
+    // STIL/BUGlist slots
+    void onDownloadStil();
+    void onStilDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void onStilDownloadFinished(int entryCount);
+    void onStilDownloadFailed(const QString &error);
+
+    void onDownloadBuglist();
+    void onBuglistDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void onBuglistDownloadFinished(int entryCount);
+    void onBuglistDownloadFailed(const QString &error);
 
 private:
     void setupUi();
@@ -57,11 +70,20 @@ private:
     // Test connection
     C64URestClient *testClient_ = nullptr;
 
-    // Database UI
+    // Songlengths Database UI
     SonglengthsDatabase *songlengthsDatabase_ = nullptr;
     QLabel *databaseStatusLabel_ = nullptr;
     QPushButton *downloadDatabaseButton_ = nullptr;
     QProgressBar *databaseProgressBar_ = nullptr;
+
+    // HVSC Metadata Service UI
+    HVSCMetadataService *hvscMetadataService_ = nullptr;
+    QLabel *stilStatusLabel_ = nullptr;
+    QPushButton *downloadStilButton_ = nullptr;
+    QProgressBar *stilProgressBar_ = nullptr;
+    QLabel *buglistStatusLabel_ = nullptr;
+    QPushButton *downloadBuglistButton_ = nullptr;
+    QProgressBar *buglistProgressBar_ = nullptr;
 };
 
 #endif // PREFERENCESDIALOG_H

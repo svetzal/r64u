@@ -2,6 +2,7 @@
 #include "../services/c64urestclient.h"
 #include "../services/credentialstore.h"
 #include "../services/songlengthsdatabase.h"
+#include "../services/hvscmetadataservice.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -108,25 +109,73 @@ void PreferencesDialog::setupUi()
 
     mainLayout->addWidget(viewGroup);
 
-    // HVSC Database settings group
-    auto *databaseGroup = new QGroupBox(tr("HVSC Songlengths Database"));
+    // HVSC Databases settings group
+    auto *databaseGroup = new QGroupBox(tr("HVSC Databases"));
     auto *databaseLayout = new QVBoxLayout(databaseGroup);
 
-    databaseStatusLabel_ = new QLabel(tr("Database: Not loaded"));
+    // Songlengths section
+    auto *songlengthsLabel = new QLabel(tr("<b>Songlengths</b> - Accurate song durations"));
+    databaseLayout->addWidget(songlengthsLabel);
+
+    databaseStatusLabel_ = new QLabel(tr("Not loaded"));
     databaseLayout->addWidget(databaseStatusLabel_);
 
     databaseProgressBar_ = new QProgressBar();
     databaseProgressBar_->setVisible(false);
     databaseLayout->addWidget(databaseProgressBar_);
 
-    auto *buttonLayout = new QHBoxLayout();
-    downloadDatabaseButton_ = new QPushButton(tr("Download/Update Database"));
+    auto *songlengthsButtonLayout = new QHBoxLayout();
+    downloadDatabaseButton_ = new QPushButton(tr("Download/Update"));
     downloadDatabaseButton_->setToolTip(tr("Download the HVSC Songlengths database for accurate SID song durations"));
     connect(downloadDatabaseButton_, &QPushButton::clicked,
             this, &PreferencesDialog::onDownloadDatabase);
-    buttonLayout->addWidget(downloadDatabaseButton_);
-    buttonLayout->addStretch();
-    databaseLayout->addLayout(buttonLayout);
+    songlengthsButtonLayout->addWidget(downloadDatabaseButton_);
+    songlengthsButtonLayout->addStretch();
+    databaseLayout->addLayout(songlengthsButtonLayout);
+
+    databaseLayout->addSpacing(12);
+
+    // STIL section
+    auto *stilLabel = new QLabel(tr("<b>STIL</b> - Tune commentary and cover info"));
+    databaseLayout->addWidget(stilLabel);
+
+    stilStatusLabel_ = new QLabel(tr("Not loaded"));
+    databaseLayout->addWidget(stilStatusLabel_);
+
+    stilProgressBar_ = new QProgressBar();
+    stilProgressBar_->setVisible(false);
+    databaseLayout->addWidget(stilProgressBar_);
+
+    auto *stilButtonLayout = new QHBoxLayout();
+    downloadStilButton_ = new QPushButton(tr("Download/Update"));
+    downloadStilButton_->setToolTip(tr("Download STIL.txt for tune commentary, history, and cover information"));
+    connect(downloadStilButton_, &QPushButton::clicked,
+            this, &PreferencesDialog::onDownloadStil);
+    stilButtonLayout->addWidget(downloadStilButton_);
+    stilButtonLayout->addStretch();
+    databaseLayout->addLayout(stilButtonLayout);
+
+    databaseLayout->addSpacing(12);
+
+    // BUGlist section
+    auto *buglistLabel = new QLabel(tr("<b>BUGlist</b> - Known playback issues"));
+    databaseLayout->addWidget(buglistLabel);
+
+    buglistStatusLabel_ = new QLabel(tr("Not loaded"));
+    databaseLayout->addWidget(buglistStatusLabel_);
+
+    buglistProgressBar_ = new QProgressBar();
+    buglistProgressBar_->setVisible(false);
+    databaseLayout->addWidget(buglistProgressBar_);
+
+    auto *buglistButtonLayout = new QHBoxLayout();
+    downloadBuglistButton_ = new QPushButton(tr("Download/Update"));
+    downloadBuglistButton_->setToolTip(tr("Download BUGlist.txt for known SID playback issues"));
+    connect(downloadBuglistButton_, &QPushButton::clicked,
+            this, &PreferencesDialog::onDownloadBuglist);
+    buglistButtonLayout->addWidget(downloadBuglistButton_);
+    buglistButtonLayout->addStretch();
+    databaseLayout->addLayout(buglistButtonLayout);
 
     mainLayout->addWidget(databaseGroup);
 
@@ -350,4 +399,146 @@ void PreferencesDialog::onDatabaseDownloadFailed(const QString &error)
 
     QMessageBox::warning(this, tr("Download Failed"),
         tr("Failed to download database:\n%1").arg(error));
+}
+
+void PreferencesDialog::setHVSCMetadataService(HVSCMetadataService *service)
+{
+    // Disconnect from any previous service
+    if (hvscMetadataService_ != nullptr) {
+        disconnect(hvscMetadataService_, nullptr, this, nullptr);
+    }
+
+    hvscMetadataService_ = service;
+
+    if (hvscMetadataService_ != nullptr) {
+        // Connect STIL signals
+        connect(hvscMetadataService_, &HVSCMetadataService::stilDownloadProgress,
+                this, &PreferencesDialog::onStilDownloadProgress);
+        connect(hvscMetadataService_, &HVSCMetadataService::stilDownloadFinished,
+                this, &PreferencesDialog::onStilDownloadFinished);
+        connect(hvscMetadataService_, &HVSCMetadataService::stilDownloadFailed,
+                this, &PreferencesDialog::onStilDownloadFailed);
+
+        // Connect BUGlist signals
+        connect(hvscMetadataService_, &HVSCMetadataService::buglistDownloadProgress,
+                this, &PreferencesDialog::onBuglistDownloadProgress);
+        connect(hvscMetadataService_, &HVSCMetadataService::buglistDownloadFinished,
+                this, &PreferencesDialog::onBuglistDownloadFinished);
+        connect(hvscMetadataService_, &HVSCMetadataService::buglistDownloadFailed,
+                this, &PreferencesDialog::onBuglistDownloadFailed);
+
+        // Update STIL status label
+        if (hvscMetadataService_->isStilLoaded()) {
+            stilStatusLabel_->setText(tr("%1 entries loaded")
+                .arg(hvscMetadataService_->stilEntryCount()));
+        } else if (hvscMetadataService_->hasCachedStil()) {
+            stilStatusLabel_->setText(tr("Cached (not loaded)"));
+        } else {
+            stilStatusLabel_->setText(tr("Not downloaded"));
+        }
+
+        // Update BUGlist status label
+        if (hvscMetadataService_->isBuglistLoaded()) {
+            buglistStatusLabel_->setText(tr("%1 entries loaded")
+                .arg(hvscMetadataService_->buglistEntryCount()));
+        } else if (hvscMetadataService_->hasCachedBuglist()) {
+            buglistStatusLabel_->setText(tr("Cached (not loaded)"));
+        } else {
+            buglistStatusLabel_->setText(tr("Not downloaded"));
+        }
+    }
+}
+
+void PreferencesDialog::onDownloadStil()
+{
+    if (hvscMetadataService_ == nullptr) {
+        QMessageBox::warning(this, tr("Download STIL"),
+            tr("HVSC metadata service not available."));
+        return;
+    }
+
+    downloadStilButton_->setEnabled(false);
+    stilProgressBar_->setVisible(true);
+    stilProgressBar_->setValue(0);
+    stilStatusLabel_->setText(tr("Downloading..."));
+
+    hvscMetadataService_->downloadStil();
+}
+
+void PreferencesDialog::onStilDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
+{
+    if (bytesTotal > 0) {
+        stilProgressBar_->setMaximum(static_cast<int>(bytesTotal));
+        stilProgressBar_->setValue(static_cast<int>(bytesReceived));
+    } else {
+        stilProgressBar_->setMaximum(0);  // Indeterminate
+    }
+}
+
+void PreferencesDialog::onStilDownloadFinished(int entryCount)
+{
+    downloadStilButton_->setEnabled(true);
+    stilProgressBar_->setVisible(false);
+    stilStatusLabel_->setText(tr("%1 entries loaded").arg(entryCount));
+
+    QMessageBox::information(this, tr("Download Complete"),
+        tr("Successfully downloaded STIL database.\n%1 entries loaded.")
+            .arg(entryCount));
+}
+
+void PreferencesDialog::onStilDownloadFailed(const QString &error)
+{
+    downloadStilButton_->setEnabled(true);
+    stilProgressBar_->setVisible(false);
+    stilStatusLabel_->setText(tr("Download failed"));
+
+    QMessageBox::warning(this, tr("Download Failed"),
+        tr("Failed to download STIL database:\n%1").arg(error));
+}
+
+void PreferencesDialog::onDownloadBuglist()
+{
+    if (hvscMetadataService_ == nullptr) {
+        QMessageBox::warning(this, tr("Download BUGlist"),
+            tr("HVSC metadata service not available."));
+        return;
+    }
+
+    downloadBuglistButton_->setEnabled(false);
+    buglistProgressBar_->setVisible(true);
+    buglistProgressBar_->setValue(0);
+    buglistStatusLabel_->setText(tr("Downloading..."));
+
+    hvscMetadataService_->downloadBuglist();
+}
+
+void PreferencesDialog::onBuglistDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
+{
+    if (bytesTotal > 0) {
+        buglistProgressBar_->setMaximum(static_cast<int>(bytesTotal));
+        buglistProgressBar_->setValue(static_cast<int>(bytesReceived));
+    } else {
+        buglistProgressBar_->setMaximum(0);  // Indeterminate
+    }
+}
+
+void PreferencesDialog::onBuglistDownloadFinished(int entryCount)
+{
+    downloadBuglistButton_->setEnabled(true);
+    buglistProgressBar_->setVisible(false);
+    buglistStatusLabel_->setText(tr("%1 entries loaded").arg(entryCount));
+
+    QMessageBox::information(this, tr("Download Complete"),
+        tr("Successfully downloaded BUGlist database.\n%1 entries loaded.")
+            .arg(entryCount));
+}
+
+void PreferencesDialog::onBuglistDownloadFailed(const QString &error)
+{
+    downloadBuglistButton_->setEnabled(true);
+    buglistProgressBar_->setVisible(false);
+    buglistStatusLabel_->setText(tr("Download failed"));
+
+    QMessageBox::warning(this, tr("Download Failed"),
+        tr("Failed to download BUGlist database:\n%1").arg(error));
 }

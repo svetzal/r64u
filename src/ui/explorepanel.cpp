@@ -9,6 +9,7 @@
 #include "services/favoritesmanager.h"
 #include "services/playlistmanager.h"
 #include "services/songlengthsdatabase.h"
+#include "services/hvscmetadataservice.h"
 #include "services/streamingmanager.h"
 #include "models/remotefilemodel.h"
 
@@ -358,6 +359,13 @@ void ExplorePanel::setSonglengthsDatabase(SonglengthsDatabase *database)
 {
     if (fileDetailsPanel_ != nullptr) {
         fileDetailsPanel_->setSonglengthsDatabase(database);
+    }
+}
+
+void ExplorePanel::setHVSCMetadataService(HVSCMetadataService *service)
+{
+    if (fileDetailsPanel_ != nullptr) {
+        fileDetailsPanel_->setHVSCMetadataService(service);
     }
 }
 
