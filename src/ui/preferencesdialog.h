@@ -14,6 +14,7 @@
 
 class SonglengthsDatabase;
 class HVSCMetadataService;
+class GameBase64Service;
 
 class PreferencesDialog : public QDialog
 {
@@ -25,6 +26,7 @@ public:
 
     void setSonglengthsDatabase(SonglengthsDatabase *database);
     void setHVSCMetadataService(HVSCMetadataService *service);
+    void setGameBase64Service(GameBase64Service *service);
 
 private slots:
     void onAccept();
@@ -48,6 +50,12 @@ private slots:
     void onBuglistDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
     void onBuglistDownloadFinished(int entryCount);
     void onBuglistDownloadFailed(const QString &error);
+
+    // GameBase64 slots
+    void onDownloadGameBase64();
+    void onGameBase64DownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void onGameBase64DownloadFinished(int gameCount);
+    void onGameBase64DownloadFailed(const QString &error);
 
 private:
     void setupUi();
@@ -84,6 +92,12 @@ private:
     QLabel *buglistStatusLabel_ = nullptr;
     QPushButton *downloadBuglistButton_ = nullptr;
     QProgressBar *buglistProgressBar_ = nullptr;
+
+    // GameBase64 Service UI
+    GameBase64Service *gameBase64Service_ = nullptr;
+    QLabel *gameBase64StatusLabel_ = nullptr;
+    QPushButton *downloadGameBase64Button_ = nullptr;
+    QProgressBar *gameBase64ProgressBar_ = nullptr;
 };
 
 #endif // PREFERENCESDIALOG_H

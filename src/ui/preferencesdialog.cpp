@@ -3,6 +3,7 @@
 #include "../services/credentialstore.h"
 #include "../services/songlengthsdatabase.h"
 #include "../services/hvscmetadataservice.h"
+#include "../services/gamebase64service.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -178,6 +179,31 @@ void PreferencesDialog::setupUi()
     databaseLayout->addLayout(buglistButtonLayout);
 
     mainLayout->addWidget(databaseGroup);
+
+    // GameBase64 Database settings group
+    auto *gamebaseGroup = new QGroupBox(tr("GameBase64 Database"));
+    auto *gamebaseLayout = new QVBoxLayout(gamebaseGroup);
+
+    auto *gamebaseLabel = new QLabel(tr("<b>Game Database</b> - ~29,000 C64 games with metadata"));
+    gamebaseLayout->addWidget(gamebaseLabel);
+
+    gameBase64StatusLabel_ = new QLabel(tr("Not loaded"));
+    gamebaseLayout->addWidget(gameBase64StatusLabel_);
+
+    gameBase64ProgressBar_ = new QProgressBar();
+    gameBase64ProgressBar_->setVisible(false);
+    gamebaseLayout->addWidget(gameBase64ProgressBar_);
+
+    auto *gamebaseButtonLayout = new QHBoxLayout();
+    downloadGameBase64Button_ = new QPushButton(tr("Download/Update"));
+    downloadGameBase64Button_->setToolTip(tr("Download GameBase64 database for game information (publisher, year, genre, etc.)"));
+    connect(downloadGameBase64Button_, &QPushButton::clicked,
+            this, &PreferencesDialog::onDownloadGameBase64);
+    gamebaseButtonLayout->addWidget(downloadGameBase64Button_);
+    gamebaseButtonLayout->addStretch();
+    gamebaseLayout->addLayout(gamebaseButtonLayout);
+
+    mainLayout->addWidget(gamebaseGroup);
 
     // Buttons
     mainLayout->addStretch();
@@ -541,4 +567,81 @@ void PreferencesDialog::onBuglistDownloadFailed(const QString &error)
 
     QMessageBox::warning(this, tr("Download Failed"),
         tr("Failed to download BUGlist database:\n%1").arg(error));
+}
+
+void PreferencesDialog::setGameBase64Service(GameBase64Service *service)
+{
+    // Disconnect from any previous service
+    if (gameBase64Service_ != nullptr) {
+        disconnect(gameBase64Service_, nullptr, this, nullptr);
+    }
+
+    gameBase64Service_ = service;
+
+    if (gameBase64Service_ != nullptr) {
+        // Connect signals
+        connect(gameBase64Service_, &GameBase64Service::downloadProgress,
+                this, &PreferencesDialog::onGameBase64DownloadProgress);
+        connect(gameBase64Service_, &GameBase64Service::downloadFinished,
+                this, &PreferencesDialog::onGameBase64DownloadFinished);
+        connect(gameBase64Service_, &GameBase64Service::downloadFailed,
+                this, &PreferencesDialog::onGameBase64DownloadFailed);
+
+        // Update status label
+        if (gameBase64Service_->isLoaded()) {
+            gameBase64StatusLabel_->setText(tr("%1 games loaded")
+                .arg(gameBase64Service_->gameCount()));
+        } else if (gameBase64Service_->hasCachedDatabase()) {
+            gameBase64StatusLabel_->setText(tr("Cached (not loaded)"));
+        } else {
+            gameBase64StatusLabel_->setText(tr("Not downloaded"));
+        }
+    }
+}
+
+void PreferencesDialog::onDownloadGameBase64()
+{
+    if (gameBase64Service_ == nullptr) {
+        QMessageBox::warning(this, tr("Download GameBase64"),
+            tr("GameBase64 service not available."));
+        return;
+    }
+
+    downloadGameBase64Button_->setEnabled(false);
+    gameBase64ProgressBar_->setVisible(true);
+    gameBase64ProgressBar_->setValue(0);
+    gameBase64StatusLabel_->setText(tr("Downloading..."));
+
+    gameBase64Service_->downloadDatabase();
+}
+
+void PreferencesDialog::onGameBase64DownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
+{
+    if (bytesTotal > 0) {
+        gameBase64ProgressBar_->setMaximum(static_cast<int>(bytesTotal));
+        gameBase64ProgressBar_->setValue(static_cast<int>(bytesReceived));
+    } else {
+        gameBase64ProgressBar_->setMaximum(0);  // Indeterminate
+    }
+}
+
+void PreferencesDialog::onGameBase64DownloadFinished(int gameCount)
+{
+    downloadGameBase64Button_->setEnabled(true);
+    gameBase64ProgressBar_->setVisible(false);
+    gameBase64StatusLabel_->setText(tr("%1 games loaded").arg(gameCount));
+
+    QMessageBox::information(this, tr("Download Complete"),
+        tr("Successfully downloaded GameBase64 database.\n%1 games loaded.")
+            .arg(gameCount));
+}
+
+void PreferencesDialog::onGameBase64DownloadFailed(const QString &error)
+{
+    downloadGameBase64Button_->setEnabled(true);
+    gameBase64ProgressBar_->setVisible(false);
+    gameBase64StatusLabel_->setText(tr("Download failed"));
+
+    QMessageBox::warning(this, tr("Download Failed"),
+        tr("Failed to download GameBase64 database:\n%1").arg(error));
 }

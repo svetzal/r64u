@@ -590,3 +590,30 @@ if(BUILD_COVERAGE)
     add_coverage_target(hvscmetadataservice test_hvscmetadataservice)
     add_dependencies(coverage coverage_hvscmetadataservice)
 endif()
+
+# GameBase64Service tests
+add_executable(test_gamebase64service
+    test_gamebase64service.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
+)
+
+target_include_directories(test_gamebase64service PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_gamebase64service PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+    Qt6::Sql
+    ZLIB::ZLIB
+)
+
+# Register test with CTest
+add_test(NAME GameBase64ServiceTest COMMAND test_gamebase64service)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(gamebase64service test_gamebase64service)
+    add_dependencies(coverage coverage_gamebase64service)
+endif()

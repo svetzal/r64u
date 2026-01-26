@@ -12,6 +12,7 @@
 
 class SonglengthsDatabase;
 class HVSCMetadataService;
+class GameBase64Service;
 
 class FileDetailsPanel : public QWidget
 {
@@ -29,6 +30,11 @@ public:
      * @brief Sets the HVSC metadata service for STIL/BUGlist lookup.
      */
     void setHVSCMetadataService(HVSCMetadataService *service);
+
+    /**
+     * @brief Sets the GameBase64 service for game metadata lookup.
+     */
+    void setGameBase64Service(GameBase64Service *service);
 
     void showFileDetails(const QString &path, qint64 size, const QString &type);
     void showTextContent(const QString &content);
@@ -81,6 +87,9 @@ private:
 
     // Optional HVSC metadata service (not owned)
     HVSCMetadataService *hvscMetadataService_ = nullptr;
+
+    // Optional GameBase64 service (not owned)
+    GameBase64Service *gameBase64Service_ = nullptr;
 };
 
 #endif // FILEDETAILSPANEL_H

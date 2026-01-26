@@ -1,6 +1,7 @@
 #include "filedetailspanel.h"
 #include "services/songlengthsdatabase.h"
 #include "services/hvscmetadataservice.h"
+#include "services/gamebase64service.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -24,6 +25,11 @@ void FileDetailsPanel::setSonglengthsDatabase(SonglengthsDatabase *database)
 void FileDetailsPanel::setHVSCMetadataService(HVSCMetadataService *service)
 {
     hvscMetadataService_ = service;
+}
+
+void FileDetailsPanel::setGameBase64Service(GameBase64Service *service)
+{
+    gameBase64Service_ = service;
 }
 
 void FileDetailsPanel::setupUi()
@@ -246,6 +252,51 @@ void FileDetailsPanel::showDiskDirectory(const QByteArray &diskImageData, const 
 
     QString listing = DiskImageReader::formatDirectoryListing(dir);
 
+    // Look up game info from GameBase64
+    if (gameBase64Service_ != nullptr && gameBase64Service_->isLoaded()) {
+        GameBase64Service::GameInfo gameInfo = gameBase64Service_->lookupByFilename(filename);
+        if (gameInfo.found) {
+            listing += "\n\n";
+            listing += tr("════════════════════════════════════════\n");
+            listing += tr("GAMEBASE64 INFO:\n");
+            listing += tr("────────────────────────────────────────\n");
+            listing += tr("  Game: %1\n").arg(gameInfo.name);
+            if (gameInfo.year > 0) {
+                listing += tr("  Year: %1\n").arg(gameInfo.year);
+            }
+            if (!gameInfo.publisher.isEmpty()) {
+                listing += tr("  Publisher: %1\n").arg(gameInfo.publisher);
+            }
+            if (!gameInfo.genre.isEmpty()) {
+                QString genre = gameInfo.genre;
+                if (!gameInfo.parentGenre.isEmpty() && gameInfo.parentGenre != gameInfo.genre) {
+                    genre = gameInfo.parentGenre + " / " + gameInfo.genre;
+                }
+                listing += tr("  Genre: %1\n").arg(genre);
+            }
+            if (!gameInfo.musician.isEmpty()) {
+                QString musician = gameInfo.musician;
+                if (!gameInfo.musicianGroup.isEmpty()) {
+                    musician += " (" + gameInfo.musicianGroup + ")";
+                }
+                listing += tr("  Musician: %1\n").arg(musician);
+            }
+            if (gameInfo.rating > 0) {
+                listing += tr("  Rating: %1/10\n").arg(gameInfo.rating);
+            }
+            if (gameInfo.playersFrom > 0) {
+                if (gameInfo.playersTo > gameInfo.playersFrom) {
+                    listing += tr("  Players: %1-%2\n").arg(gameInfo.playersFrom).arg(gameInfo.playersTo);
+                } else {
+                    listing += tr("  Players: %1\n").arg(gameInfo.playersFrom);
+                }
+            }
+            if (!gameInfo.memo.isEmpty()) {
+                listing += tr("\n  %1\n").arg(gameInfo.memo);
+            }
+        }
+    }
+
     QFileInfo fi(filename);
     textFileNameLabel_->setText(fi.fileName());
     textBrowser_->setPlainText(listing);
@@ -359,6 +410,29 @@ void FileDetailsPanel::showSidDetails(const QByteArray &sidData, const QString &
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // Look up game info from GameBase64 by SID filename
+    if (gameBase64Service_ != nullptr && gameBase64Service_->isLoaded()) {
+        GameBase64Service::GameInfo gameInfo = gameBase64Service_->lookupBySidFilename(filename);
+        if (gameInfo.found) {
+            details += tr("\n─────────────────────────────────\n");
+            details += tr("GAME INFO (GameBase64):\n");
+            details += tr("  Game: %1\n").arg(gameInfo.name);
+            if (gameInfo.year > 0) {
+                details += tr("  Year: %1\n").arg(gameInfo.year);
+            }
+            if (!gameInfo.publisher.isEmpty()) {
+                details += tr("  Publisher: %1\n").arg(gameInfo.publisher);
+            }
+            if (!gameInfo.genre.isEmpty()) {
+                QString genre = gameInfo.genre;
+                if (!gameInfo.parentGenre.isEmpty() && gameInfo.parentGenre != gameInfo.genre) {
+                    genre = gameInfo.parentGenre + " / " + gameInfo.genre;
+                }
+                details += tr("  Genre: %1\n").arg(genre);
             }
         }
     }

@@ -31,7 +31,10 @@ find_package(Qt6 REQUIRED COMPONENTS
     Widgets
     Network
     Multimedia
+    Sql
 )
+
+find_package(ZLIB REQUIRED)
 
 set(SOURCES
     src/main.cpp
@@ -83,6 +86,7 @@ set(SOURCES
     src/services/playlistmanager.cpp
     src/services/songlengthsdatabase.cpp
     src/services/hvscmetadataservice.cpp
+    src/services/gamebase64service.cpp
     src/services/streamingdiagnostics.cpp
     src/ui/streamingdiagnosticswidget.cpp
     src/models/remotefilemodel.cpp
@@ -141,6 +145,7 @@ set(HEADERS
     src/services/playlistmanager.h
     src/services/songlengthsdatabase.h
     src/services/hvscmetadataservice.h
+    src/services/gamebase64service.h
     src/services/streamingdiagnostics.h
     src/ui/streamingdiagnosticswidget.h
     src/utils/rollingstats.h
@@ -219,6 +224,8 @@ target_link_libraries(r64u PRIVATE
     Qt6::Widgets
     Qt6::Network
     Qt6::Multimedia
+    Qt6::Sql
+    ZLIB::ZLIB
 )
 
 # Platform-specific libraries

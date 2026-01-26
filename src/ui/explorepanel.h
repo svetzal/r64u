@@ -15,6 +15,7 @@ class FavoritesManager;
 class PlaylistManager;
 class SonglengthsDatabase;
 class HVSCMetadataService;
+class GameBase64Service;
 class StreamingManager;
 class FileDetailsPanel;
 class PathNavigationWidget;
@@ -48,6 +49,7 @@ public:
     // Database injection
     void setSonglengthsDatabase(SonglengthsDatabase *database);
     void setHVSCMetadataService(HVSCMetadataService *service);
+    void setGameBase64Service(GameBase64Service *service);
 
     // Streaming manager injection (for auto-start on play/run)
     void setStreamingManager(StreamingManager *manager);

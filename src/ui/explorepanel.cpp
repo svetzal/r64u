@@ -10,6 +10,7 @@
 #include "services/playlistmanager.h"
 #include "services/songlengthsdatabase.h"
 #include "services/hvscmetadataservice.h"
+#include "services/gamebase64service.h"
 #include "services/streamingmanager.h"
 #include "models/remotefilemodel.h"
 
@@ -366,6 +367,13 @@ void ExplorePanel::setHVSCMetadataService(HVSCMetadataService *service)
 {
     if (fileDetailsPanel_ != nullptr) {
         fileDetailsPanel_->setHVSCMetadataService(service);
+    }
+}
+
+void ExplorePanel::setGameBase64Service(GameBase64Service *service)
+{
+    if (fileDetailsPanel_ != nullptr) {
+        fileDetailsPanel_->setGameBase64Service(service);
     }
 }
 

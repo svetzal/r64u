@@ -19,6 +19,7 @@ class FavoritesManager;
 class PlaylistManager;
 class SonglengthsDatabase;
 class HVSCMetadataService;
+class GameBase64Service;
 class ConnectionStatusWidget;
 class ExplorePanel;
 class TransferPanel;
@@ -96,6 +97,7 @@ private:
     PlaylistManager *playlistManager_ = nullptr;
     SonglengthsDatabase *songlengthsDatabase_ = nullptr;
     HVSCMetadataService *hvscMetadataService_ = nullptr;
+    GameBase64Service *gameBase64Service_ = nullptr;
 
     // Central widget
     QTabWidget *modeTabWidget_ = nullptr;

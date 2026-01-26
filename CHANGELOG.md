@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HVSC BUGlist integration** - Show warnings for known playback issues from the HVSC BUGlist.txt database
 - Download controls in Preferences for STIL and BUGlist databases
 - HVSC path tracking in Songlengths database for metadata cross-referencing
+- **GameBase64 integration** - Display game metadata (publisher, year, genre, musician, rating) for disk images and SID files from the GameBase64 database (~29,000 games)
+- Download controls in Preferences for GameBase64 database
 - **Recursive folder delete** - Delete folders with all their contents from the remote filesystem
 - **Cancel button** - Abort long-running transfer or delete operations from the progress bar
 - Progress bar now shows delete operation progress (previously only showed copy progress)
