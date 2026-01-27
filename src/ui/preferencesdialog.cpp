@@ -32,6 +32,12 @@ void PreferencesDialog::setupUi()
 {
     auto *mainLayout = new QVBoxLayout(this);
 
+    // Two-column layout: settings on left, databases on right
+    auto *columnsLayout = new QHBoxLayout();
+
+    // ========== LEFT COLUMN: Settings ==========
+    auto *leftColumn = new QVBoxLayout();
+
     // Device settings group
     auto *deviceGroup = new QGroupBox(tr("Device Connection"));
     auto *deviceLayout = new QFormLayout(deviceGroup);
@@ -52,7 +58,7 @@ void PreferencesDialog::setupUi()
     autoConnectCheck_ = new QCheckBox(tr("Connect automatically on startup"));
     deviceLayout->addRow("", autoConnectCheck_);
 
-    mainLayout->addWidget(deviceGroup);
+    leftColumn->addWidget(deviceGroup);
 
     // Application settings group
     auto *appGroup = new QGroupBox(tr("Application"));
@@ -76,7 +82,7 @@ void PreferencesDialog::setupUi()
 
     appLayout->addRow(tr("Local Directory:"), pathLayout);
 
-    mainLayout->addWidget(appGroup);
+    leftColumn->addWidget(appGroup);
 
     // Drive settings group
     auto *driveGroup = new QGroupBox(tr("Drive Defaults"));
@@ -93,7 +99,7 @@ void PreferencesDialog::setupUi()
     mountModeCombo_->addItem(tr("Unlinked"), "unlinked");
     driveLayout->addRow(tr("Mount Mode:"), mountModeCombo_);
 
-    mainLayout->addWidget(driveGroup);
+    leftColumn->addWidget(driveGroup);
 
     // View settings group
     auto *viewGroup = new QGroupBox(tr("Video Display"));
@@ -108,7 +114,13 @@ void PreferencesDialog::setupUi()
         static_cast<int>(VideoDisplayWidget::ScalingMode::Integer));
     viewLayout->addRow(tr("Scaling Mode:"), scalingModeCombo_);
 
-    mainLayout->addWidget(viewGroup);
+    leftColumn->addWidget(viewGroup);
+    leftColumn->addStretch();
+
+    columnsLayout->addLayout(leftColumn);
+
+    // ========== RIGHT COLUMN: Databases ==========
+    auto *rightColumn = new QVBoxLayout();
 
     // HVSC Databases settings group
     auto *databaseGroup = new QGroupBox(tr("HVSC Databases"));
@@ -134,7 +146,7 @@ void PreferencesDialog::setupUi()
     songlengthsButtonLayout->addStretch();
     databaseLayout->addLayout(songlengthsButtonLayout);
 
-    databaseLayout->addSpacing(12);
+    databaseLayout->addSpacing(8);
 
     // STIL section
     auto *stilLabel = new QLabel(tr("<b>STIL</b> - Tune commentary and cover info"));
@@ -156,7 +168,7 @@ void PreferencesDialog::setupUi()
     stilButtonLayout->addStretch();
     databaseLayout->addLayout(stilButtonLayout);
 
-    databaseLayout->addSpacing(12);
+    databaseLayout->addSpacing(8);
 
     // BUGlist section
     auto *buglistLabel = new QLabel(tr("<b>BUGlist</b> - Known playback issues"));
@@ -178,13 +190,13 @@ void PreferencesDialog::setupUi()
     buglistButtonLayout->addStretch();
     databaseLayout->addLayout(buglistButtonLayout);
 
-    mainLayout->addWidget(databaseGroup);
+    rightColumn->addWidget(databaseGroup);
 
     // GameBase64 Database settings group
     auto *gamebaseGroup = new QGroupBox(tr("GameBase64 Database"));
     auto *gamebaseLayout = new QVBoxLayout(gamebaseGroup);
 
-    auto *gamebaseLabel = new QLabel(tr("<b>Game Database</b> - ~29,000 C64 games with metadata"));
+    auto *gamebaseLabel = new QLabel(tr("<b>Game Database</b> - ~29,000 C64 games"));
     gamebaseLayout->addWidget(gamebaseLabel);
 
     gameBase64StatusLabel_ = new QLabel(tr("Not loaded"));
@@ -203,18 +215,21 @@ void PreferencesDialog::setupUi()
     gamebaseButtonLayout->addStretch();
     gamebaseLayout->addLayout(gamebaseButtonLayout);
 
-    mainLayout->addWidget(gamebaseGroup);
+    rightColumn->addWidget(gamebaseGroup);
+    rightColumn->addStretch();
 
-    // Buttons
-    mainLayout->addStretch();
+    columnsLayout->addLayout(rightColumn);
 
+    mainLayout->addLayout(columnsLayout);
+
+    // Buttons at the bottom
     auto *buttonBox = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     connect(buttonBox, &QDialogButtonBox::accepted, this, &PreferencesDialog::onAccept);
     connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
     mainLayout->addWidget(buttonBox);
 
-    setMinimumWidth(400);
+    setMinimumWidth(700);
 }
 
 void PreferencesDialog::loadSettings()
