@@ -295,6 +295,12 @@ void FileDetailsPanel::showDiskDirectory(const QByteArray &diskImageData, const 
                 listing += tr("\n  %1\n").arg(gameInfo.memo);
             }
         }
+    } else if (gameBase64Service_ == nullptr) {
+        // Service not wired up - this is a bug
+        listing += tr("\n\n(GameBase64 service not available)\n");
+    } else if (!gameBase64Service_->isLoaded()) {
+        // Database not downloaded yet
+        listing += tr("\n\n(Download GameBase64 in Preferences for game info)\n");
     }
 
     QFileInfo fi(filename);
@@ -435,6 +441,12 @@ void FileDetailsPanel::showSidDetails(const QByteArray &sidData, const QString &
                 details += tr("  Genre: %1\n").arg(genre);
             }
         }
+    } else if (gameBase64Service_ == nullptr) {
+        // Service not wired up - diagnostics only
+        details += tr("\n\n(GameBase64 service not available)\n");
+    } else if (!gameBase64Service_->isLoaded()) {
+        // Database not downloaded yet
+        details += tr("\n\n(Download GameBase64 in Preferences for game info)\n");
     }
 
     QFileInfo fi(filename);
