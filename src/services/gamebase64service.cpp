@@ -211,18 +211,28 @@ void GameBase64Service::openDatabase(const QString &path)
     }
 
     // Build filename indices for fast lookup
+    // Note: GameBase64 stores full paths like "Games\C\Commando.d64"
+    // We extract just the base filename for matching
     QSqlQuery indexQuery(database_);
     if (indexQuery.exec("SELECT GA_Id, Filename, SidFilename FROM Games")) {
         while (indexQuery.next()) {
             int gameId = indexQuery.value(0).toInt();
-            QString filename = indexQuery.value(1).toString().toLower();
-            QString sidFilename = indexQuery.value(2).toString().toLower();
+            QString filename = indexQuery.value(1).toString();
+            QString sidFilename = indexQuery.value(2).toString();
 
             if (!filename.isEmpty()) {
-                filenameToGameId_[filename] = gameId;
+                // Extract base filename and normalize to lowercase
+                QString baseName = QFileInfo(filename).fileName().toLower();
+                if (!baseName.isEmpty()) {
+                    filenameToGameId_[baseName] = gameId;
+                }
             }
             if (!sidFilename.isEmpty()) {
-                sidFilenameToGameId_[sidFilename] = gameId;
+                // Extract base filename and normalize to lowercase
+                QString baseName = QFileInfo(sidFilename).fileName().toLower();
+                if (!baseName.isEmpty()) {
+                    sidFilenameToGameId_[baseName] = gameId;
+                }
             }
         }
     }
