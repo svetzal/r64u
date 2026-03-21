@@ -1,5 +1,7 @@
 # Agent Instructions
 
+Why this project exists and what problem does it solve: @CHARTER.md
+
 This project uses **Stride** for task management. Configuration is in `.stride.md` and `.stride_auth.md`.
 
 ## C++/Qt Development
