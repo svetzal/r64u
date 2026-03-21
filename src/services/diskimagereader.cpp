@@ -1,19 +1,17 @@
 #include "diskimagereader.h"
+
 #include "petsciiconverter.h"
 
-DiskImageReader::DiskImageReader()
-{
-}
+DiskImageReader::DiskImageReader() = default;
 
 bool DiskImageReader::isDiskImage(const QString &filename)
 {
     QString lower = filename.toLower();
-    return lower.endsWith(".d64") ||
-           lower.endsWith(".d71") ||
-           lower.endsWith(".d81");
+    return lower.endsWith(".d64") || lower.endsWith(".d71") || lower.endsWith(".d81");
 }
 
-DiskImageReader::DiskDirectory DiskImageReader::parse(const QByteArray &data, const QString &filename)
+DiskImageReader::DiskDirectory DiskImageReader::parse(const QByteArray &data,
+                                                      const QString &filename)
 {
     DiskDirectory dir;
     dir.format = detectFormat(data, filename);
@@ -28,7 +26,8 @@ DiskImageReader::DiskDirectory DiskImageReader::parse(const QByteArray &data, co
     return dir;
 }
 
-DiskImageReader::Format DiskImageReader::detectFormat(const QByteArray &data, const QString &filename) const
+DiskImageReader::Format DiskImageReader::detectFormat(const QByteArray &data,
+                                                      const QString &filename)
 {
     // Try filename extension first
     QString lower = filename.toLower();
@@ -45,8 +44,8 @@ DiskImageReader::Format DiskImageReader::detectFormat(const QByteArray &data, co
 
     // D64: 683 sectors * 256 = 174848 bytes (without error bytes)
     // or 174848 + 683 = 175531 (with error bytes)
-    if (size == 174848 || size == 175531 ||
-        size == 196608 || size == 197376) {  // 40-track extended
+    if (size == 174848 || size == 175531 || size == 196608 ||
+        size == 197376) {  // 40-track extended
         return Format::D64;
     }
 
@@ -63,15 +62,15 @@ DiskImageReader::Format DiskImageReader::detectFormat(const QByteArray &data, co
     return Format::Unknown;
 }
 
-int DiskImageReader::sectorsInTrack(Format format, int track) const
+int DiskImageReader::sectorsInTrack(Format format, int track)
 {
     if (format == Format::D81) {
-        return D81_SECTORS_PER_TRACK; // All tracks have 40 sectors
+        return D81SectorsPerTrack;  // All tracks have 40 sectors
     }
 
     // D64/D71 zone-bit recording
     // For D71, tracks 36-70 mirror the layout of tracks 1-35
-    int effectiveTrack = (track > D64_TRACKS) ? track - D64_TRACKS : track;
+    int effectiveTrack = (track > D64Tracks) ? track - D64Tracks : track;
 
     if (effectiveTrack >= 1 && effectiveTrack <= 17) {
         return 21;
@@ -79,18 +78,20 @@ int DiskImageReader::sectorsInTrack(Format format, int track) const
         return 19;
     } else if (effectiveTrack >= 25 && effectiveTrack <= 30) {
         return 18;
-    } else { // tracks 31-35
+    } else {  // tracks 31-35
         return 17;
     }
 }
 
-qint64 DiskImageReader::sectorOffset(Format format, int track, int sector) const
+qint64 DiskImageReader::sectorOffset(Format format, int track, int sector)
 {
-    if (track < 1) return -1;
+    if (track < 1) {
+        return -1;
+    }
 
     if (format == Format::D81) {
         // D81: uniform 40 sectors per track
-        return static_cast<qint64>((track - 1) * D81_SECTORS_PER_TRACK + sector) * SECTOR_SIZE;
+        return static_cast<qint64>(((track - 1) * D81SectorsPerTrack) + sector) * SectorSize;
     }
 
     // D64/D71: variable sectors per track
@@ -99,35 +100,37 @@ qint64 DiskImageReader::sectorOffset(Format format, int track, int sector) const
         offset += sectorsInTrack(format, t);
     }
     offset += sector;
-    return offset * SECTOR_SIZE;
+    return offset * SectorSize;
 }
 
-QByteArray DiskImageReader::readSector(const QByteArray &data, Format format, int track, int sector) const
+QByteArray DiskImageReader::readSector(const QByteArray &data, Format format, int track, int sector)
 {
     qint64 offset = sectorOffset(format, track, sector);
-    if (offset < 0 || offset + SECTOR_SIZE > data.size()) {
-        return QByteArray();
+    if (offset < 0 || offset + SectorSize > data.size()) {
+        return {};
     }
-    return data.mid(offset, SECTOR_SIZE);
+    return data.mid(offset, SectorSize);
 }
 
-void DiskImageReader::parseBam(const QByteArray &data, Format format, DiskDirectory &dir) const
+void DiskImageReader::parseBam(const QByteArray &data, Format format, DiskDirectory &dir)
 {
     QByteArray bam;
-    int nameOffset, idOffset, dosTypeOffset;
+    int nameOffset = 0;
+    int idOffset = 0;
+    int dosTypeOffset = 0;
 
     if (format == Format::D81) {
         // D81: Header at track 40, sector 0
-        bam = readSector(data, format, D81_BAM_TRACK, D81_BAM_SECTOR);
-        nameOffset = 0x04;      // Disk name at offset 4
-        idOffset = 0x16;        // Disk ID at offset 22
-        dosTypeOffset = 0x19;   // DOS type at offset 25
+        bam = readSector(data, format, D81BamTrack, D81BamSector);
+        nameOffset = 0x04;     // Disk name at offset 4
+        idOffset = 0x16;       // Disk ID at offset 22
+        dosTypeOffset = 0x19;  // DOS type at offset 25
     } else {
         // D64/D71: BAM at track 18, sector 0
-        bam = readSector(data, format, D64_BAM_TRACK, D64_BAM_SECTOR);
-        nameOffset = 0x90;      // Disk name at offset 144
-        idOffset = 0xA2;        // Disk ID at offset 162
-        dosTypeOffset = 0xA5;   // DOS type at offset 165
+        bam = readSector(data, format, D64BamTrack, D64BamSector);
+        nameOffset = 0x90;     // Disk name at offset 144
+        idOffset = 0xA2;       // Disk ID at offset 162
+        dosTypeOffset = 0xA5;  // DOS type at offset 165
     }
 
     if (bam.isEmpty()) {
@@ -147,14 +150,14 @@ void DiskImageReader::parseBam(const QByteArray &data, Format format, DiskDirect
     dir.freeBlocks = countFreeBlocks(data, format);
 }
 
-quint16 DiskImageReader::countFreeBlocks(const QByteArray &data, Format format) const
+quint16 DiskImageReader::countFreeBlocks(const QByteArray &data, Format format)
 {
     quint16 freeBlocks = 0;
 
     if (format == Format::D81) {
         // D81: BAM is in sectors 40/1 and 40/2
-        QByteArray bam1 = readSector(data, format, D81_BAM_TRACK, 1);
-        QByteArray bam2 = readSector(data, format, D81_BAM_TRACK, 2);
+        QByteArray bam1 = readSector(data, format, D81BamTrack, 1);
+        QByteArray bam2 = readSector(data, format, D81BamTrack, 2);
 
         if (bam1.isEmpty() || bam2.isEmpty()) {
             return 0;
@@ -163,7 +166,7 @@ quint16 DiskImageReader::countFreeBlocks(const QByteArray &data, Format format) 
         // Each track entry is 6 bytes: 1 byte free count + 5 bytes bitmap
         // Tracks 1-40 in BAM sector 1 (starting at offset 0x10)
         for (int t = 0; t < 40; t++) {
-            int offset = 0x10 + t * 6;
+            int offset = 0x10 + (t * 6);
             if (offset < bam1.size()) {
                 freeBlocks += static_cast<quint8>(bam1[offset]);
             }
@@ -171,7 +174,7 @@ quint16 DiskImageReader::countFreeBlocks(const QByteArray &data, Format format) 
 
         // Tracks 41-80 in BAM sector 2 (starting at offset 0x10)
         for (int t = 0; t < 40; t++) {
-            int offset = 0x10 + t * 6;
+            int offset = 0x10 + (t * 6);
             if (offset < bam2.size()) {
                 freeBlocks += static_cast<quint8>(bam2[offset]);
             }
@@ -179,15 +182,15 @@ quint16 DiskImageReader::countFreeBlocks(const QByteArray &data, Format format) 
     } else {
         // D64/D71: BAM at track 18, sector 0
         // Each track entry is 4 bytes: 1 byte free count + 3 bytes bitmap
-        QByteArray bam = readSector(data, format, D64_BAM_TRACK, D64_BAM_SECTOR);
+        QByteArray bam = readSector(data, format, D64BamTrack, D64BamSector);
         if (bam.isEmpty()) {
             return 0;
         }
 
-        int bamOffset = 0x04; // BAM entries start at offset 4
+        int bamOffset = 0x04;  // BAM entries start at offset 4
 
-        for (int t = 0; t < D64_TRACKS && (bamOffset + t * 4) < bam.size(); t++) {
-            freeBlocks += static_cast<quint8>(bam[bamOffset + t * 4]);
+        for (int t = 0; t < D64Tracks && (bamOffset + (t * 4)) < bam.size(); t++) {
+            freeBlocks += static_cast<quint8>(bam[bamOffset + (t * 4)]);
         }
 
         // For D71, also read second BAM at track 53, sector 0
@@ -195,8 +198,8 @@ quint16 DiskImageReader::countFreeBlocks(const QByteArray &data, Format format) 
             QByteArray bam2 = readSector(data, format, 53, 0);
             if (!bam2.isEmpty()) {
                 // Second BAM for tracks 36-70 (stored as track entries for side 2)
-                for (int t = 0; t < D64_TRACKS && (bamOffset + t * 4) < bam2.size(); t++) {
-                    freeBlocks += static_cast<quint8>(bam2[bamOffset + t * 4]);
+                for (int t = 0; t < D64Tracks && (bamOffset + (t * 4)) < bam2.size(); t++) {
+                    freeBlocks += static_cast<quint8>(bam2[bamOffset + (t * 4)]);
                 }
             }
         }
@@ -205,16 +208,17 @@ quint16 DiskImageReader::countFreeBlocks(const QByteArray &data, Format format) 
     return freeBlocks;
 }
 
-void DiskImageReader::parseDirectory(const QByteArray &data, Format format, DiskDirectory &dir) const
+void DiskImageReader::parseDirectory(const QByteArray &data, Format format, DiskDirectory &dir)
 {
-    int track, sector;
+    int track = 0;
+    int sector = 0;
 
     if (format == Format::D81) {
-        track = D81_DIR_TRACK;
-        sector = D81_DIR_SECTOR;
+        track = D81DirTrack;
+        sector = D81DirSector;
     } else {
-        track = D64_DIR_TRACK;
-        sector = D64_DIR_SECTOR;
+        track = D64DirTrack;
+        sector = D64DirSector;
     }
 
     // Follow the linked list of directory sectors
@@ -225,19 +229,19 @@ void DiskImageReader::parseDirectory(const QByteArray &data, Format format, Disk
         }
 
         // First 2 bytes are the link to next sector
-        int nextTrack = static_cast<quint8>(sectorData[0]);
-        int nextSector = static_cast<quint8>(sectorData[1]);
+        auto nextTrack = static_cast<quint8>(sectorData[0]);
+        auto nextSector = static_cast<quint8>(sectorData[1]);
 
         // Parse 8 directory entries per sector
-        for (int i = 0; i < ENTRIES_PER_SECTOR; i++) {
-            int entryOffset = i * ENTRY_SIZE;
-            QByteArray entryData = sectorData.mid(entryOffset, ENTRY_SIZE);
+        for (int i = 0; i < EntriesPerSector; i++) {
+            int entryOffset = i * EntrySize;
+            QByteArray entryData = sectorData.mid(entryOffset, EntrySize);
 
             DirectoryEntry entry = parseEntry(entryData);
 
             // Skip empty/deleted entries (type byte 0 with no track pointer)
-            quint8 typeByte = static_cast<quint8>(entryData[2]);
-            quint8 firstTrack = static_cast<quint8>(entryData[3]);
+            auto typeByte = static_cast<quint8>(entryData[2]);
+            auto firstTrack = static_cast<quint8>(entryData[3]);
 
             if ((typeByte & 0x07) != 0 || firstTrack != 0) {
                 // Only add entries that have a valid file type or track pointer
@@ -253,16 +257,16 @@ void DiskImageReader::parseDirectory(const QByteArray &data, Format format, Disk
     }
 }
 
-DiskImageReader::DirectoryEntry DiskImageReader::parseEntry(const QByteArray &entryData) const
+DiskImageReader::DirectoryEntry DiskImageReader::parseEntry(const QByteArray &entryData)
 {
     DirectoryEntry entry;
 
-    if (entryData.size() < ENTRY_SIZE) {
+    if (entryData.size() < EntrySize) {
         return entry;
     }
 
     // Offset 2: File type byte
-    quint8 typeByte = static_cast<quint8>(entryData[2]);
+    auto typeByte = static_cast<quint8>(entryData[2]);
     entry.type = static_cast<FileType>(typeByte & 0x07);
     entry.isClosed = (typeByte & 0x80) != 0;
     entry.isLocked = (typeByte & 0x40) != 0;
@@ -275,18 +279,18 @@ DiskImageReader::DirectoryEntry DiskImageReader::parseEntry(const QByteArray &en
     entry.filename = trimPetsciiPadding(entryData.mid(5, 16));
 
     // Offset 29-30: File size in blocks (little-endian)
-    entry.sizeInBlocks = static_cast<quint8>(entryData[29]) |
-                         (static_cast<quint8>(entryData[30]) << 8);
+    entry.sizeInBlocks =
+        static_cast<quint8>(entryData[29]) | (static_cast<quint8>(entryData[30]) << 8);
 
     return entry;
 }
 
-QByteArray DiskImageReader::trimPetsciiPadding(const QByteArray &data) const
+QByteArray DiskImageReader::trimPetsciiPadding(const QByteArray &data)
 {
     // Trim trailing $A0 (shift-space) padding and $00 (null) bytes
     int len = data.size();
     while (len > 0) {
-        quint8 byte = static_cast<quint8>(data[len - 1]);
+        auto byte = static_cast<quint8>(data[len - 1]);
         if (byte != 0xA0 && byte != 0x00) {
             break;
         }
@@ -298,14 +302,22 @@ QByteArray DiskImageReader::trimPetsciiPadding(const QByteArray &data) const
 QString DiskImageReader::fileTypeString(FileType type)
 {
     switch (type) {
-    case FileType::DEL: return QStringLiteral("DEL");
-    case FileType::SEQ: return QStringLiteral("SEQ");
-    case FileType::PRG: return QStringLiteral("PRG");
-    case FileType::USR: return QStringLiteral("USR");
-    case FileType::REL: return QStringLiteral("REL");
-    case FileType::CBM: return QStringLiteral("CBM");
-    case FileType::DIR: return QStringLiteral("DIR");
-    default: return QStringLiteral("???");
+    case FileType::DEL:
+        return QStringLiteral("DEL");
+    case FileType::SEQ:
+        return QStringLiteral("SEQ");
+    case FileType::PRG:
+        return QStringLiteral("PRG");
+    case FileType::USR:
+        return QStringLiteral("USR");
+    case FileType::REL:
+        return QStringLiteral("REL");
+    case FileType::CBM:
+        return QStringLiteral("CBM");
+    case FileType::DIR:
+        return QStringLiteral("DIR");
+    default:
+        return QStringLiteral("???");
     }
 }
 
@@ -357,11 +369,11 @@ QString DiskImageReader::formatDirectoryListing(const DiskDirectory &dir)
         // Type string with optional modifiers
         QString typeStr;
         if (!entry.isClosed) {
-            typeStr += QString("*"); // Splat file (not properly closed)
+            typeStr += QString("*");  // Splat file (not properly closed)
         }
         typeStr += fileTypeString(entry.type);
         if (entry.isLocked) {
-            typeStr += QString("<"); // Locked file
+            typeStr += QString("<");  // Locked file
         }
 
         result += blocksStr + quotedName + QString(" ") + typeStr;

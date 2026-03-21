@@ -20,22 +20,22 @@ public:
      */
     enum class Format {
         Unknown,
-        D64,    // 35-track single-sided 1541 disk (170KB)
-        D71,    // 70-track double-sided 1571 disk (340KB)
-        D81     // 80-track double-sided 1581 disk (800KB)
+        D64,  // 35-track single-sided 1541 disk (170KB)
+        D71,  // 70-track double-sided 1571 disk (340KB)
+        D81   // 80-track double-sided 1581 disk (800KB)
     };
 
     /**
      * @brief File type codes from directory entries
      */
     enum class FileType {
-        DEL = 0,    // Deleted
-        SEQ = 1,    // Sequential
-        PRG = 2,    // Program
-        USR = 3,    // User
-        REL = 4,    // Relative
-        CBM = 5,    // Partition (1581 only)
-        DIR = 6     // Directory (1581 only)
+        DEL = 0,  // Deleted
+        SEQ = 1,  // Sequential
+        PRG = 2,  // Program
+        USR = 3,  // User
+        REL = 4,  // Relative
+        CBM = 5,  // Partition (1581 only)
+        DIR = 6   // Directory (1581 only)
     };
 
     /**
@@ -44,14 +44,15 @@ public:
      * Filenames are stored as raw PETSCII bytes to preserve C64-native
      * encoding. Use PetsciiConverter::toDisplayString() for display.
      */
-    struct DirectoryEntry {
-        QByteArray filename;        // 16-byte raw PETSCII filename
-        FileType type;              // File type
-        quint16 sizeInBlocks;       // Size in 254-byte blocks
-        bool isClosed;              // True if file is properly closed
-        bool isLocked;              // True if file is write-protected
-        quint8 firstTrack;          // First data track
-        quint8 firstSector;         // First data sector
+    struct DirectoryEntry
+    {
+        QByteArray filename;           // 16-byte raw PETSCII filename
+        FileType type{FileType::DEL};  // File type
+        quint16 sizeInBlocks{0};       // Size in 254-byte blocks
+        bool isClosed{false};          // True if file is properly closed
+        bool isLocked{false};          // True if file is write-protected
+        quint8 firstTrack{0};          // First data track
+        quint8 firstSector{0};         // First data sector
     };
 
     /**
@@ -60,11 +61,12 @@ public:
      * All text fields are stored as raw PETSCII bytes to preserve C64-native
      * encoding. Use PetsciiConverter::toDisplayString() for display.
      */
-    struct DiskDirectory {
-        QByteArray diskName;        // 16-byte raw PETSCII disk name
-        QByteArray diskId;          // 2-byte raw PETSCII disk ID
-        QByteArray dosType;         // 2-byte raw PETSCII DOS type (e.g., "2A", "3D")
-        quint16 freeBlocks;         // Number of free blocks
+    struct DiskDirectory
+    {
+        QByteArray diskName;  // 16-byte raw PETSCII disk name
+        QByteArray diskId;    // 2-byte raw PETSCII disk ID
+        QByteArray dosType;   // 2-byte raw PETSCII DOS type (e.g., "2A", "3D")
+        quint16 freeBlocks;   // Number of free blocks
         QVector<DirectoryEntry> entries;
         Format format;
     };
@@ -77,7 +79,7 @@ public:
      * @param filename Optional filename to help determine format
      * @return DiskDirectory structure with parsed information
      */
-    DiskDirectory parse(const QByteArray &data, const QString &filename = QString());
+    static DiskDirectory parse(const QByteArray &data, const QString &filename = QString());
 
     /**
      * @brief Detect disk image format from file extension
@@ -107,68 +109,68 @@ private:
     /**
      * @brief Detect format from data size and optional filename
      */
-    Format detectFormat(const QByteArray &data, const QString &filename) const;
+    static Format detectFormat(const QByteArray &data, const QString &filename);
 
     /**
      * @brief Calculate sector offset in image for given track/sector
      */
-    qint64 sectorOffset(Format format, int track, int sector) const;
+    static qint64 sectorOffset(Format format, int track, int sector);
 
     /**
      * @brief Get number of sectors for a given track (D64/D71 zone recording)
      */
-    int sectorsInTrack(Format format, int track) const;
+    static int sectorsInTrack(Format format, int track);
 
     /**
      * @brief Read a sector from the image data
      */
-    QByteArray readSector(const QByteArray &data, Format format, int track, int sector) const;
+    static QByteArray readSector(const QByteArray &data, Format format, int track, int sector);
 
     /**
      * @brief Parse BAM sector for disk name, ID, and free block count
      */
-    void parseBam(const QByteArray &data, Format format, DiskDirectory &dir) const;
+    static void parseBam(const QByteArray &data, Format format, DiskDirectory &dir);
 
     /**
      * @brief Parse all directory sectors
      */
-    void parseDirectory(const QByteArray &data, Format format, DiskDirectory &dir) const;
+    static void parseDirectory(const QByteArray &data, Format format, DiskDirectory &dir);
 
     /**
      * @brief Parse a single directory entry (32 bytes)
      */
-    DirectoryEntry parseEntry(const QByteArray &entryData) const;
+    static DirectoryEntry parseEntry(const QByteArray &entryData);
 
     /**
      * @brief Trim PETSCII padding ($A0) from end of byte array
      */
-    QByteArray trimPetsciiPadding(const QByteArray &data) const;
+    static QByteArray trimPetsciiPadding(const QByteArray &data);
 
     /**
      * @brief Count free blocks from BAM bitmap
      */
-    quint16 countFreeBlocks(const QByteArray &data, Format format) const;
+    static quint16 countFreeBlocks(const QByteArray &data, Format format);
 
     // Constants for disk geometry
-    static constexpr int SECTOR_SIZE = 256;
-    static constexpr int ENTRIES_PER_SECTOR = 8;
-    static constexpr int ENTRY_SIZE = 32;
+    static constexpr int SectorSize = 256;
+    static constexpr int EntriesPerSector = 8;
+    static constexpr int EntrySize = 32;
 
     // D64/D71 constants
-    static constexpr int D64_DIR_TRACK = 18;
-    static constexpr int D64_DIR_SECTOR = 1;
-    static constexpr int D64_BAM_TRACK = 18;
-    static constexpr int D64_BAM_SECTOR = 0;
-    static constexpr int D64_TRACKS = 35;
-    static constexpr int D71_TRACKS = 70;
+    static constexpr int D64DirTrack = 18;
+    static constexpr int D64DirSector = 1;
+    static constexpr int D64BamTrack = 18;
+    static constexpr int D64BamSector = 0;
+    static constexpr int D64Tracks = 35;
+    static constexpr int D71Tracks = 70;
 
     // D81 constants
-    static constexpr int D81_DIR_TRACK = 40;
-    static constexpr int D81_DIR_SECTOR = 3;
-    static constexpr int D81_BAM_TRACK = 40;
-    static constexpr int D81_BAM_SECTOR = 0;
-    static constexpr int D81_TRACKS = 80;
-    static constexpr int D81_SECTORS_PER_TRACK = 40;
+    static constexpr int D81DirTrack = 40;
+    static constexpr int D81DirSector = 3;
+    static constexpr int D81BamTrack = 40;
+    static constexpr int D81BamSector = 0;
+    static constexpr int D81Tracks = 80;
+    static constexpr int D81SectorsPerTrack = 40;
 };
 
-#endif // DISKIMAGEREADER_H
+#endif  // DISKIMAGEREADER_H

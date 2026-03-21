@@ -1,6 +1,6 @@
-#include <QtTest>
-
 #include "services/diskimagereader.h"
+
+#include <QtTest>
 
 class TestDiskImageReader : public QObject
 {
@@ -8,8 +8,7 @@ class TestDiskImageReader : public QObject
 
 private:
     // Helper to create a minimal D64 image (174848 bytes)
-    QByteArray createMinimalD64(const QString &diskName = "TEST DISK",
-                                 const QString &diskId = "01")
+    QByteArray createMinimalD64(const QString &diskName = "TEST DISK", const QString &diskId = "01")
     {
         // D64: 683 sectors * 256 bytes = 174848 bytes
         QByteArray data(174848, '\0');
@@ -32,10 +31,13 @@ private:
         for (int t = 0; t < 35; t++) {
             int entryOff = bamOffset + 0x04 + (t * 4);
             // Set free block count (varies by track zone)
-            int sectors = 21; // Simplified - tracks 1-17
-            if (t >= 17 && t <= 23) sectors = 19;
-            else if (t >= 24 && t <= 29) sectors = 18;
-            else if (t >= 30) sectors = 17;
+            int sectors = 21;  // Simplified - tracks 1-17
+            if (t >= 17 && t <= 23)
+                sectors = 19;
+            else if (t >= 24 && t <= 29)
+                sectors = 18;
+            else if (t >= 30)
+                sectors = 17;
             data[entryOff] = static_cast<char>(sectors);
             // Set bitmap to all free (0xFF, 0xFF, 0x1F for 21 sectors)
             data[entryOff + 1] = static_cast<char>(0xFF);
@@ -82,12 +84,9 @@ private:
     }
 
     // Helper to add a directory entry to a D64 image
-    void addD64DirectoryEntry(QByteArray &data, int entryIndex,
-                               const QString &filename,
-                               DiskImageReader::FileType type,
-                               quint16 blocks,
-                               bool closed = true,
-                               bool locked = false)
+    void addD64DirectoryEntry(QByteArray &data, int entryIndex, const QString &filename,
+                              DiskImageReader::FileType type, quint16 blocks, bool closed = true,
+                              bool locked = false)
     {
         int bamOffset = 91392;
         int dirOffset = bamOffset + 256;
@@ -95,8 +94,10 @@ private:
 
         // Offset 2: File type byte
         quint8 typeByte = static_cast<quint8>(type);
-        if (closed) typeByte |= 0x80;
-        if (locked) typeByte |= 0x40;
+        if (closed)
+            typeByte |= 0x80;
+        if (locked)
+            typeByte |= 0x40;
         data[entryOffset + 2] = static_cast<char>(typeByte);
 
         // Offset 3-4: First track/sector (use dummy values)
@@ -160,15 +161,15 @@ private slots:
     void testParseD64BySize()
     {
         DiskImageReader reader;
-        QByteArray data(174848, '\0'); // Standard D64 size
-        auto dir = reader.parse(data, ""); // No filename hint
+        QByteArray data(174848, '\0');      // Standard D64 size
+        auto dir = reader.parse(data, "");  // No filename hint
         QCOMPARE(dir.format, DiskImageReader::Format::D64);
     }
 
     void testParseD64WithErrorBytes()
     {
         DiskImageReader reader;
-        QByteArray data(175531, '\0'); // D64 with error bytes
+        QByteArray data(175531, '\0');  // D64 with error bytes
         auto dir = reader.parse(data, "");
         QCOMPARE(dir.format, DiskImageReader::Format::D64);
     }
@@ -176,7 +177,7 @@ private slots:
     void testParseD64Extended40Track()
     {
         DiskImageReader reader;
-        QByteArray data(196608, '\0'); // 40-track D64
+        QByteArray data(196608, '\0');  // 40-track D64
         auto dir = reader.parse(data, "");
         QCOMPARE(dir.format, DiskImageReader::Format::D64);
     }
@@ -184,7 +185,7 @@ private slots:
     void testParseD71BySize()
     {
         DiskImageReader reader;
-        QByteArray data(349696, '\0'); // D71 size
+        QByteArray data(349696, '\0');  // D71 size
         auto dir = reader.parse(data, "");
         QCOMPARE(dir.format, DiskImageReader::Format::D71);
     }
@@ -192,7 +193,7 @@ private slots:
     void testParseD81BySize()
     {
         DiskImageReader reader;
-        QByteArray data(819200, '\0'); // D81 size
+        QByteArray data(819200, '\0');  // D81 size
         auto dir = reader.parse(data, "");
         QCOMPARE(dir.format, DiskImageReader::Format::D81);
     }
@@ -216,7 +217,7 @@ private slots:
     void testParseUnknownSize()
     {
         DiskImageReader reader;
-        QByteArray data(100000, '\0'); // Unknown size
+        QByteArray data(100000, '\0');  // Unknown size
         auto dir = reader.parse(data, "");
         QCOMPARE(dir.format, DiskImageReader::Format::Unknown);
     }
@@ -362,44 +363,37 @@ private slots:
 
     void testFileTypeStringDel()
     {
-        QCOMPARE(DiskImageReader::fileTypeString(DiskImageReader::FileType::DEL),
-                 QString("DEL"));
+        QCOMPARE(DiskImageReader::fileTypeString(DiskImageReader::FileType::DEL), QString("DEL"));
     }
 
     void testFileTypeStringSeq()
     {
-        QCOMPARE(DiskImageReader::fileTypeString(DiskImageReader::FileType::SEQ),
-                 QString("SEQ"));
+        QCOMPARE(DiskImageReader::fileTypeString(DiskImageReader::FileType::SEQ), QString("SEQ"));
     }
 
     void testFileTypeStringPrg()
     {
-        QCOMPARE(DiskImageReader::fileTypeString(DiskImageReader::FileType::PRG),
-                 QString("PRG"));
+        QCOMPARE(DiskImageReader::fileTypeString(DiskImageReader::FileType::PRG), QString("PRG"));
     }
 
     void testFileTypeStringUsr()
     {
-        QCOMPARE(DiskImageReader::fileTypeString(DiskImageReader::FileType::USR),
-                 QString("USR"));
+        QCOMPARE(DiskImageReader::fileTypeString(DiskImageReader::FileType::USR), QString("USR"));
     }
 
     void testFileTypeStringRel()
     {
-        QCOMPARE(DiskImageReader::fileTypeString(DiskImageReader::FileType::REL),
-                 QString("REL"));
+        QCOMPARE(DiskImageReader::fileTypeString(DiskImageReader::FileType::REL), QString("REL"));
     }
 
     void testFileTypeStringCbm()
     {
-        QCOMPARE(DiskImageReader::fileTypeString(DiskImageReader::FileType::CBM),
-                 QString("CBM"));
+        QCOMPARE(DiskImageReader::fileTypeString(DiskImageReader::FileType::CBM), QString("CBM"));
     }
 
     void testFileTypeStringDir()
     {
-        QCOMPARE(DiskImageReader::fileTypeString(DiskImageReader::FileType::DIR),
-                 QString("DIR"));
+        QCOMPARE(DiskImageReader::fileTypeString(DiskImageReader::FileType::DIR), QString("DIR"));
     }
 
     // ========== formatDirectoryListing ==========
@@ -441,7 +435,7 @@ private slots:
 
         QString listing = DiskImageReader::formatDirectoryListing(dir);
 
-        QVERIFY(listing.contains("PRG<")); // < indicates locked
+        QVERIFY(listing.contains("PRG<"));  // < indicates locked
     }
 
     void testFormatDirectoryListingSplatFile()
@@ -453,7 +447,7 @@ private slots:
 
         QString listing = DiskImageReader::formatDirectoryListing(dir);
 
-        QVERIFY(listing.contains("*PRG")); // * indicates splat (unclosed)
+        QVERIFY(listing.contains("*PRG"));  // * indicates splat (unclosed)
     }
 
     // ========== asciiToC64Font ==========
@@ -461,10 +455,8 @@ private slots:
     void testAsciiToC64FontPassthrough()
     {
         // The function just returns text as-is
-        QCOMPARE(DiskImageReader::asciiToC64Font("HELLO"),
-                 QString("HELLO"));
-        QCOMPARE(DiskImageReader::asciiToC64Font("Test 123"),
-                 QString("Test 123"));
+        QCOMPARE(DiskImageReader::asciiToC64Font("HELLO"), QString("HELLO"));
+        QCOMPARE(DiskImageReader::asciiToC64Font("Test 123"), QString("Test 123"));
     }
 
     // ========== Edge cases ==========
@@ -474,7 +466,7 @@ private slots:
         DiskImageReader reader;
         // Create a D64 but truncate it
         QByteArray data = createMinimalD64();
-        data.truncate(1000); // Way too small
+        data.truncate(1000);  // Way too small
 
         // Should handle gracefully
         auto dir = reader.parse(data, "test.d64");
