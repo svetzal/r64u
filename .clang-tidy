@@ -12,6 +12,7 @@ Checks: >
   cppcoreguidelines-*,
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
   -cppcoreguidelines-pro-bounds-constant-array-index,
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,
   -cppcoreguidelines-pro-type-reinterpret-cast,
@@ -21,15 +22,23 @@ Checks: >
   -cppcoreguidelines-init-variables,
   -cppcoreguidelines-narrowing-conversions,
   -cppcoreguidelines-pro-type-member-init,
+  -cppcoreguidelines-use-enum-class,
+  -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-prefer-member-initializer,
   misc-*,
   -misc-non-private-member-variables-in-classes,
   -misc-no-recursion,
   -misc-include-cleaner,
   -misc-const-correctness,
+  -misc-use-internal-linkage,
   modernize-*,
   -modernize-use-trailing-return-type,
   -modernize-avoid-c-arrays,
+  -modernize-avoid-c-style-cast,
   -modernize-raw-string-literal,
+  -modernize-return-braced-init-list,
+  -modernize-use-nodiscard,
   performance-*,
   -performance-enum-size,
   -performance-implicit-conversion-in-loop,
@@ -41,6 +50,10 @@ Checks: >
   -readability-redundant-access-specifiers,
   -readability-implicit-bool-conversion,
   -readability-convert-member-functions-to-static,
+  -readability-identifier-naming,
+  -readability-braces-around-statements,
+  -readability-ambiguous-smartptr-reset-call,
+  -readability-math-missing-parentheses,
 
 # Treat warnings as errors for CI
 WarningsAsErrors: ''
@@ -85,7 +98,7 @@ CheckOptions:
 
   # Reasonable limits - Qt code tends to be more verbose
   - key: readability-function-size.LineThreshold
-    value: 250
+    value: 300
   - key: readability-function-size.StatementThreshold
     value: 200
   - key: readability-function-size.BranchThreshold

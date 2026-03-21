@@ -245,6 +245,7 @@ install(TARGETS r64u
 # Tests
 option(BUILD_TESTS "Build unit tests" ON)
 if(BUILD_TESTS)
+    enable_testing()
     add_subdirectory(tests)
 endif()
 

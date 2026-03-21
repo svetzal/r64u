@@ -88,7 +88,16 @@ void C64UFtpClient::connectToHost()
     // Start connection timeout timer
     connectionTimer_->start(ConnectionTimeoutMs);
 
-    controlSocket_->connectToHost(host_, port_);
+    // Defer the actual socket connect to the event loop so callers always observe
+    // the Connecting state before any error fires.  Qt 6.10+ (macOS) can emit
+    // errorOccurred synchronously inside connectToHost() for immediately-unreachable
+    // hosts, which would collapse Disconnected→Connecting→Disconnected within a
+    // single call frame and break the observable state machine contract.
+    QTimer::singleShot(0, this, [this]() {
+        if (state_ == State::Connecting) {
+            controlSocket_->connectToHost(host_, port_);
+        }
+    });
 }
 
 void C64UFtpClient::disconnect()
@@ -368,7 +377,7 @@ void C64UFtpClient::onControlReadyRead()
             int code = line.left(FtpReplyCodeLength).toInt(&ok);
             if (ok) {
                 // Check if this is a multi-line response (4th char is '-')
-                if (line.length() > FtpReplyCodeLength && line[FtpReplyCodeLength] == '-') {
+                if (line.length() > FtpReplyCodeLength && line.at(FtpReplyCodeLength) == '-') {
                     // Multi-line response, wait for final line
                     continue;
                 }

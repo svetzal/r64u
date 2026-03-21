@@ -32,10 +32,44 @@ if(CLANG_TIDY_EXE)
         set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
     endif()
 
+    # Collect only .cpp translation units for clang-tidy.
+    # Header files are analysed through their corresponding .cpp files via the
+    # compile_commands.json; passing .h files directly as translation units
+    # causes false "file not found" errors because they have no standalone entry
+    # in compile_commands.json.
+    file(GLOB_RECURSE TIDY_SOURCE_FILES
+        ${CMAKE_SOURCE_DIR}/src/*.cpp
+        ${CMAKE_SOURCE_DIR}/tests/*.cpp
+    )
+    list(FILTER TIDY_SOURCE_FILES EXCLUDE REGEX ".*/(moc_|ui_|qrc_).*")
+    list(FILTER TIDY_SOURCE_FILES EXCLUDE REGEX ".*\\.mm$")
+    # Exclude integration tests — they require real hardware and are only compiled
+    # with BUILD_INTEGRATION_TESTS=ON, so they have no compile_commands.json
+    # entries and their generated .moc files do not exist by default.
+    list(FILTER TIDY_SOURCE_FILES EXCLUDE REGEX ".*/tests/integration/.*")
+
+    # On Apple platforms, Homebrew LLVM's clang-tidy does not automatically
+    # know the Xcode SDK path.  Inject it so system headers (like <limits>)
+    # resolve correctly.
+    set(_TIDY_EXTRA_ARGS "")
+    if(APPLE)
+        execute_process(
+            COMMAND xcrun --show-sdk-path
+            OUTPUT_VARIABLE _APPLE_SDK_PATH
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+        if(_APPLE_SDK_PATH)
+            list(APPEND _TIDY_EXTRA_ARGS "--extra-arg=-isysroot${_APPLE_SDK_PATH}")
+        endif()
+    endif()
+
     # Create tidy target for on-demand analysis
-    # Collects all source files and runs clang-tidy on them
     add_custom_target(tidy
-        COMMAND ${CMAKE_COMMAND} -E echo "Running clang-tidy..."
+        COMMAND ${CLANG_TIDY_EXE}
+            -p ${CMAKE_BINARY_DIR}
+            ${_TIDY_EXTRA_ARGS}
+            ${TIDY_SOURCE_FILES}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         COMMENT "Running clang-tidy static analysis"
         VERBATIM

@@ -172,11 +172,8 @@ private slots:
         QByteArray packet = createVideoPacket(0, 1, 0);
         sender.writeDatagram(packet, QHostAddress::LocalHost, 44448);
 
-        // Wait for packet to be received
-        QTest::qWait(50);
-
-        // Frame number should be updated
-        QCOMPARE(receiver.currentFrameNumber(), static_cast<quint16>(1));
+        // Poll until packet is received (sanitiser builds are significantly slower)
+        QTRY_COMPARE_WITH_TIMEOUT(receiver.currentFrameNumber(), static_cast<quint16>(1), 2000);
 
         receiver.close();
     }
@@ -196,10 +193,8 @@ private slots:
             sender.writeDatagram(packet, QHostAddress::LocalHost, 44449);
         }
 
-        // Wait for packets to be processed
-        QTest::qWait(100);
-
-        QCOMPARE(frameSpy.count(), 1);
+        // Poll until packets are processed (sanitiser builds are significantly slower)
+        QTRY_COMPARE_WITH_TIMEOUT(frameSpy.count(), 1, 2000);
         QCOMPARE(formatSpy.count(), 1);
 
         // Check format detection
@@ -235,9 +230,7 @@ private slots:
             sender.writeDatagram(packet, QHostAddress::LocalHost, 44450);
         }
 
-        QTest::qWait(100);
-
-        QCOMPARE(frameSpy.count(), 1);
+        QTRY_COMPARE_WITH_TIMEOUT(frameSpy.count(), 1, 2000);
         QCOMPARE(formatSpy.count(), 1);
 
         auto format = formatSpy.first().first().value<VideoStreamReceiver::VideoFormat>();
@@ -268,7 +261,8 @@ private slots:
         QByteArray largePacket(1000, '\0');
         sender.writeDatagram(largePacket, QHostAddress::LocalHost, 44451);
 
-        QTest::qWait(50);
+        // Negative test: give enough time for packets to arrive (increased for sanitiser builds)
+        QTest::qWait(500);
 
         // No frames should be ready
         QCOMPARE(frameSpy.count(), 0);
@@ -297,9 +291,7 @@ private slots:
             sender.writeDatagram(packet, QHostAddress::LocalHost, 44452);
         }
 
-        QTest::qWait(150);
-
-        QCOMPARE(frameSpy.count(), 2);
+        QTRY_COMPARE_WITH_TIMEOUT(frameSpy.count(), 2, 2000);
 
         // Check frame numbers
         QCOMPARE(frameSpy.at(0).at(1).value<quint16>(), static_cast<quint16>(1));
@@ -329,11 +321,8 @@ private slots:
             QTest::qWait(2);
         }
 
-        // Wait for processing
-        QTest::qWait(200);
-
-        // Stats should have been emitted at least once
-        QVERIFY(statsSpy.count() >= 1);
+        // Poll until stats have been emitted at least once (sanitiser builds are slower)
+        QTRY_VERIFY_WITH_TIMEOUT(statsSpy.count() >= 1, 5000);
 
         // Check stats values
         auto args = statsSpy.last();
@@ -358,9 +347,7 @@ private slots:
         for (const auto &packet : frame) {
             sender.writeDatagram(packet, QHostAddress::LocalHost, 44454);
         }
-        QTest::qWait(50);
-
-        QCOMPARE(receiver.currentFrameNumber(), static_cast<quint16>(100));
+        QTRY_COMPARE_WITH_TIMEOUT(receiver.currentFrameNumber(), static_cast<quint16>(100), 2000);
 
         // Rebind should reset state
         QVERIFY(receiver.bind(44455));
