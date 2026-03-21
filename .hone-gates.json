@@ -1,0 +1,44 @@
+{
+  "gates": [
+    {
+      "name": "test",
+      "command": "ctest --output-on-failure",
+      "required": true
+    },
+    {
+      "name": "coverage",
+      "command": "cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=\"--coverage\" .. && ctest && lcov --capture --directory . --output-file coverage.info",
+      "required": true
+    },
+    {
+      "name": "clang-tidy",
+      "command": "clang-tidy src/*.cpp -- -std=c++20 -I include/",
+      "required": true
+    },
+    {
+      "name": "cppcheck",
+      "command": "cppcheck --enable=all --error-exitcode=1",
+      "required": true
+    },
+    {
+      "name": "format",
+      "command": "clang-format -i",
+      "required": true
+    },
+    {
+      "name": "asan",
+      "command": "cmake -DCMAKE_CXX_FLAGS=\"-fsanitize=address,undefined\" .. && ctest",
+      "required": true
+    },
+    {
+      "name": "tsan",
+      "command": "cmake -DCMAKE_CXX_FLAGS=\"-fsanitize=thread\" .. && ctest",
+      "required": false
+    },
+    {
+      "name": "doxygen",
+      "command": "doxygen Doxyfile",
+      "required": false
+    }
+  ]
+}
