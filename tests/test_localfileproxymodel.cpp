@@ -17,6 +17,24 @@ private:
     QFileSystemModel *fsModel;
     LocalFileProxyModel *proxyModel;
 
+    // Poll until the named entry appears in fsModel under rootIdx, or timeout elapses.
+    // Returns the row index of the entry, or -1 if not found within the timeout.
+    int waitForEntry(const QModelIndex &rootIdx, const QString &name, int timeoutMs = 5000)
+    {
+        for (int elapsed = 0; elapsed < timeoutMs; elapsed += 50) {
+            QCoreApplication::processEvents();
+            QTest::qWait(50);
+            fsModel->fetchMore(rootIdx);
+            for (int i = 0; i < fsModel->rowCount(rootIdx); i++) {
+                QModelIndex nameIdx = fsModel->index(i, 0, rootIdx);
+                if (fsModel->fileName(nameIdx) == name) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+
 private slots:
     void init()
     {
@@ -98,24 +116,18 @@ private slots:
         QDir().mkpath(dirPath);
 
         QModelIndex rootIdx = fsModel->index(tempDir->path());
-        fsModel->fetchMore(rootIdx);
-        QTest::qWait(100);
-
-        // Find our test directory
-        for (int i = 0; i < fsModel->rowCount(rootIdx); i++) {
-            QModelIndex nameIdx = fsModel->index(i, 0, rootIdx);
-            if (fsModel->fileName(nameIdx) == "testdir") {
-                QModelIndex proxyNameIdx = proxyModel->mapFromSource(nameIdx);
-                QModelIndex proxySizeIdx = proxyNameIdx.sibling(proxyNameIdx.row(), 1);
-
-                // Directories should return empty variant
-                QVariant data = proxyModel->data(proxySizeIdx, Qt::DisplayRole);
-                QVERIFY(!data.isValid() || data.toString().isEmpty());
-                return;
-            }
+        int row = waitForEntry(rootIdx, "testdir");
+        if (row < 0) {
+            QFAIL("Test directory not found in model");
         }
 
-        QFAIL("Test directory not found in model");
+        QModelIndex nameIdx = fsModel->index(row, 0, rootIdx);
+        QModelIndex proxyNameIdx = proxyModel->mapFromSource(nameIdx);
+        QModelIndex proxySizeIdx = proxyNameIdx.sibling(proxyNameIdx.row(), 1);
+
+        // Directories should return empty variant
+        QVariant data = proxyModel->data(proxySizeIdx, Qt::DisplayRole);
+        QVERIFY(!data.isValid() || data.toString().isEmpty());
     }
 
     void testDataOtherColumnsPassthrough()
@@ -128,23 +140,17 @@ private slots:
         file.close();
 
         QModelIndex rootIdx = fsModel->index(tempDir->path());
-        fsModel->fetchMore(rootIdx);
-        QTest::qWait(100);
-
-        // Find our test file
-        for (int i = 0; i < fsModel->rowCount(rootIdx); i++) {
-            QModelIndex nameIdx = fsModel->index(i, 0, rootIdx);
-            if (fsModel->fileName(nameIdx) == "passthrough.txt") {
-                QModelIndex proxyNameIdx = proxyModel->mapFromSource(nameIdx);
-
-                // Column 0 (name) should pass through unchanged
-                QVariant nameData = proxyModel->data(proxyNameIdx, Qt::DisplayRole);
-                QCOMPARE(nameData.toString(), QString("passthrough.txt"));
-                return;
-            }
+        int row = waitForEntry(rootIdx, "passthrough.txt");
+        if (row < 0) {
+            QFAIL("Test file not found in model");
         }
 
-        QFAIL("Test file not found in model");
+        QModelIndex nameIdx = fsModel->index(row, 0, rootIdx);
+        QModelIndex proxyNameIdx = proxyModel->mapFromSource(nameIdx);
+
+        // Column 0 (name) should pass through unchanged
+        QVariant nameData = proxyModel->data(proxyNameIdx, Qt::DisplayRole);
+        QCOMPARE(nameData.toString(), QString("passthrough.txt"));
     }
 
     void testDataOtherRolesPassthrough()
@@ -157,28 +163,22 @@ private slots:
         file.close();
 
         QModelIndex rootIdx = fsModel->index(tempDir->path());
-        fsModel->fetchMore(rootIdx);
-        QTest::qWait(100);
-
-        // Find our test file
-        for (int i = 0; i < fsModel->rowCount(rootIdx); i++) {
-            QModelIndex nameIdx = fsModel->index(i, 0, rootIdx);
-            if (fsModel->fileName(nameIdx) == "roles.txt") {
-                QModelIndex proxyNameIdx = proxyModel->mapFromSource(nameIdx);
-                QModelIndex proxySizeIdx = proxyNameIdx.sibling(proxyNameIdx.row(), 1);
-
-                // Non-DisplayRole on size column should pass through
-                // (e.g., tooltip, decoration, etc.)
-                QVariant editData = proxyModel->data(proxySizeIdx, Qt::EditRole);
-                // Should be same as source model's data for this role
-                QModelIndex sourceSizeIdx = proxyModel->mapToSource(proxySizeIdx);
-                QVariant sourceEditData = fsModel->data(sourceSizeIdx, Qt::EditRole);
-                QCOMPARE(editData, sourceEditData);
-                return;
-            }
+        int row = waitForEntry(rootIdx, "roles.txt");
+        if (row < 0) {
+            QFAIL("Test file not found in model");
         }
 
-        QFAIL("Test file not found in model");
+        QModelIndex nameIdx = fsModel->index(row, 0, rootIdx);
+        QModelIndex proxyNameIdx = proxyModel->mapFromSource(nameIdx);
+        QModelIndex proxySizeIdx = proxyNameIdx.sibling(proxyNameIdx.row(), 1);
+
+        // Non-DisplayRole on size column should pass through
+        // (e.g., tooltip, decoration, etc.)
+        QVariant editData = proxyModel->data(proxySizeIdx, Qt::EditRole);
+        // Should be same as source model's data for this role
+        QModelIndex sourceSizeIdx = proxyModel->mapToSource(proxySizeIdx);
+        QVariant sourceEditData = fsModel->data(sourceSizeIdx, Qt::EditRole);
+        QCOMPARE(editData, sourceEditData);
     }
 
     void testDataZeroSizeFile()
@@ -190,22 +190,17 @@ private slots:
         file.close();
 
         QModelIndex rootIdx = fsModel->index(tempDir->path());
-        fsModel->fetchMore(rootIdx);
-        QTest::qWait(100);
-
-        for (int i = 0; i < fsModel->rowCount(rootIdx); i++) {
-            QModelIndex nameIdx = fsModel->index(i, 0, rootIdx);
-            if (fsModel->fileName(nameIdx) == "empty.txt") {
-                QModelIndex proxyNameIdx = proxyModel->mapFromSource(nameIdx);
-                QModelIndex proxySizeIdx = proxyNameIdx.sibling(proxyNameIdx.row(), 1);
-
-                QVariant data = proxyModel->data(proxySizeIdx, Qt::DisplayRole);
-                QCOMPARE(data.toString(), QString("0"));
-                return;
-            }
+        int row = waitForEntry(rootIdx, "empty.txt");
+        if (row < 0) {
+            QFAIL("Test file not found in model");
         }
 
-        QFAIL("Test file not found in model");
+        QModelIndex nameIdx = fsModel->index(row, 0, rootIdx);
+        QModelIndex proxyNameIdx = proxyModel->mapFromSource(nameIdx);
+        QModelIndex proxySizeIdx = proxyNameIdx.sibling(proxyNameIdx.row(), 1);
+
+        QVariant data = proxyModel->data(proxySizeIdx, Qt::DisplayRole);
+        QCOMPARE(data.toString(), QString("0"));
     }
 
     void testDataLargeFile()
@@ -219,22 +214,17 @@ private slots:
         file.close();
 
         QModelIndex rootIdx = fsModel->index(tempDir->path());
-        fsModel->fetchMore(rootIdx);
-        QTest::qWait(200);  // Wait for async loading
-
-        for (int i = 0; i < fsModel->rowCount(rootIdx); i++) {
-            QModelIndex nameIdx = fsModel->index(i, 0, rootIdx);
-            if (fsModel->fileName(nameIdx) == "large.bin") {
-                QModelIndex proxyNameIdx = proxyModel->mapFromSource(nameIdx);
-                QModelIndex proxySizeIdx = proxyNameIdx.sibling(proxyNameIdx.row(), 1);
-
-                QVariant data = proxyModel->data(proxySizeIdx, Qt::DisplayRole);
-                QCOMPARE(data.toString(), QString("102400"));
-                return;
-            }
+        int row = waitForEntry(rootIdx, "large.bin");
+        if (row < 0) {
+            QFAIL("Test file not found in model");
         }
 
-        QFAIL("Test file not found in model");
+        QModelIndex nameIdx = fsModel->index(row, 0, rootIdx);
+        QModelIndex proxyNameIdx = proxyModel->mapFromSource(nameIdx);
+        QModelIndex proxySizeIdx = proxyNameIdx.sibling(proxyNameIdx.row(), 1);
+
+        QVariant data = proxyModel->data(proxySizeIdx, Qt::DisplayRole);
+        QCOMPARE(data.toString(), QString("102400"));
     }
 
     // ========== Sorting ==========
@@ -255,12 +245,20 @@ private slots:
         file2.close();
 
         QModelIndex rootIdx = fsModel->index(tempDir->path());
-        fsModel->fetchMore(rootIdx);
-        QTest::qWait(200);  // Wait for async loading
+
+        // Poll until all 4 entries are loaded, then sort
+        for (int elapsed = 0; elapsed < 5000; elapsed += 50) {
+            QCoreApplication::processEvents();
+            QTest::qWait(50);
+            fsModel->fetchMore(rootIdx);
+            if (fsModel->rowCount(rootIdx) >= 4) {
+                break;
+            }
+        }
 
         // Set up sorting on the proxy
         proxyModel->sort(0, Qt::AscendingOrder);
-        QTest::qWait(50);  // Wait for sort
+        QTest::qWait(50);  // Brief wait for sort to apply
 
         QModelIndex proxyRoot = proxyModel->mapFromSource(rootIdx);
         int rowCount = proxyModel->rowCount(proxyRoot);
