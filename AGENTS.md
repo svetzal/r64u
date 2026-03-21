@@ -68,6 +68,50 @@ open build/r64u.app  # macOS
 
 The `build_test.sh` script handles configure, build, and test execution with formatted output and summary.
 
+## Quality Gates
+
+Quality gates use CMake targets. All targets must be run from the project root directory.
+
+```bash
+# Run all tests
+cmake --build build --target all && cd build && ctest --output-on-failure
+
+# Static analysis with cppcheck (Qt-aware suppressions configured in cmake/)
+cmake --build build --target cppcheck
+
+# Code formatting check (CI mode — fails if files need reformatting)
+cmake --build build --target format-check
+
+# Apply formatting (formats in-place)
+cmake --build build --target format
+
+# Run all quality checks at once (format-check + cppcheck)
+cmake --build build --target quality
+
+# Code coverage (Apple LLVM profdata/llvm-cov, not lcov)
+cmake -B build -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.10.1/macos -DCMAKE_BUILD_TYPE=Debug -DBUILD_COVERAGE=ON
+cmake --build build
+cmake --build build --target coverage
+
+# AddressSanitizer + UBSan
+cmake -B build_asan -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.10.1/macos -DSANITIZER="address;undefined"
+cmake --build build_asan
+cd build_asan && ctest --output-on-failure
+
+# ThreadSanitizer (optional)
+cmake -B build_tsan -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.10.1/macos -DSANITIZER=thread
+cmake --build build_tsan
+cd build_tsan && ctest --output-on-failure
+```
+
+> **Note on clang-tidy and clang-format**: Homebrew LLVM is installed keg-only.
+> CMake automatically finds it via the HINTS in `cmake/StaticAnalysis.cmake` and
+> `cmake/Formatting.cmake`. No PATH change is needed for CMake targets.
+> To use the tools directly in the shell, add to your profile:
+> ```bash
+> export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+> ```
+
 ## Stride Workflow
 
 ```bash

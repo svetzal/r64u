@@ -8,7 +8,21 @@
 option(ENABLE_CLANG_TIDY "Enable clang-tidy during compilation" OFF)
 
 # Find clang-tidy
-find_program(CLANG_TIDY_EXE NAMES clang-tidy clang-tidy-18 clang-tidy-17 clang-tidy-16 clang-tidy-15)
+# Homebrew installs LLVM keg-only (not linked into /opt/homebrew/bin).
+# Provide explicit hints so find_program can locate it.
+set(_LLVM_HOMEBREW_HINTS
+    "/opt/homebrew/opt/llvm/bin"
+    "/opt/homebrew/opt/llvm@22/bin"
+    "/opt/homebrew/opt/llvm@21/bin"
+    "/usr/local/opt/llvm/bin"
+    "/usr/local/opt/llvm@22/bin"
+    "/usr/local/opt/llvm@21/bin"
+)
+
+find_program(CLANG_TIDY_EXE
+    NAMES clang-tidy clang-tidy-22 clang-tidy-21 clang-tidy-18 clang-tidy-17 clang-tidy-16 clang-tidy-15
+    HINTS ${_LLVM_HOMEBREW_HINTS}
+)
 
 if(CLANG_TIDY_EXE)
     message(STATUS "Found clang-tidy: ${CLANG_TIDY_EXE}")
@@ -52,6 +66,18 @@ if(CPPCHECK_EXE)
             --std=c++17
             --suppress=missingIncludeSystem
             --suppress=unmatchedSuppression
+            # Qt macro false-positives: cppcheck cannot parse moc-generated
+            # macros (slots, signals, Q_ENUM, Q_UNUSED, Q_OBJECT, etc.) and
+            # falsely reports them as unknown macros.
+            --suppress=unknownMacro
+            # Qt emit false-positives: "emit signal(...)" is misidentified as
+            # a local variable shadowing the signal function declaration.
+            --suppress=shadowFunction
+            # Qt parent-pointer constructor pattern: QObject-derived classes
+            # conventionally accept a nullable parent pointer as their sole
+            # argument; marking every such constructor explicit would break
+            # the Qt ownership model.
+            --suppress=noExplicitConstructor
             --inline-suppr
             --quiet
             --error-exitcode=1
