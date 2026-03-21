@@ -9,8 +9,8 @@
 #ifndef FILEPREVIEWSTRATEGY_H
 #define FILEPREVIEWSTRATEGY_H
 
-#include <QString>
 #include <QByteArray>
+#include <QString>
 #include <QWidget>
 
 /**
@@ -40,7 +40,7 @@ public:
      * @param parent Optional parent widget.
      * @return Pointer to the created widget.
      */
-    [[nodiscard]] virtual QWidget* createPreviewWidget(QWidget *parent) = 0;
+    [[nodiscard]] virtual QWidget *createPreviewWidget(QWidget *parent) = 0;
 
     /**
      * @brief Shows the file preview content.
@@ -67,4 +67,4 @@ public:
     virtual void clear() = 0;
 };
 
-#endif // FILEPREVIEWSTRATEGY_H
+#endif  // FILEPREVIEWSTRATEGY_H

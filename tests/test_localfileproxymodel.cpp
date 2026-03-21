@@ -1,12 +1,12 @@
-#include <QtTest>
+#include "models/localfileproxymodel.h"
+
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileSystemModel>
 #include <QSignalSpy>
 #include <QTemporaryDir>
-
-#include "models/localfileproxymodel.h"
+#include <QtTest>
 
 class TestLocalFileProxyModel : public QObject
 {
@@ -48,10 +48,7 @@ private slots:
         QVERIFY(model.sourceModel() == nullptr);
     }
 
-    void testSetSourceModel()
-    {
-        QCOMPARE(proxyModel->sourceModel(), fsModel);
-    }
+    void testSetSourceModel() { QCOMPARE(proxyModel->sourceModel(), fsModel); }
 
     // ========== data() for file size column ==========
 
@@ -217,7 +214,7 @@ private slots:
         QString filePath = tempDir->filePath("large.bin");
         QFile file(filePath);
         QVERIFY(file.open(QIODevice::WriteOnly));
-        QByteArray content(102400, 'X'); // 100KB
+        QByteArray content(102400, 'X');  // 100KB
         file.write(content);
         file.close();
 

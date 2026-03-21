@@ -1,9 +1,9 @@
 #ifndef PATHNAVIGATIONWIDGET_H
 #define PATHNAVIGATIONWIDGET_H
 
-#include <QWidget>
-#include <QPushButton>
 #include <QLabel>
+#include <QPushButton>
+#include <QWidget>
 
 class PathNavigationWidget : public QWidget
 {
@@ -29,4 +29,4 @@ private:
     QLabel *pathLabel_ = nullptr;
 };
 
-#endif // PATHNAVIGATIONWIDGET_H
+#endif  // PATHNAVIGATIONWIDGET_H

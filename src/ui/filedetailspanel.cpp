@@ -1,18 +1,18 @@
 #include "filedetailspanel.h"
-#include "services/songlengthsdatabase.h"
-#include "services/hvscmetadataservice.h"
-#include "services/gamebase64service.h"
 
-#include <QVBoxLayout>
-#include <QHBoxLayout>
+#include "services/gamebase64service.h"
+#include "services/hvscmetadataservice.h"
+#include "services/songlengthsdatabase.h"
+
 #include <QFileInfo>
 #include <QFont>
 #include <QGuiApplication>
+#include <QHBoxLayout>
 #include <QTextBlockFormat>
 #include <QTextCursor>
+#include <QVBoxLayout>
 
-FileDetailsPanel::FileDetailsPanel(QWidget *parent)
-    : QWidget(parent)
+FileDetailsPanel::FileDetailsPanel(QWidget *parent) : QWidget(parent)
 {
     setupUi();
 }
@@ -95,8 +95,8 @@ void FileDetailsPanel::setupUi()
     applyC64TextStyle();
 
     // Connect to system theme changes
-    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged,
-            this, &FileDetailsPanel::onColorSchemeChanged);
+    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this,
+            &FileDetailsPanel::onColorSchemeChanged);
 
     textLayout->addWidget(textFileNameLabel_);
     textLayout->addWidget(textBrowser_);
@@ -215,12 +215,8 @@ void FileDetailsPanel::clear()
 bool FileDetailsPanel::isTextFile(const QString &path) const
 {
     QString lower = path.toLower();
-    return lower.endsWith(".cfg") ||
-           lower.endsWith(".txt") ||
-           lower.endsWith(".log") ||
-           lower.endsWith(".ini") ||
-           lower.endsWith(".md") ||
-           lower.endsWith(".json") ||
+    return lower.endsWith(".cfg") || lower.endsWith(".txt") || lower.endsWith(".log") ||
+           lower.endsWith(".ini") || lower.endsWith(".md") || lower.endsWith(".json") ||
            lower.endsWith(".xml");
 }
 
@@ -286,7 +282,8 @@ void FileDetailsPanel::showDiskDirectory(const QByteArray &diskImageData, const 
             }
             if (gameInfo.playersFrom > 0) {
                 if (gameInfo.playersTo > gameInfo.playersFrom) {
-                    listing += tr("  Players: %1-%2\n").arg(gameInfo.playersFrom).arg(gameInfo.playersTo);
+                    listing +=
+                        tr("  Players: %1-%2\n").arg(gameInfo.playersFrom).arg(gameInfo.playersTo);
                 } else {
                     listing += tr("  Players: %1\n").arg(gameInfo.playersFrom);
                 }
@@ -337,9 +334,7 @@ void FileDetailsPanel::showSidDetails(const QByteArray &sidData, const QString &
             details += tr("Song Lengths:\n");
 
             for (int i = 0; i < lengths.formattedTimes.size(); ++i) {
-                details += tr("  Song %1: %2\n")
-                    .arg(i + 1)
-                    .arg(lengths.formattedTimes.at(i));
+                details += tr("  Song %1: %2\n").arg(i + 1).arg(lengths.formattedTimes.at(i));
             }
         } else {
             details += tr("─────────────────────────────────\n");
@@ -482,24 +477,22 @@ void FileDetailsPanel::applyC64TextStyle()
     QString stylesheet;
     if (isDarkMode) {
         // Dark mode: blue text on black background
-        stylesheet = QString(
-            "QTextBrowser {"
-            "  background-color: #000000;"
-            "  color: %1;"
-            "  border: 1px solid %1;"
-            "  padding: 8px;"
-            "}"
-        ).arg(c64LightBlue);
+        stylesheet = QString("QTextBrowser {"
+                             "  background-color: #000000;"
+                             "  color: %1;"
+                             "  border: 1px solid %1;"
+                             "  padding: 8px;"
+                             "}")
+                         .arg(c64LightBlue);
     } else {
         // Light mode: white text on blue background (classic C64 look)
-        stylesheet = QString(
-            "QTextBrowser {"
-            "  background-color: %1;"
-            "  color: #FFFFFF;"
-            "  border: 1px solid #2020A8;"
-            "  padding: 8px;"
-            "}"
-        ).arg(c64Blue);
+        stylesheet = QString("QTextBrowser {"
+                             "  background-color: %1;"
+                             "  color: #FFFFFF;"
+                             "  border: 1px solid #2020A8;"
+                             "  padding: 8px;"
+                             "}")
+                         .arg(c64Blue);
     }
 
     textBrowser_->setStyleSheet(stylesheet);

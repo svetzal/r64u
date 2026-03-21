@@ -9,15 +9,16 @@
 #ifndef AUDIOPLAYBACKSERVICE_H
 #define AUDIOPLAYBACKSERVICE_H
 
-#include <QObject>
 #include <QAudioFormat>
 #include <QAudioSink>
-#include <QIODevice>
 #include <QByteArray>
-#include <QMutex>
 #include <QElapsedTimer>
-#include <memory>
+#include <QIODevice>
+#include <QMutex>
+#include <QObject>
+
 #include <functional>
+#include <memory>
 
 /**
  * @brief Service for audio playback using Qt Multimedia.
@@ -115,8 +116,10 @@ public:
     /**
      * @brief Callback interface for diagnostics timing data.
      */
-    struct DiagnosticsCallback {
-        std::function<void(qint64 writeTimeUs, qint64 bytesWritten, qint64 bytesDropped)> onSamplesWritten;
+    struct DiagnosticsCallback
+    {
+        std::function<void(qint64 writeTimeUs, qint64 bytesWritten, qint64 bytesDropped)>
+            onSamplesWritten;
         std::function<void()> onPlaybackUnderrun;
     };
 
@@ -176,4 +179,4 @@ private:
     QElapsedTimer diagnosticsTimer_;
 };
 
-#endif // AUDIOPLAYBACKSERVICE_H
+#endif  // AUDIOPLAYBACKSERVICE_H

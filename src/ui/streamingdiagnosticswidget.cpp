@@ -5,16 +5,15 @@
 
 #include "streamingdiagnosticswidget.h"
 
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QGridLayout>
-#include <QLabel>
 #include <QFrame>
-#include <QPushButton>
+#include <QGridLayout>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QPainter>
+#include <QPushButton>
+#include <QVBoxLayout>
 
-StreamingDiagnosticsWidget::StreamingDiagnosticsWidget(QWidget *parent)
-    : QWidget(parent)
+StreamingDiagnosticsWidget::StreamingDiagnosticsWidget(QWidget *parent) : QWidget(parent)
 {
     setupUi();
 }
@@ -49,7 +48,8 @@ void StreamingDiagnosticsWidget::setupUi()
     expandButton_ = new QPushButton(tr("Details"));
     expandButton_->setFlat(true);
     expandButton_->setMaximumHeight(20);
-    connect(expandButton_, &QPushButton::clicked, this, &StreamingDiagnosticsWidget::toggleDisplayMode);
+    connect(expandButton_, &QPushButton::clicked, this,
+            &StreamingDiagnosticsWidget::toggleDisplayMode);
     compactLayout->addWidget(expandButton_);
 
     mainLayout->addWidget(compactFrame_);
@@ -174,7 +174,8 @@ void StreamingDiagnosticsWidget::setupUi()
     // Collapse button
     auto *collapseButton = new QPushButton(tr("Collapse"));
     collapseButton->setFlat(true);
-    connect(collapseButton, &QPushButton::clicked, this, &StreamingDiagnosticsWidget::toggleDisplayMode);
+    connect(collapseButton, &QPushButton::clicked, this,
+            &StreamingDiagnosticsWidget::toggleDisplayMode);
     detailedLayout->addWidget(collapseButton);
 
     mainLayout->addWidget(detailedFrame_);
@@ -236,15 +237,17 @@ void StreamingDiagnosticsWidget::clear()
 void StreamingDiagnosticsWidget::updateCompactDisplay(const DiagnosticsSnapshot &snapshot)
 {
     // Format: "99.8% | 0.1% loss | 2.3ms jitter"
-    double totalPackets = static_cast<double>(snapshot.videoPacketsReceived + snapshot.audioPacketsReceived);
+    double totalPackets =
+        static_cast<double>(snapshot.videoPacketsReceived + snapshot.audioPacketsReceived);
     double totalLost = static_cast<double>(snapshot.videoPacketsLost + snapshot.audioPacketsLost);
-    double overallLoss = (totalPackets > 0) ? (totalLost / (totalPackets + totalLost) * 100.0) : 0.0;
+    double overallLoss =
+        (totalPackets > 0) ? (totalLost / (totalPackets + totalLost) * 100.0) : 0.0;
     double maxJitter = qMax(snapshot.videoPacketJitterMs, snapshot.audioPacketJitterMs);
 
     QString summary = QString("%1% | %2% loss | %3ms jitter")
-        .arg(snapshot.videoFrameCompletionPercent, 0, 'f', 1)
-        .arg(overallLoss, 0, 'f', 2)
-        .arg(maxJitter, 0, 'f', 1);
+                          .arg(snapshot.videoFrameCompletionPercent, 0, 'f', 1)
+                          .arg(overallLoss, 0, 'f', 2)
+                          .arg(maxJitter, 0, 'f', 1);
 
     summaryLabel_->setText(summary);
 }
@@ -252,35 +255,35 @@ void StreamingDiagnosticsWidget::updateCompactDisplay(const DiagnosticsSnapshot 
 void StreamingDiagnosticsWidget::updateDetailedDisplay(const DiagnosticsSnapshot &snapshot)
 {
     // Update header
-    qualityLabel_->setText(tr("Quality: %1")
-        .arg(StreamingDiagnostics::qualityLevelString(snapshot.overallQuality)));
+    qualityLabel_->setText(
+        tr("Quality: %1").arg(StreamingDiagnostics::qualityLevelString(snapshot.overallQuality)));
 
     // Format uptime
     qint64 uptimeSecs = snapshot.uptimeMs / 1000;
     auto minutes = static_cast<int>(uptimeSecs / 60);
     auto seconds = static_cast<int>(uptimeSecs % 60);
-    uptimeLabel_->setText(tr("Uptime: %1:%2")
-        .arg(minutes)
-        .arg(seconds, 2, 10, QChar('0')));
+    uptimeLabel_->setText(tr("Uptime: %1:%2").arg(minutes).arg(seconds, 2, 10, QChar('0')));
 
     // Video network metrics
     videoPacketsLabel_->setText(QString::number(snapshot.videoPacketsReceived));
     videoLossLabel_->setText(QString("%1%").arg(snapshot.videoPacketLossPercent, 0, 'f', 2));
     videoFramesLabel_->setText(QString::number(snapshot.videoFramesCompleted));
-    videoCompletionLabel_->setText(QString("%1%").arg(snapshot.videoFrameCompletionPercent, 0, 'f', 1));
+    videoCompletionLabel_->setText(
+        QString("%1%").arg(snapshot.videoFrameCompletionPercent, 0, 'f', 1));
     videoJitterLabel_->setText(QString("%1 ms").arg(snapshot.videoPacketJitterMs, 0, 'f', 1));
-    videoAssemblyLabel_->setText(QString("%1 ms").arg(snapshot.videoFrameAssemblyTimeMs, 0, 'f', 1));
+    videoAssemblyLabel_->setText(
+        QString("%1 ms").arg(snapshot.videoFrameAssemblyTimeMs, 0, 'f', 1));
 
     // Video playback metrics
     videoDisplayBufferLabel_->setText(QString::number(snapshot.videoFrameBufferLevel));
-    videoDisplayJitterLabel_->setText(QString("%1 ms").arg(snapshot.videoDisplayJitterMs, 0, 'f', 1));
+    videoDisplayJitterLabel_->setText(
+        QString("%1 ms").arg(snapshot.videoDisplayJitterMs, 0, 'f', 1));
 
     // Audio network metrics
     audioPacketsLabel_->setText(QString::number(snapshot.audioPacketsReceived));
     audioLossLabel_->setText(QString("%1%").arg(snapshot.audioPacketLossPercent, 0, 'f', 2));
-    audioBufferLabel_->setText(QString("%1 / %2")
-        .arg(snapshot.audioBufferLevel)
-        .arg(snapshot.audioBufferTarget));
+    audioBufferLabel_->setText(
+        QString("%1 / %2").arg(snapshot.audioBufferLevel).arg(snapshot.audioBufferTarget));
     audioUnderrunsLabel_->setText(QString::number(snapshot.audioBufferUnderruns));
     audioJitterLabel_->setText(QString("%1 ms").arg(snapshot.audioPacketJitterMs, 0, 'f', 1));
 
@@ -315,15 +318,20 @@ void StreamingDiagnosticsWidget::updateDetailedDisplay(const DiagnosticsSnapshot
         return "color: red;";
     };
 
-    videoLossLabel_->setStyleSheet(QString("font-family: monospace; %1").arg(colorForLoss(snapshot.videoPacketLossPercent)));
-    audioLossLabel_->setStyleSheet(QString("font-family: monospace; %1").arg(colorForLoss(snapshot.audioPacketLossPercent)));
-    videoCompletionLabel_->setStyleSheet(QString("font-family: monospace; %1").arg(colorForCompletion(snapshot.videoFrameCompletionPercent)));
+    videoLossLabel_->setStyleSheet(
+        QString("font-family: monospace; %1").arg(colorForLoss(snapshot.videoPacketLossPercent)));
+    audioLossLabel_->setStyleSheet(
+        QString("font-family: monospace; %1").arg(colorForLoss(snapshot.audioPacketLossPercent)));
+    videoCompletionLabel_->setStyleSheet(
+        QString("font-family: monospace; %1")
+            .arg(colorForCompletion(snapshot.videoFrameCompletionPercent)));
 }
 
 void StreamingDiagnosticsWidget::updateQualityIndicator(QualityLevel level)
 {
     QColor color = StreamingDiagnostics::qualityLevelColor(level);
-    qualityDot_->setStyleSheet(QString("background-color: %1; border-radius: 5px;").arg(color.name()));
+    qualityDot_->setStyleSheet(
+        QString("background-color: %1; border-radius: 5px;").arg(color.name()));
 }
 
 QString StreamingDiagnosticsWidget::formatBytes(quint64 bytes)
@@ -335,7 +343,8 @@ QString StreamingDiagnosticsWidget::formatBytes(quint64 bytes)
         return QString("%1 B").arg(bytes);
     }
     if (bytes < MB) {
-        return QString("%1 KB").arg(static_cast<double>(bytes) / static_cast<double>(KB), 0, 'f', 1);
+        return QString("%1 KB").arg(static_cast<double>(bytes) / static_cast<double>(KB), 0, 'f',
+                                    1);
     }
     return QString("%1 MB").arg(static_cast<double>(bytes) / static_cast<double>(MB), 0, 'f', 1);
 }

@@ -1,12 +1,10 @@
 #include "mockftpclient.h"
-#include <QFile>
+
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 
-MockFtpClient::MockFtpClient(QObject *parent)
-    : IFtpClient(parent)
-{
-}
+MockFtpClient::MockFtpClient(QObject *parent) : IFtpClient(parent) {}
 
 void MockFtpClient::setHost(const QString &host, quint16 port)
 {

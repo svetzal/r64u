@@ -4,10 +4,10 @@
  */
 
 #include "favoritesmanager.h"
+
 #include <QSettings>
 
-FavoritesManager::FavoritesManager(QObject *parent)
-    : QObject(parent)
+FavoritesManager::FavoritesManager(QObject *parent) : QObject(parent)
 {
     loadSettings();
 }
@@ -61,8 +61,7 @@ bool FavoritesManager::toggleFavorite(const QString &path)
 
 void FavoritesManager::moveFavorite(int from, int to)
 {
-    if (from < 0 || from >= favorites_.count() ||
-        to < 0 || to >= favorites_.count() ||
+    if (from < 0 || from >= favorites_.count() || to < 0 || to >= favorites_.count() ||
         from == to) {
         return;
     }

@@ -1,21 +1,22 @@
 #include "streamingmanager.h"
-#include "deviceconnection.h"
-#include "c64urestclient.h"
-#include "streamcontrolclient.h"
-#include "videostreamreceiver.h"
-#include "audiostreamreceiver.h"
+
 #include "audioplaybackservice.h"
+#include "audiostreamreceiver.h"
+#include "c64urestclient.h"
+#include "deviceconnection.h"
 #include "keyboardinputservice.h"
+#include "streamcontrolclient.h"
 #include "streamingdiagnostics.h"
+#include "videostreamreceiver.h"
+
 #include "utils/logging.h"
 
-#include <QUrl>
-#include <QNetworkInterface>
 #include <QHostAddress>
+#include <QNetworkInterface>
+#include <QUrl>
 
 StreamingManager::StreamingManager(DeviceConnection *connection, QObject *parent)
-    : QObject(parent)
-    , deviceConnection_(connection)
+    : QObject(parent), deviceConnection_(connection)
 {
     // DeviceConnection is required - assert in debug builds
     Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
@@ -36,35 +37,30 @@ StreamingManager::StreamingManager(DeviceConnection *connection, QObject *parent
 
     // Set up diagnostics callbacks for high-frequency timing data
     auto videoCallback = diagnostics_->videoCallback();
-    videoReceiver_->setDiagnosticsCallback({
-        videoCallback.onPacketReceived,
-        videoCallback.onFrameStarted,
-        videoCallback.onFrameCompleted,
-        videoCallback.onOutOfOrderPacket
-    });
+    videoReceiver_->setDiagnosticsCallback(
+        {videoCallback.onPacketReceived, videoCallback.onFrameStarted,
+         videoCallback.onFrameCompleted, videoCallback.onOutOfOrderPacket});
 
     auto audioCallback = diagnostics_->audioCallback();
-    audioReceiver_->setDiagnosticsCallback({
-        audioCallback.onPacketReceived,
-        audioCallback.onBufferUnderrun,
-        audioCallback.onSampleDiscontinuity
-    });
+    audioReceiver_->setDiagnosticsCallback({audioCallback.onPacketReceived,
+                                            audioCallback.onBufferUnderrun,
+                                            audioCallback.onSampleDiscontinuity});
 
     // Connect video receiver format detection
-    connect(videoReceiver_, &VideoStreamReceiver::formatDetected,
-            this, [this](VideoStreamReceiver::VideoFormat format) {
-        onVideoFormatDetected(static_cast<int>(format));
-    });
+    connect(videoReceiver_, &VideoStreamReceiver::formatDetected, this,
+            [this](VideoStreamReceiver::VideoFormat format) {
+                onVideoFormatDetected(static_cast<int>(format));
+            });
 
     // Connect audio receiver to playback
-    connect(audioReceiver_, &AudioStreamReceiver::samplesReady,
-            audioPlayback_, &AudioPlaybackService::writeSamples);
+    connect(audioReceiver_, &AudioStreamReceiver::samplesReady, audioPlayback_,
+            &AudioPlaybackService::writeSamples);
 
     // Connect stream control signals
-    connect(streamControl_, &StreamControlClient::commandSucceeded,
-            this, &StreamingManager::onStreamCommandSucceeded);
-    connect(streamControl_, &StreamControlClient::commandFailed,
-            this, &StreamingManager::onStreamCommandFailed);
+    connect(streamControl_, &StreamControlClient::commandSucceeded, this,
+            &StreamingManager::onStreamCommandSucceeded);
+    connect(streamControl_, &StreamControlClient::commandFailed, this,
+            &StreamingManager::onStreamCommandFailed);
 }
 
 StreamingManager::~StreamingManager()
@@ -113,7 +109,7 @@ bool StreamingManager::startStreaming()
         emit error(tr("Could not determine local IP address for streaming.\n\n"
                       "Device IP: %1\n"
                       "Make sure you're on the same network as the C64 device.")
-                   .arg(deviceHost));
+                       .arg(deviceHost));
         return false;
     }
 
@@ -141,11 +137,10 @@ bool StreamingManager::startStreaming()
 
     // Send stream start commands to the device
     LOG_VERBOSE() << "StreamingManager::startStreaming: Sending stream commands to device"
-             << deviceHost << "- target:" << targetHost
-             << "video port:" << VideoStreamReceiver::DefaultPort
-             << "audio port:" << AudioStreamReceiver::DefaultPort;
-    streamControl_->startAllStreams(targetHost,
-                                    VideoStreamReceiver::DefaultPort,
+                  << deviceHost << "- target:" << targetHost
+                  << "video port:" << VideoStreamReceiver::DefaultPort
+                  << "audio port:" << AudioStreamReceiver::DefaultPort;
+    streamControl_->startAllStreams(targetHost, VideoStreamReceiver::DefaultPort,
                                     AudioStreamReceiver::DefaultPort);
 
     isStreaming_ = true;
@@ -232,11 +227,12 @@ QString StreamingManager::findLocalHostForDevice() const
     // Parse the device IP address
     QHostAddress deviceAddr(deviceHost);
     if (deviceAddr.isNull() || deviceAddr.protocol() != QAbstractSocket::IPv4Protocol) {
-        LOG_VERBOSE() << "StreamingManager::findLocalHostForDevice: Invalid device IP - isNull:" << deviceAddr.isNull()
-                 << "protocol:" << deviceAddr.protocol();
+        LOG_VERBOSE() << "StreamingManager::findLocalHostForDevice: Invalid device IP - isNull:"
+                      << deviceAddr.isNull() << "protocol:" << deviceAddr.protocol();
         return {};
     }
-    LOG_VERBOSE() << "StreamingManager::findLocalHostForDevice: device IP address:" << deviceAddr.toString();
+    LOG_VERBOSE() << "StreamingManager::findLocalHostForDevice: device IP address:"
+                  << deviceAddr.toString();
 
     // Find our local IP address that can reach the device
     // Look for an interface on the same subnet as the C64 device
@@ -268,7 +264,8 @@ QString StreamingManager::findLocalHostForDevice() const
     }
 
     if (targetHost.isEmpty()) {
-        LOG_VERBOSE() << "StreamingManager::findLocalHostForDevice: Could not find local IP on same subnet as device";
+        LOG_VERBOSE() << "StreamingManager::findLocalHostForDevice: Could not find local IP on "
+                         "same subnet as device";
     }
 
     return targetHost;

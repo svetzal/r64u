@@ -1,28 +1,28 @@
 #include "configitemspanel.h"
+
 #include "models/configurationmodel.h"
 
-#include <QVBoxLayout>
-#include <QLabel>
 #include <QCheckBox>
 #include <QComboBox>
-#include <QSpinBox>
+#include <QFormLayout>
+#include <QLabel>
 #include <QLineEdit>
 #include <QScrollArea>
-#include <QFormLayout>
+#include <QSpinBox>
+#include <QVBoxLayout>
 
 ConfigItemsPanel::ConfigItemsPanel(ConfigurationModel *model, QWidget *parent)
-    : QWidget(parent)
-    , model_(model)
+    : QWidget(parent), model_(model)
 {
     setupUi();
 
     // Connect to model signals
-    connect(model_, &ConfigurationModel::categoryItemsChanged,
-            this, &ConfigItemsPanel::onCategoryItemsChanged);
-    connect(model_, &ConfigurationModel::itemValueChanged,
-            this, &ConfigItemsPanel::onItemValueChanged);
-    connect(model_, &ConfigurationModel::dirtyStateChanged,
-            this, &ConfigItemsPanel::onDirtyStateChanged);
+    connect(model_, &ConfigurationModel::categoryItemsChanged, this,
+            &ConfigItemsPanel::onCategoryItemsChanged);
+    connect(model_, &ConfigurationModel::itemValueChanged, this,
+            &ConfigItemsPanel::onItemValueChanged);
+    connect(model_, &ConfigurationModel::dirtyStateChanged, this,
+            &ConfigItemsPanel::onDirtyStateChanged);
 }
 
 void ConfigItemsPanel::setupUi()
@@ -106,19 +106,17 @@ void ConfigItemsPanel::populateItems()
         }
 
         // Create appropriate editor widget
-        QWidget *editor = createEditorWidget(itemName, info.value, info.options,
-                                              info.minValue, info.maxValue);
+        QWidget *editor =
+            createEditorWidget(itemName, info.value, info.options, info.minValue, info.maxValue);
         itemEditors_[itemName] = editor;
 
         formLayout_->addRow(label, editor);
     }
 }
 
-QWidget* ConfigItemsPanel::createEditorWidget(const QString &itemName,
-                                               const QVariant &value,
-                                               const QStringList &options,
-                                               const QVariant &minValue,
-                                               const QVariant &maxValue)
+QWidget *ConfigItemsPanel::createEditorWidget(const QString &itemName, const QVariant &value,
+                                              const QStringList &options, const QVariant &minValue,
+                                              const QVariant &maxValue)
 {
     // If options are provided, use combo box
     if (!options.isEmpty()) {
@@ -128,8 +126,7 @@ QWidget* ConfigItemsPanel::createEditorWidget(const QString &itemName,
         if (index >= 0) {
             combo->setCurrentIndex(index);
         }
-        connect(combo, &QComboBox::currentTextChanged, this,
-                [this, itemName](const QString &text) {
+        connect(combo, &QComboBox::currentTextChanged, this, [this, itemName](const QString &text) {
             emit itemChanged(currentCategory_, itemName, text);
             model_->setValue(currentCategory_, itemName, text);
         });
@@ -142,8 +139,7 @@ QWidget* ConfigItemsPanel::createEditorWidget(const QString &itemName,
     if (type == QMetaType::Bool) {
         auto *checkBox = new QCheckBox();
         checkBox->setChecked(value.toBool());
-        connect(checkBox, &QCheckBox::toggled, this,
-                [this, itemName](bool checked) {
+        connect(checkBox, &QCheckBox::toggled, this, [this, itemName](bool checked) {
             emit itemChanged(currentCategory_, itemName, checked);
             model_->setValue(currentCategory_, itemName, checked);
         });
@@ -159,8 +155,7 @@ QWidget* ConfigItemsPanel::createEditorWidget(const QString &itemName,
             spinBox->setRange(-999999, 999999);
         }
         spinBox->setValue(value.toInt());
-        connect(spinBox, &QSpinBox::valueChanged, this,
-                [this, itemName](int val) {
+        connect(spinBox, &QSpinBox::valueChanged, this, [this, itemName](int val) {
             emit itemChanged(currentCategory_, itemName, val);
             model_->setValue(currentCategory_, itemName, val);
         });
@@ -173,8 +168,7 @@ QWidget* ConfigItemsPanel::createEditorWidget(const QString &itemName,
         lineEdit->setText(value.toString());
         // Limit width to approximately 30 characters
         lineEdit->setMaximumWidth((lineEdit->fontMetrics().averageCharWidth() * 21) + 14);
-        connect(lineEdit, &QLineEdit::editingFinished, this,
-                [this, itemName, lineEdit]() {
+        connect(lineEdit, &QLineEdit::editingFinished, this, [this, itemName, lineEdit]() {
             QString text = lineEdit->text();
             bool ok = false;
             double d = text.toDouble(&ok);
@@ -191,10 +185,8 @@ QWidget* ConfigItemsPanel::createEditorWidget(const QString &itemName,
 
     // Check for string that looks like boolean
     QString strVal = value.toString().toLower();
-    if (strVal == "yes" || strVal == "no" ||
-        strVal == "enabled" || strVal == "disabled" ||
-        strVal == "on" || strVal == "off" ||
-        strVal == "true" || strVal == "false") {
+    if (strVal == "yes" || strVal == "no" || strVal == "enabled" || strVal == "disabled" ||
+        strVal == "on" || strVal == "off" || strVal == "true" || strVal == "false") {
         auto *combo = new QComboBox();
         if (strVal == "yes" || strVal == "no") {
             combo->addItems({"Yes", "No"});
@@ -209,8 +201,7 @@ QWidget* ConfigItemsPanel::createEditorWidget(const QString &itemName,
             combo->addItems({"True", "False"});
             combo->setCurrentText(strVal == "true" ? "True" : "False");
         }
-        connect(combo, &QComboBox::currentTextChanged, this,
-                [this, itemName](const QString &text) {
+        connect(combo, &QComboBox::currentTextChanged, this, [this, itemName](const QString &text) {
             emit itemChanged(currentCategory_, itemName, text);
             model_->setValue(currentCategory_, itemName, text);
         });
@@ -222,8 +213,7 @@ QWidget* ConfigItemsPanel::createEditorWidget(const QString &itemName,
     lineEdit->setText(value.toString());
     // Limit width to approximately 30 characters
     lineEdit->setMaximumWidth((lineEdit->fontMetrics().averageCharWidth() * 21) + 14);
-    connect(lineEdit, &QLineEdit::editingFinished, this,
-            [this, itemName, lineEdit]() {
+    connect(lineEdit, &QLineEdit::editingFinished, this, [this, itemName, lineEdit]() {
         emit itemChanged(currentCategory_, itemName, lineEdit->text());
         model_->setValue(currentCategory_, itemName, lineEdit->text());
     });
@@ -248,9 +238,8 @@ void ConfigItemsPanel::onCategoryItemsChanged(const QString &category)
     }
 }
 
-void ConfigItemsPanel::onItemValueChanged(const QString &category,
-                                           const QString &item,
-                                           const QVariant &value)
+void ConfigItemsPanel::onItemValueChanged(const QString &category, const QString &item,
+                                          const QVariant &value)
 {
     Q_UNUSED(value)
 

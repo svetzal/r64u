@@ -9,11 +9,11 @@
 #ifndef IFTPCLIENT_H
 #define IFTPCLIENT_H
 
+#include "ftpentry.h"
+
+#include <QList>
 #include <QObject>
 #include <QString>
-#include <QList>
-
-#include "ftpentry.h"
 
 /**
  * @brief Abstract interface for FTP client implementations.
@@ -309,4 +309,4 @@ signals:
     /// @}
 };
 
-#endif // IFTPCLIENT_H
+#endif  // IFTPCLIENT_H

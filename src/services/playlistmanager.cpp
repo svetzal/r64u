@@ -4,33 +4,33 @@
  */
 
 #include "playlistmanager.h"
-#include "deviceconnection.h"
-#include "c64urestclient.h"
+
 #include "c64uftpclient.h"
+#include "c64urestclient.h"
+#include "deviceconnection.h"
 #include "songlengthsdatabase.h"
 #include "streamingmanager.h"
 
-#include <QSettings>
 #include <QFile>
+#include <QFileInfo>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QJsonArray>
-#include <QFileInfo>
 #include <QRandomGenerator>
+#include <QSettings>
+
 #include <algorithm>
 
 PlaylistManager::PlaylistManager(DeviceConnection *connection, QObject *parent)
-    : QObject(parent)
-    , deviceConnection_(connection)
-    , advanceTimer_(new QTimer(this))
+    : QObject(parent), deviceConnection_(connection), advanceTimer_(new QTimer(this))
 {
     advanceTimer_->setSingleShot(true);
     connect(advanceTimer_, &QTimer::timeout, this, &PlaylistManager::onAdvanceTimer);
 
     // Connect to FTP client for SID data fetching (for duration lookup)
     if (deviceConnection_ != nullptr && deviceConnection_->ftpClient() != nullptr) {
-        connect(deviceConnection_->ftpClient(), &C64UFtpClient::downloadToMemoryFinished,
-                this, &PlaylistManager::onSidDataReceived);
+        connect(deviceConnection_->ftpClient(), &C64UFtpClient::downloadToMemoryFinished, this,
+                &PlaylistManager::onSidDataReceived);
     }
 
     loadSettings();
@@ -122,9 +122,7 @@ void PlaylistManager::removeItem(int index)
 
 void PlaylistManager::moveItem(int from, int to)
 {
-    if (from < 0 || from >= items_.count() ||
-        to < 0 || to >= items_.count() ||
-        from == to) {
+    if (from < 0 || from >= items_.count() || to < 0 || to >= items_.count() || from == to) {
         return;
     }
 

@@ -1,9 +1,6 @@
 #include "localfileproxymodel.h"
 
-LocalFileProxyModel::LocalFileProxyModel(QObject *parent)
-    : QSortFilterProxyModel(parent)
-{
-}
+LocalFileProxyModel::LocalFileProxyModel(QObject *parent) : QSortFilterProxyModel(parent) {}
 
 QVariant LocalFileProxyModel::data(const QModelIndex &index, int role) const
 {
@@ -77,7 +74,7 @@ bool LocalFileProxyModel::lessThan(const QModelIndex &left, const QModelIndex &r
 
 QFileSystemModel *LocalFileProxyModel::sourceFileModel() const
 {
-    return qobject_cast<QFileSystemModel*>(sourceModel());
+    return qobject_cast<QFileSystemModel *>(sourceModel());
 }
 
 LocalFileProxyModel::FileType LocalFileProxyModel::detectFileType(const QString &filename)
@@ -115,15 +112,25 @@ LocalFileProxyModel::FileType LocalFileProxyModel::detectFileType(const QString 
 QString LocalFileProxyModel::fileTypeString(FileType type)
 {
     switch (type) {
-    case FileType::Directory: return tr("Folder");
-    case FileType::SidMusic: return tr("SID Music");
-    case FileType::ModMusic: return tr("MOD Music");
-    case FileType::Program: return tr("Program");
-    case FileType::Cartridge: return tr("Cartridge");
-    case FileType::DiskImage: return tr("Disk Image");
-    case FileType::TapeImage: return tr("Tape Image");
-    case FileType::Rom: return tr("ROM");
-    case FileType::Config: return tr("Configuration");
-    default: return tr("File");
+    case FileType::Directory:
+        return tr("Folder");
+    case FileType::SidMusic:
+        return tr("SID Music");
+    case FileType::ModMusic:
+        return tr("MOD Music");
+    case FileType::Program:
+        return tr("Program");
+    case FileType::Cartridge:
+        return tr("Cartridge");
+    case FileType::DiskImage:
+        return tr("Disk Image");
+    case FileType::TapeImage:
+        return tr("Tape Image");
+    case FileType::Rom:
+        return tr("ROM");
+    case FileType::Config:
+        return tr("Configuration");
+    default:
+        return tr("File");
     }
 }

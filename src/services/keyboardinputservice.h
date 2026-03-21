@@ -9,8 +9,8 @@
 #ifndef KEYBOARDINPUTSERVICE_H
 #define KEYBOARDINPUTSERVICE_H
 
-#include <QObject>
 #include <QKeyEvent>
+#include <QObject>
 
 class C64URestClient;
 
@@ -95,4 +95,4 @@ private:
     C64URestClient *restClient_;
 };
 
-#endif // KEYBOARDINPUTSERVICE_H
+#endif  // KEYBOARDINPUTSERVICE_H

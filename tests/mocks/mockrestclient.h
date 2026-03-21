@@ -9,12 +9,13 @@
 #ifndef MOCKRESTCLIENT_H
 #define MOCKRESTCLIENT_H
 
+#include <QList>
 #include <QObject>
 #include <QString>
-#include <QList>
 
 // Forward declare the structs from c64urestclient.h
-struct DeviceInfo {
+struct DeviceInfo
+{
     QString product;
     QString firmwareVersion;
     QString fpgaVersion;
@@ -24,7 +25,8 @@ struct DeviceInfo {
     QString apiVersion;
 };
 
-struct DriveInfo {
+struct DriveInfo
+{
     QString name;
     bool enabled = false;
     int busId = 0;
@@ -104,4 +106,4 @@ private:
     int getDrivesCalls_ = 0;
 };
 
-#endif // MOCKRESTCLIENT_H
+#endif  // MOCKRESTCLIENT_H

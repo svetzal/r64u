@@ -3,13 +3,13 @@
 #include <QFileInfo>
 #include <QFont>
 
-bool DefaultFilePreview::canHandle(const QString &/*path*/) const
+bool DefaultFilePreview::canHandle(const QString & /*path*/) const
 {
     // Default strategy handles everything (fallback)
     return true;
 }
 
-QWidget* DefaultFilePreview::createPreviewWidget(QWidget *parent)
+QWidget *DefaultFilePreview::createPreviewWidget(QWidget *parent)
 {
     previewWidget_ = new QWidget(parent);
     auto *layout = new QVBoxLayout(previewWidget_);
@@ -45,7 +45,7 @@ QWidget* DefaultFilePreview::createPreviewWidget(QWidget *parent)
     return previewWidget_;
 }
 
-void DefaultFilePreview::showPreview(const QString &/*path*/, const QByteArray &/*data*/)
+void DefaultFilePreview::showPreview(const QString & /*path*/, const QByteArray & /*data*/)
 {
     // Default preview only shows metadata, not content
     // Metadata should be set via setFileDetails()

@@ -9,11 +9,11 @@
  * - Signal forwarding works correctly
  */
 
-#include <QtTest/QtTest>
+#include "services/errorhandler.h"
+
 #include <QSignalSpy>
 #include <QWidget>
-
-#include "services/errorhandler.h"
+#include <QtTest/QtTest>
 
 class TestErrorHandler : public QObject
 {
@@ -63,10 +63,7 @@ void TestErrorHandler::testHandleErrorEmitsStatusMessage()
 {
     QSignalSpy spy(handler_, &ErrorHandler::statusMessage);
 
-    handler_->handleError(ErrorCategory::System,
-                          ErrorSeverity::Info,
-                          "Test error",
-                          "Details");
+    handler_->handleError(ErrorCategory::System, ErrorSeverity::Info, "Test error", "Details");
 
     QCOMPARE(spy.count(), 1);
     QString message = spy.at(0).at(0).toString();
@@ -78,9 +75,7 @@ void TestErrorHandler::testInfoSeverityTimeout()
 {
     QSignalSpy spy(handler_, &ErrorHandler::statusMessage);
 
-    handler_->handleError(ErrorCategory::System,
-                          ErrorSeverity::Info,
-                          "Info message");
+    handler_->handleError(ErrorCategory::System, ErrorSeverity::Info, "Info message");
 
     QCOMPARE(spy.count(), 1);
     int timeout = spy.at(0).at(1).toInt();
@@ -91,9 +86,7 @@ void TestErrorHandler::testWarningSeverityTimeout()
 {
     QSignalSpy spy(handler_, &ErrorHandler::statusMessage);
 
-    handler_->handleError(ErrorCategory::System,
-                          ErrorSeverity::Warning,
-                          "Warning message");
+    handler_->handleError(ErrorCategory::System, ErrorSeverity::Warning, "Warning message");
 
     QCOMPARE(spy.count(), 1);
     int timeout = spy.at(0).at(1).toInt();
@@ -151,9 +144,7 @@ void TestErrorHandler::testErrorLoggedSignal()
 {
     QSignalSpy spy(handler_, &ErrorHandler::errorLogged);
 
-    handler_->handleError(ErrorCategory::FileOperation,
-                          ErrorSeverity::Warning,
-                          "File error",
+    handler_->handleError(ErrorCategory::FileOperation, ErrorSeverity::Warning, "File error",
                           "Details here");
 
     QCOMPARE(spy.count(), 1);
@@ -171,15 +162,9 @@ void TestErrorHandler::testCategorySeverityLogging()
     handler_->handleError(ErrorCategory::Connection,
                           ErrorSeverity::Warning,  // Use Warning to avoid dialog
                           "Test");
-    handler_->handleError(ErrorCategory::FileOperation,
-                          ErrorSeverity::Warning,
-                          "Test");
-    handler_->handleError(ErrorCategory::Validation,
-                          ErrorSeverity::Info,
-                          "Test");
-    handler_->handleError(ErrorCategory::System,
-                          ErrorSeverity::Warning,
-                          "Test");
+    handler_->handleError(ErrorCategory::FileOperation, ErrorSeverity::Warning, "Test");
+    handler_->handleError(ErrorCategory::Validation, ErrorSeverity::Info, "Test");
+    handler_->handleError(ErrorCategory::System, ErrorSeverity::Warning, "Test");
 
     QCOMPARE(spy.count(), 4);
 

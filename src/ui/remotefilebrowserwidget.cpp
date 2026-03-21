@@ -1,25 +1,23 @@
 #include "remotefilebrowserwidget.h"
+
 #include "pathnavigationwidget.h"
+
 #include "models/remotefilemodel.h"
 #include "services/c64uftpclient.h"
 
-#include <QVBoxLayout>
-#include <QLabel>
+#include <QFileInfo>
 #include <QHeaderView>
+#include <QInputDialog>
+#include <QLabel>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QInputDialog>
-#include <QFileInfo>
-#include <QShowEvent>
 #include <QSet>
+#include <QShowEvent>
+#include <QVBoxLayout>
 
-RemoteFileBrowserWidget::RemoteFileBrowserWidget(RemoteFileModel *model,
-                                                 C64UFtpClient *ftpClient,
+RemoteFileBrowserWidget::RemoteFileBrowserWidget(RemoteFileModel *model, C64UFtpClient *ftpClient,
                                                  QWidget *parent)
-    : QWidget(parent)
-    , remoteFileModel_(model)
-    , ftpClient_(ftpClient)
-    , currentDirectory_("/")
+    : QWidget(parent), remoteFileModel_(model), ftpClient_(ftpClient), currentDirectory_("/")
 {
     // These dependencies are required - assert in debug builds
     Q_ASSERT(remoteFileModel_ && "RemoteFileModel is required");
@@ -41,7 +39,8 @@ void RemoteFileBrowserWidget::setupUi()
 
     // Path navigation widget
     navWidget_ = new PathNavigationWidget(tr("Upload to:"));
-    connect(navWidget_, &PathNavigationWidget::upClicked, this, &RemoteFileBrowserWidget::onParentFolder);
+    connect(navWidget_, &PathNavigationWidget::upClicked, this,
+            &RemoteFileBrowserWidget::onParentFolder);
     layout->addWidget(navWidget_);
 
     // Toolbar
@@ -87,14 +86,15 @@ void RemoteFileBrowserWidget::setupUi()
     treeView_->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     treeView_->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
 
-    connect(treeView_, &QTreeView::customContextMenuRequested,
-            this, &RemoteFileBrowserWidget::onContextMenu);
-    connect(treeView_, &QTreeView::doubleClicked,
-            this, &RemoteFileBrowserWidget::onDoubleClicked);
+    connect(treeView_, &QTreeView::customContextMenuRequested, this,
+            &RemoteFileBrowserWidget::onContextMenu);
+    connect(treeView_, &QTreeView::doubleClicked, this, &RemoteFileBrowserWidget::onDoubleClicked);
     // Guard against null selection model
     if (auto *selModel = treeView_->selectionModel()) {
-        connect(selModel, &QItemSelectionModel::selectionChanged,
-                this, [this]() { updateActions(); emit selectionChanged(); });
+        connect(selModel, &QItemSelectionModel::selectionChanged, this, [this]() {
+            updateActions();
+            emit selectionChanged();
+        });
     }
 
     layout->addWidget(treeView_);
@@ -118,7 +118,8 @@ void RemoteFileBrowserWidget::setupContextMenu()
         }
     });
     contextMenu_->addSeparator();
-    contextMenu_->addAction(tr("Download to Local Directory"), this, &RemoteFileBrowserWidget::onDownload);
+    contextMenu_->addAction(tr("Download to Local Directory"), this,
+                            &RemoteFileBrowserWidget::onDownload);
     contextMenu_->addAction(tr("Delete"), this, &RemoteFileBrowserWidget::onDelete);
     contextMenu_->addSeparator();
     contextMenu_->addAction(tr("New Folder"), this, &RemoteFileBrowserWidget::onNewFolder);
@@ -129,12 +130,12 @@ void RemoteFileBrowserWidget::setupConnections()
 {
     // FTP client signals - guard against null ftpClient_
     if (ftpClient_) {
-        connect(ftpClient_, &C64UFtpClient::directoryCreated,
-                this, &RemoteFileBrowserWidget::onDirectoryCreated);
-        connect(ftpClient_, &C64UFtpClient::fileRemoved,
-                this, &RemoteFileBrowserWidget::onFileRemoved);
-        connect(ftpClient_, &C64UFtpClient::fileRenamed,
-                this, &RemoteFileBrowserWidget::onFileRenamed);
+        connect(ftpClient_, &C64UFtpClient::directoryCreated, this,
+                &RemoteFileBrowserWidget::onDirectoryCreated);
+        connect(ftpClient_, &C64UFtpClient::fileRemoved, this,
+                &RemoteFileBrowserWidget::onFileRemoved);
+        connect(ftpClient_, &C64UFtpClient::fileRenamed, this,
+                &RemoteFileBrowserWidget::onFileRenamed);
     }
 }
 
@@ -207,7 +208,8 @@ QStringList RemoteFileBrowserWidget::selectedPaths() const
         return paths;
     }
 
-    // Get all selected indexes, filter to column 0 only (avoid duplicates from multi-column selection)
+    // Get all selected indexes, filter to column 0 only (avoid duplicates from multi-column
+    // selection)
     QModelIndexList selectedIndexes = treeView_->selectionModel()->selectedIndexes();
     QSet<QString> seenPaths;  // Deduplicate
 
@@ -344,8 +346,8 @@ void RemoteFileBrowserWidget::onNewFolder()
     }
 
     bool ok;
-    QString folderName = QInputDialog::getText(this, tr("New Remote Folder"),
-        tr("Folder name:"), QLineEdit::Normal, "", &ok);
+    QString folderName = QInputDialog::getText(this, tr("New Remote Folder"), tr("Folder name:"),
+                                               QLineEdit::Normal, "", &ok);
 
     if (!ok || folderName.isEmpty()) {
         return;
@@ -377,7 +379,7 @@ void RemoteFileBrowserWidget::onRename()
 
     bool ok;
     QString newName = QInputDialog::getText(this, tr("Rename Remote %1").arg(itemType),
-        tr("New name:"), QLineEdit::Normal, oldName, &ok);
+                                            tr("New name:"), QLineEdit::Normal, oldName, &ok);
 
     if (!ok || newName.isEmpty()) {
         return;
@@ -389,7 +391,7 @@ void RemoteFileBrowserWidget::onRename()
 
     if (newName.contains('/') || newName.contains('\\')) {
         QMessageBox::warning(this, tr("Invalid Name"),
-            tr("The name cannot contain '/' or '\\' characters."));
+                             tr("The name cannot contain '/' or '\\' characters."));
         return;
     }
 
@@ -419,11 +421,17 @@ void RemoteFileBrowserWidget::onDelete()
     if (paths.size() == 1) {
         QString fileName = QFileInfo(paths.first()).fileName();
         bool isDir = isSelectedDirectory();
-        confirmMessage = isDir
-            ? tr("Are you sure you want to permanently delete the folder '%1' and all its contents?\n\nThis cannot be undone.").arg(fileName)
-            : tr("Are you sure you want to permanently delete '%1'?\n\nThis cannot be undone.").arg(fileName);
+        confirmMessage =
+            isDir
+                ? tr("Are you sure you want to permanently delete the folder '%1' and all its "
+                     "contents?\n\nThis cannot be undone.")
+                      .arg(fileName)
+                : tr("Are you sure you want to permanently delete '%1'?\n\nThis cannot be undone.")
+                      .arg(fileName);
     } else {
-        confirmMessage = tr("Are you sure you want to permanently delete %1 items?\n\nThis cannot be undone.").arg(paths.size());
+        confirmMessage =
+            tr("Are you sure you want to permanently delete %1 items?\n\nThis cannot be undone.")
+                .arg(paths.size());
     }
 
     QMessageBox msgBox(this);

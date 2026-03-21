@@ -1,9 +1,9 @@
 #ifndef DRIVESTATUSWIDGET_H
 #define DRIVESTATUSWIDGET_H
 
-#include <QWidget>
 #include <QLabel>
 #include <QToolButton>
+#include <QWidget>
 
 class DriveStatusWidget : public QWidget
 {
@@ -29,4 +29,4 @@ private:
     void updateDisplay();
 };
 
-#endif // DRIVESTATUSWIDGET_H
+#endif  // DRIVESTATUSWIDGET_H

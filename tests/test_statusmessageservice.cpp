@@ -10,10 +10,10 @@
  * - Default timeouts are correct per priority level
  */
 
-#include <QtTest/QtTest>
-#include <QSignalSpy>
-
 #include "services/statusmessageservice.h"
+
+#include <QSignalSpy>
+#include <QtTest/QtTest>
 
 class TestStatusMessageService : public QObject
 {
@@ -111,22 +111,22 @@ void TestStatusMessageService::testEmptyMessageIsIgnored()
 
 void TestStatusMessageService::testInfoDefaultTimeout()
 {
-    int timeout = StatusMessageService::defaultTimeoutForPriority(
-        StatusMessageService::Priority::Info);
+    int timeout =
+        StatusMessageService::defaultTimeoutForPriority(StatusMessageService::Priority::Info);
     QCOMPARE(timeout, 3000);
 }
 
 void TestStatusMessageService::testWarningDefaultTimeout()
 {
-    int timeout = StatusMessageService::defaultTimeoutForPriority(
-        StatusMessageService::Priority::Warning);
+    int timeout =
+        StatusMessageService::defaultTimeoutForPriority(StatusMessageService::Priority::Warning);
     QCOMPARE(timeout, 5000);
 }
 
 void TestStatusMessageService::testErrorDefaultTimeout()
 {
-    int timeout = StatusMessageService::defaultTimeoutForPriority(
-        StatusMessageService::Priority::Error);
+    int timeout =
+        StatusMessageService::defaultTimeoutForPriority(StatusMessageService::Priority::Error);
     QCOMPARE(timeout, 8000);
 }
 
@@ -281,7 +281,7 @@ void TestStatusMessageService::testMessageTimeoutClearsDisplay()
     QSignalSpy spy(service_, &StatusMessageService::displayMessage);
 
     // Use a very short timeout
-    service_->setMinimumDisplayTime(10);  // 10ms minimum
+    service_->setMinimumDisplayTime(10);      // 10ms minimum
     service_->showInfo("Quick message", 50);  // 50ms timeout
 
     QCOMPARE(spy.count(), 1);

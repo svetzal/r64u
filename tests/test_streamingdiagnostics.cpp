@@ -1,8 +1,8 @@
-#include <QtTest>
-#include <QSignalSpy>
-#include <QColor>
-
 #include "services/streamingdiagnostics.h"
+
+#include <QColor>
+#include <QSignalSpy>
+#include <QtTest>
 
 class TestStreamingDiagnostics : public QObject
 {
@@ -73,8 +73,10 @@ private slots:
 
     void testQualityLevelString()
     {
-        QCOMPARE(StreamingDiagnostics::qualityLevelString(QualityLevel::Unknown), QString("Unknown"));
-        QCOMPARE(StreamingDiagnostics::qualityLevelString(QualityLevel::Excellent), QString("Excellent"));
+        QCOMPARE(StreamingDiagnostics::qualityLevelString(QualityLevel::Unknown),
+                 QString("Unknown"));
+        QCOMPARE(StreamingDiagnostics::qualityLevelString(QualityLevel::Excellent),
+                 QString("Excellent"));
         QCOMPARE(StreamingDiagnostics::qualityLevelString(QualityLevel::Good), QString("Good"));
         QCOMPARE(StreamingDiagnostics::qualityLevelString(QualityLevel::Fair), QString("Fair"));
         QCOMPARE(StreamingDiagnostics::qualityLevelString(QualityLevel::Poor), QString("Poor"));
@@ -151,7 +153,7 @@ private slots:
         auto callback = diagnostics.videoCallback();
 
         // Simulate frame assembly
-        callback.onFrameStarted(1, 1000);   // Frame 1 started at 1ms
+        callback.onFrameStarted(1, 1000);          // Frame 1 started at 1ms
         callback.onFrameCompleted(1, 5000, true);  // Frame 1 completed at 5ms
 
         // Frame should be counted as completed

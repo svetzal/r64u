@@ -1,18 +1,15 @@
 #include "errorhandler.h"
 
+#include <QDebug>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QDebug>
 
 ErrorHandler::ErrorHandler(QWidget *parentWidget, QObject *parent)
-    : QObject(parent)
-    , parentWidget_(parentWidget)
+    : QObject(parent), parentWidget_(parentWidget)
 {
 }
 
-void ErrorHandler::handleError(ErrorCategory category,
-                               ErrorSeverity severity,
-                               const QString &title,
+void ErrorHandler::handleError(ErrorCategory category, ErrorSeverity severity, const QString &title,
                                const QString &details)
 {
     // Log the error
@@ -33,8 +30,7 @@ void ErrorHandler::handleError(ErrorCategory category,
     }
 }
 
-void ErrorHandler::handleErrorWithRetry(ErrorCategory category,
-                                        const QString &title,
+void ErrorHandler::handleErrorWithRetry(ErrorCategory category, const QString &title,
                                         const QString &details,
                                         const std::function<void()> &retryCallback)
 {
@@ -54,26 +50,19 @@ void ErrorHandler::handleErrorWithRetry(ErrorCategory category,
 
 void ErrorHandler::handleConnectionError(const QString &message)
 {
-    handleError(ErrorCategory::Connection,
-                ErrorSeverity::Critical,
-                tr("Connection Error"),
+    handleError(ErrorCategory::Connection, ErrorSeverity::Critical, tr("Connection Error"),
                 message);
 }
 
 void ErrorHandler::handleOperationFailed(const QString &operation, const QString &error)
 {
-    handleError(ErrorCategory::FileOperation,
-                ErrorSeverity::Warning,
-                tr("%1 failed").arg(operation),
-                error);
+    handleError(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                tr("%1 failed").arg(operation), error);
 }
 
 void ErrorHandler::handleDataError(const QString &message)
 {
-    handleError(ErrorCategory::FileOperation,
-                ErrorSeverity::Warning,
-                tr("Error"),
-                message);
+    handleError(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), message);
 }
 
 void ErrorHandler::showErrorDialog(const QString &title, const QString &message)
@@ -81,8 +70,7 @@ void ErrorHandler::showErrorDialog(const QString &title, const QString &message)
     QMessageBox::warning(parentWidget_, title, message);
 }
 
-bool ErrorHandler::showRetryDialog(const QString &title,
-                                   const QString &message,
+bool ErrorHandler::showRetryDialog(const QString &title, const QString &message,
                                    const std::function<void()> &retryCallback)
 {
     QMessageBox msgBox(parentWidget_);
@@ -105,16 +93,12 @@ bool ErrorHandler::showRetryDialog(const QString &title,
     return false;
 }
 
-void ErrorHandler::logError(ErrorCategory category,
-                            ErrorSeverity severity,
-                            const QString &title,
+void ErrorHandler::logError(ErrorCategory category, ErrorSeverity severity, const QString &title,
                             const QString &details)
 {
     // Log to Qt debug output
-    QString logMessage = QString("[%1/%2] %3")
-        .arg(categoryToString(category),
-             severityToString(severity),
-             title);
+    QString logMessage =
+        QString("[%1/%2] %3").arg(categoryToString(category), severityToString(severity), title);
 
     if (!details.isEmpty() && details != title) {
         logMessage += QString(": %1").arg(details);
@@ -144,7 +128,7 @@ int ErrorHandler::timeoutForSeverity(ErrorSeverity severity)
     case ErrorSeverity::Warning:
         return 5000;  // 5 seconds
     case ErrorSeverity::Critical:
-        return 0;     // No timeout - stays until replaced
+        return 0;  // No timeout - stays until replaced
     }
     return 5000;
 }

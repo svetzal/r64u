@@ -4,18 +4,15 @@
  */
 
 #include "streamcontrolclient.h"
+
 #include "utils/logging.h"
 
 StreamControlClient::StreamControlClient(QObject *parent)
-    : QObject(parent)
-    , socket_(new QTcpSocket(this))
+    : QObject(parent), socket_(new QTcpSocket(this))
 {
-    connect(socket_, &QTcpSocket::connected,
-            this, &StreamControlClient::onSocketConnected);
-    connect(socket_, &QTcpSocket::disconnected,
-            this, &StreamControlClient::onSocketDisconnected);
-    connect(socket_, &QTcpSocket::errorOccurred,
-            this, &StreamControlClient::onSocketError);
+    connect(socket_, &QTcpSocket::connected, this, &StreamControlClient::onSocketConnected);
+    connect(socket_, &QTcpSocket::disconnected, this, &StreamControlClient::onSocketDisconnected);
+    connect(socket_, &QTcpSocket::errorOccurred, this, &StreamControlClient::onSocketError);
 }
 
 StreamControlClient::~StreamControlClient()
@@ -31,8 +28,7 @@ void StreamControlClient::setHost(const QString &host)
     host_ = host;
 }
 
-void StreamControlClient::startVideoStream(const QString &targetHost,
-                                           quint16 targetPort,
+void StreamControlClient::startVideoStream(const QString &targetHost, quint16 targetPort,
                                            quint16 durationTicks)
 {
     PendingCommand cmd;
@@ -43,8 +39,7 @@ void StreamControlClient::startVideoStream(const QString &targetHost,
     sendCommand(cmd);
 }
 
-void StreamControlClient::startAudioStream(const QString &targetHost,
-                                           quint16 targetPort,
+void StreamControlClient::startAudioStream(const QString &targetHost, quint16 targetPort,
                                            quint16 durationTicks)
 {
     PendingCommand cmd;
@@ -75,8 +70,7 @@ void StreamControlClient::stopAudioStream()
     sendCommand(cmd);
 }
 
-void StreamControlClient::startAllStreams(const QString &targetHost,
-                                          quint16 videoPort,
+void StreamControlClient::startAllStreams(const QString &targetHost, quint16 videoPort,
                                           quint16 audioPort)
 {
     startVideoStream(targetHost, videoPort);
@@ -130,7 +124,7 @@ void StreamControlClient::onSocketConnected()
         PendingCommand cmd = pendingCommands_.takeFirst();
 
         LOG_VERBOSE() << "StreamControlClient: Sending command:" << cmd.description
-                 << "data size:" << cmd.data.size() << "bytes";
+                      << "data size:" << cmd.data.size() << "bytes";
 
         qint64 written = socket_->write(cmd.data);
         socket_->flush();
@@ -139,7 +133,8 @@ void StreamControlClient::onSocketConnected()
             LOG_VERBOSE() << "StreamControlClient: Command sent successfully";
             emit commandSucceeded(cmd.description);
         } else {
-            LOG_VERBOSE() << "StreamControlClient: Failed to write command, wrote" << written << "of" << cmd.data.size();
+            LOG_VERBOSE() << "StreamControlClient: Failed to write command, wrote" << written
+                          << "of" << cmd.data.size();
             emit commandFailed(cmd.description, "Failed to write command data");
         }
     }
@@ -158,8 +153,8 @@ void StreamControlClient::onSocketDisconnected()
 
 void StreamControlClient::onSocketError(QAbstractSocket::SocketError error)
 {
-    LOG_VERBOSE() << "StreamControlClient: Socket error connecting to" << host_ << "port" << ControlPort
-             << "- error code:" << error << socket_->errorString();
+    LOG_VERBOSE() << "StreamControlClient: Socket error connecting to" << host_ << "port"
+                  << ControlPort << "- error code:" << error << socket_->errorString();
     connecting_ = false;
 
     QString errorMsg;
@@ -190,10 +185,8 @@ void StreamControlClient::onSocketError(QAbstractSocket::SocketError error)
     }
 }
 
-QByteArray StreamControlClient::buildStartCommand(CommandType type,
-                                                   const QString &targetHost,
-                                                   quint16 targetPort,
-                                                   quint16 durationTicks) const
+QByteArray StreamControlClient::buildStartCommand(CommandType type, const QString &targetHost,
+                                                  quint16 targetPort, quint16 durationTicks) const
 {
     // Build the destination string: "IP:PORT"
     QString destination = QString("%1:%2").arg(targetHost).arg(targetPort);

@@ -1,28 +1,29 @@
 #include "viewpanel.h"
-#include "videodisplaywidget.h"
+
 #include "streamingdiagnosticswidget.h"
-#include "services/deviceconnection.h"
-#include "services/streamingmanager.h"
-#include "services/videostreamreceiver.h"
-#include "services/keyboardinputservice.h"
-#include "services/videorecordingservice.h"
+#include "videodisplaywidget.h"
+
 #include "services/audiostreamreceiver.h"
+#include "services/deviceconnection.h"
+#include "services/keyboardinputservice.h"
 #include "services/streamingdiagnostics.h"
+#include "services/streamingmanager.h"
+#include "services/videorecordingservice.h"
+#include "services/videostreamreceiver.h"
 #include "utils/logging.h"
 
-#include <QVBoxLayout>
-#include <QMessageBox>
-#include <QSettings>
-#include <QKeyEvent>
 #include <QDateTime>
 #include <QDir>
-#include <QStandardPaths>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QKeyEvent>
+#include <QMessageBox>
+#include <QSettings>
+#include <QStandardPaths>
+#include <QVBoxLayout>
 
 ViewPanel::ViewPanel(DeviceConnection *connection, QWidget *parent)
-    : QWidget(parent)
-    , deviceConnection_(connection)
+    : QWidget(parent), deviceConnection_(connection)
 {
     // DeviceConnection is required - assert in debug builds
     Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
@@ -99,9 +100,12 @@ void ViewPanel::setupUi()
     integerRadio_ = new QRadioButton(tr("Integer"));
     integerRadio_->setToolTip(tr("Integer scaling with letterboxing - pixel-perfect"));
 
-    scalingModeGroup_->addButton(sharpRadio_, static_cast<int>(VideoDisplayWidget::ScalingMode::Sharp));
-    scalingModeGroup_->addButton(smoothRadio_, static_cast<int>(VideoDisplayWidget::ScalingMode::Smooth));
-    scalingModeGroup_->addButton(integerRadio_, static_cast<int>(VideoDisplayWidget::ScalingMode::Integer));
+    scalingModeGroup_->addButton(sharpRadio_,
+                                 static_cast<int>(VideoDisplayWidget::ScalingMode::Sharp));
+    scalingModeGroup_->addButton(smoothRadio_,
+                                 static_cast<int>(VideoDisplayWidget::ScalingMode::Smooth));
+    scalingModeGroup_->addButton(integerRadio_,
+                                 static_cast<int>(VideoDisplayWidget::ScalingMode::Integer));
 
     toolBar_->addWidget(sharpRadio_);
     toolBar_->addWidget(smoothRadio_);
@@ -110,8 +114,8 @@ void ViewPanel::setupUi()
     // Default to Integer (will be overridden by loadSettings)
     integerRadio_->setChecked(true);
 
-    connect(scalingModeGroup_, QOverload<int>::of(&QButtonGroup::idClicked),
-            this, &ViewPanel::onScalingModeChanged);
+    connect(scalingModeGroup_, QOverload<int>::of(&QButtonGroup::idClicked), this,
+            &ViewPanel::onScalingModeChanged);
 
     layout->addWidget(toolBar_);
 
@@ -136,8 +140,8 @@ void ViewPanel::setupConnections()
 {
     // Subscribe to device connection state changes
     if (deviceConnection_) {
-        connect(deviceConnection_, &DeviceConnection::stateChanged,
-                this, &ViewPanel::onConnectionStateChanged);
+        connect(deviceConnection_, &DeviceConnection::stateChanged, this,
+                &ViewPanel::onConnectionStateChanged);
     }
 
     // Connect streaming manager to display
@@ -148,54 +152,53 @@ void ViewPanel::setupConnections()
 
     // Connect streaming manager signals
     if (streamingManager_) {
-        connect(streamingManager_, &StreamingManager::streamingStarted,
-                this, &ViewPanel::onStreamingStarted);
-        connect(streamingManager_, &StreamingManager::streamingStopped,
-                this, &ViewPanel::onStreamingStopped);
-        connect(streamingManager_, &StreamingManager::videoFormatDetected,
-                this, &ViewPanel::onVideoFormatDetected);
-        connect(streamingManager_, &StreamingManager::error,
-                this, &ViewPanel::onStreamingError);
-        connect(streamingManager_, &StreamingManager::statusMessage,
-                this, &ViewPanel::statusMessage);
+        connect(streamingManager_, &StreamingManager::streamingStarted, this,
+                &ViewPanel::onStreamingStarted);
+        connect(streamingManager_, &StreamingManager::streamingStopped, this,
+                &ViewPanel::onStreamingStopped);
+        connect(streamingManager_, &StreamingManager::videoFormatDetected, this,
+                &ViewPanel::onVideoFormatDetected);
+        connect(streamingManager_, &StreamingManager::error, this, &ViewPanel::onStreamingError);
+        connect(streamingManager_, &StreamingManager::statusMessage, this,
+                &ViewPanel::statusMessage);
     }
 
     // Connect video display keyboard events to keyboard service
     if (videoDisplayWidget_) {
-        connect(videoDisplayWidget_, &VideoDisplayWidget::keyPressed,
-                this, [this](QKeyEvent *event) {
-            if (streamingManager_ && streamingManager_->keyboardInput()) {
-                streamingManager_->keyboardInput()->handleKeyPress(event);
-            }
-        });
+        connect(videoDisplayWidget_, &VideoDisplayWidget::keyPressed, this,
+                [this](QKeyEvent *event) {
+                    if (streamingManager_ && streamingManager_->keyboardInput()) {
+                        streamingManager_->keyboardInput()->handleKeyPress(event);
+                    }
+                });
     }
 
     // Connect recording service signals
     if (recordingService_) {
-        connect(recordingService_, &VideoRecordingService::recordingStarted,
-                this, &ViewPanel::onRecordingStarted);
-        connect(recordingService_, &VideoRecordingService::recordingStopped,
-                this, &ViewPanel::onRecordingStopped);
-        connect(recordingService_, &VideoRecordingService::error,
-                this, &ViewPanel::onRecordingError);
+        connect(recordingService_, &VideoRecordingService::recordingStarted, this,
+                &ViewPanel::onRecordingStarted);
+        connect(recordingService_, &VideoRecordingService::recordingStopped, this,
+                &ViewPanel::onRecordingStopped);
+        connect(recordingService_, &VideoRecordingService::error, this,
+                &ViewPanel::onRecordingError);
     }
 
     // Connect video receiver to recording service (for recording frames)
     if (streamingManager_ && streamingManager_->videoReceiver()) {
-        connect(streamingManager_->videoReceiver(), &VideoStreamReceiver::frameReady,
-                this, &ViewPanel::onFrameReadyForRecording);
+        connect(streamingManager_->videoReceiver(), &VideoStreamReceiver::frameReady, this,
+                &ViewPanel::onFrameReadyForRecording);
     }
 
     // Connect audio receiver to recording service (for recording audio)
     if (streamingManager_ && streamingManager_->audioReceiver()) {
-        connect(streamingManager_->audioReceiver(), &AudioStreamReceiver::samplesReady,
-                this, &ViewPanel::onAudioSamplesForRecording);
+        connect(streamingManager_->audioReceiver(), &AudioStreamReceiver::samplesReady, this,
+                &ViewPanel::onAudioSamplesForRecording);
     }
 
     // Connect diagnostics service to widget
     if (streamingManager_ && streamingManager_->diagnostics() && diagnosticsWidget_) {
-        connect(streamingManager_->diagnostics(), &StreamingDiagnostics::diagnosticsUpdated,
-                this, &ViewPanel::onDiagnosticsUpdated);
+        connect(streamingManager_->diagnostics(), &StreamingDiagnostics::diagnosticsUpdated, this,
+                &ViewPanel::onDiagnosticsUpdated);
     }
 }
 
@@ -231,8 +234,10 @@ void ViewPanel::stopStreamingIfActive()
 void ViewPanel::loadSettings()
 {
     QSettings settings;
-    int scalingMode = settings.value("view/scalingMode",
-        static_cast<int>(VideoDisplayWidget::ScalingMode::Integer)).toInt();
+    int scalingMode =
+        settings
+            .value("view/scalingMode", static_cast<int>(VideoDisplayWidget::ScalingMode::Integer))
+            .toInt();
     auto mode = static_cast<VideoDisplayWidget::ScalingMode>(scalingMode);
     videoDisplayWidget_->setScalingMode(mode);
 
@@ -253,8 +258,7 @@ void ViewPanel::loadSettings()
 void ViewPanel::saveSettings()
 {
     QSettings settings;
-    settings.setValue("view/scalingMode",
-        static_cast<int>(videoDisplayWidget_->scalingMode()));
+    settings.setValue("view/scalingMode", static_cast<int>(videoDisplayWidget_->scalingMode()));
 }
 
 int ViewPanel::scalingMode() const
@@ -266,7 +270,7 @@ void ViewPanel::onStartStreaming()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
         QMessageBox::warning(this, tr("Not Connected"),
-                           tr("Please connect to a C64 Ultimate device first."));
+                             tr("Please connect to a C64 Ultimate device first."));
         return;
     }
 
@@ -308,7 +312,8 @@ void ViewPanel::onStreamingStopped()
     }
 
     if (startStreamAction_) {
-        startStreamAction_->setEnabled(deviceConnection_ && deviceConnection_->canPerformOperations());
+        startStreamAction_->setEnabled(deviceConnection_ &&
+                                       deviceConnection_->canPerformOperations());
     }
     if (stopStreamAction_) {
         stopStreamAction_->setEnabled(false);
@@ -384,8 +389,11 @@ void ViewPanel::onCaptureScreenshot()
 
     // Get the capture directory from settings or use Pictures folder
     QSettings settings;
-    QString captureDir = settings.value("capture/directory",
-        QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)).toString();
+    QString captureDir =
+        settings
+            .value("capture/directory",
+                   QStandardPaths::writableLocation(QStandardPaths::PicturesLocation))
+            .toString();
 
     // Ensure the directory exists
     QDir dir(captureDir);
@@ -414,8 +422,11 @@ void ViewPanel::onStartRecording()
 
     // Get the capture directory from settings or use Videos folder
     QSettings settings;
-    QString captureDir = settings.value("capture/directory",
-        QStandardPaths::writableLocation(QStandardPaths::MoviesLocation)).toString();
+    QString captureDir =
+        settings
+            .value("capture/directory",
+                   QStandardPaths::writableLocation(QStandardPaths::MoviesLocation))
+            .toString();
 
     // Ensure the directory exists
     QDir dir(captureDir);
@@ -461,9 +472,8 @@ void ViewPanel::onRecordingStopped(const QString &filePath, int frameCount)
     }
 
     QFileInfo fileInfo(filePath);
-    emit statusMessage(tr("Recording saved: %1 (%2 frames)")
-        .arg(fileInfo.fileName())
-        .arg(frameCount), 5000);
+    emit statusMessage(
+        tr("Recording saved: %1 (%2 frames)").arg(fileInfo.fileName()).arg(frameCount), 5000);
 }
 
 void ViewPanel::onRecordingError(const QString &error)
@@ -479,7 +489,8 @@ void ViewPanel::onRecordingError(const QString &error)
     }
 }
 
-void ViewPanel::onFrameReadyForRecording(const QByteArray &frameData, quint16 frameNumber, VideoStreamReceiver::VideoFormat format)
+void ViewPanel::onFrameReadyForRecording(const QByteArray &frameData, quint16 frameNumber,
+                                         VideoStreamReceiver::VideoFormat format)
 {
     Q_UNUSED(frameNumber)
 
@@ -520,7 +531,8 @@ void ViewPanel::onFrameReadyForRecording(const QByteArray &frameData, quint16 fr
 
     for (int y = 0; y < height && y * VideoDisplayWidget::BytesPerLine < srcSize; ++y) {
         auto *destLine = reinterpret_cast<QRgb *>(frame.scanLine(y));
-        const quint8 *srcLine = src + (static_cast<ptrdiff_t>(y) * VideoDisplayWidget::BytesPerLine);
+        const quint8 *srcLine =
+            src + (static_cast<ptrdiff_t>(y) * VideoDisplayWidget::BytesPerLine);
 
         for (int byteIdx = 0; byteIdx < VideoDisplayWidget::BytesPerLine; ++byteIdx) {
             quint8 packedPixels = srcLine[byteIdx];

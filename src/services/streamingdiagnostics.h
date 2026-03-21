@@ -9,10 +9,12 @@
 #ifndef STREAMINGDIAGNOSTICS_H
 #define STREAMINGDIAGNOSTICS_H
 
-#include <QObject>
-#include <QElapsedTimer>
-#include <functional>
 #include "utils/rollingstats.h"
+
+#include <QElapsedTimer>
+#include <QObject>
+
+#include <functional>
 
 class VideoStreamReceiver;
 class AudioStreamReceiver;
@@ -45,14 +47,14 @@ struct DiagnosticsSnapshot
     quint64 videoFramesIncomplete = 0;
     double videoPacketLossPercent = 0.0;
     double videoFrameCompletionPercent = 100.0;
-    double videoPacketJitterMs = 0.0;        ///< stddev of inter-packet times
-    double videoFrameAssemblyTimeMs = 0.0;   ///< Average time to assemble a frame
+    double videoPacketJitterMs = 0.0;       ///< stddev of inter-packet times
+    double videoFrameAssemblyTimeMs = 0.0;  ///< Average time to assemble a frame
     quint64 videoOutOfOrderPackets = 0;
 
     // Video playback metrics
-    int videoFrameBufferLevel = 0;           ///< Frames waiting in display buffer
-    double videoDisplayJitterMs = 0.0;       ///< stddev of inter-display times
-    quint64 videoDisplayUnderruns = 0;       ///< Frames missed due to empty buffer
+    int videoFrameBufferLevel = 0;      ///< Frames waiting in display buffer
+    double videoDisplayJitterMs = 0.0;  ///< stddev of inter-display times
+    quint64 videoDisplayUnderruns = 0;  ///< Frames missed due to empty buffer
 
     // Audio network metrics
     quint64 audioPacketsReceived = 0;
@@ -65,10 +67,10 @@ struct DiagnosticsSnapshot
     quint64 audioSampleDiscontinuities = 0;
 
     // Audio playback metrics
-    quint64 audioSamplesWritten = 0;         ///< Bytes successfully written
-    quint64 audioSamplesDropped = 0;         ///< Bytes dropped due to full buffer
-    double audioWriteJitterMs = 0.0;         ///< stddev of inter-write times
-    quint64 audioPlaybackUnderruns = 0;      ///< Playback buffer underruns
+    quint64 audioSamplesWritten = 0;     ///< Bytes successfully written
+    quint64 audioSamplesDropped = 0;     ///< Bytes dropped due to full buffer
+    double audioWriteJitterMs = 0.0;     ///< stddev of inter-write times
+    quint64 audioPlaybackUnderruns = 0;  ///< Playback buffer underruns
 
     // Timing
     qint64 uptimeMs = 0;  ///< Time since diagnostics started
@@ -100,7 +102,8 @@ struct AudioDiagnosticsCallback
  */
 struct AudioPlaybackDiagnosticsCallback
 {
-    std::function<void(qint64 writeTimeUs, qint64 bytesWritten, qint64 bytesDropped)> onSamplesWritten;
+    std::function<void(qint64 writeTimeUs, qint64 bytesWritten, qint64 bytesDropped)>
+        onSamplesWritten;
     std::function<void()> onPlaybackUnderrun;
 };
 
@@ -315,4 +318,4 @@ private:
     RollingStats videoDisplayIntervalStats_{StatisticsWindowSize};
 };
 
-#endif // STREAMINGDIAGNOSTICS_H
+#endif  // STREAMINGDIAGNOSTICS_H

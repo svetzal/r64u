@@ -9,12 +9,12 @@
  * (not IFtpClient), so we test the underlying components that it coordinates.
  */
 
-#include <QtTest>
-#include <QSignalSpy>
-
 #include "mocks/mockftpclient.h"
-#include "ui/pathnavigationwidget.h"
 #include "models/remotefilemodel.h"
+#include "ui/pathnavigationwidget.h"
+
+#include <QSignalSpy>
+#include <QtTest>
 
 class TestFileBrowserSync : public QObject
 {
@@ -91,7 +91,9 @@ private slots:
     {
         // Setup some entries
         QList<FtpEntry> entries;
-        FtpEntry file; file.name = "test.txt"; file.isDirectory = false;
+        FtpEntry file;
+        file.name = "test.txt";
+        file.isDirectory = false;
         entries << file;
         mockFtp->mockSetDirectoryListing("/", entries);
 
@@ -359,44 +361,35 @@ private slots:
     // Test SID file detection
     void testFileTypeDetectionSid()
     {
-        QCOMPARE(RemoteFileModel::detectFileType("music.sid"),
-                 RemoteFileModel::FileType::SidMusic);
-        QCOMPARE(RemoteFileModel::detectFileType("MUSIC.SID"),
-                 RemoteFileModel::FileType::SidMusic);
+        QCOMPARE(RemoteFileModel::detectFileType("music.sid"), RemoteFileModel::FileType::SidMusic);
+        QCOMPARE(RemoteFileModel::detectFileType("MUSIC.SID"), RemoteFileModel::FileType::SidMusic);
     }
 
     // Test PRG file detection
     void testFileTypeDetectionPrg()
     {
-        QCOMPARE(RemoteFileModel::detectFileType("game.prg"),
-                 RemoteFileModel::FileType::Program);
-        QCOMPARE(RemoteFileModel::detectFileType("GAME.PRG"),
-                 RemoteFileModel::FileType::Program);
+        QCOMPARE(RemoteFileModel::detectFileType("game.prg"), RemoteFileModel::FileType::Program);
+        QCOMPARE(RemoteFileModel::detectFileType("GAME.PRG"), RemoteFileModel::FileType::Program);
     }
 
     // Test D64 file detection
     void testFileTypeDetectionD64()
     {
-        QCOMPARE(RemoteFileModel::detectFileType("disk.d64"),
-                 RemoteFileModel::FileType::DiskImage);
-        QCOMPARE(RemoteFileModel::detectFileType("DISK.D64"),
-                 RemoteFileModel::FileType::DiskImage);
+        QCOMPARE(RemoteFileModel::detectFileType("disk.d64"), RemoteFileModel::FileType::DiskImage);
+        QCOMPARE(RemoteFileModel::detectFileType("DISK.D64"), RemoteFileModel::FileType::DiskImage);
     }
 
     // Test CRT file detection
     void testFileTypeDetectionCrt()
     {
-        QCOMPARE(RemoteFileModel::detectFileType("cart.crt"),
-                 RemoteFileModel::FileType::Cartridge);
-        QCOMPARE(RemoteFileModel::detectFileType("CART.CRT"),
-                 RemoteFileModel::FileType::Cartridge);
+        QCOMPARE(RemoteFileModel::detectFileType("cart.crt"), RemoteFileModel::FileType::Cartridge);
+        QCOMPARE(RemoteFileModel::detectFileType("CART.CRT"), RemoteFileModel::FileType::Cartridge);
     }
 
     // Test unknown file type
     void testFileTypeDetectionUnknown()
     {
-        QCOMPARE(RemoteFileModel::detectFileType("file.xyz"),
-                 RemoteFileModel::FileType::Unknown);
+        QCOMPARE(RemoteFileModel::detectFileType("file.xyz"), RemoteFileModel::FileType::Unknown);
         QCOMPARE(RemoteFileModel::detectFileType("noextension"),
                  RemoteFileModel::FileType::Unknown);
     }

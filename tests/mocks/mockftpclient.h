@@ -9,10 +9,10 @@
 #ifndef MOCKFTPCLIENT_H
 #define MOCKFTPCLIENT_H
 
-#include <QQueue>
-#include <QMap>
-
 #include "services/iftpclient.h"
+
+#include <QMap>
+#include <QQueue>
 
 /**
  * @brief Mock FTP client implementing IFtpClient for testing.
@@ -188,7 +188,8 @@ public:
     /// @}
 
 private:
-    struct PendingOp {
+    struct PendingOp
+    {
         enum Type { List, Download, Upload, Mkdir, DownloadToMemory, Delete, RemoveDir, Rename };
         Type type;
         QString path;
@@ -217,4 +218,4 @@ private:
     QString nextOpError_;
 };
 
-#endif // MOCKFTPCLIENT_H
+#endif  // MOCKFTPCLIENT_H

@@ -1,12 +1,13 @@
 #ifndef VIEWPANEL_H
 #define VIEWPANEL_H
 
-#include <QWidget>
-#include <QToolBar>
-#include <QLabel>
-#include <QButtonGroup>
-#include <QRadioButton>
 #include "services/videostreamreceiver.h"
+
+#include <QButtonGroup>
+#include <QLabel>
+#include <QRadioButton>
+#include <QToolBar>
+#include <QWidget>
 
 class DeviceConnection;
 class VideoDisplayWidget;
@@ -30,7 +31,7 @@ public:
      * @brief Returns the streaming manager for external control.
      * @return Pointer to the streaming manager.
      */
-    [[nodiscard]] StreamingManager* streamingManager() const { return streamingManager_; }
+    [[nodiscard]] StreamingManager *streamingManager() const { return streamingManager_; }
 
     // Settings
     void loadSettings();
@@ -55,7 +56,8 @@ private slots:
     void onRecordingStarted(const QString &filePath);
     void onRecordingStopped(const QString &filePath, int frameCount);
     void onRecordingError(const QString &error);
-    void onFrameReadyForRecording(const QByteArray &frameData, quint16 frameNumber, VideoStreamReceiver::VideoFormat format);
+    void onFrameReadyForRecording(const QByteArray &frameData, quint16 frameNumber,
+                                  VideoStreamReceiver::VideoFormat format);
     void onAudioSamplesForRecording(const QByteArray &samples, int sampleCount);
     void onStatsToggled(bool checked);
     void onDiagnosticsUpdated(const DiagnosticsSnapshot &snapshot);
@@ -91,4 +93,4 @@ private:
     StreamingDiagnosticsWidget *diagnosticsWidget_ = nullptr;
 };
 
-#endif // VIEWPANEL_H
+#endif  // VIEWPANEL_H

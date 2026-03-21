@@ -1,9 +1,9 @@
-#include <QtTest>
-#include <QTemporaryDir>
-#include <QSignalSpy>
-
 #include "mocks/mockftpclient.h"
 #include "models/transferqueue.h"
+
+#include <QSignalSpy>
+#include <QTemporaryDir>
+#include <QtTest>
 
 class TestTransferQueue : public QObject
 {
@@ -108,18 +108,28 @@ private slots:
         //     file2.txt
 
         QList<FtpEntry> rootEntries;
-        FtpEntry subdir1; subdir1.name = "subdir1"; subdir1.isDirectory = true;
-        FtpEntry subdir2; subdir2.name = "subdir2"; subdir2.isDirectory = true;
+        FtpEntry subdir1;
+        subdir1.name = "subdir1";
+        subdir1.isDirectory = true;
+        FtpEntry subdir2;
+        subdir2.name = "subdir2";
+        subdir2.isDirectory = true;
         rootEntries << subdir1 << subdir2;
         mockFtp->mockSetDirectoryListing("/remote/folder", rootEntries);
 
         QList<FtpEntry> subdir1Entries;
-        FtpEntry file1; file1.name = "file1.txt"; file1.isDirectory = false; file1.size = 100;
+        FtpEntry file1;
+        file1.name = "file1.txt";
+        file1.isDirectory = false;
+        file1.size = 100;
         subdir1Entries << file1;
         mockFtp->mockSetDirectoryListing("/remote/folder/subdir1", subdir1Entries);
 
         QList<FtpEntry> subdir2Entries;
-        FtpEntry file2; file2.name = "file2.txt"; file2.isDirectory = false; file2.size = 200;
+        FtpEntry file2;
+        file2.name = "file2.txt";
+        file2.isDirectory = false;
+        file2.size = 200;
         subdir2Entries << file2;
         mockFtp->mockSetDirectoryListing("/remote/folder/subdir2", subdir2Entries);
 
@@ -197,17 +207,23 @@ private slots:
         //       file.txt
 
         QList<FtpEntry> rootEntries;
-        FtpEntry level1; level1.name = "level1"; level1.isDirectory = true;
+        FtpEntry level1;
+        level1.name = "level1";
+        level1.isDirectory = true;
         rootEntries << level1;
         mockFtp->mockSetDirectoryListing("/remote/root", rootEntries);
 
         QList<FtpEntry> level1Entries;
-        FtpEntry level2; level2.name = "level2"; level2.isDirectory = true;
+        FtpEntry level2;
+        level2.name = "level2";
+        level2.isDirectory = true;
         level1Entries << level2;
         mockFtp->mockSetDirectoryListing("/remote/root/level1", level1Entries);
 
         QList<FtpEntry> level2Entries;
-        FtpEntry file; file.name = "file.txt"; file.isDirectory = false;
+        FtpEntry file;
+        file.name = "file.txt";
+        file.isDirectory = false;
         level2Entries << file;
         mockFtp->mockSetDirectoryListing("/remote/root/level1/level2", level2Entries);
 
@@ -242,7 +258,9 @@ private slots:
     void testCancelDuringScanning()
     {
         QList<FtpEntry> entries;
-        FtpEntry subdir; subdir.name = "subdir"; subdir.isDirectory = true;
+        FtpEntry subdir;
+        subdir.name = "subdir";
+        subdir.isDirectory = true;
         entries << subdir;
         mockFtp->mockSetDirectoryListing("/remote/folder", entries);
 
@@ -260,7 +278,9 @@ private slots:
     void testClearDuringScanning()
     {
         QList<FtpEntry> entries;
-        FtpEntry subdir; subdir.name = "subdir"; subdir.isDirectory = true;
+        FtpEntry subdir;
+        subdir.name = "subdir";
+        subdir.isDirectory = true;
         entries << subdir;
         mockFtp->mockSetDirectoryListing("/remote/folder", entries);
 
@@ -297,9 +317,12 @@ private slots:
     {
         // Setup directory with trailing slash in path
         QList<FtpEntry> entries;
-        FtpEntry file; file.name = "test.txt"; file.isDirectory = false;
+        FtpEntry file;
+        file.name = "test.txt";
+        file.isDirectory = false;
         entries << file;
-        mockFtp->mockSetDirectoryListing("/remote/folder", entries);  // Server returns without trailing slash
+        mockFtp->mockSetDirectoryListing("/remote/folder",
+                                         entries);  // Server returns without trailing slash
         mockFtp->mockSetDownloadData("/remote/folder/test.txt", "test content");
 
         // Request with trailing slash
@@ -671,8 +694,7 @@ private slots:
         flushAndProcess();
 
         // The batch should complete even though there are no files
-        QVERIFY2(batchCompletedSpy.count() >= 1,
-                 "Empty folder upload batch should complete");
+        QVERIFY2(batchCompletedSpy.count() >= 1, "Empty folder upload batch should complete");
 
         // Queue should have 0 items (no files to transfer)
         QCOMPARE(queue->rowCount(), 0);
@@ -746,9 +768,12 @@ private slots:
         bool hasSub1File = false;
         bool hasSub2File = false;
         for (const QString &path : uploads) {
-            if (path.contains("file_in_root.txt")) hasRootFile = true;
-            if (path.contains("file_in_sub1.txt")) hasSub1File = true;
-            if (path.contains("file_in_sub2.txt")) hasSub2File = true;
+            if (path.contains("file_in_root.txt"))
+                hasRootFile = true;
+            if (path.contains("file_in_sub1.txt"))
+                hasSub1File = true;
+            if (path.contains("file_in_sub2.txt"))
+                hasSub2File = true;
         }
 
         QVERIFY2(hasRootFile, "File in root directory should have been uploaded");
@@ -961,8 +986,12 @@ private slots:
     {
         // Setup directory with two files
         QList<FtpEntry> entries;
-        FtpEntry file1; file1.name = "file1.txt"; file1.isDirectory = false;
-        FtpEntry file2; file2.name = "file2.txt"; file2.isDirectory = false;
+        FtpEntry file1;
+        file1.name = "file1.txt";
+        file1.isDirectory = false;
+        FtpEntry file2;
+        file2.name = "file2.txt";
+        file2.isDirectory = false;
         entries << file1 << file2;
         mockFtp->mockSetDirectoryListing("/remote/folder", entries);
 
@@ -1051,7 +1080,9 @@ private slots:
     {
         // Setup a file to delete
         QList<FtpEntry> entries;
-        FtpEntry file; file.name = "file.txt"; file.isDirectory = false;
+        FtpEntry file;
+        file.name = "file.txt";
+        file.isDirectory = false;
         entries << file;
         mockFtp->mockSetDirectoryListing("/remote/folder", entries);
 
@@ -1108,7 +1139,9 @@ private slots:
     {
         // Setup a directory structure
         QList<FtpEntry> rootEntries;
-        FtpEntry subdir; subdir.name = "subdir"; subdir.isDirectory = true;
+        FtpEntry subdir;
+        subdir.name = "subdir";
+        subdir.isDirectory = true;
         rootEntries << subdir;
         mockFtp->mockSetDirectoryListing("/remote/folder", rootEntries);
 
@@ -1290,8 +1323,7 @@ private slots:
         flushAndProcessNext();
 
         // The batch should complete (as failed)
-        QVERIFY2(batchCompletedSpy.count() >= 1,
-                 "Batch should complete even when mkdir fails");
+        QVERIFY2(batchCompletedSpy.count() >= 1, "Batch should complete even when mkdir fails");
 
         // Should have emitted operationFailed
         QVERIFY2(operationFailedSpy.count() >= 1,
@@ -1591,8 +1623,12 @@ private slots:
 
         // Both files exist on remote
         QList<FtpEntry> remoteEntries;
-        FtpEntry entry1; entry1.name = "file1.txt"; entry1.isDirectory = false;
-        FtpEntry entry2; entry2.name = "file2.txt"; entry2.isDirectory = false;
+        FtpEntry entry1;
+        entry1.name = "file1.txt";
+        entry1.isDirectory = false;
+        FtpEntry entry2;
+        entry2.name = "file2.txt";
+        entry2.isDirectory = false;
         remoteEntries << entry1 << entry2;
         mockFtp->mockSetDirectoryListing("/remote", remoteEntries);
 
@@ -1716,8 +1752,8 @@ private slots:
         // finding the next pending item and sending another LIST.
         QVERIFY2(listRequestsAfterMkdir <= 1,
                  qPrintable(QString("Expected at most 1 LIST request, got %1. "
-                           "This indicates processNext() re-entrancy bug.")
-                           .arg(listRequestsAfterMkdir)));
+                                    "This indicates processNext() re-entrancy bug.")
+                                .arg(listRequestsAfterMkdir)));
 
         // Now process all operations
         flushAndProcess();
@@ -1920,9 +1956,15 @@ private slots:
     {
         // Setup a directory with multiple files and subdirs
         QList<FtpEntry> rootEntries;
-        FtpEntry file1; file1.name = "file1.txt"; file1.isDirectory = false;
-        FtpEntry file2; file2.name = "file2.txt"; file2.isDirectory = false;
-        FtpEntry subdir; subdir.name = "subdir"; subdir.isDirectory = true;
+        FtpEntry file1;
+        file1.name = "file1.txt";
+        file1.isDirectory = false;
+        FtpEntry file2;
+        file2.name = "file2.txt";
+        file2.isDirectory = false;
+        FtpEntry subdir;
+        subdir.name = "subdir";
+        subdir.isDirectory = true;
         rootEntries << file1 << file2 << subdir;
         mockFtp->mockSetDirectoryListing("/remote/delete_test", rootEntries);
 
@@ -2007,7 +2049,9 @@ private slots:
     {
         // Setup a simple directory
         QList<FtpEntry> entries;
-        FtpEntry file; file.name = "file.txt"; file.isDirectory = false;
+        FtpEntry file;
+        file.name = "file.txt";
+        file.isDirectory = false;
         entries << file;
         mockFtp->mockSetDirectoryListing("/remote/folder", entries);
 
@@ -2048,12 +2092,16 @@ private slots:
     {
         // Setup two directories with files
         QList<FtpEntry> entries1;
-        FtpEntry file1; file1.name = "file1.txt"; file1.isDirectory = false;
+        FtpEntry file1;
+        file1.name = "file1.txt";
+        file1.isDirectory = false;
         entries1 << file1;
         mockFtp->mockSetDirectoryListing("/remote/folder1", entries1);
 
         QList<FtpEntry> entries2;
-        FtpEntry file2; file2.name = "file2.txt"; file2.isDirectory = false;
+        FtpEntry file2;
+        file2.name = "file2.txt";
+        file2.isDirectory = false;
         entries2 << file2;
         mockFtp->mockSetDirectoryListing("/remote/folder2", entries2);
 
@@ -2124,7 +2172,8 @@ private slots:
         for (int i = 0; i < queue->rowCount(); ++i) {
             QModelIndex index = queue->index(i);
             // All items should have the same batch ID
-            int itemBatchId = queue->data(index, Qt::UserRole + 10).toInt();  // Check via internal item
+            int itemBatchId =
+                queue->data(index, Qt::UserRole + 10).toInt();  // Check via internal item
             // Since we don't expose batchId through model roles, verify via batch progress
             // The key point is all items are in the single batch
         }
@@ -2288,7 +2337,7 @@ private slots:
         // Both batches should complete
         QVERIFY2(batchCompletedSpy.count() >= 2,
                  qPrintable(QString("Expected at least 2 batch completions, got %1")
-                           .arg(batchCompletedSpy.count())));
+                                .arg(batchCompletedSpy.count())));
 
         // All operations should be done
         QVERIFY(allCompletedSpy.count() >= 1);
@@ -2329,7 +2378,10 @@ private slots:
 
         // Setup remote directory with a different file
         QList<FtpEntry> entries;
-        FtpEntry file1; file1.name = "newfile.txt"; file1.isDirectory = false; file1.size = 100;
+        FtpEntry file1;
+        file1.name = "newfile.txt";
+        file1.isDirectory = false;
+        file1.size = 100;
         entries << file1;
         mockFtp->mockSetDirectoryListing("/remote/remote_folder", entries);
         mockFtp->mockSetDownloadData("/remote/remote_folder/newfile.txt", "new content");
@@ -2393,7 +2445,10 @@ private slots:
 
         // Setup remote directory with a different file
         QList<FtpEntry> entries;
-        FtpEntry file1; file1.name = "newfile.txt"; file1.isDirectory = false; file1.size = 100;
+        FtpEntry file1;
+        file1.name = "newfile.txt";
+        file1.isDirectory = false;
+        file1.size = 100;
         entries << file1;
         mockFtp->mockSetDirectoryListing("/remote/replace_folder", entries);
         mockFtp->mockSetDownloadData("/remote/replace_folder/newfile.txt", "new content");
@@ -2437,7 +2492,10 @@ private slots:
 
         // Setup remote directory
         QList<FtpEntry> entries;
-        FtpEntry file1; file1.name = "file.txt"; file1.isDirectory = false; file1.size = 100;
+        FtpEntry file1;
+        file1.name = "file.txt";
+        file1.isDirectory = false;
+        file1.size = 100;
         entries << file1;
         mockFtp->mockSetDirectoryListing("/remote/automerge_folder", entries);
         mockFtp->mockSetDownloadData("/remote/automerge_folder/file.txt", "content");
@@ -2478,7 +2536,8 @@ private slots:
         mockFtp->mockSetDirectoryListing("/remote/testfolder", entries);
 
         for (int i = 0; i < 3; ++i) {
-            mockFtp->mockSetDownloadData(QString("/remote/testfolder/file%1.txt").arg(i), "content");
+            mockFtp->mockSetDownloadData(QString("/remote/testfolder/file%1.txt").arg(i),
+                                         "content");
         }
 
         // Start recursive download

@@ -9,10 +9,11 @@
 #ifndef DEVICECONNECTION_H
 #define DEVICECONNECTION_H
 
+#include "c64uftpclient.h"
+#include "c64urestclient.h"
+
 #include <QObject>
 #include <QTimer>
-#include "c64urestclient.h"
-#include "c64uftpclient.h"
 
 /**
  * @brief High-level connection manager for Ultimate 64/II+ devices.
@@ -49,10 +50,10 @@ public:
      * @brief Connection state of the device manager.
      */
     enum class ConnectionState {
-        Disconnected,   ///< Not connected to any device
-        Connecting,     ///< Connection in progress
-        Connected,      ///< Both REST and FTP connections established
-        Reconnecting    ///< Attempting to reconnect after connection loss
+        Disconnected,  ///< Not connected to any device
+        Connecting,    ///< Connection in progress
+        Connected,     ///< Both REST and FTP connections established
+        Reconnecting   ///< Attempting to reconnect after connection loss
     };
     Q_ENUM(ConnectionState)
 
@@ -70,7 +71,8 @@ public:
      *
      * This constructor is primarily for testing, allowing mock clients to be injected.
      */
-    DeviceConnection(C64URestClient *restClient, C64UFtpClient *ftpClient, QObject *parent = nullptr);
+    DeviceConnection(C64URestClient *restClient, C64UFtpClient *ftpClient,
+                     QObject *parent = nullptr);
 
     /**
      * @brief Destructor. Disconnects if connected.
@@ -179,13 +181,13 @@ public:
      * @brief Returns the REST API client.
      * @return Pointer to the C64URestClient instance.
      */
-    [[nodiscard]] C64URestClient* restClient() { return restClient_; }
+    [[nodiscard]] C64URestClient *restClient() { return restClient_; }
 
     /**
      * @brief Returns the FTP client.
      * @return Pointer to the C64UFtpClient instance.
      */
-    [[nodiscard]] C64UFtpClient* ftpClient() { return ftpClient_; }
+    [[nodiscard]] C64UFtpClient *ftpClient() { return ftpClient_; }
     /// @}
 
 public slots:
@@ -336,4 +338,4 @@ private:
     QList<DriveInfo> driveInfo_;
 };
 
-#endif // DEVICECONNECTION_H
+#endif  // DEVICECONNECTION_H

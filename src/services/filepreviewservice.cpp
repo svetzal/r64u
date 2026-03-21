@@ -1,14 +1,13 @@
 #include "filepreviewservice.h"
+
 #include "iftpclient.h"
 
 FilePreviewService::FilePreviewService(IFtpClient *ftpClient, QObject *parent)
-    : QObject(parent)
-    , ftpClient_(ftpClient)
+    : QObject(parent), ftpClient_(ftpClient)
 {
-    connect(ftpClient_, &IFtpClient::downloadToMemoryFinished,
-            this, &FilePreviewService::onDownloadToMemoryFinished);
-    connect(ftpClient_, &IFtpClient::error,
-            this, &FilePreviewService::onFtpError);
+    connect(ftpClient_, &IFtpClient::downloadToMemoryFinished, this,
+            &FilePreviewService::onDownloadToMemoryFinished);
+    connect(ftpClient_, &IFtpClient::error, this, &FilePreviewService::onFtpError);
 }
 
 FilePreviewService::~FilePreviewService()
@@ -47,7 +46,8 @@ void FilePreviewService::cancelRequest()
     }
 }
 
-void FilePreviewService::onDownloadToMemoryFinished(const QString &remotePath, const QByteArray &data)
+void FilePreviewService::onDownloadToMemoryFinished(const QString &remotePath,
+                                                    const QByteArray &data)
 {
     if (remotePath == pendingPath_) {
         pendingPath_.clear();

@@ -4,8 +4,8 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QSqlQuery>
 #include <QSqlError>
+#include <QSqlQuery>
 #include <QStandardPaths>
 #include <QUuid>
 
@@ -13,9 +13,8 @@
 #include <zlib.h>
 
 GameBase64Service::GameBase64Service(QObject *parent)
-    : QObject(parent)
-    , networkManager_(new QNetworkAccessManager(this))
-    , connectionName_(QUuid::createUuid().toString())
+    : QObject(parent), networkManager_(new QNetworkAccessManager(this)),
+      connectionName_(QUuid::createUuid().toString())
 {
     // Try to load from cache on startup
     if (hasCachedDatabase()) {
@@ -42,7 +41,7 @@ QString GameBase64Service::databaseCacheFilePath() const
 void GameBase64Service::downloadDatabase()
 {
     if (currentDownload_ != nullptr) {
-        return; // Already downloading
+        return;  // Already downloading
     }
 
     // Ensure cache directory exists
@@ -52,13 +51,13 @@ void GameBase64Service::downloadDatabase()
     QUrl url{QString::fromLatin1(DatabaseUrl)};
     QNetworkRequest request{url};
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
-                        QNetworkRequest::NoLessSafeRedirectPolicy);
+                         QNetworkRequest::NoLessSafeRedirectPolicy);
 
     currentDownload_ = networkManager_->get(request);
-    connect(currentDownload_, &QNetworkReply::downloadProgress,
-            this, &GameBase64Service::onDownloadProgress);
-    connect(currentDownload_, &QNetworkReply::finished,
-            this, &GameBase64Service::onDownloadFinished);
+    connect(currentDownload_, &QNetworkReply::downloadProgress, this,
+            &GameBase64Service::onDownloadProgress);
+    connect(currentDownload_, &QNetworkReply::finished, this,
+            &GameBase64Service::onDownloadFinished);
 }
 
 void GameBase64Service::cancelDownload()
@@ -107,7 +106,8 @@ void GameBase64Service::onDownloadFinished()
     // Write compressed file
     QFile gzipFile(gzipPath);
     if (!gzipFile.open(QIODevice::WriteOnly)) {
-        emit downloadFailed(tr("Failed to save compressed database: %1").arg(gzipFile.errorString()));
+        emit downloadFailed(
+            tr("Failed to save compressed database: %1").arg(gzipFile.errorString()));
         return;
     }
     gzipFile.write(compressedData);
@@ -159,7 +159,7 @@ bool GameBase64Service::decompressGzip(const QString &gzipPath, const QString &o
         }
     }
 
-    bool success = (bytesRead == 0); // 0 means EOF, negative means error
+    bool success = (bytesRead == 0);  // 0 means EOF, negative means error
     gzclose(gzFile);
     outFile.close();
 
@@ -398,7 +398,8 @@ GameBase64Service::GameInfo GameBase64Service::lookupBySidFilename(const QString
     return info;
 }
 
-GameBase64Service::SearchResults GameBase64Service::searchByName(const QString &searchQuery, int maxResults) const
+GameBase64Service::SearchResults GameBase64Service::searchByName(const QString &searchQuery,
+                                                                 int maxResults) const
 {
     SearchResults results;
     if (!databaseLoaded_ || searchQuery.isEmpty()) {
@@ -438,7 +439,8 @@ GameBase64Service::SearchResults GameBase64Service::searchByName(const QString &
     return results;
 }
 
-GameBase64Service::SearchResults GameBase64Service::searchByMusician(const QString &musician, int maxResults) const
+GameBase64Service::SearchResults GameBase64Service::searchByMusician(const QString &musician,
+                                                                     int maxResults) const
 {
     SearchResults results;
     if (!databaseLoaded_ || musician.isEmpty()) {
@@ -478,7 +480,8 @@ GameBase64Service::SearchResults GameBase64Service::searchByMusician(const QStri
     return results;
 }
 
-GameBase64Service::SearchResults GameBase64Service::searchByPublisher(const QString &publisher, int maxResults) const
+GameBase64Service::SearchResults GameBase64Service::searchByPublisher(const QString &publisher,
+                                                                      int maxResults) const
 {
     SearchResults results;
     if (!databaseLoaded_ || publisher.isEmpty()) {

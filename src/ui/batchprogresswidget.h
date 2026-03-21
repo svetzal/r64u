@@ -1,12 +1,12 @@
 #ifndef BATCHPROGRESSWIDGET_H
 #define BATCHPROGRESSWIDGET_H
 
-#include <QWidget>
-#include <QProgressBar>
-#include <QLabel>
-#include <QPushButton>
-
 #include "models/transferqueue.h"
+
+#include <QLabel>
+#include <QProgressBar>
+#include <QPushButton>
+#include <QWidget>
 
 /**
  * @brief Widget displaying progress for a single transfer batch.
@@ -24,11 +24,11 @@ class BatchProgressWidget : public QWidget
 
 public:
     enum class State {
-        Queued,     ///< Waiting to start
-        Scanning,   ///< Scanning directories
-        Creating,   ///< Creating directories (upload)
-        Active,     ///< Actively transferring
-        Completed   ///< Finished (before removal)
+        Queued,    ///< Waiting to start
+        Scanning,  ///< Scanning directories
+        Creating,  ///< Creating directories (upload)
+        Active,    ///< Actively transferring
+        Completed  ///< Finished (before removal)
     };
 
     explicit BatchProgressWidget(int batchId, QWidget *parent = nullptr);
@@ -90,4 +90,4 @@ private:
     QPushButton *cancelButton_ = nullptr;
 };
 
-#endif // BATCHPROGRESSWIDGET_H
+#endif  // BATCHPROGRESSWIDGET_H

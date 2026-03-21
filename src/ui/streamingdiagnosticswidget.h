@@ -6,8 +6,9 @@
 #ifndef STREAMINGDIAGNOSTICSWIDGET_H
 #define STREAMINGDIAGNOSTICSWIDGET_H
 
-#include <QWidget>
 #include "services/streamingdiagnostics.h"
+
+#include <QWidget>
 
 class QLabel;
 class QFrame;
@@ -35,8 +36,8 @@ public:
      * @brief Display mode enumeration.
      */
     enum class DisplayMode {
-        Compact,    ///< Single line with summary
-        Detailed    ///< Full metrics breakdown
+        Compact,  ///< Single line with summary
+        Detailed  ///< Full metrics breakdown
     };
 
     /**
@@ -118,4 +119,4 @@ private:
     QLabel *audioDroppedLabel_ = nullptr;
 };
 
-#endif // STREAMINGDIAGNOSTICSWIDGET_H
+#endif  // STREAMINGDIAGNOSTICSWIDGET_H

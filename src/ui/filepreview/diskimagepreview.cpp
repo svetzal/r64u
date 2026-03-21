@@ -10,7 +10,7 @@ bool DiskImagePreview::canHandle(const QString &path) const
     return DiskImageReader::isDiskImage(path);
 }
 
-QWidget* DiskImagePreview::createPreviewWidget(QWidget *parent)
+QWidget *DiskImagePreview::createPreviewWidget(QWidget *parent)
 {
     previewWidget_ = new QWidget(parent);
     auto *layout = new QVBoxLayout(previewWidget_);
@@ -106,24 +106,22 @@ void DiskImagePreview::applyC64TextStyle()
     QString stylesheet;
     if (isDarkMode) {
         // Dark mode: blue text on black background
-        stylesheet = QString(
-            "QTextBrowser {"
-            "  background-color: #000000;"
-            "  color: %1;"
-            "  border: 1px solid %1;"
-            "  padding: 8px;"
-            "}"
-        ).arg(c64LightBlue);
+        stylesheet = QString("QTextBrowser {"
+                             "  background-color: #000000;"
+                             "  color: %1;"
+                             "  border: 1px solid %1;"
+                             "  padding: 8px;"
+                             "}")
+                         .arg(c64LightBlue);
     } else {
         // Light mode: white text on blue background (classic C64 look)
-        stylesheet = QString(
-            "QTextBrowser {"
-            "  background-color: %1;"
-            "  color: #FFFFFF;"
-            "  border: 1px solid #2020A8;"
-            "  padding: 8px;"
-            "}"
-        ).arg(c64Blue);
+        stylesheet = QString("QTextBrowser {"
+                             "  background-color: %1;"
+                             "  color: #FFFFFF;"
+                             "  border: 1px solid #2020A8;"
+                             "  padding: 8px;"
+                             "}")
+                         .arg(c64Blue);
     }
 
     textBrowser_->setStyleSheet(stylesheet);

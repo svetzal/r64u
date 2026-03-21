@@ -1,9 +1,11 @@
+#include "mainwindow.h"
+#include "version.h"
+
+#include "utils/logging.h"
+
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QFontDatabase>
-#include "mainwindow.h"
-#include "utils/logging.h"
-#include "version.h"
 
 int main(int argc, char *argv[])
 {
@@ -20,9 +22,8 @@ int main(int argc, char *argv[])
     parser.addHelpOption();
     parser.addVersionOption();
 
-    QCommandLineOption verboseOption(
-        QStringList() << "V" << "verbose",
-        "Enable verbose logging output");
+    QCommandLineOption verboseOption(QStringList() << "V" << "verbose",
+                                     "Enable verbose logging output");
     parser.addOption(verboseOption);
 
     parser.process(app);

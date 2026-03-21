@@ -2,6 +2,7 @@
 #define LOCALFILEBROWSERWIDGET_H
 
 #include "filebrowserwidget.h"
+
 #include <QFileSystemModel>
 
 class LocalFileProxyModel;
@@ -40,7 +41,7 @@ protected:
 
     [[nodiscard]] QString labelText() const override { return tr("Local Files"); }
     [[nodiscard]] QString navLabelText() const override { return tr("Download to:"); }
-    [[nodiscard]] QAbstractItemModel* model() const override;
+    [[nodiscard]] QAbstractItemModel *model() const override;
     [[nodiscard]] QString filePath(const QModelIndex &index) const override;
     [[nodiscard]] bool isDirectory(const QModelIndex &index) const override;
     void navigateToDirectory(const QString &path) override;
@@ -54,4 +55,4 @@ private:
     QAction *uploadAction_ = nullptr;
 };
 
-#endif // LOCALFILEBROWSERWIDGET_H
+#endif  // LOCALFILEBROWSERWIDGET_H

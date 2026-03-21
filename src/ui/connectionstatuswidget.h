@@ -1,8 +1,8 @@
 #ifndef CONNECTIONSTATUSWIDGET_H
 #define CONNECTIONSTATUSWIDGET_H
 
-#include <QWidget>
 #include <QLabel>
+#include <QWidget>
 
 class ConnectionStatusWidget : public QWidget
 {
@@ -25,4 +25,4 @@ private:
     void updateDisplay();
 };
 
-#endif // CONNECTIONSTATUSWIDGET_H
+#endif  // CONNECTIONSTATUSWIDGET_H

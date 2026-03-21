@@ -1,25 +1,23 @@
 #include "transferpanel.h"
+
 #include "localfilebrowserwidget.h"
 #include "remotefilebrowserwidget.h"
 #include "transferprogresscontainer.h"
-#include "services/deviceconnection.h"
-#include "services/transferservice.h"
+
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
+#include "services/deviceconnection.h"
+#include "services/transferservice.h"
 
-#include <QVBoxLayout>
+#include <QDir>
 #include <QFileInfo>
 #include <QSettings>
 #include <QStandardPaths>
-#include <QDir>
+#include <QVBoxLayout>
 
-TransferPanel::TransferPanel(DeviceConnection *connection,
-                             RemoteFileModel *model,
-                             TransferService *transferService,
-                             QWidget *parent)
-    : QWidget(parent)
-    , deviceConnection_(connection)
-    , transferService_(transferService)
+TransferPanel::TransferPanel(DeviceConnection *connection, RemoteFileModel *model,
+                             TransferService *transferService, QWidget *parent)
+    : QWidget(parent), deviceConnection_(connection), transferService_(transferService)
 {
     // These dependencies are required - assert in debug builds
     Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
@@ -55,18 +53,18 @@ void TransferPanel::setupConnections()
 {
     // Subscribe to device connection state changes
     if (deviceConnection_) {
-        connect(deviceConnection_, &DeviceConnection::stateChanged,
-                this, &TransferPanel::onConnectionStateChanged);
+        connect(deviceConnection_, &DeviceConnection::stateChanged, this,
+                &TransferPanel::onConnectionStateChanged);
     }
 
     // Connect upload/download/delete requests to transfer queue
     if (localBrowser_) {
-        connect(localBrowser_, &LocalFileBrowserWidget::uploadRequested,
-                this, &TransferPanel::onUploadRequested);
-        connect(localBrowser_, &LocalFileBrowserWidget::statusMessage,
-                this, &TransferPanel::statusMessage);
-        connect(localBrowser_, &LocalFileBrowserWidget::selectionChanged,
-                this, &TransferPanel::selectionChanged);
+        connect(localBrowser_, &LocalFileBrowserWidget::uploadRequested, this,
+                &TransferPanel::onUploadRequested);
+        connect(localBrowser_, &LocalFileBrowserWidget::statusMessage, this,
+                &TransferPanel::statusMessage);
+        connect(localBrowser_, &LocalFileBrowserWidget::selectionChanged, this,
+                &TransferPanel::selectionChanged);
         connect(localBrowser_, &LocalFileBrowserWidget::selectionChanged, this, [this]() {
             if (localBrowser_ && deviceConnection_) {
                 localBrowser_->setUploadEnabled(deviceConnection_->canPerformOperations());
@@ -75,14 +73,14 @@ void TransferPanel::setupConnections()
     }
 
     if (remoteBrowser_) {
-        connect(remoteBrowser_, &RemoteFileBrowserWidget::downloadRequested,
-                this, &TransferPanel::onDownloadRequested);
-        connect(remoteBrowser_, &RemoteFileBrowserWidget::deleteRequested,
-                this, &TransferPanel::onDeleteRequested);
-        connect(remoteBrowser_, &RemoteFileBrowserWidget::statusMessage,
-                this, &TransferPanel::statusMessage);
-        connect(remoteBrowser_, &RemoteFileBrowserWidget::selectionChanged,
-                this, &TransferPanel::selectionChanged);
+        connect(remoteBrowser_, &RemoteFileBrowserWidget::downloadRequested, this,
+                &TransferPanel::onDownloadRequested);
+        connect(remoteBrowser_, &RemoteFileBrowserWidget::deleteRequested, this,
+                &TransferPanel::onDeleteRequested);
+        connect(remoteBrowser_, &RemoteFileBrowserWidget::statusMessage, this,
+                &TransferPanel::statusMessage);
+        connect(remoteBrowser_, &RemoteFileBrowserWidget::selectionChanged, this,
+                &TransferPanel::selectionChanged);
         connect(remoteBrowser_, &RemoteFileBrowserWidget::selectionChanged, this, [this]() {
             if (remoteBrowser_ && deviceConnection_) {
                 remoteBrowser_->setDownloadEnabled(deviceConnection_->canPerformOperations());
@@ -91,17 +89,17 @@ void TransferPanel::setupConnections()
     }
 
     if (progressContainer_) {
-        connect(progressContainer_, &TransferProgressContainer::statusMessage,
-                this, &TransferPanel::statusMessage);
-        connect(progressContainer_, &TransferProgressContainer::clearStatusMessages,
-                this, &TransferPanel::clearStatusMessages);
+        connect(progressContainer_, &TransferProgressContainer::statusMessage, this,
+                &TransferPanel::statusMessage);
+        connect(progressContainer_, &TransferProgressContainer::clearStatusMessages, this,
+                &TransferPanel::clearStatusMessages);
         progressContainer_->setTransferService(transferService_);
     }
 
     // Forward status messages from transfer service
     if (transferService_) {
-        connect(transferService_, &TransferService::statusMessage,
-                this, &TransferPanel::statusMessage);
+        connect(transferService_, &TransferService::statusMessage, this,
+                &TransferPanel::statusMessage);
 
         // Suppress auto-refresh during queue operations to prevent constant reloading
         connect(transferService_, &TransferService::operationStarted, this, [this]() {

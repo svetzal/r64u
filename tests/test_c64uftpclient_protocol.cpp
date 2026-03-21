@@ -9,9 +9,9 @@
  * - Operation guards (not-logged-in behavior)
  */
 
-#include <QtTest>
 #include <QSignalSpy>
 #include <QTcpSocket>
+#include <QtTest>
 
 // Use angle brackets to force include path search order (avoids tests/services shadow)
 #include <services/c64uftpclient.h>
@@ -27,10 +27,7 @@ private:
     C64UFtpClient *ftp;
 
 private slots:
-    void init()
-    {
-        ftp = new C64UFtpClient(this);
-    }
+    void init() { ftp = new C64UFtpClient(this); }
 
     void cleanup()
     {
@@ -46,8 +43,8 @@ private slots:
         quint16 port = 0;
 
         // Standard PASV response format
-        bool result = ftp->parsePassiveResponse(
-            "Entering Passive Mode (192,168,1,64,4,0)", host, port);
+        bool result =
+            ftp->parsePassiveResponse("Entering Passive Mode (192,168,1,64,4,0)", host, port);
 
         QVERIFY(result);
         QCOMPARE(host, QString("192.168.1.64"));
@@ -60,8 +57,8 @@ private slots:
         quint16 port = 0;
 
         // High port number
-        bool result = ftp->parsePassiveResponse(
-            "Entering Passive Mode (10,0,0,1,200,10)", host, port);
+        bool result =
+            ftp->parsePassiveResponse("Entering Passive Mode (10,0,0,1,200,10)", host, port);
 
         QVERIFY(result);
         QCOMPARE(host, QString("10.0.0.1"));
@@ -74,8 +71,8 @@ private slots:
         quint16 port = 0;
 
         // Low port number
-        bool result = ftp->parsePassiveResponse(
-            "Entering Passive Mode (127,0,0,1,0,21)", host, port);
+        bool result =
+            ftp->parsePassiveResponse("Entering Passive Mode (127,0,0,1,0,21)", host, port);
 
         QVERIFY(result);
         QCOMPARE(host, QString("127.0.0.1"));
@@ -88,8 +85,8 @@ private slots:
         quint16 port = 0;
 
         // Maximum port 65535 = (255 * 256) + 255
-        bool result = ftp->parsePassiveResponse(
-            "Entering Passive Mode (0,0,0,0,255,255)", host, port);
+        bool result =
+            ftp->parsePassiveResponse("Entering Passive Mode (0,0,0,0,255,255)", host, port);
 
         QVERIFY(result);
         QCOMPARE(port, static_cast<quint16>(65535));
@@ -101,8 +98,8 @@ private slots:
         quint16 port = 0;
 
         // Extra text before and after
-        bool result = ftp->parsePassiveResponse(
-            "227 Entering Passive Mode (172,16,0,1,39,16).", host, port);
+        bool result =
+            ftp->parsePassiveResponse("227 Entering Passive Mode (172,16,0,1,39,16).", host, port);
 
         QVERIFY(result);
         QCOMPARE(host, QString("172.16.0.1"));
@@ -114,8 +111,8 @@ private slots:
         QString host;
         quint16 port = 0;
 
-        bool result = ftp->parsePassiveResponse(
-            "Entering Passive Mode 192,168,1,64,4,0", host, port);
+        bool result =
+            ftp->parsePassiveResponse("Entering Passive Mode 192,168,1,64,4,0", host, port);
 
         QVERIFY(!result);
     }
@@ -125,8 +122,8 @@ private slots:
         QString host;
         quint16 port = 0;
 
-        bool result = ftp->parsePassiveResponse(
-            "Entering Passive Mode (192,168,1,64,4)", host, port);
+        bool result =
+            ftp->parsePassiveResponse("Entering Passive Mode (192,168,1,64,4)", host, port);
 
         QVERIFY(!result);
     }
@@ -146,8 +143,7 @@ private slots:
         QString host;
         quint16 port = 0;
 
-        bool result = ftp->parsePassiveResponse(
-            "Entering Passive Mode (a,b,c,d,e,f)", host, port);
+        bool result = ftp->parsePassiveResponse("Entering Passive Mode (a,b,c,d,e,f)", host, port);
 
         QVERIFY(!result);
     }
@@ -182,10 +178,9 @@ private slots:
 
     void parseDirectoryListing_MultipleEntries()
     {
-        QByteArray data =
-            "drwxr-xr-x 2 user group 4096 Jan  1 00:00 dir1\r\n"
-            "-rw-r--r-- 1 user group 1024 Jan  2 12:00 file1.prg\r\n"
-            "-rwxr-xr-x 1 user group 512 Jan  3 15:30 file2.sid\r\n";
+        QByteArray data = "drwxr-xr-x 2 user group 4096 Jan  1 00:00 dir1\r\n"
+                          "-rw-r--r-- 1 user group 1024 Jan  2 12:00 file1.prg\r\n"
+                          "-rwxr-xr-x 1 user group 512 Jan  3 15:30 file2.sid\r\n";
 
         QList<FtpEntry> entries = ftp->parseDirectoryListing(data);
 
@@ -215,10 +210,9 @@ private slots:
 
     void parseDirectoryListing_FiltersDotEntries()
     {
-        QByteArray data =
-            "drwxr-xr-x 2 user group 4096 Jan  1 00:00 .\r\n"
-            "drwxr-xr-x 2 user group 4096 Jan  1 00:00 ..\r\n"
-            "-rw-r--r-- 1 user group 1024 Jan  2 12:00 real_file.txt\r\n";
+        QByteArray data = "drwxr-xr-x 2 user group 4096 Jan  1 00:00 .\r\n"
+                          "drwxr-xr-x 2 user group 4096 Jan  1 00:00 ..\r\n"
+                          "-rw-r--r-- 1 user group 1024 Jan  2 12:00 real_file.txt\r\n";
 
         QList<FtpEntry> entries = ftp->parseDirectoryListing(data);
 
@@ -283,25 +277,13 @@ private slots:
         QCOMPARE(ftp->state(), IFtpClient::State::Disconnected);
     }
 
-    void testInitialState_NotConnected()
-    {
-        QVERIFY(!ftp->isConnected());
-    }
+    void testInitialState_NotConnected() { QVERIFY(!ftp->isConnected()); }
 
-    void testInitialState_NotLoggedIn()
-    {
-        QVERIFY(!ftp->isLoggedIn());
-    }
+    void testInitialState_NotLoggedIn() { QVERIFY(!ftp->isLoggedIn()); }
 
-    void testInitialState_DefaultDirectory()
-    {
-        QCOMPARE(ftp->currentDirectory(), QString("/"));
-    }
+    void testInitialState_DefaultDirectory() { QCOMPARE(ftp->currentDirectory(), QString("/")); }
 
-    void testInitialState_NoHost()
-    {
-        QCOMPARE(ftp->host(), QString(""));
-    }
+    void testInitialState_NoHost() { QCOMPARE(ftp->host(), QString("")); }
 
     // === Host Configuration Tests ===
 
@@ -475,10 +457,7 @@ private slots:
 
     // === IsConnected Logic Tests ===
 
-    void testIsConnected_FalseWhenDisconnected()
-    {
-        QVERIFY(!ftp->isConnected());
-    }
+    void testIsConnected_FalseWhenDisconnected() { QVERIFY(!ftp->isConnected()); }
 
     void testIsConnected_FalseWhenConnecting()
     {

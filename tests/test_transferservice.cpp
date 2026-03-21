@@ -13,14 +13,14 @@
  * The actual queueing behavior is tested in test_transferqueue.cpp.
  */
 
-#include <QtTest/QtTest>
+#include "mocks/mockftpclient.h"
+#include "models/transferqueue.h"
+#include "services/deviceconnection.h"
+#include "services/transferservice.h"
+
 #include <QSignalSpy>
 #include <QTemporaryDir>
-
-#include "mocks/mockftpclient.h"
-#include "services/transferservice.h"
-#include "services/deviceconnection.h"
-#include "models/transferqueue.h"
+#include <QtTest/QtTest>
 
 class TestTransferService : public QObject
 {

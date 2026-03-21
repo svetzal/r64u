@@ -1,37 +1,26 @@
 #include "c64uftpclient.h"
 
-#include <QRegularExpression>
-#include <QFileInfo>
 #include <QDebug>
+#include <QFileInfo>
+#include <QRegularExpression>
 
 C64UFtpClient::C64UFtpClient(QObject *parent)
-    : IFtpClient(parent)
-    , controlSocket_(new QTcpSocket(this))
-    , dataSocket_(new QTcpSocket(this))
-    , connectionTimer_(new QTimer(this))
+    : IFtpClient(parent), controlSocket_(new QTcpSocket(this)), dataSocket_(new QTcpSocket(this)),
+      connectionTimer_(new QTimer(this))
 {
     // Connection timeout timer
     connectionTimer_->setSingleShot(true);
-    connect(connectionTimer_, &QTimer::timeout,
-            this, &C64UFtpClient::onConnectionTimeout);
+    connect(connectionTimer_, &QTimer::timeout, this, &C64UFtpClient::onConnectionTimeout);
 
-    connect(controlSocket_, &QTcpSocket::connected,
-            this, &C64UFtpClient::onControlConnected);
-    connect(controlSocket_, &QTcpSocket::disconnected,
-            this, &C64UFtpClient::onControlDisconnected);
-    connect(controlSocket_, &QTcpSocket::readyRead,
-            this, &C64UFtpClient::onControlReadyRead);
-    connect(controlSocket_, &QTcpSocket::errorOccurred,
-            this, &C64UFtpClient::onControlError);
+    connect(controlSocket_, &QTcpSocket::connected, this, &C64UFtpClient::onControlConnected);
+    connect(controlSocket_, &QTcpSocket::disconnected, this, &C64UFtpClient::onControlDisconnected);
+    connect(controlSocket_, &QTcpSocket::readyRead, this, &C64UFtpClient::onControlReadyRead);
+    connect(controlSocket_, &QTcpSocket::errorOccurred, this, &C64UFtpClient::onControlError);
 
-    connect(dataSocket_, &QTcpSocket::connected,
-            this, &C64UFtpClient::onDataConnected);
-    connect(dataSocket_, &QTcpSocket::readyRead,
-            this, &C64UFtpClient::onDataReadyRead);
-    connect(dataSocket_, &QTcpSocket::disconnected,
-            this, &C64UFtpClient::onDataDisconnected);
-    connect(dataSocket_, &QTcpSocket::errorOccurred,
-            this, &C64UFtpClient::onDataError);
+    connect(dataSocket_, &QTcpSocket::connected, this, &C64UFtpClient::onDataConnected);
+    connect(dataSocket_, &QTcpSocket::readyRead, this, &C64UFtpClient::onDataReadyRead);
+    connect(dataSocket_, &QTcpSocket::disconnected, this, &C64UFtpClient::onDataDisconnected);
+    connect(dataSocket_, &QTcpSocket::errorOccurred, this, &C64UFtpClient::onDataError);
 }
 
 C64UFtpClient::~C64UFtpClient()
@@ -152,7 +141,7 @@ void C64UFtpClient::queueCommand(Command cmd, const QString &arg, const QString 
 }
 
 void C64UFtpClient::queueRetrCommand(const QString &remotePath, const QString &localPath,
-                                      std::shared_ptr<QFile> file, bool isMemory)
+                                     std::shared_ptr<QFile> file, bool isMemory)
 {
     PendingCommand pending;
     pending.cmd = Command::Retr;
@@ -168,7 +157,7 @@ void C64UFtpClient::queueRetrCommand(const QString &remotePath, const QString &l
 }
 
 void C64UFtpClient::queueStorCommand(const QString &remotePath, const QString &localPath,
-                                      std::shared_ptr<QFile> file)
+                                     std::shared_ptr<QFile> file)
 {
     PendingCommand pending;
     pending.cmd = Command::Stor;
@@ -223,7 +212,8 @@ void C64UFtpClient::processNextCommand()
         // This ensures we have the correct file even if other operations were queued
         currentRetrFile_ = std::move(pending.transferFile);
         currentRetrIsMemory_ = pending.isMemoryDownload;
-        qDebug() << "FTP: Processing RETR, file:" << currentRetrFile_.get() << "isMemory:" << currentRetrIsMemory_;
+        qDebug() << "FTP: Processing RETR, file:" << currentRetrFile_.get()
+                 << "isMemory:" << currentRetrIsMemory_;
         sendCommand("RETR " + currentArg_);
         break;
     case Command::Stor:
@@ -501,7 +491,8 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                 processNextCommand();
             }
         } else {
-            emit error(tr("Data transfer failed: server does not support passive mode. %1").arg(text));
+            emit error(
+                tr("Data transfer failed: server does not support passive mode. %1").arg(text));
             processNextCommand();
         }
         break;
@@ -528,7 +519,8 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                 // Wait for data socket to close before processing
                 // Save the buffer with the pending state to prevent race conditions
                 // if another list() call clears listBuffer_ while we're waiting
-                qDebug() << "FTP: 226 received, waiting for data socket to finish, saving" << listBuffer_.size() << "bytes";
+                qDebug() << "FTP: 226 received, waiting for data socket to finish, saving"
+                         << listBuffer_.size() << "bytes";
                 pendingList_ = PendingListState{path, listBuffer_};
                 listBuffer_.clear();  // Clear so new operations can use it
                 // Don't process next command yet - wait for data socket
@@ -556,8 +548,7 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                      << "dataSocket state:" << dataSocket_->state()
                      << "bytesAvailable:" << dataSocket_->bytesAvailable()
                      << "pendingRetr_ exists:" << pendingRetr_.has_value()
-                     << "isMemory:" << currentRetrIsMemory_
-                     << "file:" << currentRetrFile_.get();
+                     << "isMemory:" << currentRetrIsMemory_ << "file:" << currentRetrFile_.get();
             if (dataSocket_->state() == QAbstractSocket::UnconnectedState) {
                 // Data socket already closed, process immediately
                 qDebug() << "[RETR] Data socket already closed, processing immediately";
@@ -578,19 +569,16 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                 // Wait for data socket to close before processing
                 qDebug() << "[RETR] Creating pendingRetr_, waiting for data socket to finish"
                          << "socketState:" << dataSocket_->state();
-                pendingRetr_ = PendingRetrState{
-                    currentArg_,
-                    currentLocalPath_,
-                    std::move(currentRetrFile_),
-                    currentRetrIsMemory_
-                };
+                pendingRetr_ = PendingRetrState{currentArg_, currentLocalPath_,
+                                                std::move(currentRetrFile_), currentRetrIsMemory_};
                 // Clear current state (saved in pending struct)
                 currentRetrFile_.reset();
                 currentRetrIsMemory_ = false;
 
                 // CRITICAL: Check if socket is ALREADY disconnected (race condition)
                 if (dataSocket_->state() == QAbstractSocket::UnconnectedState) {
-                    qCritical() << "[RETR] BUG: Socket already disconnected but we just created pendingRetr_!";
+                    qCritical() << "[RETR] BUG: Socket already disconnected but we just created "
+                                   "pendingRetr_!";
                 }
                 // Don't process next command yet - wait for data socket
             }
@@ -618,7 +606,8 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                 dataSocket_->write(data);
                 dataSocket_->disconnectFromHost();
             } else {
-                qDebug() << "FTP: ERROR - STOR 150 but no file handle! currentStorFile_:" << currentStorFile_.get();
+                qDebug() << "FTP: ERROR - STOR 150 but no file handle! currentStorFile_:"
+                         << currentStorFile_.get();
             }
         } else if (code == FtpReplyTransferComplete) {
             // Transfer complete - close and reset BEFORE emitting signal
@@ -669,7 +658,8 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
         if (code == FtpReplyPendingFurtherInfo) {
             // Ready for RNTO
         } else {
-            emit error(tr("Cannot rename '%1': file not found or access denied. %2").arg(currentArg_, text));
+            emit error(tr("Cannot rename '%1': file not found or access denied. %2")
+                           .arg(currentArg_, text));
         }
         processNextCommand();
         break;
@@ -691,7 +681,8 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
 
 void C64UFtpClient::onDataConnected()
 {
-    qDebug() << "FTP: Data socket connected to" << dataSocket_->peerAddress().toString() << ":" << dataSocket_->peerPort();
+    qDebug() << "FTP: Data socket connected to" << dataSocket_->peerAddress().toString() << ":"
+             << dataSocket_->peerPort();
     // Data connection established, now send the actual command
     // The command was already sent, waiting for data
 }
@@ -741,7 +732,8 @@ void C64UFtpClient::onDataDisconnected()
     if (pendingList_) {
         // Use the saved buffer from pendingList_, not listBuffer_
         // (which may have been cleared by a new list() call)
-        qDebug() << "FTP: Processing pending LIST, total data:" << pendingList_->buffer.size() << "bytes";
+        qDebug() << "FTP: Processing pending LIST, total data:" << pendingList_->buffer.size()
+                 << "bytes";
         QList<FtpEntry> entries = parseDirectoryListing(pendingList_->buffer);
         qDebug() << "FTP: Parsed" << entries.size() << "entries";
         QString path = pendingList_->path;
@@ -750,8 +742,7 @@ void C64UFtpClient::onDataDisconnected()
         processNextCommand();
     } else if (pendingRetr_) {
         qDebug() << "[RETR] Processing pending RETR for" << pendingRetr_->remotePath
-                 << "localPath:" << pendingRetr_->localPath
-                 << "isMemory:" << pendingRetr_->isMemory
+                 << "localPath:" << pendingRetr_->localPath << "isMemory:" << pendingRetr_->isMemory
                  << "file:" << pendingRetr_->file.get();
         // Use the SAVED state, not the current global state (which may have been
         // corrupted by other operations like downloadToMemory for file preview)
@@ -815,9 +806,8 @@ QList<FtpEntry> C64UFtpClient::parseDirectoryListing(const QByteArray &data)
 
     // Unix-style listing: drwxr-xr-x 2 user group 4096 Jan 1 12:00 dirname
     // Or simple listing: filename
-    QRegularExpression unixRx(
-        "^([d\\-])([rwx\\-]{9})\\s+\\d+\\s+\\S+\\s+\\S+\\s+(\\d+)\\s+"
-        "(\\w+\\s+\\d+\\s+[\\d:]+)\\s+(.+)$");
+    QRegularExpression unixRx("^([d\\-])([rwx\\-]{9})\\s+\\d+\\s+\\S+\\s+\\S+\\s+(\\d+)\\s+"
+                              "(\\w+\\s+\\d+\\s+[\\d:]+)\\s+(.+)$");
 
     for (const QString &line : lines) {
         if (line.isEmpty()) {

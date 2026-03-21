@@ -2,8 +2,7 @@
 
 #include <QHBoxLayout>
 
-DriveStatusWidget::DriveStatusWidget(const QString &driveName, QWidget *parent)
-    : QWidget(parent)
+DriveStatusWidget::DriveStatusWidget(const QString &driveName, QWidget *parent) : QWidget(parent)
 {
     auto *layout = new QHBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -59,7 +58,6 @@ void DriveStatusWidget::updateDisplay()
 {
     // Sync UI state with mounted_ flag
     QString color = mounted_ ? "#22c55e" : "#9ca3af";  // green-500 / gray-400
-    indicator_->setStyleSheet(
-        QString("background-color: %1; border-radius: 4px;").arg(color));
+    indicator_->setStyleSheet(QString("background-color: %1; border-radius: 4px;").arg(color));
     ejectButton_->setEnabled(mounted_);
 }

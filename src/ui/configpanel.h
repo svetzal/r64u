@@ -1,13 +1,13 @@
 #ifndef CONFIGPANEL_H
 #define CONFIGPANEL_H
 
-#include <QWidget>
-#include <QToolBar>
-#include <QSplitter>
-#include <QListWidget>
-#include <QLabel>
-
 #include "services/c64urestclient.h"
+
+#include <QLabel>
+#include <QListWidget>
+#include <QSplitter>
+#include <QToolBar>
+#include <QWidget>
 
 class DeviceConnection;
 class ConfigurationModel;
@@ -34,14 +34,13 @@ private slots:
     void onRefresh();
     void onCategoriesReceived(const QStringList &categories);
     void onCategoryItemsReceived(const QString &category,
-                                  const QHash<QString, ConfigItemMetadata> &items);
+                                 const QHash<QString, ConfigItemMetadata> &items);
     void onSavedToFlash();
     void onLoadedFromFlash();
     void onResetComplete();
     void onDirtyStateChanged(bool isDirty);
     void onCategorySelected(QListWidgetItem *current, QListWidgetItem *previous);
-    void onItemEdited(const QString &category, const QString &item,
-                      const QVariant &value);
+    void onItemEdited(const QString &category, const QString &item, const QVariant &value);
     void onItemSetResult(const QString &category, const QString &item);
 
 private:
@@ -67,4 +66,4 @@ private:
     ConfigItemsPanel *itemsPanel_ = nullptr;
 };
 
-#endif // CONFIGPANEL_H
+#endif  // CONFIGPANEL_H

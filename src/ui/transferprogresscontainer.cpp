@@ -1,22 +1,23 @@
 #include "transferprogresscontainer.h"
+
 #include "batchprogresswidget.h"
+
 #include "services/transferservice.h"
 
-#include <QSizePolicy>
 #include <QDebug>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QSizePolicy>
 
-TransferProgressContainer::TransferProgressContainer(QWidget *parent)
-    : QWidget(parent)
+TransferProgressContainer::TransferProgressContainer(QWidget *parent) : QWidget(parent)
 {
     setupUi();
 
     // Create debounce timer for queueChanged signals
     queueChangedDebounceTimer_ = new QTimer(this);
     queueChangedDebounceTimer_->setSingleShot(true);
-    connect(queueChangedDebounceTimer_, &QTimer::timeout,
-            this, &TransferProgressContainer::processQueueChanged);
+    connect(queueChangedDebounceTimer_, &QTimer::timeout, this,
+            &TransferProgressContainer::processQueueChanged);
 }
 
 void TransferProgressContainer::setupUi()
@@ -42,42 +43,42 @@ void TransferProgressContainer::setTransferService(TransferService *service)
 
     if (transferService_) {
         // Queue changed - catch new batches being added
-        connect(transferService_, &TransferService::queueChanged,
-                this, &TransferProgressContainer::onQueueChanged);
+        connect(transferService_, &TransferService::queueChanged, this,
+                &TransferProgressContainer::onQueueChanged);
 
         // Batch lifecycle signals
-        connect(transferService_, &TransferService::batchStarted,
-                this, &TransferProgressContainer::onBatchStarted);
-        connect(transferService_, &TransferService::batchProgressUpdate,
-                this, &TransferProgressContainer::onBatchProgressUpdate);
-        connect(transferService_, &TransferService::batchCompleted,
-                this, &TransferProgressContainer::onBatchCompleted);
+        connect(transferService_, &TransferService::batchStarted, this,
+                &TransferProgressContainer::onBatchStarted);
+        connect(transferService_, &TransferService::batchProgressUpdate, this,
+                &TransferProgressContainer::onBatchProgressUpdate);
+        connect(transferService_, &TransferService::batchCompleted, this,
+                &TransferProgressContainer::onBatchCompleted);
 
         // Operation signals (for per-file status messages)
-        connect(transferService_, &TransferService::operationStarted,
-                this, &TransferProgressContainer::onOperationStarted);
-        connect(transferService_, &TransferService::operationCompleted,
-                this, &TransferProgressContainer::onOperationCompleted);
-        connect(transferService_, &TransferService::operationFailed,
-                this, &TransferProgressContainer::onOperationFailed);
-        connect(transferService_, &TransferService::allOperationsCompleted,
-                this, &TransferProgressContainer::onAllOperationsCompleted);
-        connect(transferService_, &TransferService::operationsCancelled,
-                this, &TransferProgressContainer::onOperationsCancelled);
+        connect(transferService_, &TransferService::operationStarted, this,
+                &TransferProgressContainer::onOperationStarted);
+        connect(transferService_, &TransferService::operationCompleted, this,
+                &TransferProgressContainer::onOperationCompleted);
+        connect(transferService_, &TransferService::operationFailed, this,
+                &TransferProgressContainer::onOperationFailed);
+        connect(transferService_, &TransferService::allOperationsCompleted, this,
+                &TransferProgressContainer::onAllOperationsCompleted);
+        connect(transferService_, &TransferService::operationsCancelled, this,
+                &TransferProgressContainer::onOperationsCancelled);
 
         // Scanning/creation progress
-        connect(transferService_, &TransferService::scanningStarted,
-                this, &TransferProgressContainer::onScanningStarted);
-        connect(transferService_, &TransferService::scanningProgress,
-                this, &TransferProgressContainer::onScanningProgress);
-        connect(transferService_, &TransferService::directoryCreationProgress,
-                this, &TransferProgressContainer::onDirectoryCreationProgress);
+        connect(transferService_, &TransferService::scanningStarted, this,
+                &TransferProgressContainer::onScanningStarted);
+        connect(transferService_, &TransferService::scanningProgress, this,
+                &TransferProgressContainer::onScanningProgress);
+        connect(transferService_, &TransferService::directoryCreationProgress, this,
+                &TransferProgressContainer::onDirectoryCreationProgress);
 
         // Confirmation dialogs
-        connect(transferService_, &TransferService::overwriteConfirmationNeeded,
-                this, &TransferProgressContainer::onOverwriteConfirmationNeeded);
-        connect(transferService_, &TransferService::folderExistsConfirmationNeeded,
-                this, &TransferProgressContainer::onFolderExistsConfirmationNeeded);
+        connect(transferService_, &TransferService::overwriteConfirmationNeeded, this,
+                &TransferProgressContainer::onOverwriteConfirmationNeeded);
+        connect(transferService_, &TransferService::folderExistsConfirmationNeeded, this,
+                &TransferProgressContainer::onFolderExistsConfirmationNeeded);
     }
 }
 
@@ -183,7 +184,8 @@ void TransferProgressContainer::onBatchCompleted(int batchId)
 
         // Remove widget after brief delay for visual feedback
         QTimer::singleShot(500, this, [this, batchId]() {
-            qDebug() << "TransferProgressContainer: Timer fired, removing widget for batch" << batchId;
+            qDebug() << "TransferProgressContainer: Timer fired, removing widget for batch"
+                     << batchId;
             onRemoveBatchWidget(batchId);
         });
     } else {
@@ -242,14 +244,16 @@ void TransferProgressContainer::onScanningStarted(const QString &folderName, Ope
         widget->setActive(true);
         widget->setState(BatchProgressWidget::State::Scanning);
 
-        QString actionVerb = (type == OperationType::Delete) ? tr("Scanning for delete") : tr("Scanning");
+        QString actionVerb =
+            (type == OperationType::Delete) ? tr("Scanning for delete") : tr("Scanning");
         widget->setDescription(tr("%1: %2...").arg(actionVerb, folderName));
 
         updateVisibility();
     }
 }
 
-void TransferProgressContainer::onScanningProgress(int directoriesScanned, int directoriesRemaining, int filesDiscovered)
+void TransferProgressContainer::onScanningProgress(int directoriesScanned, int directoriesRemaining,
+                                                   int filesDiscovered)
 {
     Q_UNUSED(directoriesRemaining)
 
@@ -296,7 +300,7 @@ void TransferProgressContainer::updateVisibility()
     setVisible(!widgets_.isEmpty());
 }
 
-BatchProgressWidget* TransferProgressContainer::findOrCreateWidget(int batchId)
+BatchProgressWidget *TransferProgressContainer::findOrCreateWidget(int batchId)
 {
     if (widgets_.contains(batchId)) {
         return widgets_[batchId];
@@ -308,8 +312,8 @@ BatchProgressWidget* TransferProgressContainer::findOrCreateWidget(int batchId)
     layout_->addWidget(widget);
 
     // Connect cancel signal
-    connect(widget, &BatchProgressWidget::cancelRequested,
-            this, &TransferProgressContainer::onCancelRequested);
+    connect(widget, &BatchProgressWidget::cancelRequested, this,
+            &TransferProgressContainer::onCancelRequested);
 
     return widget;
 }
@@ -341,7 +345,8 @@ void TransferProgressContainer::updateAllBatchWidgets()
     }
 }
 
-void TransferProgressContainer::onOverwriteConfirmationNeeded(const QString &fileName, OperationType type)
+void TransferProgressContainer::onOverwriteConfirmationNeeded(const QString &fileName,
+                                                              OperationType type)
 {
     Q_UNUSED(type)
 
@@ -350,11 +355,13 @@ void TransferProgressContainer::onOverwriteConfirmationNeeded(const QString &fil
     QMessageBox msgBox(dialogParent);
     msgBox.setWindowTitle(tr("File Already Exists"));
     msgBox.setText(tr("The file '%1' already exists.\n\n"
-                      "Do you want to overwrite it?").arg(fileName));
+                      "Do you want to overwrite it?")
+                       .arg(fileName));
     msgBox.setIcon(QMessageBox::Question);
 
     QPushButton *overwriteButton = msgBox.addButton(tr("Overwrite"), QMessageBox::AcceptRole);
-    QPushButton *overwriteAllButton = msgBox.addButton(tr("Overwrite All"), QMessageBox::AcceptRole);
+    QPushButton *overwriteAllButton =
+        msgBox.addButton(tr("Overwrite All"), QMessageBox::AcceptRole);
     QPushButton *skipButton = msgBox.addButton(tr("Skip"), QMessageBox::RejectRole);
     QPushButton *cancelButton = msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
 
@@ -387,7 +394,8 @@ void TransferProgressContainer::onFolderExistsConfirmationNeeded(const QStringLi
     if (folderNames.size() == 1) {
         title = tr("Folder Already Exists");
         message = tr("The folder '%1' already exists on the remote device.\n\n"
-                     "What would you like to do?").arg(folderNames.first());
+                     "What would you like to do?")
+                      .arg(folderNames.first());
     } else {
         title = tr("Folders Already Exist");
         message = tr("The following %1 folders already exist on the remote device:\n\n"

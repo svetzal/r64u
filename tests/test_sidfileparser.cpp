@@ -1,6 +1,6 @@
-#include <QtTest>
-
 #include "services/sidfileparser.h"
+
+#include <QtTest>
 
 class TestSidFileParser : public QObject
 {
@@ -9,38 +9,50 @@ class TestSidFileParser : public QObject
 private:
     // Helper to create a minimal valid PSID v1 header
     QByteArray createPsidV1Header(const QString &title = "Test Title",
-                                   const QString &author = "Test Author",
-                                   const QString &released = "2024 Test")
+                                  const QString &author = "Test Author",
+                                  const QString &released = "2024 Test")
     {
-        QByteArray data(0x76, '\0'); // MinHeaderSize
+        QByteArray data(0x76, '\0');  // MinHeaderSize
 
         // Magic ID
-        data[0] = 'P'; data[1] = 'S'; data[2] = 'I'; data[3] = 'D';
+        data[0] = 'P';
+        data[1] = 'S';
+        data[2] = 'I';
+        data[3] = 'D';
 
         // Version (big-endian)
-        data[0x04] = 0x00; data[0x05] = 0x01;
+        data[0x04] = 0x00;
+        data[0x05] = 0x01;
 
         // Data offset (0x76 for v1)
-        data[0x06] = 0x00; data[0x07] = 0x76;
+        data[0x06] = 0x00;
+        data[0x07] = 0x76;
 
         // Load address
-        data[0x08] = 0x10; data[0x09] = 0x00; // $1000
+        data[0x08] = 0x10;
+        data[0x09] = 0x00;  // $1000
 
         // Init address
-        data[0x0A] = 0x10; data[0x0B] = 0x00; // $1000
+        data[0x0A] = 0x10;
+        data[0x0B] = 0x00;  // $1000
 
         // Play address
-        data[0x0C] = 0x10; data[0x0D] = 0x03; // $1003
+        data[0x0C] = 0x10;
+        data[0x0D] = 0x03;  // $1003
 
         // Number of songs
-        data[0x0E] = 0x00; data[0x0F] = 0x01;
+        data[0x0E] = 0x00;
+        data[0x0F] = 0x01;
 
         // Start song
-        data[0x10] = 0x00; data[0x11] = 0x01;
+        data[0x10] = 0x00;
+        data[0x11] = 0x01;
 
         // Speed
-        data[0x12] = 0x00; data[0x13] = 0x00;
-        data[0x14] = 0x00; data[0x15] = 0x00;
+        data[0x12] = 0x00;
+        data[0x13] = 0x00;
+        data[0x14] = 0x00;
+        data[0x15] = 0x00;
 
         // Title (offset 0x16, 32 bytes)
         QByteArray titleBytes = title.toLatin1().left(32);
@@ -67,13 +79,15 @@ private:
     QByteArray createPsidV2Header(quint16 flags = 0)
     {
         QByteArray data = createPsidV1Header();
-        data.resize(0x7C); // V2HeaderSize
+        data.resize(0x7C);  // V2HeaderSize
 
         // Version 2
-        data[0x04] = 0x00; data[0x05] = 0x02;
+        data[0x04] = 0x00;
+        data[0x05] = 0x02;
 
         // Data offset (0x7C for v2)
-        data[0x06] = 0x00; data[0x07] = 0x7C;
+        data[0x06] = 0x00;
+        data[0x07] = 0x7C;
 
         // Flags (big-endian)
         data[0x76] = static_cast<char>((flags >> 8) & 0xFF);
@@ -88,7 +102,8 @@ private:
         QByteArray data = createPsidV2Header();
 
         // Version 3
-        data[0x04] = 0x00; data[0x05] = 0x03;
+        data[0x04] = 0x00;
+        data[0x05] = 0x03;
 
         // Second SID address
         data[0x7A] = static_cast<char>(secondSidAddr);
@@ -102,7 +117,8 @@ private:
         QByteArray data = createPsidV3Header(secondSidAddr);
 
         // Version 4
-        data[0x04] = 0x00; data[0x05] = 0x04;
+        data[0x04] = 0x00;
+        data[0x05] = 0x04;
 
         // Third SID address
         data[0x7B] = static_cast<char>(thirdSidAddr);
@@ -141,7 +157,7 @@ private slots:
 
     void testParseTooSmall()
     {
-        QByteArray data(0x75, '\0'); // One byte less than MinHeaderSize
+        QByteArray data(0x75, '\0');  // One byte less than MinHeaderSize
         auto info = SidFileParser::parse(data);
         QVERIFY(!info.valid);
     }
@@ -149,7 +165,10 @@ private slots:
     void testParseBadMagic()
     {
         QByteArray data(0x76, '\0');
-        data[0] = 'X'; data[1] = 'S'; data[2] = 'I'; data[3] = 'D';
+        data[0] = 'X';
+        data[1] = 'S';
+        data[2] = 'I';
+        data[3] = 'D';
         auto info = SidFileParser::parse(data);
         QVERIFY(!info.valid);
     }
@@ -157,7 +176,8 @@ private slots:
     void testParseInvalidVersion()
     {
         QByteArray data = createPsidV1Header();
-        data[0x04] = 0x00; data[0x05] = 0x05; // Version 5 (invalid)
+        data[0x04] = 0x00;
+        data[0x05] = 0x05;  // Version 5 (invalid)
         auto info = SidFileParser::parse(data);
         QVERIFY(!info.valid);
     }
@@ -165,7 +185,8 @@ private slots:
     void testParseVersionZero()
     {
         QByteArray data = createPsidV1Header();
-        data[0x04] = 0x00; data[0x05] = 0x00; // Version 0 (invalid)
+        data[0x04] = 0x00;
+        data[0x05] = 0x00;  // Version 0 (invalid)
         auto info = SidFileParser::parse(data);
         QVERIFY(!info.valid);
     }
@@ -183,7 +204,7 @@ private slots:
     void testParseRsidMagic()
     {
         QByteArray data = createPsidV1Header();
-        data[0] = 'R'; // Change to RSID
+        data[0] = 'R';  // Change to RSID
         auto info = SidFileParser::parse(data);
         QVERIFY(info.valid);
         QCOMPARE(info.format, SidFileParser::Format::RSID);
@@ -235,7 +256,8 @@ private slots:
     void testParseLoadAddress()
     {
         QByteArray data = createPsidV1Header();
-        data[0x08] = 0x08; data[0x09] = 0x00; // $0800
+        data[0x08] = 0x08;
+        data[0x09] = 0x00;  // $0800
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.loadAddress, static_cast<quint16>(0x0800));
     }
@@ -243,7 +265,8 @@ private slots:
     void testParseInitAddress()
     {
         QByteArray data = createPsidV1Header();
-        data[0x0A] = 0xC0; data[0x0B] = 0x00; // $C000
+        data[0x0A] = 0xC0;
+        data[0x0B] = 0x00;  // $C000
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.initAddress, static_cast<quint16>(0xC000));
     }
@@ -251,7 +274,8 @@ private slots:
     void testParsePlayAddress()
     {
         QByteArray data = createPsidV1Header();
-        data[0x0C] = 0x10; data[0x0D] = 0x03; // $1003
+        data[0x0C] = 0x10;
+        data[0x0D] = 0x03;  // $1003
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.playAddress, static_cast<quint16>(0x1003));
     }
@@ -259,7 +283,8 @@ private slots:
     void testParsePlayAddressZero()
     {
         QByteArray data = createPsidV1Header();
-        data[0x0C] = 0x00; data[0x0D] = 0x00; // Uses IRQ
+        data[0x0C] = 0x00;
+        data[0x0D] = 0x00;  // Uses IRQ
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.playAddress, static_cast<quint16>(0));
     }
@@ -267,7 +292,8 @@ private slots:
     void testParseSongCount()
     {
         QByteArray data = createPsidV1Header();
-        data[0x0E] = 0x00; data[0x0F] = 0x0A; // 10 songs
+        data[0x0E] = 0x00;
+        data[0x0F] = 0x0A;  // 10 songs
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.songs, static_cast<quint16>(10));
     }
@@ -275,7 +301,8 @@ private slots:
     void testParseStartSong()
     {
         QByteArray data = createPsidV1Header();
-        data[0x10] = 0x00; data[0x11] = 0x03; // Start song 3
+        data[0x10] = 0x00;
+        data[0x11] = 0x03;  // Start song 3
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.startSong, static_cast<quint16>(3));
     }
@@ -283,8 +310,10 @@ private slots:
     void testParseSpeed()
     {
         QByteArray data = createPsidV1Header();
-        data[0x12] = 0x12; data[0x13] = 0x34;
-        data[0x14] = 0x56; data[0x15] = 0x78;
+        data[0x12] = 0x12;
+        data[0x13] = 0x34;
+        data[0x14] = 0x56;
+        data[0x15] = 0x78;
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.speed, static_cast<quint32>(0x12345678));
     }
@@ -335,14 +364,14 @@ private slots:
 
     void testParseMusPlayerFlag()
     {
-        QByteArray data = createPsidV2Header(0x0001); // Bit 0 set
+        QByteArray data = createPsidV2Header(0x0001);  // Bit 0 set
         auto info = SidFileParser::parse(data);
         QVERIFY(info.musPlayer);
     }
 
     void testParsePlaysSamplesFlag()
     {
-        QByteArray data = createPsidV2Header(0x0002); // Bit 1 set
+        QByteArray data = createPsidV2Header(0x0002);  // Bit 1 set
         auto info = SidFileParser::parse(data);
         QVERIFY(info.playsSamples);
         QVERIFY(!info.basicFlag);
@@ -350,8 +379,8 @@ private slots:
 
     void testParseBasicFlagRsid()
     {
-        QByteArray data = createPsidV2Header(0x0002); // Bit 1 set
-        data[0] = 'R'; // Change to RSID
+        QByteArray data = createPsidV2Header(0x0002);  // Bit 1 set
+        data[0] = 'R';                                 // Change to RSID
         auto info = SidFileParser::parse(data);
         QVERIFY(info.basicFlag);
         QVERIFY(!info.playsSamples);
@@ -359,56 +388,56 @@ private slots:
 
     void testParseVideoStandardPal()
     {
-        QByteArray data = createPsidV2Header(0x0004); // Bits 2-3 = 01 (PAL)
+        QByteArray data = createPsidV2Header(0x0004);  // Bits 2-3 = 01 (PAL)
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.videoStandard, SidFileParser::VideoStandard::PAL);
     }
 
     void testParseVideoStandardNtsc()
     {
-        QByteArray data = createPsidV2Header(0x0008); // Bits 2-3 = 10 (NTSC)
+        QByteArray data = createPsidV2Header(0x0008);  // Bits 2-3 = 10 (NTSC)
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.videoStandard, SidFileParser::VideoStandard::NTSC);
     }
 
     void testParseVideoStandardBoth()
     {
-        QByteArray data = createPsidV2Header(0x000C); // Bits 2-3 = 11 (Both)
+        QByteArray data = createPsidV2Header(0x000C);  // Bits 2-3 = 11 (Both)
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.videoStandard, SidFileParser::VideoStandard::Both);
     }
 
     void testParseVideoStandardUnknown()
     {
-        QByteArray data = createPsidV2Header(0x0000); // Bits 2-3 = 00 (Unknown)
+        QByteArray data = createPsidV2Header(0x0000);  // Bits 2-3 = 00 (Unknown)
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.videoStandard, SidFileParser::VideoStandard::Unknown);
     }
 
     void testParseSidModel6581()
     {
-        QByteArray data = createPsidV2Header(0x0010); // Bits 4-5 = 01 (6581)
+        QByteArray data = createPsidV2Header(0x0010);  // Bits 4-5 = 01 (6581)
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.sidModel, SidFileParser::SidModel::MOS6581);
     }
 
     void testParseSidModel8580()
     {
-        QByteArray data = createPsidV2Header(0x0020); // Bits 4-5 = 10 (8580)
+        QByteArray data = createPsidV2Header(0x0020);  // Bits 4-5 = 10 (8580)
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.sidModel, SidFileParser::SidModel::MOS8580);
     }
 
     void testParseSidModelBoth()
     {
-        QByteArray data = createPsidV2Header(0x0030); // Bits 4-5 = 11 (Both)
+        QByteArray data = createPsidV2Header(0x0030);  // Bits 4-5 = 11 (Both)
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.sidModel, SidFileParser::SidModel::Both);
     }
 
     void testParseSidModelUnknown()
     {
-        QByteArray data = createPsidV2Header(0x0000); // Bits 4-5 = 00
+        QByteArray data = createPsidV2Header(0x0000);  // Bits 4-5 = 00
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.sidModel, SidFileParser::SidModel::Unknown);
     }
@@ -417,7 +446,7 @@ private slots:
 
     void testParseSecondSidAddress()
     {
-        QByteArray data = createPsidV3Header(0x42); // Second SID at $D420
+        QByteArray data = createPsidV3Header(0x42);  // Second SID at $D420
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.secondSidAddress, static_cast<quint8>(0x42));
     }
@@ -426,14 +455,15 @@ private slots:
     {
         QByteArray data = createPsidV3Header(0x42);
         // Set bits 6-7 = 10 (8580) in flags
-        data[0x76] = 0x00; data[0x77] = static_cast<char>(0x80); // 0x0080
+        data[0x76] = 0x00;
+        data[0x77] = static_cast<char>(0x80);  // 0x0080
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.secondSidModel, SidFileParser::SidModel::MOS8580);
     }
 
     void testParseThirdSidAddress()
     {
-        QByteArray data = createPsidV4Header(0x42, 0x5E); // Third SID at $D5E0
+        QByteArray data = createPsidV4Header(0x42, 0x5E);  // Third SID at $D5E0
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.thirdSidAddress, static_cast<quint8>(0x5E));
     }
@@ -442,7 +472,8 @@ private slots:
     {
         QByteArray data = createPsidV4Header(0x42, 0x5E);
         // Set bits 8-9 = 11 (Both) in flags
-        data[0x76] = 0x03; data[0x77] = 0x00; // 0x0300
+        data[0x76] = 0x03;
+        data[0x77] = 0x00;  // 0x0300
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.thirdSidModel, SidFileParser::SidModel::Both);
     }
@@ -531,14 +562,16 @@ private slots:
     void testFormatForDisplayMultipleSongs()
     {
         QByteArray data = createPsidV1Header();
-        data[0x0E] = 0x00; data[0x0F] = 0x05; // 5 songs
-        data[0x10] = 0x00; data[0x11] = 0x02; // Start song 2
+        data[0x0E] = 0x00;
+        data[0x0F] = 0x05;  // 5 songs
+        data[0x10] = 0x00;
+        data[0x11] = 0x02;  // Start song 2
         auto info = SidFileParser::parse(data);
         QString output = SidFileParser::formatForDisplay(info);
 
         QVERIFY(output.contains("Songs: 5"));
-        QVERIFY(output.contains("* Song 2")); // Start song marked
-        QVERIFY(output.contains("  Song 1")); // Other songs not marked
+        QVERIFY(output.contains("* Song 2"));  // Start song marked
+        QVERIFY(output.contains("  Song 1"));  // Other songs not marked
     }
 
     void testFormatForDisplay2Sid()
@@ -579,8 +612,8 @@ private slots:
 
     void testFormatForDisplayRsid()
     {
-        QByteArray data = createPsidV2Header(0x0002); // BASIC flag
-        data[0] = 'R'; // RSID
+        QByteArray data = createPsidV2Header(0x0002);  // BASIC flag
+        data[0] = 'R';                                 // RSID
         auto info = SidFileParser::parse(data);
         QString output = SidFileParser::formatForDisplay(info);
 
@@ -592,7 +625,8 @@ private slots:
     void testFormatForDisplayIrqPlay()
     {
         QByteArray data = createPsidV1Header();
-        data[0x0C] = 0x00; data[0x0D] = 0x00; // Play = 0 (uses IRQ)
+        data[0x0C] = 0x00;
+        data[0x0D] = 0x00;  // Play = 0 (uses IRQ)
         auto info = SidFileParser::parse(data);
         QString output = SidFileParser::formatForDisplay(info);
 
@@ -618,7 +652,7 @@ private slots:
         QByteArray data = createPsidV1Header();
         // Test with max values
         data[0x08] = static_cast<char>(0xFF);
-        data[0x09] = static_cast<char>(0xFF); // $FFFF
+        data[0x09] = static_cast<char>(0xFF);  // $FFFF
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.loadAddress, static_cast<quint16>(0xFFFF));
     }
@@ -626,7 +660,8 @@ private slots:
     void testParseManySongs()
     {
         QByteArray data = createPsidV1Header();
-        data[0x0E] = 0x00; data[0x0F] = static_cast<char>(99); // 99 songs
+        data[0x0E] = 0x00;
+        data[0x0F] = static_cast<char>(99);  // 99 songs
         auto info = SidFileParser::parse(data);
         QCOMPARE(info.songs, static_cast<quint16>(99));
     }
@@ -634,7 +669,8 @@ private slots:
     void testFormatForDisplayManySongs()
     {
         QByteArray data = createPsidV1Header();
-        data[0x0E] = 0x00; data[0x0F] = static_cast<char>(50); // 50 songs
+        data[0x0E] = 0x00;
+        data[0x0F] = static_cast<char>(50);  // 50 songs
         auto info = SidFileParser::parse(data);
         QString output = SidFileParser::formatForDisplay(info);
 

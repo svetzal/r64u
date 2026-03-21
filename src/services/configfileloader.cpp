@@ -1,16 +1,14 @@
 #include "configfileloader.h"
+
 #include "c64uftpclient.h"
 #include "c64urestclient.h"
 
-#include <QTextStream>
-#include <QRegularExpression>
 #include <QDebug>
 #include <QJsonDocument>
+#include <QRegularExpression>
+#include <QTextStream>
 
-ConfigFileLoader::ConfigFileLoader(QObject *parent)
-    : QObject(parent)
-{
-}
+ConfigFileLoader::ConfigFileLoader(QObject *parent) : QObject(parent) {}
 
 ConfigFileLoader::~ConfigFileLoader()
 {
@@ -33,11 +31,10 @@ void ConfigFileLoader::setFtpClient(C64UFtpClient *client)
     ftpClient_ = client;
 
     if (ftpClient_) {
-        connect(ftpClient_, &C64UFtpClient::downloadToMemoryFinished,
-                this, &ConfigFileLoader::onDownloadFinished);
+        connect(ftpClient_, &C64UFtpClient::downloadToMemoryFinished, this,
+                &ConfigFileLoader::onDownloadFinished);
         // Track destruction to avoid dangling pointer access
-        connect(ftpClient_, &QObject::destroyed,
-                this, &ConfigFileLoader::onFtpClientDestroyed);
+        connect(ftpClient_, &QObject::destroyed, this, &ConfigFileLoader::onFtpClientDestroyed);
     }
 }
 
@@ -50,13 +47,12 @@ void ConfigFileLoader::setRestClient(C64URestClient *client)
     restClient_ = client;
 
     if (restClient_) {
-        connect(restClient_, &C64URestClient::configsUpdated,
-                this, &ConfigFileLoader::onConfigsUpdated);
-        connect(restClient_, &C64URestClient::operationFailed,
-                this, &ConfigFileLoader::onOperationFailed);
+        connect(restClient_, &C64URestClient::configsUpdated, this,
+                &ConfigFileLoader::onConfigsUpdated);
+        connect(restClient_, &C64URestClient::operationFailed, this,
+                &ConfigFileLoader::onOperationFailed);
         // Track destruction to avoid dangling pointer access
-        connect(restClient_, &QObject::destroyed,
-                this, &ConfigFileLoader::onRestClientDestroyed);
+        connect(restClient_, &QObject::destroyed, this, &ConfigFileLoader::onRestClientDestroyed);
     }
 }
 
@@ -151,7 +147,8 @@ void ConfigFileLoader::onDownloadFinished(const QString &remotePath, const QByte
     QJsonObject configs = parseConfigFile(data);
 
     qDebug() << "ConfigFileLoader: Parsed" << configs.count() << "sections";
-    qDebug() << "ConfigFileLoader: JSON to send:" << QJsonDocument(configs).toJson(QJsonDocument::Indented);
+    qDebug() << "ConfigFileLoader: JSON to send:"
+             << QJsonDocument(configs).toJson(QJsonDocument::Indented);
 
     if (configs.isEmpty()) {
         emit loadFailed(pendingPath_, tr("No configuration data found in file"));

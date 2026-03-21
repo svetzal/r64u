@@ -1,15 +1,14 @@
 #include "c64urestclient.h"
 
 #include <QJsonDocument>
-#include <QUrlQuery>
 #include <QTimer>
+#include <QUrlQuery>
 
 C64URestClient::C64URestClient(QObject *parent)
-    : QObject(parent)
-    , networkManager_(new QNetworkAccessManager(this))
+    : QObject(parent), networkManager_(new QNetworkAccessManager(this))
 {
-    connect(networkManager_, &QNetworkAccessManager::finished,
-            this, &C64URestClient::onReplyFinished);
+    connect(networkManager_, &QNetworkAccessManager::finished, this,
+            &C64URestClient::onReplyFinished);
 }
 
 C64URestClient::~C64URestClient() = default;
@@ -57,7 +56,7 @@ void C64URestClient::sendGetRequest(const QString &endpoint, const QString &oper
 }
 
 void C64URestClient::sendPutRequest(const QString &endpoint, const QString &operation,
-                                     const QByteArray &data)
+                                    const QByteArray &data)
 {
     QNetworkRequest request = createRequest(endpoint);
     QNetworkReply *reply = networkManager_->put(request, data);
@@ -65,7 +64,7 @@ void C64URestClient::sendPutRequest(const QString &endpoint, const QString &oper
 }
 
 void C64URestClient::sendPostRequest(const QString &endpoint, const QString &operation,
-                                      const QByteArray &data, const QString &contentType)
+                                     const QByteArray &data, const QString &contentType)
 {
     QNetworkRequest request = createRequest(endpoint);
     request.setHeader(QNetworkRequest::ContentTypeHeader, contentType);
@@ -127,11 +126,9 @@ void C64URestClient::getDrives()
     sendGetRequest("/v1/drives", "drives");
 }
 
-void C64URestClient::mountImage(const QString &drive, const QString &imagePath,
-                                 const QString &mode)
+void C64URestClient::mountImage(const QString &drive, const QString &imagePath, const QString &mode)
 {
-    QString endpoint = "/v1/drives/" + drive + ":mount?image=" +
-                       QUrl::toPercentEncoding(imagePath);
+    QString endpoint = "/v1/drives/" + drive + ":mount?image=" + QUrl::toPercentEncoding(imagePath);
     if (!mode.isEmpty()) {
         endpoint += "&mode=" + mode;
     }
@@ -190,8 +187,7 @@ void C64URestClient::writeMem(const QString &address, const QByteArray &data)
         hexData += QString("%1").arg(static_cast<quint8>(byte), 2, 16, QChar('0'));
     }
 
-    QString endpoint = QString("/v1/machine:writemem?address=%1&data=%2")
-                           .arg(address, hexData);
+    QString endpoint = QString("/v1/machine:writemem?address=%1&data=%2").arg(address, hexData);
     sendPutRequest(endpoint, "writeMem");
 }
 
@@ -247,9 +243,7 @@ void C64URestClient::typeText(const QString &text)
 
     // Schedule remaining chunks with 200ms delays to let C64 consume buffer
     if (!remaining.isEmpty()) {
-        QTimer::singleShot(200, this, [this, remaining]() {
-            typeText(remaining);
-        });
+        QTimer::singleShot(200, this, [this, remaining]() { typeText(remaining); });
     }
 }
 
@@ -297,8 +291,8 @@ void C64URestClient::getConfigCategoryItems(const QString &category)
 
 void C64URestClient::getConfigItem(const QString &category, const QString &item)
 {
-    QString endpoint = "/v1/configs/" + QUrl::toPercentEncoding(category) + "/" +
-                       QUrl::toPercentEncoding(item);
+    QString endpoint =
+        "/v1/configs/" + QUrl::toPercentEncoding(category) + "/" + QUrl::toPercentEncoding(item);
     // Encode category:item in operation name for response routing
     sendGetRequest(endpoint, "getConfigItem:" + category + ":" + item);
 }
@@ -307,8 +301,8 @@ void C64URestClient::setConfigItem(const QString &category, const QString &item,
                                    const QVariant &value)
 {
     QString endpoint = "/v1/configs/" + QUrl::toPercentEncoding(category) + "/" +
-                       QUrl::toPercentEncoding(item) + "?value=" +
-                       QUrl::toPercentEncoding(value.toString());
+                       QUrl::toPercentEncoding(item) +
+                       "?value=" + QUrl::toPercentEncoding(value.toString());
     // Encode category:item in operation name for response routing
     sendPutRequest(endpoint, "setConfigItem:" + category + ":" + item);
 }
@@ -367,7 +361,8 @@ void C64URestClient::onReplyFinished(QNetworkReply *reply)
                 }
             } else {
                 // Not JSON, include raw response
-                errorMsg += " - Response: " + QString::fromUtf8(errorData).left(ErrorResponsePreviewLength);
+                errorMsg +=
+                    " - Response: " + QString::fromUtf8(errorData).left(ErrorResponsePreviewLength);
             }
         }
         qDebug() << "REST error for" << operation << ":" << errorMsg;
@@ -509,7 +504,7 @@ void C64URestClient::handleConfigCategoriesResponse(const QJsonObject &json)
 }
 
 void C64URestClient::handleConfigCategoryItemsResponse(const QString &category,
-                                                        const QJsonObject &json)
+                                                       const QJsonObject &json)
 {
     QHash<QString, ConfigItemMetadata> items;
 

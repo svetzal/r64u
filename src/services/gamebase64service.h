@@ -1,11 +1,11 @@
 #ifndef GAMEBASE64SERVICE_H
 #define GAMEBASE64SERVICE_H
 
-#include <QObject>
 #include <QHash>
-#include <QSqlDatabase>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QObject>
+#include <QSqlDatabase>
 
 /**
  * @brief Service for accessing GameBase64 metadata database
@@ -27,16 +27,17 @@ class GameBase64Service : public QObject
 
 public:
     /// Download URL for the GameBase64 SQLite database (gzipped)
-    static constexpr const char* DatabaseUrl =
+    static constexpr const char *DatabaseUrl =
         "http://www.twinbirds.com/gamebase64browser/GBC_v18.sqlitedb.gz";
 
     /// Expected filename after decompression
-    static constexpr const char* DatabaseFilename = "gamebase64.db";
+    static constexpr const char *DatabaseFilename = "gamebase64.db";
 
     /**
      * @brief Information about a game from GameBase64
      */
-    struct GameInfo {
+    struct GameInfo
+    {
         bool found = false;
         int gameId = 0;
         QString name;
@@ -46,20 +47,21 @@ public:
         QString parentGenre;
         QString musician;
         QString musicianGroup;
-        QString filename;           ///< D64/CRT filename
+        QString filename;  ///< D64/CRT filename
         QString screenshotFilename;
-        QString sidFilename;        ///< Associated SID music file
-        int rating = 0;             ///< 0-10 rating
+        QString sidFilename;  ///< Associated SID music file
+        int rating = 0;       ///< 0-10 rating
         int playersFrom = 1;
         int playersTo = 1;
-        QString memo;               ///< Game description/memo
-        QString comment;            ///< Additional comments
+        QString memo;     ///< Game description/memo
+        QString comment;  ///< Additional comments
     };
 
     /**
      * @brief Search results containing multiple games
      */
-    struct SearchResults {
+    struct SearchResults
+    {
         bool success = false;
         QString error;
         QList<GameInfo> games;
@@ -82,8 +84,10 @@ public:
 
     // Search methods (return multiple results)
     [[nodiscard]] SearchResults searchByName(const QString &query, int maxResults = 50) const;
-    [[nodiscard]] SearchResults searchByMusician(const QString &musician, int maxResults = 50) const;
-    [[nodiscard]] SearchResults searchByPublisher(const QString &publisher, int maxResults = 50) const;
+    [[nodiscard]] SearchResults searchByMusician(const QString &musician,
+                                                 int maxResults = 50) const;
+    [[nodiscard]] SearchResults searchByPublisher(const QString &publisher,
+                                                  int maxResults = 50) const;
 
     // Database management
     void downloadDatabase();
@@ -130,4 +134,4 @@ private:
     QHash<QString, int> sidFilenameToGameId_;
 };
 
-#endif // GAMEBASE64SERVICE_H
+#endif  // GAMEBASE64SERVICE_H

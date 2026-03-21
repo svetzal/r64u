@@ -4,11 +4,11 @@
  */
 
 #include "audioplaybackservice.h"
+
 #include <QAudioDevice>
 #include <QMediaDevices>
 
-AudioPlaybackService::AudioPlaybackService(QObject *parent)
-    : QObject(parent)
+AudioPlaybackService::AudioPlaybackService(QObject *parent) : QObject(parent)
 {
     // Initialize audio format
     audioFormat_.setSampleRate(sampleRate_);
@@ -37,7 +37,8 @@ bool AudioPlaybackService::start()
     // Start the audio output
     audioDevice_ = audioSink_->start();
     if (!audioDevice_) {
-        emit errorOccurred(QString("Failed to start audio output: error code %1").arg(audioSink_->error()));
+        emit errorOccurred(
+            QString("Failed to start audio output: error code %1").arg(audioSink_->error()));
         audioSink_.reset();
         return false;
     }
@@ -171,9 +172,9 @@ void AudioPlaybackService::createAudioSink()
     audioSink_->setVolume(volume_);
 
     // Set reasonable buffer size (about 50ms of audio for low latency)
-    int bufferSize = sampleRate_ * BytesPerFrame / 20; // 50ms
+    int bufferSize = sampleRate_ * BytesPerFrame / 20;  // 50ms
     audioSink_->setBufferSize(bufferSize);
 
-    connect(audioSink_.get(), &QAudioSink::stateChanged,
-            this, &AudioPlaybackService::onStateChanged);
+    connect(audioSink_.get(), &QAudioSink::stateChanged, this,
+            &AudioPlaybackService::onStateChanged);
 }

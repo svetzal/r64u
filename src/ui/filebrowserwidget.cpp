@@ -1,20 +1,18 @@
 #include "filebrowserwidget.h"
+
 #include "pathnavigationwidget.h"
 
-#include <QVBoxLayout>
-#include <QLabel>
-#include <QTreeView>
-#include <QToolBar>
-#include <QMenu>
 #include <QAbstractItemModel>
+#include <QFileInfo>
 #include <QHeaderView>
 #include <QItemSelectionModel>
-#include <QFileInfo>
+#include <QLabel>
+#include <QMenu>
+#include <QToolBar>
+#include <QTreeView>
+#include <QVBoxLayout>
 
-FileBrowserWidget::FileBrowserWidget(QWidget *parent)
-    : QWidget(parent)
-{
-}
+FileBrowserWidget::FileBrowserWidget(QWidget *parent) : QWidget(parent) {}
 
 void FileBrowserWidget::setCurrentDirectory(const QString &path)
 {
@@ -41,8 +39,7 @@ void FileBrowserWidget::setupUi()
 
     // Path navigation widget
     navWidget_ = new PathNavigationWidget(navLabelText());
-    connect(navWidget_, &PathNavigationWidget::upClicked,
-            this, &FileBrowserWidget::onParentFolder);
+    connect(navWidget_, &PathNavigationWidget::upClicked, this, &FileBrowserWidget::onParentFolder);
     layout->addWidget(navWidget_);
 
     // Toolbar - subclasses will add their specific actions
@@ -74,17 +71,16 @@ void FileBrowserWidget::setupContextMenu()
 void FileBrowserWidget::setupConnections()
 {
     if (treeView_) {
-        connect(treeView_, &QTreeView::doubleClicked,
-                this, &FileBrowserWidget::onDoubleClicked);
-        connect(treeView_, &QTreeView::customContextMenuRequested,
-                this, &FileBrowserWidget::onContextMenu);
+        connect(treeView_, &QTreeView::doubleClicked, this, &FileBrowserWidget::onDoubleClicked);
+        connect(treeView_, &QTreeView::customContextMenuRequested, this,
+                &FileBrowserWidget::onContextMenu);
 
         if (treeView_->selectionModel()) {
-            connect(treeView_->selectionModel(), &QItemSelectionModel::selectionChanged,
-                    this, [this]() {
-                updateActions();
-                emit selectionChanged();
-            });
+            connect(treeView_->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+                    [this]() {
+                        updateActions();
+                        emit selectionChanged();
+                    });
         }
     }
 }

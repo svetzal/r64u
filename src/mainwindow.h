@@ -2,9 +2,9 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QProgressBar>
 #include <QTabWidget>
 #include <QToolBar>
-#include <QProgressBar>
 
 class PreferencesDialog;
 class DeviceConnection;
@@ -31,12 +31,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    enum class Mode {
-        ExploreRun,
-        Transfer,
-        View,
-        Config
-    };
+    enum class Mode { ExploreRun, Transfer, View, Config };
 
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
@@ -126,4 +121,4 @@ private:
     PreferencesDialog *preferencesDialog_ = nullptr;
 };
 
-#endif // MAINWINDOW_H
+#endif  // MAINWINDOW_H

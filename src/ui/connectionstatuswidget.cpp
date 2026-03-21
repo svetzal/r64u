@@ -2,8 +2,7 @@
 
 #include <QHBoxLayout>
 
-ConnectionStatusWidget::ConnectionStatusWidget(QWidget *parent)
-    : QWidget(parent)
+ConnectionStatusWidget::ConnectionStatusWidget(QWidget *parent) : QWidget(parent)
 {
     auto *layout = new QHBoxLayout(this);
     layout->setContentsMargins(4, 0, 4, 0);
@@ -57,6 +56,5 @@ void ConnectionStatusWidget::updateDisplay()
     statusLabel_->setText(connected_ ? tr("Connected") : tr("Disconnected"));
 
     QString color = connected_ ? "#22c55e" : "#ef4444";  // green-500 / red-500
-    indicator_->setStyleSheet(
-        QString("background-color: %1; border-radius: 6px;").arg(color));
+    indicator_->setStyleSheet(QString("background-color: %1; border-radius: 6px;").arg(color));
 }

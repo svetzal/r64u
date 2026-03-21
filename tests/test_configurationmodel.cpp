@@ -1,7 +1,7 @@
-#include <QtTest>
-#include <QSignalSpy>
-
 #include "models/configurationmodel.h"
+
+#include <QSignalSpy>
+#include <QtTest>
 
 class TestConfigurationModel : public QObject
 {
@@ -11,10 +11,7 @@ private:
     ConfigurationModel *model;
 
 private slots:
-    void init()
-    {
-        model = new ConfigurationModel(this);
-    }
+    void init() { model = new ConfigurationModel(this); }
 
     void cleanup()
     {
@@ -430,10 +427,7 @@ private slots:
     }
 
     // Test itemCount on nonexistent category
-    void testItemCountNonexistent()
-    {
-        QCOMPARE(model->itemCount("Nonexistent"), 0);
-    }
+    void testItemCountNonexistent() { QCOMPARE(model->itemCount("Nonexistent"), 0); }
 
     // Test isItemDirty on nonexistent items
     void testIsItemDirtyNonexistent()
@@ -676,7 +670,7 @@ private slots:
         QVERIFY(model->isItemDirty("Config", "Item1"));
         QVERIFY(!model->isItemDirty("Config", "Item2"));
         QVERIFY(model->isItemDirty("Config", "Item3"));
-        QVERIFY(model->isDirty());  // Still dirty overall
+        QVERIFY(model->isDirty());      // Still dirty overall
         QCOMPARE(dirtySpy.count(), 0);  // No state change signal yet
 
         // Clear Item1

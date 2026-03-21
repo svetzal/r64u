@@ -9,11 +9,11 @@
 #ifndef PLAYLISTMANAGER_H
 #define PLAYLISTMANAGER_H
 
-#include <QObject>
-#include <QString>
 #include <QList>
-#include <QTimer>
+#include <QObject>
 #include <QSet>
+#include <QString>
+#include <QTimer>
 
 class DeviceConnection;
 class SonglengthsDatabase;
@@ -37,22 +37,23 @@ public:
     /**
      * @brief Single item in the playlist.
      */
-    struct PlaylistItem {
-        QString path;           ///< Remote file path on the Ultimate device
-        QString title;          ///< Song title (from SID metadata or filename)
-        QString author;         ///< Composer name (from SID metadata)
-        int subsong = 1;        ///< Which subsong to play (1-indexed for display)
-        int totalSubsongs = 1;  ///< Total subsongs in the file
-        int durationSecs = 180; ///< Duration before advancing (default 3 minutes)
+    struct PlaylistItem
+    {
+        QString path;            ///< Remote file path on the Ultimate device
+        QString title;           ///< Song title (from SID metadata or filename)
+        QString author;          ///< Composer name (from SID metadata)
+        int subsong = 1;         ///< Which subsong to play (1-indexed for display)
+        int totalSubsongs = 1;   ///< Total subsongs in the file
+        int durationSecs = 180;  ///< Duration before advancing (default 3 minutes)
     };
 
     /**
      * @brief Repeat mode for playlist playback.
      */
     enum class RepeatMode {
-        Off,        ///< Stop after last track
-        All,        ///< Restart from beginning after last track
-        One         ///< Repeat current track indefinitely
+        Off,  ///< Stop after last track
+        All,  ///< Restart from beginning after last track
+        One   ///< Repeat current track indefinitely
     };
 
     explicit PlaylistManager(DeviceConnection *connection, QObject *parent = nullptr);
@@ -319,4 +320,4 @@ private:
     bool ftpConnected_ = false;
 };
 
-#endif // PLAYLISTMANAGER_H
+#endif  // PLAYLISTMANAGER_H

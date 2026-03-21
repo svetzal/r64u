@@ -10,8 +10,9 @@
 #define DEFAULTFILEPREVIEW_H
 
 #include "filepreviewstrategy.h"
-#include <QObject>
+
 #include <QLabel>
+#include <QObject>
 #include <QVBoxLayout>
 
 /**
@@ -29,7 +30,7 @@ public:
     ~DefaultFilePreview() override = default;
 
     [[nodiscard]] bool canHandle(const QString &path) const override;
-    [[nodiscard]] QWidget* createPreviewWidget(QWidget *parent) override;
+    [[nodiscard]] QWidget *createPreviewWidget(QWidget *parent) override;
     void showPreview(const QString &path, const QByteArray &data) override;
     void showLoading(const QString &path) override;
     void showError(const QString &error) override;
@@ -52,4 +53,4 @@ private:
     QLabel *statusLabel_ = nullptr;
 };
 
-#endif // DEFAULTFILEPREVIEW_H
+#endif  // DEFAULTFILEPREVIEW_H

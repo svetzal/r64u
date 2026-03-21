@@ -4,9 +4,11 @@
  */
 
 #include "videodisplaywidget.h"
+
 #include "utils/logging.h"
-#include <QPainter>
+
 #include <QKeyEvent>
+#include <QPainter>
 
 // Standard VIC-II color palette
 // Values from: https://www.pepto.de/projects/colorvic/
@@ -30,8 +32,7 @@ const std::array<QRgb, 16> VideoDisplayWidget::VicPalette = {{
 }};
 
 VideoDisplayWidget::VideoDisplayWidget(QWidget *parent)
-    : QWidget(parent)
-    , displayTimer_(new QTimer(this))
+    : QWidget(parent), displayTimer_(new QTimer(this))
 {
     // Set black background
     setAutoFillBackground(true);
@@ -51,8 +52,7 @@ VideoDisplayWidget::VideoDisplayWidget(QWidget *parent)
 
     // Set up display timer for frame pacing
     displayTimer_->setTimerType(Qt::PreciseTimer);
-    connect(displayTimer_, &QTimer::timeout,
-            this, &VideoDisplayWidget::onDisplayTimer);
+    connect(displayTimer_, &QTimer::timeout, this, &VideoDisplayWidget::onDisplayTimer);
 }
 
 VideoDisplayWidget::~VideoDisplayWidget()
@@ -63,8 +63,7 @@ VideoDisplayWidget::~VideoDisplayWidget()
 QSize VideoDisplayWidget::sizeHint() const
 {
     // Return native resolution based on format
-    int height = (videoFormat_ == VideoStreamReceiver::VideoFormat::NTSC)
-                     ? NtscHeight : PalHeight;
+    int height = (videoFormat_ == VideoStreamReceiver::VideoFormat::NTSC) ? NtscHeight : PalHeight;
     return {FrameWidth, height};
 }
 
@@ -74,25 +73,22 @@ QSize VideoDisplayWidget::minimumSizeHint() const
     return {FrameWidth / 4, PalHeight / 4};
 }
 
-void VideoDisplayWidget::displayFrame(const QByteArray &frameData,
-                                       quint16 frameNumber,
-                                       VideoStreamReceiver::VideoFormat format)
+void VideoDisplayWidget::displayFrame(const QByteArray &frameData, quint16 frameNumber,
+                                      VideoStreamReceiver::VideoFormat format)
 {
     static int frameCount = 0;
     frameCount++;
     if (frameCount <= 3 || frameCount % 50 == 0) {
         LOG_VERBOSE() << "VideoDisplayWidget::displayFrame: frame" << frameCount
-                 << "data size:" << frameData.size()
-                 << "format:" << static_cast<int>(format);
+                      << "data size:" << frameData.size() << "format:" << static_cast<int>(format);
     }
 
     // Handle format change - this affects timing so handle before buffering
     if (format != videoFormat_ && format != VideoStreamReceiver::VideoFormat::Unknown) {
         LOG_VERBOSE() << "VideoDisplayWidget: Format changed to"
-                 << (format == VideoStreamReceiver::VideoFormat::PAL ? "PAL" : "NTSC");
+                      << (format == VideoStreamReceiver::VideoFormat::PAL ? "PAL" : "NTSC");
         videoFormat_ = format;
-        int height = (format == VideoStreamReceiver::VideoFormat::NTSC)
-                         ? NtscHeight : PalHeight;
+        int height = (format == VideoStreamReceiver::VideoFormat::NTSC) ? NtscHeight : PalHeight;
         displayImage_ = QImage(FrameWidth, height, QImage::Format_RGB32);
 
         // Restart timer with new frame rate if running
@@ -239,10 +235,8 @@ QRect VideoDisplayWidget::calculateDisplayRect() const
         displayHeight = imageHeight * scale;
     } else {
         // Aspect ratio preserving scaling (Sharp and Smooth modes)
-        qreal imageAspect = static_cast<qreal>(imageWidth) /
-                            static_cast<qreal>(imageHeight);
-        qreal widgetAspect = static_cast<qreal>(width()) /
-                             static_cast<qreal>(height());
+        qreal imageAspect = static_cast<qreal>(imageWidth) / static_cast<qreal>(imageHeight);
+        qreal widgetAspect = static_cast<qreal>(width()) / static_cast<qreal>(height());
 
         if (widgetAspect > imageAspect) {
             // Widget is wider than image - fit to height
@@ -348,8 +342,7 @@ void VideoDisplayWidget::onDisplayTimer()
 void VideoDisplayWidget::displayBufferedFrame(const BufferedFrame &frame)
 {
     // Convert and display
-    int height = (videoFormat_ == VideoStreamReceiver::VideoFormat::NTSC)
-                     ? NtscHeight : PalHeight;
+    int height = (videoFormat_ == VideoStreamReceiver::VideoFormat::NTSC) ? NtscHeight : PalHeight;
     convertFrameToRgb(frame.frameData, height);
     hasFrame_ = true;
 
@@ -367,8 +360,8 @@ void VideoDisplayWidget::startDisplayTimer()
     if (!displayTimer_->isActive()) {
         // Calculate interval based on video format
         // PAL: 50 Hz = 20ms, NTSC: 60 Hz ≈ 16.67ms
-        double frameRate = (videoFormat_ == VideoStreamReceiver::VideoFormat::NTSC)
-                               ? NtscFrameRate : PalFrameRate;
+        double frameRate =
+            (videoFormat_ == VideoStreamReceiver::VideoFormat::NTSC) ? NtscFrameRate : PalFrameRate;
         int intervalMs = static_cast<int>(1000.0 / frameRate);
         displayTimer_->start(intervalMs);
     }

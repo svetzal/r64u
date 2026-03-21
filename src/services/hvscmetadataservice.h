@@ -9,11 +9,11 @@
 #ifndef HVSCMETADATASERVICE_H
 #define HVSCMETADATASERVICE_H
 
-#include <QObject>
-#include <QString>
 #include <QHash>
 #include <QList>
 #include <QNetworkAccessManager>
+#include <QObject>
+#include <QString>
 
 /**
  * @brief Manages HVSC STIL and BUGlist databases for SID metadata lookup.
@@ -30,17 +30,18 @@ class HVSCMetadataService : public QObject
 
 public:
     /// URL to download STIL.txt
-    static constexpr const char* StilUrl =
+    static constexpr const char *StilUrl =
         "https://www.hvsc.c64.org/download/C64Music/DOCUMENTS/STIL.txt";
 
     /// URL to download BUGlist.txt
-    static constexpr const char* BuglistUrl =
+    static constexpr const char *BuglistUrl =
         "https://www.hvsc.c64.org/download/C64Music/DOCUMENTS/BUGlist.txt";
 
     /**
      * @brief Information about a cover/sample in a tune.
      */
-    struct CoverInfo {
+    struct CoverInfo
+    {
         QString title;      ///< Original song title
         QString artist;     ///< Original artist
         QString timestamp;  ///< Optional timestamp (e.g., "1:05" or "1:05-2:30")
@@ -49,38 +50,42 @@ public:
     /**
      * @brief STIL entry for a single subtune.
      */
-    struct SubtuneEntry {
-        int subtune = 0;            ///< Subtune number (0 = whole file)
-        QString name;               ///< Tune name
-        QString author;             ///< Tune author (if different from SID header)
-        QString comment;            ///< Commentary/history
-        QList<CoverInfo> covers;    ///< Cover/sample information
+    struct SubtuneEntry
+    {
+        int subtune = 0;          ///< Subtune number (0 = whole file)
+        QString name;             ///< Tune name
+        QString author;           ///< Tune author (if different from SID header)
+        QString comment;          ///< Commentary/history
+        QList<CoverInfo> covers;  ///< Cover/sample information
     };
 
     /**
      * @brief Complete STIL information for a SID file.
      */
-    struct StilInfo {
-        bool found = false;             ///< True if entry exists in STIL
-        QString path;                   ///< HVSC path
-        QList<SubtuneEntry> entries;    ///< Entries for file and/or subtunes
+    struct StilInfo
+    {
+        bool found = false;           ///< True if entry exists in STIL
+        QString path;                 ///< HVSC path
+        QList<SubtuneEntry> entries;  ///< Entries for file and/or subtunes
     };
 
     /**
      * @brief Bug report for a SID file.
      */
-    struct BugEntry {
-        int subtune = 0;        ///< Subtune number (0 = whole file)
-        QString description;    ///< Bug description
+    struct BugEntry
+    {
+        int subtune = 0;      ///< Subtune number (0 = whole file)
+        QString description;  ///< Bug description
     };
 
     /**
      * @brief Complete bug information for a SID file.
      */
-    struct BugInfo {
-        bool found = false;         ///< True if entry exists in BUGlist
-        QString path;               ///< HVSC path
-        QList<BugEntry> entries;    ///< Bug entries for file and/or subtunes
+    struct BugInfo
+    {
+        bool found = false;       ///< True if entry exists in BUGlist
+        QString path;             ///< HVSC path
+        QList<BugEntry> entries;  ///< Bug entries for file and/or subtunes
     };
 
     explicit HVSCMetadataService(QObject *parent = nullptr);
@@ -209,4 +214,4 @@ private:
     QHash<QString, QList<BugEntry>> buglistDatabase_;
 };
 
-#endif // HVSCMETADATASERVICE_H
+#endif  // HVSCMETADATASERVICE_H

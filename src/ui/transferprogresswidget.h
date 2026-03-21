@@ -1,13 +1,13 @@
 #ifndef TRANSFERPROGRESSWIDGET_H
 #define TRANSFERPROGRESSWIDGET_H
 
-#include <QWidget>
-#include <QProgressBar>
+#include "models/transferqueue.h"
+
 #include <QLabel>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QTimer>
-
-#include "models/transferqueue.h"
+#include <QWidget>
 
 class TransferService;
 
@@ -57,4 +57,4 @@ private:
     QTimer *delayTimer_ = nullptr;
 };
 
-#endif // TRANSFERPROGRESSWIDGET_H
+#endif  // TRANSFERPROGRESSWIDGET_H

@@ -1,19 +1,15 @@
 #include "statusmessageservice.h"
 
 StatusMessageService::StatusMessageService(QObject *parent)
-    : QObject(parent)
-    , displayTimer_(new QTimer(this))
-    , messageTimer_(new QTimer(this))
+    : QObject(parent), displayTimer_(new QTimer(this)), messageTimer_(new QTimer(this))
 {
     // Display timer is single-shot for minimum display time
     displayTimer_->setSingleShot(true);
-    connect(displayTimer_, &QTimer::timeout,
-            this, &StatusMessageService::onDisplayTimerTimeout);
+    connect(displayTimer_, &QTimer::timeout, this, &StatusMessageService::onDisplayTimerTimeout);
 
     // Message timer is single-shot for message timeout
     messageTimer_->setSingleShot(true);
-    connect(messageTimer_, &QTimer::timeout,
-            this, &StatusMessageService::onMessageTimeout);
+    connect(messageTimer_, &QTimer::timeout, this, &StatusMessageService::onMessageTimeout);
 }
 
 StatusMessageService::~StatusMessageService() = default;
@@ -79,11 +75,11 @@ int StatusMessageService::defaultTimeoutForPriority(Priority priority)
 {
     switch (priority) {
     case Priority::Info:
-        return 3000;   // 3 seconds for info
+        return 3000;  // 3 seconds for info
     case Priority::Warning:
-        return 5000;   // 5 seconds for warnings
+        return 5000;  // 5 seconds for warnings
     case Priority::Error:
-        return 8000;   // 8 seconds for errors - give user time to read
+        return 8000;  // 8 seconds for errors - give user time to read
     }
     return 3000;
 }
@@ -158,7 +154,8 @@ void StatusMessageService::processNextMessage()
     displayImmediately(next.text, next.priority, next.timeout);
 }
 
-void StatusMessageService::displayImmediately(const QString &message, Priority priority, int timeout)
+void StatusMessageService::displayImmediately(const QString &message, Priority priority,
+                                              int timeout)
 {
     currentMessage_ = message;
     currentPriority_ = priority;

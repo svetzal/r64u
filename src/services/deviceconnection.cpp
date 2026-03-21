@@ -5,38 +5,33 @@ DeviceConnection::DeviceConnection(QObject *parent)
 {
 }
 
-DeviceConnection::DeviceConnection(C64URestClient *restClient, C64UFtpClient *ftpClient, QObject *parent)
-    : QObject(parent)
-    , restClient_(restClient)
-    , ftpClient_(ftpClient)
-    , reconnectTimer_(new QTimer(this))
+DeviceConnection::DeviceConnection(C64URestClient *restClient, C64UFtpClient *ftpClient,
+                                   QObject *parent)
+    : QObject(parent), restClient_(restClient), ftpClient_(ftpClient),
+      reconnectTimer_(new QTimer(this))
 {
     // Take ownership of injected clients
     restClient_->setParent(this);
     ftpClient_->setParent(this);
 
     // REST client signals
-    connect(restClient_, &C64URestClient::infoReceived,
-            this, &DeviceConnection::onRestInfoReceived);
-    connect(restClient_, &C64URestClient::drivesReceived,
-            this, &DeviceConnection::onRestDrivesReceived);
-    connect(restClient_, &C64URestClient::connectionError,
-            this, &DeviceConnection::onRestConnectionError);
-    connect(restClient_, &C64URestClient::operationFailed,
-            this, &DeviceConnection::onRestOperationFailed);
+    connect(restClient_, &C64URestClient::infoReceived, this,
+            &DeviceConnection::onRestInfoReceived);
+    connect(restClient_, &C64URestClient::drivesReceived, this,
+            &DeviceConnection::onRestDrivesReceived);
+    connect(restClient_, &C64URestClient::connectionError, this,
+            &DeviceConnection::onRestConnectionError);
+    connect(restClient_, &C64URestClient::operationFailed, this,
+            &DeviceConnection::onRestOperationFailed);
 
     // FTP client signals
-    connect(ftpClient_, &C64UFtpClient::connected,
-            this, &DeviceConnection::onFtpConnected);
-    connect(ftpClient_, &C64UFtpClient::disconnected,
-            this, &DeviceConnection::onFtpDisconnected);
-    connect(ftpClient_, &C64UFtpClient::error,
-            this, &DeviceConnection::onFtpError);
+    connect(ftpClient_, &C64UFtpClient::connected, this, &DeviceConnection::onFtpConnected);
+    connect(ftpClient_, &C64UFtpClient::disconnected, this, &DeviceConnection::onFtpDisconnected);
+    connect(ftpClient_, &C64UFtpClient::error, this, &DeviceConnection::onFtpError);
 
     // Reconnect timer
     reconnectTimer_->setSingleShot(true);
-    connect(reconnectTimer_, &QTimer::timeout,
-            this, &DeviceConnection::onReconnectTimer);
+    connect(reconnectTimer_, &QTimer::timeout, this, &DeviceConnection::onReconnectTimer);
 }
 
 DeviceConnection::~DeviceConnection() = default;
@@ -55,19 +50,16 @@ bool DeviceConnection::isValidTransition(ConnectionState from, ConnectionState t
 
     case ConnectionState::Connecting:
         // From connecting: can succeed, fail, or start reconnecting
-        return to == ConnectionState::Connected ||
-               to == ConnectionState::Disconnected ||
+        return to == ConnectionState::Connected || to == ConnectionState::Disconnected ||
                to == ConnectionState::Reconnecting;
 
     case ConnectionState::Connected:
         // From connected: can disconnect or start reconnecting
-        return to == ConnectionState::Disconnected ||
-               to == ConnectionState::Reconnecting;
+        return to == ConnectionState::Disconnected || to == ConnectionState::Reconnecting;
 
     case ConnectionState::Reconnecting:
         // From reconnecting: can succeed, give up, or retry (via Connecting)
-        return to == ConnectionState::Connected ||
-               to == ConnectionState::Disconnected ||
+        return to == ConnectionState::Connected || to == ConnectionState::Disconnected ||
                to == ConnectionState::Connecting;
     }
 
@@ -77,8 +69,8 @@ bool DeviceConnection::isValidTransition(ConnectionState from, ConnectionState t
 bool DeviceConnection::tryTransitionTo(ConnectionState newState)
 {
     if (!isValidTransition(state_, newState)) {
-        qWarning() << "DeviceConnection: Invalid state transition from"
-                   << static_cast<int>(state_) << "to" << static_cast<int>(newState);
+        qWarning() << "DeviceConnection: Invalid state transition from" << static_cast<int>(state_)
+                   << "to" << static_cast<int>(newState);
         return false;
     }
 
@@ -123,8 +115,7 @@ void DeviceConnection::connectToDevice()
     // Guard: only allow connecting from Disconnected state
     // Block during Connecting, Connected, and Reconnecting to prevent
     // multiple connection attempts in flight simultaneously
-    if (state_ == ConnectionState::Connecting ||
-        state_ == ConnectionState::Connected ||
+    if (state_ == ConnectionState::Connecting || state_ == ConnectionState::Connected ||
         state_ == ConnectionState::Reconnecting) {
         return;
     }
@@ -308,8 +299,7 @@ void DeviceConnection::startReconnect()
 
     if (reconnectAttempts_ > MaxReconnectAttempts) {
         tryTransitionTo(ConnectionState::Disconnected);
-        emit connectionError(tr("Failed to reconnect after %1 attempts")
-                             .arg(MaxReconnectAttempts));
+        emit connectionError(tr("Failed to reconnect after %1 attempts").arg(MaxReconnectAttempts));
         return;
     }
 

@@ -1,43 +1,41 @@
 #include "mainwindow.h"
-#include "ui/preferencesdialog.h"
-#include "ui/connectionstatuswidget.h"
-#include "ui/explorepanel.h"
-#include "ui/transferpanel.h"
-#include "ui/viewpanel.h"
-#include "ui/configpanel.h"
-#include "services/deviceconnection.h"
-#include "services/configfileloader.h"
-#include "services/filepreviewservice.h"
-#include "services/transferservice.h"
-#include "services/errorhandler.h"
-#include "services/statusmessageservice.h"
-#include "services/favoritesmanager.h"
-#include "services/playlistmanager.h"
-#include "services/songlengthsdatabase.h"
-#include "services/hvscmetadataservice.h"
-#include "services/gamebase64service.h"
-#include "services/streamingmanager.h"
+
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
+#include "services/configfileloader.h"
+#include "services/credentialstore.h"
+#include "services/deviceconnection.h"
+#include "services/errorhandler.h"
+#include "services/favoritesmanager.h"
+#include "services/filepreviewservice.h"
+#include "services/gamebase64service.h"
+#include "services/hvscmetadataservice.h"
+#include "services/playlistmanager.h"
+#include "services/songlengthsdatabase.h"
+#include "services/statusmessageservice.h"
+#include "services/streamingmanager.h"
+#include "services/transferservice.h"
+#include "ui/configpanel.h"
+#include "ui/connectionstatuswidget.h"
+#include "ui/explorepanel.h"
+#include "ui/preferencesdialog.h"
+#include "ui/transferpanel.h"
+#include "ui/viewpanel.h"
 
+#include <QCloseEvent>
+#include <QFileInfo>
 #include <QMenuBar>
-#include <QStatusBar>
-#include <QVBoxLayout>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QSettings>
-#include <QCloseEvent>
+#include <QStatusBar>
 #include <QTimer>
-#include <QFileInfo>
-
-#include "services/credentialstore.h"
+#include <QVBoxLayout>
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , deviceConnection_(new DeviceConnection(this))
-    , remoteFileModel_(new RemoteFileModel(this))
-    , transferQueue_(new TransferQueue(this))
-    , configFileLoader_(new ConfigFileLoader(this))
+    : QMainWindow(parent), deviceConnection_(new DeviceConnection(this)),
+      remoteFileModel_(new RemoteFileModel(this)), transferQueue_(new TransferQueue(this)),
+      configFileLoader_(new ConfigFileLoader(this))
 {
     // Connect the FTP client to the model and queue
     remoteFileModel_->setFtpClient(deviceConnection_->ftpClient());
@@ -143,27 +141,23 @@ void MainWindow::setupMenuBar()
 
     auto *exploreAction = viewMenu->addAction(tr("&Explore/Run Mode"));
     exploreAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_1));
-    connect(exploreAction, &QAction::triggered, this, [this]() {
-        modeTabWidget_->setCurrentIndex(0);
-    });
+    connect(exploreAction, &QAction::triggered, this,
+            [this]() { modeTabWidget_->setCurrentIndex(0); });
 
     auto *transferAction = viewMenu->addAction(tr("&Transfer Mode"));
     transferAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_2));
-    connect(transferAction, &QAction::triggered, this, [this]() {
-        modeTabWidget_->setCurrentIndex(1);
-    });
+    connect(transferAction, &QAction::triggered, this,
+            [this]() { modeTabWidget_->setCurrentIndex(1); });
 
     auto *viewModeAction = viewMenu->addAction(tr("&View Mode"));
     viewModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_3));
-    connect(viewModeAction, &QAction::triggered, this, [this]() {
-        modeTabWidget_->setCurrentIndex(2);
-    });
+    connect(viewModeAction, &QAction::triggered, this,
+            [this]() { modeTabWidget_->setCurrentIndex(2); });
 
     auto *configModeAction = viewMenu->addAction(tr("&Config Mode"));
     configModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_4));
-    connect(configModeAction, &QAction::triggered, this, [this]() {
-        modeTabWidget_->setCurrentIndex(3);
-    });
+    connect(configModeAction, &QAction::triggered, this,
+            [this]() { modeTabWidget_->setCurrentIndex(3); });
 
     viewMenu->addSeparator();
 
@@ -191,9 +185,9 @@ void MainWindow::setupMenuBar()
     auto *aboutAction = helpMenu->addAction(tr("&About r64u"));
     connect(aboutAction, &QAction::triggered, this, [this]() {
         QMessageBox::about(this, tr("About r64u"),
-            tr("<h3>r64u</h3>"
-               "<p>Version 0.1.0</p>"
-               "<p>Remote access tool for Commodore 64 Ultimate devices.</p>"));
+                           tr("<h3>r64u</h3>"
+                              "<p>Version 0.1.0</p>"
+                              "<p>Remote access tool for Commodore 64 Ultimate devices.</p>"));
     });
 }
 
@@ -262,8 +256,8 @@ void MainWindow::setupSystemToolBar()
 void MainWindow::setupStatusBar()
 {
     // Connect StatusMessageService to statusBar
-    connect(statusMessageService_, &StatusMessageService::displayMessage,
-            statusBar(), &QStatusBar::showMessage);
+    connect(statusMessageService_, &StatusMessageService::displayMessage, statusBar(),
+            &QStatusBar::showMessage);
 
     statusMessageService_->showInfo(tr("Ready"));
 }
@@ -271,7 +265,8 @@ void MainWindow::setupStatusBar()
 void MainWindow::setupPanels()
 {
     // Create mode panels with their dependencies
-    explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, configFileLoader_, filePreviewService_, favoritesManager_, playlistManager_);
+    explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, configFileLoader_,
+                                     filePreviewService_, favoritesManager_, playlistManager_);
     explorePanel_->setSonglengthsDatabase(songlengthsDatabase_);
     explorePanel_->setHVSCMetadataService(hvscMetadataService_);
     explorePanel_->setGameBase64Service(gameBase64Service_);
@@ -290,72 +285,65 @@ void MainWindow::setupPanels()
     modeTabWidget_->addTab(configPanel_, tr("Config"));
 
     // Connect panel status messages through the coordinator service
-    connect(explorePanel_, &ExplorePanel::statusMessage,
-            this, [this](const QString &msg, int timeout) {
+    connect(
+        explorePanel_, &ExplorePanel::statusMessage, this,
+        [this](const QString &msg, int timeout) { statusMessageService_->showInfo(msg, timeout); });
+    connect(
+        transferPanel_, &TransferPanel::statusMessage, this,
+        [this](const QString &msg, int timeout) { statusMessageService_->showInfo(msg, timeout); });
+    connect(transferPanel_, &TransferPanel::clearStatusMessages, statusMessageService_,
+            &StatusMessageService::clearMessages);
+    connect(viewPanel_, &ViewPanel::statusMessage, this, [this](const QString &msg, int timeout) {
         statusMessageService_->showInfo(msg, timeout);
     });
-    connect(transferPanel_, &TransferPanel::statusMessage,
-            this, [this](const QString &msg, int timeout) {
-        statusMessageService_->showInfo(msg, timeout);
-    });
-    connect(transferPanel_, &TransferPanel::clearStatusMessages,
-            statusMessageService_, &StatusMessageService::clearMessages);
-    connect(viewPanel_, &ViewPanel::statusMessage,
-            this, [this](const QString &msg, int timeout) {
-        statusMessageService_->showInfo(msg, timeout);
-    });
-    connect(configPanel_, &ConfigPanel::statusMessage,
-            this, [this](const QString &msg, int timeout) {
-        statusMessageService_->showInfo(msg, timeout);
-    });
+    connect(
+        configPanel_, &ConfigPanel::statusMessage, this,
+        [this](const QString &msg, int timeout) { statusMessageService_->showInfo(msg, timeout); });
 }
 
 void MainWindow::setupConnections()
 {
     // Mode tab widget (deferred from setupUi to avoid early signal triggers)
-    connect(modeTabWidget_, &QTabWidget::currentChanged,
-            this, &MainWindow::onModeChanged);
+    connect(modeTabWidget_, &QTabWidget::currentChanged, this, &MainWindow::onModeChanged);
 
     // Device connection signals
-    connect(deviceConnection_, &DeviceConnection::stateChanged,
-            this, &MainWindow::onConnectionStateChanged);
-    connect(deviceConnection_, &DeviceConnection::deviceInfoUpdated,
-            this, &MainWindow::onDeviceInfoUpdated);
-    connect(deviceConnection_, &DeviceConnection::driveInfoUpdated,
-            this, &MainWindow::onDriveInfoUpdated);
+    connect(deviceConnection_, &DeviceConnection::stateChanged, this,
+            &MainWindow::onConnectionStateChanged);
+    connect(deviceConnection_, &DeviceConnection::deviceInfoUpdated, this,
+            &MainWindow::onDeviceInfoUpdated);
+    connect(deviceConnection_, &DeviceConnection::driveInfoUpdated, this,
+            &MainWindow::onDriveInfoUpdated);
     // Route error signals through ErrorHandler for consistent presentation
-    connect(deviceConnection_, &DeviceConnection::connectionError,
-            errorHandler_, &ErrorHandler::handleConnectionError);
-    connect(deviceConnection_->restClient(), &C64URestClient::operationFailed,
-            errorHandler_, &ErrorHandler::handleOperationFailed);
-    connect(remoteFileModel_, &RemoteFileModel::errorOccurred,
-            errorHandler_, &ErrorHandler::handleDataError);
+    connect(deviceConnection_, &DeviceConnection::connectionError, errorHandler_,
+            &ErrorHandler::handleConnectionError);
+    connect(deviceConnection_->restClient(), &C64URestClient::operationFailed, errorHandler_,
+            &ErrorHandler::handleOperationFailed);
+    connect(remoteFileModel_, &RemoteFileModel::errorOccurred, errorHandler_,
+            &ErrorHandler::handleDataError);
 
     // ErrorHandler status messages go through coordinator with appropriate priority
-    connect(errorHandler_, &ErrorHandler::statusMessage,
-            this, [this](const QString &msg, int timeout) {
-        // ErrorHandler always uses warning or error severity
-        statusMessageService_->showWarning(msg, timeout);
-    });
+    connect(errorHandler_, &ErrorHandler::statusMessage, this,
+            [this](const QString &msg, int timeout) {
+                // ErrorHandler always uses warning or error severity
+                statusMessageService_->showWarning(msg, timeout);
+            });
 
     // REST client success signals
-    connect(deviceConnection_->restClient(), &C64URestClient::operationSucceeded,
-            this, &MainWindow::onOperationSucceeded);
+    connect(deviceConnection_->restClient(), &C64URestClient::operationSucceeded, this,
+            &MainWindow::onOperationSucceeded);
 
     // Model signals for loading state (not errors)
-    connect(remoteFileModel_, &RemoteFileModel::loadingStarted,
-            this, [this](const QString &path) {
+    connect(remoteFileModel_, &RemoteFileModel::loadingStarted, this, [this](const QString &path) {
         statusMessageService_->showInfo(tr("Loading %1...").arg(path));
     });
-    connect(remoteFileModel_, &RemoteFileModel::loadingFinished,
-            this, [this](const QString &) {
+    connect(remoteFileModel_, &RemoteFileModel::loadingFinished, this, [this](const QString &) {
         // Loading finished - no need to show a message, just let it clear naturally
     });
 
     // Config file loader signals
-    connect(configFileLoader_, &ConfigFileLoader::loadStarted,
-            this, [this](const QString &path) {
-        statusMessageService_->showInfo(tr("Loading configuration: %1...").arg(QFileInfo(path).fileName()));
+    connect(configFileLoader_, &ConfigFileLoader::loadStarted, this, [this](const QString &path) {
+        statusMessageService_->showInfo(
+            tr("Loading configuration: %1...").arg(QFileInfo(path).fileName()));
     });
 }
 
@@ -364,10 +352,8 @@ void MainWindow::switchToMode(Mode mode)
     currentMode_ = mode;
 
     // Don't sync model while transfer operations are in progress
-    bool canSync = deviceConnection_->isConnected() &&
-                   !transferService_->isProcessing() &&
-                   !transferService_->isScanning() &&
-                   !transferService_->isProcessingDelete() &&
+    bool canSync = deviceConnection_->isConnected() && !transferService_->isProcessing() &&
+                   !transferService_->isScanning() && !transferService_->isProcessingDelete() &&
                    !transferService_->isCreatingDirectories();
 
     int pageIndex = 0;
@@ -446,7 +432,8 @@ void MainWindow::updateStatusBar()
     if (deviceConnection_->isConnected()) {
         DeviceInfo info = deviceConnection_->deviceInfo();
         connectionStatus_->setConnected(true);
-        connectionStatus_->setHostname(info.hostname.isEmpty() ? deviceConnection_->host() : info.hostname);
+        connectionStatus_->setHostname(info.hostname.isEmpty() ? deviceConnection_->host()
+                                                               : info.hostname);
         connectionStatus_->setFirmwareVersion(info.firmwareVersion);
     } else {
         connectionStatus_->setConnected(false);
@@ -573,7 +560,8 @@ void MainWindow::onConnect()
     QString host = settings.value("device/host").toString();
 
     if (host.isEmpty()) {
-        QMessageBox::warning(this, tr("Connection Error"),
+        QMessageBox::warning(
+            this, tr("Connection Error"),
             tr("No host configured. Please set the device address in Preferences."));
         onPreferences();
         return;
@@ -653,7 +641,8 @@ void MainWindow::onEjectDriveB()
 
 void MainWindow::onRefresh()
 {
-    if (!deviceConnection_->isConnected()) return;
+    if (!deviceConnection_->isConnected())
+        return;
 
     // Delegate to the current panel
     switch (currentMode_) {

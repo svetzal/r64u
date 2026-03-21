@@ -9,8 +9,8 @@
 #ifndef FILEBROWSERWIDGET_H
 #define FILEBROWSERWIDGET_H
 
-#include <QWidget>
 #include <QString>
+#include <QWidget>
 
 class QTreeView;
 class QToolBar;
@@ -170,7 +170,7 @@ protected:
      * @brief Returns the model for the tree view.
      * @return Pointer to the model.
      */
-    [[nodiscard]] virtual QAbstractItemModel* model() const = 0;
+    [[nodiscard]] virtual QAbstractItemModel *model() const = 0;
 
     /**
      * @brief Returns the file path for a model index.
@@ -208,4 +208,4 @@ protected:
     QAction *setDestAction_ = nullptr;
 };
 
-#endif // FILEBROWSERWIDGET_H
+#endif  // FILEBROWSERWIDGET_H

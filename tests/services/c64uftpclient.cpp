@@ -1,12 +1,10 @@
 #include "c64uftpclient.h"
-#include <QFile>
+
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 
-C64UFtpClient::C64UFtpClient(QObject *parent)
-    : IFtpClient(parent)
-{
-}
+C64UFtpClient::C64UFtpClient(QObject *parent) : IFtpClient(parent) {}
 
 void C64UFtpClient::setHost(const QString &host, quint16 port)
 {

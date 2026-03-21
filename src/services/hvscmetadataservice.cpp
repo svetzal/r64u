@@ -8,13 +8,12 @@
 #include <QDir>
 #include <QFile>
 #include <QNetworkReply>
+#include <QRegularExpression>
 #include <QStandardPaths>
 #include <QTextStream>
-#include <QRegularExpression>
 
 HVSCMetadataService::HVSCMetadataService(QObject *parent)
-    : QObject(parent)
-    , networkManager_(new QNetworkAccessManager(this))
+    : QObject(parent), networkManager_(new QNetworkAccessManager(this))
 {
     // Try to load from cache on startup
     if (hasCachedStil()) {
@@ -130,10 +129,10 @@ void HVSCMetadataService::downloadStil()
 
     stilDownload_ = networkManager_->get(request);
 
-    connect(stilDownload_, &QNetworkReply::downloadProgress,
-            this, &HVSCMetadataService::onStilDownloadProgress);
-    connect(stilDownload_, &QNetworkReply::finished,
-            this, &HVSCMetadataService::onStilDownloadFinished);
+    connect(stilDownload_, &QNetworkReply::downloadProgress, this,
+            &HVSCMetadataService::onStilDownloadProgress);
+    connect(stilDownload_, &QNetworkReply::finished, this,
+            &HVSCMetadataService::onStilDownloadFinished);
 }
 
 void HVSCMetadataService::downloadBuglist()
@@ -149,10 +148,10 @@ void HVSCMetadataService::downloadBuglist()
 
     buglistDownload_ = networkManager_->get(request);
 
-    connect(buglistDownload_, &QNetworkReply::downloadProgress,
-            this, &HVSCMetadataService::onBuglistDownloadProgress);
-    connect(buglistDownload_, &QNetworkReply::finished,
-            this, &HVSCMetadataService::onBuglistDownloadFinished);
+    connect(buglistDownload_, &QNetworkReply::downloadProgress, this,
+            &HVSCMetadataService::onBuglistDownloadProgress);
+    connect(buglistDownload_, &QNetworkReply::finished, this,
+            &HVSCMetadataService::onBuglistDownloadFinished);
 }
 
 void HVSCMetadataService::onStilDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
@@ -251,7 +250,8 @@ bool HVSCMetadataService::parseStil(const QByteArray &data)
     stream.setEncoding(QStringConverter::Encoding::Latin1);
 
     // Regex for file path entries (start with / and end with .sid)
-    static const QRegularExpression pathRegex(R"(^(/[^\s]+\.sid)$)", QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression pathRegex(R"(^(/[^\s]+\.sid)$)",
+                                              QRegularExpression::CaseInsensitiveOption);
 
     // Regex for subtune markers (#N)
     static const QRegularExpression subtuneRegex(R"(^\(#(\d+)\)$)");
@@ -316,7 +316,8 @@ bool HVSCMetadataService::parseBuglist(const QByteArray &data)
     stream.setEncoding(QStringConverter::Encoding::Latin1);
 
     // Regex for file path entries
-    static const QRegularExpression pathRegex(R"(^(/[^\s]+\.sid)$)", QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression pathRegex(R"(^(/[^\s]+\.sid)$)",
+                                              QRegularExpression::CaseInsensitiveOption);
 
     QString currentPath;
     QStringList currentBlock;
@@ -370,7 +371,8 @@ bool HVSCMetadataService::parseBuglistFile(const QString &filePath)
     return parseBuglist(data);
 }
 
-QList<HVSCMetadataService::SubtuneEntry> HVSCMetadataService::parseStilEntry(const QStringList &lines)
+QList<HVSCMetadataService::SubtuneEntry>
+HVSCMetadataService::parseStilEntry(const QStringList &lines)
 {
     QList<SubtuneEntry> entries;
     SubtuneEntry current;
@@ -392,8 +394,8 @@ QList<HVSCMetadataService::SubtuneEntry> HVSCMetadataService::parseStilEntry(con
         QRegularExpressionMatch subtuneMatch = subtuneRegex.match(line.trimmed());
         if (subtuneMatch.hasMatch()) {
             // Save current entry if it has content
-            if (current.subtune > 0 || !current.comment.isEmpty() ||
-                !current.name.isEmpty() || !current.covers.isEmpty()) {
+            if (current.subtune > 0 || !current.comment.isEmpty() || !current.name.isEmpty() ||
+                !current.covers.isEmpty()) {
                 entries.append(current);
             }
             current = SubtuneEntry();
@@ -473,8 +475,8 @@ QList<HVSCMetadataService::SubtuneEntry> HVSCMetadataService::parseStilEntry(con
     }
 
     // Don't forget the last entry
-    if (current.subtune > 0 || !current.comment.isEmpty() ||
-        !current.name.isEmpty() || !current.covers.isEmpty()) {
+    if (current.subtune > 0 || !current.comment.isEmpty() || !current.name.isEmpty() ||
+        !current.covers.isEmpty()) {
         entries.append(current);
     }
 
@@ -489,7 +491,8 @@ QList<HVSCMetadataService::BugEntry> HVSCMetadataService::parseBugEntry(const QS
     // Field patterns
     static const QRegularExpression bugRegex(R"(^BUG: (.+)$)");
     static const QRegularExpression subtuneRegex(R"(^\(#(\d+)\)$)");
-    static const QRegularExpression continuationRegex(R"(^     (.+)$)");  // 5 spaces for BUG continuation
+    static const QRegularExpression continuationRegex(
+        R"(^     (.+)$)");  // 5 spaces for BUG continuation
 
     QString *currentMultiline = nullptr;
 

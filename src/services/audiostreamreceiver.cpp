@@ -4,27 +4,23 @@
  */
 
 #include "audiostreamreceiver.h"
-#include <QNetworkDatagram>
+
 #include <QMutexLocker>
+#include <QNetworkDatagram>
 #include <QVariant>
+
 #include <algorithm>
 
 AudioStreamReceiver::AudioStreamReceiver(QObject *parent)
-    : QObject(parent)
-    , socket_(new QUdpSocket(this))
-    , flushTimer_(new QTimer(this))
+    : QObject(parent), socket_(new QUdpSocket(this)), flushTimer_(new QTimer(this))
 {
-    connect(socket_, &QUdpSocket::readyRead,
-            this, &AudioStreamReceiver::onReadyRead);
-    connect(socket_, &QUdpSocket::errorOccurred,
-            this, [this](QAbstractSocket::SocketError) {
-        emit socketError(socket_->errorString());
-    });
+    connect(socket_, &QUdpSocket::readyRead, this, &AudioStreamReceiver::onReadyRead);
+    connect(socket_, &QUdpSocket::errorOccurred, this,
+            [this](QAbstractSocket::SocketError) { emit socketError(socket_->errorString()); });
 
     // Set up flush timer for steady playback timing
     flushTimer_->setTimerType(Qt::PreciseTimer);
-    connect(flushTimer_, &QTimer::timeout,
-            this, &AudioStreamReceiver::onFlushTimer);
+    connect(flushTimer_, &QTimer::timeout, this, &AudioStreamReceiver::onFlushTimer);
 }
 
 AudioStreamReceiver::~AudioStreamReceiver()
@@ -39,13 +35,11 @@ bool AudioStreamReceiver::bind(quint16 port)
     }
 
     // Set a large receive buffer
-    socket_->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption,
-                             QVariant(1024 * 1024));
+    socket_->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, QVariant(1024 * 1024));
 
     if (!socket_->bind(QHostAddress::Any, port)) {
-        emit socketError(QString("Failed to bind to port %1: %2")
-                         .arg(port)
-                         .arg(socket_->errorString()));
+        emit socketError(
+            QString("Failed to bind to port %1: %2").arg(port).arg(socket_->errorString()));
         return false;
     }
 
@@ -149,7 +143,7 @@ void AudioStreamReceiver::processPacket(const QByteArray &packet)
             bool isValidWraparound = (lastSequenceNumber_ == 0xFFFF && sequenceNumber == 0);
             if (!isValidWraparound) {
                 quint16 gap = sequenceNumber - expectedSeq;
-                if (gap < 1000) { // Reasonable gap
+                if (gap < 1000) {  // Reasonable gap
                     totalPacketsLost_ += gap;
                     // Report sample discontinuity
                     if (diagnosticsCallback_.onSampleDiscontinuity) {

@@ -35,8 +35,7 @@ public:
      * @brief Constructs a RollingStats calculator with the specified window size.
      * @param windowSize Maximum number of samples to keep in the rolling window.
      */
-    explicit RollingStats(size_t windowSize = 100)
-        : windowSize_(windowSize)
+    explicit RollingStats(size_t windowSize = 100) : windowSize_(windowSize)
     {
         samples_.reserve(windowSize);
     }
@@ -75,10 +74,7 @@ public:
      * @brief Returns the mean of all samples in the window.
      * @return The mean value, or 0.0 if no samples.
      */
-    [[nodiscard]] double mean() const
-    {
-        return count_ > 0 ? mean_ : 0.0;
-    }
+    [[nodiscard]] double mean() const { return count_ > 0 ? mean_ : 0.0; }
 
     /**
      * @brief Returns the sample standard deviation of all samples in the window.
@@ -108,37 +104,25 @@ public:
      * @brief Returns the minimum value in the window.
      * @return The minimum value, or positive infinity if no samples.
      */
-    [[nodiscard]] double min() const
-    {
-        return min_;
-    }
+    [[nodiscard]] double min() const { return min_; }
 
     /**
      * @brief Returns the maximum value in the window.
      * @return The maximum value, or negative infinity if no samples.
      */
-    [[nodiscard]] double max() const
-    {
-        return max_;
-    }
+    [[nodiscard]] double max() const { return max_; }
 
     /**
      * @brief Returns the number of samples currently in the window.
      * @return The sample count.
      */
-    [[nodiscard]] size_t count() const
-    {
-        return count_;
-    }
+    [[nodiscard]] size_t count() const { return count_; }
 
     /**
      * @brief Returns whether the window is full.
      * @return true if the window contains windowSize samples.
      */
-    [[nodiscard]] bool isFull() const
-    {
-        return count_ >= windowSize_;
-    }
+    [[nodiscard]] bool isFull() const { return count_ >= windowSize_; }
 
     /**
      * @brief Clears all samples and resets statistics.
@@ -158,10 +142,7 @@ public:
      * @brief Returns the window size.
      * @return The maximum number of samples in the window.
      */
-    [[nodiscard]] size_t windowSize() const
-    {
-        return windowSize_;
-    }
+    [[nodiscard]] size_t windowSize() const { return windowSize_; }
 
 private:
     void addToStats(double value)
@@ -219,4 +200,4 @@ private:
     double max_ = -std::numeric_limits<double>::infinity();
 };
 
-#endif // ROLLINGSTATS_H
+#endif  // ROLLINGSTATS_H

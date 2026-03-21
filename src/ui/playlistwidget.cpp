@@ -4,21 +4,20 @@
  */
 
 #include "playlistwidget.h"
+
 #include "services/playlistmanager.h"
 
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QToolButton>
-#include <QFileInfo>
-#include <QRegularExpression>
 #include <QFileDialog>
-#include <QStandardPaths>
+#include <QFileInfo>
+#include <QHBoxLayout>
 #include <QHeaderView>
+#include <QRegularExpression>
+#include <QStandardPaths>
+#include <QToolButton>
+#include <QVBoxLayout>
 
 PlaylistWidget::PlaylistWidget(PlaylistManager *manager, QWidget *parent)
-    : QWidget(parent)
-    , manager_(manager)
-    , elapsedTimer_(new QTimer(this))
+    : QWidget(parent), manager_(manager), elapsedTimer_(new QTimer(this))
 {
     Q_ASSERT(manager_ && "PlaylistManager is required");
 
@@ -124,16 +123,16 @@ void PlaylistWidget::setupUi()
     treeWidget_->setSelectionMode(QAbstractItemView::SingleSelection);
     treeWidget_->setRootIsDecorated(false);
     treeWidget_->setHeaderLabels({QString(), tr("#"), tr("Title"), tr("Length")});
-    treeWidget_->setColumnWidth(0, 24);   // Play marker
-    treeWidget_->setColumnWidth(1, 30);   // Track number
-    treeWidget_->setColumnWidth(3, 50);   // Length
+    treeWidget_->setColumnWidth(0, 24);  // Play marker
+    treeWidget_->setColumnWidth(1, 30);  // Track number
+    treeWidget_->setColumnWidth(3, 50);  // Length
     treeWidget_->header()->setStretchLastSection(false);
     treeWidget_->header()->setSectionResizeMode(2, QHeaderView::Stretch);  // Title stretches
 
-    connect(treeWidget_, &QTreeWidget::itemDoubleClicked,
-            this, &PlaylistWidget::onItemDoubleClicked);
-    connect(treeWidget_, &QTreeWidget::customContextMenuRequested,
-            this, &PlaylistWidget::onContextMenu);
+    connect(treeWidget_, &QTreeWidget::itemDoubleClicked, this,
+            &PlaylistWidget::onItemDoubleClicked);
+    connect(treeWidget_, &QTreeWidget::customContextMenuRequested, this,
+            &PlaylistWidget::onContextMenu);
 
     layout->addWidget(treeWidget_);
 
@@ -148,24 +147,19 @@ void PlaylistWidget::setupUi()
 void PlaylistWidget::setupConnections()
 {
     // Connect to manager signals
-    connect(manager_, &PlaylistManager::playlistChanged,
-            this, &PlaylistWidget::onPlaylistChanged);
-    connect(manager_, &PlaylistManager::currentIndexChanged,
-            this, &PlaylistWidget::onCurrentIndexChanged);
-    connect(manager_, &PlaylistManager::playbackStarted,
-            this, &PlaylistWidget::onPlaybackStarted);
-    connect(manager_, &PlaylistManager::playbackStopped,
-            this, &PlaylistWidget::onPlaybackStopped);
-    connect(manager_, &PlaylistManager::shuffleChanged,
-            this, &PlaylistWidget::onShuffleChanged);
-    connect(manager_, &PlaylistManager::repeatModeChanged,
-            this, &PlaylistWidget::onRepeatModeChanged);
-    connect(manager_, &PlaylistManager::statusMessage,
-            this, &PlaylistWidget::statusMessage);
+    connect(manager_, &PlaylistManager::playlistChanged, this, &PlaylistWidget::onPlaylistChanged);
+    connect(manager_, &PlaylistManager::currentIndexChanged, this,
+            &PlaylistWidget::onCurrentIndexChanged);
+    connect(manager_, &PlaylistManager::playbackStarted, this, &PlaylistWidget::onPlaybackStarted);
+    connect(manager_, &PlaylistManager::playbackStopped, this, &PlaylistWidget::onPlaybackStopped);
+    connect(manager_, &PlaylistManager::shuffleChanged, this, &PlaylistWidget::onShuffleChanged);
+    connect(manager_, &PlaylistManager::repeatModeChanged, this,
+            &PlaylistWidget::onRepeatModeChanged);
+    connect(manager_, &PlaylistManager::statusMessage, this, &PlaylistWidget::statusMessage);
 
     // Duration spinner
-    connect(durationSpinBox_, QOverload<int>::of(&QSpinBox::valueChanged),
-            this, &PlaylistWidget::onDurationChanged);
+    connect(durationSpinBox_, QOverload<int>::of(&QSpinBox::valueChanged), this,
+            &PlaylistWidget::onDurationChanged);
 }
 
 void PlaylistWidget::onPlaylistChanged()
@@ -268,12 +262,9 @@ void PlaylistWidget::onDurationChanged(int value)
 void PlaylistWidget::onSavePlaylist()
 {
     QString defaultDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    QString filePath = QFileDialog::getSaveFileName(
-        this,
-        tr("Save Playlist"),
-        defaultDir + "/playlist.json",
-        tr("Playlist Files (*.json);;All Files (*)")
-    );
+    QString filePath =
+        QFileDialog::getSaveFileName(this, tr("Save Playlist"), defaultDir + "/playlist.json",
+                                     tr("Playlist Files (*.json);;All Files (*)"));
 
     if (filePath.isEmpty()) {
         return;
@@ -289,12 +280,8 @@ void PlaylistWidget::onSavePlaylist()
 void PlaylistWidget::onLoadPlaylist()
 {
     QString defaultDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    QString filePath = QFileDialog::getOpenFileName(
-        this,
-        tr("Load Playlist"),
-        defaultDir,
-        tr("Playlist Files (*.json);;All Files (*)")
-    );
+    QString filePath = QFileDialog::getOpenFileName(this, tr("Load Playlist"), defaultDir,
+                                                    tr("Playlist Files (*.json);;All Files (*)"));
 
     if (filePath.isEmpty()) {
         return;

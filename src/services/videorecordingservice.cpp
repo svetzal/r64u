@@ -4,14 +4,12 @@
  */
 
 #include "videorecordingservice.h"
+
 #include <QBuffer>
 #include <QDataStream>
 #include <QMutexLocker>
 
-VideoRecordingService::VideoRecordingService(QObject *parent)
-    : QObject(parent)
-{
-}
+VideoRecordingService::VideoRecordingService(QObject *parent) : QObject(parent) {}
 
 VideoRecordingService::~VideoRecordingService()
 {
@@ -170,12 +168,12 @@ void VideoRecordingService::writeAviHeader()
 {
     // Write RIFF header (placeholder, will be updated)
     file_.write("RIFF");
-    file_.write(QByteArray(4, '\0')); // File size placeholder
+    file_.write(QByteArray(4, '\0'));  // File size placeholder
     file_.write("AVI ");
 
     // Write hdrl LIST
     file_.write("LIST");
-    file_.write(QByteArray(4, '\0')); // List size placeholder
+    file_.write(QByteArray(4, '\0'));  // List size placeholder
     qint64 hdrlSizePos = file_.pos() - 4;
     file_.write("hdrl");
 
@@ -185,17 +183,17 @@ void VideoRecordingService::writeAviHeader()
     QDataStream ds(&avih, QIODevice::WriteOnly);
     ds.setByteOrder(QDataStream::LittleEndian);
 
-    ds << quint32(33333);   // dwMicroSecPerFrame (30 fps placeholder)
-    ds << quint32(0);       // dwMaxBytesPerSec (placeholder)
-    ds << quint32(0);       // dwPaddingGranularity
-    ds << quint32(0x110);   // dwFlags (AVIF_HASINDEX | AVIF_ISINTERLEAVED)
-    ds << quint32(0);       // dwTotalFrames (placeholder)
-    ds << quint32(0);       // dwInitialFrames
-    ds << quint32(2);       // dwStreams (video + audio)
-    ds << quint32(1000000); // dwSuggestedBufferSize
-    ds << quint32(384);     // dwWidth (placeholder)
-    ds << quint32(272);     // dwHeight (placeholder)
-    ds << quint32(0);       // dwReserved[4]
+    ds << quint32(33333);    // dwMicroSecPerFrame (30 fps placeholder)
+    ds << quint32(0);        // dwMaxBytesPerSec (placeholder)
+    ds << quint32(0);        // dwPaddingGranularity
+    ds << quint32(0x110);    // dwFlags (AVIF_HASINDEX | AVIF_ISINTERLEAVED)
+    ds << quint32(0);        // dwTotalFrames (placeholder)
+    ds << quint32(0);        // dwInitialFrames
+    ds << quint32(2);        // dwStreams (video + audio)
+    ds << quint32(1000000);  // dwSuggestedBufferSize
+    ds << quint32(384);      // dwWidth (placeholder)
+    ds << quint32(272);      // dwHeight (placeholder)
+    ds << quint32(0);        // dwReserved[4]
     ds << quint32(0);
     ds << quint32(0);
     ds << quint32(0);
@@ -275,23 +273,24 @@ void VideoRecordingService::writeAviHeader()
     QDataStream ds4(&audioStrh, QIODevice::WriteOnly);
     ds4.setByteOrder(QDataStream::LittleEndian);
 
-    ds4.writeRawData("auds", 4);  // fccType (audio stream)
-    ds4 << quint32(1);            // fccHandler (PCM = 1)
-    ds4 << quint32(0);            // dwFlags
-    ds4 << quint16(0);            // wPriority
-    ds4 << quint16(0);            // wLanguage
-    ds4 << quint32(0);            // dwInitialFrames
-    ds4 << quint32(1);            // dwScale (1 for audio)
+    ds4.writeRawData("auds", 4);      // fccType (audio stream)
+    ds4 << quint32(1);                // fccHandler (PCM = 1)
+    ds4 << quint32(0);                // dwFlags
+    ds4 << quint16(0);                // wPriority
+    ds4 << quint16(0);                // wLanguage
+    ds4 << quint32(0);                // dwInitialFrames
+    ds4 << quint32(1);                // dwScale (1 for audio)
     ds4 << quint32(AudioSampleRate);  // dwRate
-    ds4 << quint32(0);            // dwStart
-    ds4 << quint32(0);            // dwLength (placeholder - total samples)
-    ds4 << quint32(AudioSampleRate * AudioChannels * (AudioBitsPerSample / 8));  // dwSuggestedBufferSize
-    ds4 << quint32(0);            // dwQuality
+    ds4 << quint32(0);                // dwStart
+    ds4 << quint32(0);                // dwLength (placeholder - total samples)
+    ds4 << quint32(AudioSampleRate * AudioChannels *
+                   (AudioBitsPerSample / 8));                  // dwSuggestedBufferSize
+    ds4 << quint32(0);                                         // dwQuality
     ds4 << quint32(AudioChannels * (AudioBitsPerSample / 8));  // dwSampleSize (block align)
-    ds4 << quint16(0);            // rcFrame (left)
-    ds4 << quint16(0);            // rcFrame (top)
-    ds4 << quint16(0);            // rcFrame (right)
-    ds4 << quint16(0);            // rcFrame (bottom)
+    ds4 << quint16(0);                                         // rcFrame (left)
+    ds4 << quint16(0);                                         // rcFrame (top)
+    ds4 << quint16(0);                                         // rcFrame (right)
+    ds4 << quint16(0);                                         // rcFrame (bottom)
 
     writeChunk("strh", audioStrh);
 
@@ -300,13 +299,13 @@ void VideoRecordingService::writeAviHeader()
     QDataStream ds5(&audioStrf, QIODevice::WriteOnly);
     ds5.setByteOrder(QDataStream::LittleEndian);
 
-    ds5 << quint16(1);            // wFormatTag (PCM = 1)
-    ds5 << quint16(AudioChannels);  // nChannels
+    ds5 << quint16(1);                // wFormatTag (PCM = 1)
+    ds5 << quint16(AudioChannels);    // nChannels
     ds5 << quint32(AudioSampleRate);  // nSamplesPerSec
     ds5 << quint32(AudioSampleRate * AudioChannels * (AudioBitsPerSample / 8));  // nAvgBytesPerSec
-    ds5 << quint16(AudioChannels * (AudioBitsPerSample / 8));  // nBlockAlign
-    ds5 << quint16(AudioBitsPerSample);  // wBitsPerSample
-    ds5 << quint16(0);            // cbSize (extra format info - none for PCM)
+    ds5 << quint16(AudioChannels * (AudioBitsPerSample / 8));                    // nBlockAlign
+    ds5 << quint16(AudioBitsPerSample);                                          // wBitsPerSample
+    ds5 << quint16(0);  // cbSize (extra format info - none for PCM)
 
     writeChunk("strf", audioStrf);
 
@@ -337,7 +336,7 @@ void VideoRecordingService::writeAviHeader()
     // Write movi LIST header
     file_.write("LIST");
     moviListSizePos_ = file_.pos();
-    file_.write(QByteArray(4, '\0')); // Size placeholder
+    file_.write(QByteArray(4, '\0'));  // Size placeholder
     file_.write("movi");
     moviListStart_ = file_.pos();
 }
@@ -369,9 +368,9 @@ void VideoRecordingService::finalizeAvi()
         idxStream.writeRawData(chunk.fourCC.constData(), 4);  // ckid
         // Video frames are keyframes, audio chunks are not
         quint32 flags = (chunk.fourCC == "00dc") ? 0x10 : 0x00;
-        idxStream << flags;                                   // dwFlags
-        idxStream << quint32(chunk.offset);                   // dwChunkOffset
-        idxStream << quint32(chunk.size);                     // dwChunkLength
+        idxStream << flags;                  // dwFlags
+        idxStream << quint32(chunk.offset);  // dwChunkOffset
+        idxStream << quint32(chunk.size);    // dwChunkLength
     }
 
     writeChunk("idx1", idx1Data);
@@ -382,8 +381,10 @@ void VideoRecordingService::finalizeAvi()
         durationMs = 1;
     }
     double fps = (frameCount_ > 1) ? (frameCount_ - 1) * 1000.0 / durationMs : 30.0;
-    if (fps < 1.0) fps = 1.0;
-    if (fps > 60.0) fps = 60.0;
+    if (fps < 1.0)
+        fps = 1.0;
+    if (fps > 60.0)
+        fps = 60.0;
 
     quint32 microSecPerFrame = static_cast<quint32>(1000000.0 / fps);
     quint32 fpsRate = static_cast<quint32>(fps + 0.5);
@@ -407,17 +408,17 @@ void VideoRecordingService::finalizeAvi()
     QDataStream ds(&avih, QIODevice::WriteOnly);
     ds.setByteOrder(QDataStream::LittleEndian);
 
-    ds << microSecPerFrame;         // dwMicroSecPerFrame
-    ds << quint32(0);               // dwMaxBytesPerSec
-    ds << quint32(0);               // dwPaddingGranularity
-    ds << quint32(0x110);           // dwFlags
-    ds << quint32(frameCount_);     // dwTotalFrames
-    ds << quint32(0);               // dwInitialFrames
-    ds << quint32(2);               // dwStreams (video + audio)
-    ds << quint32(1000000);         // dwSuggestedBufferSize
-    ds << quint32(width_);          // dwWidth
-    ds << quint32(height_);         // dwHeight
-    ds << quint32(0);               // dwReserved[4]
+    ds << microSecPerFrame;      // dwMicroSecPerFrame
+    ds << quint32(0);            // dwMaxBytesPerSec
+    ds << quint32(0);            // dwPaddingGranularity
+    ds << quint32(0x110);        // dwFlags
+    ds << quint32(frameCount_);  // dwTotalFrames
+    ds << quint32(0);            // dwInitialFrames
+    ds << quint32(2);            // dwStreams (video + audio)
+    ds << quint32(1000000);      // dwSuggestedBufferSize
+    ds << quint32(width_);       // dwWidth
+    ds << quint32(height_);      // dwHeight
+    ds << quint32(0);            // dwReserved[4]
     ds << quint32(0);
     ds << quint32(0);
     ds << quint32(0);
@@ -434,21 +435,21 @@ void VideoRecordingService::finalizeAvi()
 
     ds2.writeRawData("vids", 4);
     ds2.writeRawData("MJPG", 4);
-    ds2 << quint32(0);              // dwFlags
-    ds2 << quint16(0);              // wPriority
-    ds2 << quint16(0);              // wLanguage
-    ds2 << quint32(0);              // dwInitialFrames
-    ds2 << quint32(1);              // dwScale
-    ds2 << quint32(fpsRate);        // dwRate
-    ds2 << quint32(0);              // dwStart
-    ds2 << quint32(frameCount_);    // dwLength
-    ds2 << quint32(1000000);        // dwSuggestedBufferSize
-    ds2 << quint32(0);              // dwQuality
-    ds2 << quint32(0);              // dwSampleSize
-    ds2 << quint16(0);              // rcFrame (left)
-    ds2 << quint16(0);              // rcFrame (top)
-    ds2 << quint16(width_);         // rcFrame (right)
-    ds2 << quint16(height_);        // rcFrame (bottom)
+    ds2 << quint32(0);            // dwFlags
+    ds2 << quint16(0);            // wPriority
+    ds2 << quint16(0);            // wLanguage
+    ds2 << quint32(0);            // dwInitialFrames
+    ds2 << quint32(1);            // dwScale
+    ds2 << quint32(fpsRate);      // dwRate
+    ds2 << quint32(0);            // dwStart
+    ds2 << quint32(frameCount_);  // dwLength
+    ds2 << quint32(1000000);      // dwSuggestedBufferSize
+    ds2 << quint32(0);            // dwQuality
+    ds2 << quint32(0);            // dwSampleSize
+    ds2 << quint16(0);            // rcFrame (left)
+    ds2 << quint16(0);            // rcFrame (top)
+    ds2 << quint16(width_);       // rcFrame (right)
+    ds2 << quint16(height_);      // rcFrame (bottom)
 
     file_.write(strh);
 
@@ -460,17 +461,17 @@ void VideoRecordingService::finalizeAvi()
     QDataStream ds3(&strf, QIODevice::WriteOnly);
     ds3.setByteOrder(QDataStream::LittleEndian);
 
-    ds3 << quint32(40);             // biSize
-    ds3 << qint32(width_);          // biWidth
-    ds3 << qint32(height_);         // biHeight
-    ds3 << quint16(1);              // biPlanes
-    ds3 << quint16(24);             // biBitCount
-    ds3.writeRawData("MJPG", 4);    // biCompression
-    ds3 << quint32(0);              // biSizeImage
-    ds3 << qint32(0);               // biXPelsPerMeter
-    ds3 << qint32(0);               // biYPelsPerMeter
-    ds3 << quint32(0);              // biClrUsed
-    ds3 << quint32(0);              // biClrImportant
+    ds3 << quint32(40);           // biSize
+    ds3 << qint32(width_);        // biWidth
+    ds3 << qint32(height_);       // biHeight
+    ds3 << quint16(1);            // biPlanes
+    ds3 << quint16(24);           // biBitCount
+    ds3.writeRawData("MJPG", 4);  // biCompression
+    ds3 << quint32(0);            // biSizeImage
+    ds3 << qint32(0);             // biXPelsPerMeter
+    ds3 << qint32(0);             // biYPelsPerMeter
+    ds3 << quint32(0);            // biClrUsed
+    ds3 << quint32(0);            // biClrImportant
 
     file_.write(strf);
 
@@ -483,19 +484,19 @@ void VideoRecordingService::finalizeAvi()
     ds4.setByteOrder(QDataStream::LittleEndian);
 
     ds4.writeRawData("auds", 4);
-    ds4 << quint32(1);              // fccHandler (PCM)
-    ds4 << quint32(0);              // dwFlags
-    ds4 << quint16(0);              // wPriority
-    ds4 << quint16(0);              // wLanguage
-    ds4 << quint32(0);              // dwInitialFrames
-    ds4 << quint32(1);              // dwScale
-    ds4 << quint32(AudioSampleRate);  // dwRate
-    ds4 << quint32(0);              // dwStart
+    ds4 << quint32(1);                  // fccHandler (PCM)
+    ds4 << quint32(0);                  // dwFlags
+    ds4 << quint16(0);                  // wPriority
+    ds4 << quint16(0);                  // wLanguage
+    ds4 << quint32(0);                  // dwInitialFrames
+    ds4 << quint32(1);                  // dwScale
+    ds4 << quint32(AudioSampleRate);    // dwRate
+    ds4 << quint32(0);                  // dwStart
     ds4 << quint32(audioSampleCount_);  // dwLength (total samples)
     ds4 << quint32(AudioSampleRate * AudioChannels * (AudioBitsPerSample / 8));
-    ds4 << quint32(0);              // dwQuality
+    ds4 << quint32(0);                                         // dwQuality
     ds4 << quint32(AudioChannels * (AudioBitsPerSample / 8));  // dwSampleSize
-    ds4 << quint16(0);              // rcFrame
+    ds4 << quint16(0);                                         // rcFrame
     ds4 << quint16(0);
     ds4 << quint16(0);
     ds4 << quint16(0);

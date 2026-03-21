@@ -9,13 +9,12 @@
 #include <QDir>
 #include <QFile>
 #include <QNetworkReply>
+#include <QRegularExpression>
 #include <QStandardPaths>
 #include <QTextStream>
-#include <QRegularExpression>
 
 SonglengthsDatabase::SonglengthsDatabase(QObject *parent)
-    : QObject(parent)
-    , networkManager_(new QNetworkAccessManager(this))
+    : QObject(parent), networkManager_(new QNetworkAccessManager(this))
 {
     // Try to load from cache on startup
     if (hasCachedDatabase()) {
@@ -105,10 +104,10 @@ void SonglengthsDatabase::downloadDatabase()
 
     currentDownload_ = networkManager_->get(request);
 
-    connect(currentDownload_, &QNetworkReply::downloadProgress,
-            this, &SonglengthsDatabase::onDownloadProgress);
-    connect(currentDownload_, &QNetworkReply::finished,
-            this, &SonglengthsDatabase::onDownloadFinished);
+    connect(currentDownload_, &QNetworkReply::downloadProgress, this,
+            &SonglengthsDatabase::onDownloadProgress);
+    connect(currentDownload_, &QNetworkReply::finished, this,
+            &SonglengthsDatabase::onDownloadFinished);
 }
 
 void SonglengthsDatabase::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
@@ -166,16 +165,12 @@ bool SonglengthsDatabase::parseDatabase(const QByteArray &data)
 
     // Regular expression to match database entries
     // Format: <32-char hex MD5>=<time> <time> ...
-    static const QRegularExpression entryRegex(
-        R"(^([0-9a-fA-F]{32})=(.+)$)"
-    );
+    static const QRegularExpression entryRegex(R"(^([0-9a-fA-F]{32})=(.+)$)");
 
     // Regular expression to match path comments
     // Format: ; /PATH/TO/FILE.sid
-    static const QRegularExpression pathCommentRegex(
-        R"(^; (/[^\s]+\.sid)$)",
-        QRegularExpression::CaseInsensitiveOption
-    );
+    static const QRegularExpression pathCommentRegex(R"(^; (/[^\s]+\.sid)$)",
+                                                     QRegularExpression::CaseInsensitiveOption);
 
     QString currentPath;
 

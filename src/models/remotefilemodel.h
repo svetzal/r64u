@@ -1,24 +1,20 @@
 #ifndef REMOTEFILEMODEL_H
 #define REMOTEFILEMODEL_H
 
+#include "services/iftpclient.h"
+
 #include <QAbstractItemModel>
+#include <QDateTime>
 #include <QIcon>
 #include <QPointer>
 #include <QSet>
-#include <QDateTime>
-#include "services/iftpclient.h"
 
 class RemoteFileModel : public QAbstractItemModel
 {
     Q_OBJECT
 
 public:
-    enum Roles {
-        FilePathRole = Qt::UserRole + 1,
-        IsDirectoryRole,
-        FileSizeRole,
-        FileTypeRole
-    };
+    enum Roles { FilePathRole = Qt::UserRole + 1, IsDirectoryRole, FileSizeRole, FileTypeRole };
 
     enum class FileType {
         Unknown,
@@ -40,12 +36,14 @@ public:
     void setFtpClient(IFtpClient *client);
 
     // QAbstractItemModel interface
-    QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
+    QModelIndex index(int row, int column,
+                      const QModelIndex &parent = QModelIndex()) const override;
     QModelIndex parent(const QModelIndex &child) const override;
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+    QVariant headerData(int section, Qt::Orientation orientation,
+                        int role = Qt::DisplayRole) const override;
     bool hasChildren(const QModelIndex &parent = QModelIndex()) const override;
     bool canFetchMore(const QModelIndex &parent) const override;
     void fetchMore(const QModelIndex &parent) override;
@@ -122,7 +120,8 @@ private slots:
     void onFtpError(const QString &message);
 
 private:
-    struct TreeNode {
+    struct TreeNode
+    {
         QString name;
         QString fullPath;
         bool isDirectory = false;
@@ -130,7 +129,7 @@ private:
         FileType fileType = FileType::Unknown;
 
         TreeNode *parent = nullptr;
-        QList<TreeNode*> children;
+        QList<TreeNode *> children;
         bool fetched = false;
         bool fetching = false;
         QDateTime fetchedAt;  ///< When this directory was last fetched
@@ -138,9 +137,9 @@ private:
         ~TreeNode() { qDeleteAll(children); }
     };
 
-    TreeNode* nodeFromIndex(const QModelIndex &index) const;
+    TreeNode *nodeFromIndex(const QModelIndex &index) const;
     QModelIndex indexFromNode(TreeNode *node) const;
-    TreeNode* findNodeByPath(const QString &path) const;
+    TreeNode *findNodeByPath(const QString &path) const;
     void populateNode(TreeNode *node, const QList<FtpEntry> &entries);
 
     QPointer<IFtpClient> ftpClient_;
@@ -148,7 +147,7 @@ private:
     QString rootPath_ = "/";
 
     // Map pending fetch paths to parent nodes
-    QHash<QString, TreeNode*> pendingFetches_;
+    QHash<QString, TreeNode *> pendingFetches_;
 
     // Track paths we explicitly requested (to ignore listings from other components)
     QSet<QString> requestedListings_;
@@ -157,4 +156,4 @@ private:
     int cacheTtlSeconds_ = 30;
 };
 
-#endif // REMOTEFILEMODEL_H
+#endif  // REMOTEFILEMODEL_H

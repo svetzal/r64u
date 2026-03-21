@@ -1,25 +1,25 @@
 #include "preferencesdialog.h"
+
 #include "../services/c64urestclient.h"
 #include "../services/credentialstore.h"
-#include "../services/songlengthsdatabase.h"
-#include "../services/hvscmetadataservice.h"
 #include "../services/gamebase64service.h"
+#include "../services/hvscmetadataservice.h"
+#include "../services/songlengthsdatabase.h"
 
-#include <QVBoxLayout>
-#include <QHBoxLayout>
+#include <QApplication>
+#include <QDialogButtonBox>
+#include <QFileDialog>
 #include <QFormLayout>
 #include <QGroupBox>
-#include <QDialogButtonBox>
-#include <QPushButton>
+#include <QHBoxLayout>
 #include <QLabel>
-#include <QFileDialog>
+#include <QMessageBox>
+#include <QPushButton>
 #include <QSettings>
 #include <QStandardPaths>
-#include <QMessageBox>
-#include <QApplication>
+#include <QVBoxLayout>
 
-PreferencesDialog::PreferencesDialog(QWidget *parent)
-    : QDialog(parent)
+PreferencesDialog::PreferencesDialog(QWidget *parent) : QDialog(parent)
 {
     setWindowTitle(tr("Preferences"));
     setupUi();
@@ -71,9 +71,8 @@ void PreferencesDialog::setupUi()
 
     auto *browseButton = new QPushButton(tr("Browse..."));
     connect(browseButton, &QPushButton::clicked, this, [this]() {
-        QString path = QFileDialog::getExistingDirectory(this,
-            tr("Select Local Directory"),
-            localDirEdit_->text());
+        QString path = QFileDialog::getExistingDirectory(this, tr("Select Local Directory"),
+                                                         localDirEdit_->text());
         if (!path.isEmpty()) {
             localDirEdit_->setText(path);
         }
@@ -107,11 +106,11 @@ void PreferencesDialog::setupUi()
 
     scalingModeCombo_ = new QComboBox();
     scalingModeCombo_->addItem(tr("Sharp (Nearest Neighbor)"),
-        static_cast<int>(VideoDisplayWidget::ScalingMode::Sharp));
+                               static_cast<int>(VideoDisplayWidget::ScalingMode::Sharp));
     scalingModeCombo_->addItem(tr("Smooth (Bilinear)"),
-        static_cast<int>(VideoDisplayWidget::ScalingMode::Smooth));
+                               static_cast<int>(VideoDisplayWidget::ScalingMode::Smooth));
     scalingModeCombo_->addItem(tr("Integer (Pixel Perfect)"),
-        static_cast<int>(VideoDisplayWidget::ScalingMode::Integer));
+                               static_cast<int>(VideoDisplayWidget::ScalingMode::Integer));
     viewLayout->addRow(tr("Scaling Mode:"), scalingModeCombo_);
 
     leftColumn->addWidget(viewGroup);
@@ -139,9 +138,10 @@ void PreferencesDialog::setupUi()
 
     auto *songlengthsButtonLayout = new QHBoxLayout();
     downloadDatabaseButton_ = new QPushButton(tr("Download/Update"));
-    downloadDatabaseButton_->setToolTip(tr("Download the HVSC Songlengths database for accurate SID song durations"));
-    connect(downloadDatabaseButton_, &QPushButton::clicked,
-            this, &PreferencesDialog::onDownloadDatabase);
+    downloadDatabaseButton_->setToolTip(
+        tr("Download the HVSC Songlengths database for accurate SID song durations"));
+    connect(downloadDatabaseButton_, &QPushButton::clicked, this,
+            &PreferencesDialog::onDownloadDatabase);
     songlengthsButtonLayout->addWidget(downloadDatabaseButton_);
     songlengthsButtonLayout->addStretch();
     databaseLayout->addLayout(songlengthsButtonLayout);
@@ -161,9 +161,9 @@ void PreferencesDialog::setupUi()
 
     auto *stilButtonLayout = new QHBoxLayout();
     downloadStilButton_ = new QPushButton(tr("Download/Update"));
-    downloadStilButton_->setToolTip(tr("Download STIL.txt for tune commentary, history, and cover information"));
-    connect(downloadStilButton_, &QPushButton::clicked,
-            this, &PreferencesDialog::onDownloadStil);
+    downloadStilButton_->setToolTip(
+        tr("Download STIL.txt for tune commentary, history, and cover information"));
+    connect(downloadStilButton_, &QPushButton::clicked, this, &PreferencesDialog::onDownloadStil);
     stilButtonLayout->addWidget(downloadStilButton_);
     stilButtonLayout->addStretch();
     databaseLayout->addLayout(stilButtonLayout);
@@ -184,8 +184,8 @@ void PreferencesDialog::setupUi()
     auto *buglistButtonLayout = new QHBoxLayout();
     downloadBuglistButton_ = new QPushButton(tr("Download/Update"));
     downloadBuglistButton_->setToolTip(tr("Download BUGlist.txt for known SID playback issues"));
-    connect(downloadBuglistButton_, &QPushButton::clicked,
-            this, &PreferencesDialog::onDownloadBuglist);
+    connect(downloadBuglistButton_, &QPushButton::clicked, this,
+            &PreferencesDialog::onDownloadBuglist);
     buglistButtonLayout->addWidget(downloadBuglistButton_);
     buglistButtonLayout->addStretch();
     databaseLayout->addLayout(buglistButtonLayout);
@@ -208,9 +208,10 @@ void PreferencesDialog::setupUi()
 
     auto *gamebaseButtonLayout = new QHBoxLayout();
     downloadGameBase64Button_ = new QPushButton(tr("Download/Update"));
-    downloadGameBase64Button_->setToolTip(tr("Download GameBase64 database for game information (publisher, year, genre, etc.)"));
-    connect(downloadGameBase64Button_, &QPushButton::clicked,
-            this, &PreferencesDialog::onDownloadGameBase64);
+    downloadGameBase64Button_->setToolTip(
+        tr("Download GameBase64 database for game information (publisher, year, genre, etc.)"));
+    connect(downloadGameBase64Button_, &QPushButton::clicked, this,
+            &PreferencesDialog::onDownloadGameBase64);
     gamebaseButtonLayout->addWidget(downloadGameBase64Button_);
     gamebaseButtonLayout->addStretch();
     gamebaseLayout->addLayout(gamebaseButtonLayout);
@@ -223,8 +224,7 @@ void PreferencesDialog::setupUi()
     mainLayout->addLayout(columnsLayout);
 
     // Buttons at the bottom
-    auto *buttonBox = new QDialogButtonBox(
-        QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    auto *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     connect(buttonBox, &QDialogButtonBox::accepted, this, &PreferencesDialog::onAccept);
     connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
     mainLayout->addWidget(buttonBox);
@@ -247,13 +247,10 @@ void PreferencesDialog::loadSettings()
 
     autoConnectCheck_->setChecked(settings.value("device/autoConnect", false).toBool());
 
-    QString homePath = QStandardPaths::writableLocation(
-        QStandardPaths::HomeLocation);
-    localDirEdit_->setText(
-        settings.value("directories/local", homePath).toString());
+    QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    localDirEdit_->setText(settings.value("directories/local", homePath).toString());
 
-    defaultDriveCombo_->setCurrentIndex(
-        settings.value("drive/defaultDrive", 0).toInt());
+    defaultDriveCombo_->setCurrentIndex(settings.value("drive/defaultDrive", 0).toInt());
 
     QString mountMode = settings.value("drive/mountMode", "readwrite").toString();
     int mountIndex = mountModeCombo_->findData(mountMode);
@@ -262,8 +259,10 @@ void PreferencesDialog::loadSettings()
     }
 
     // Load view settings (default to Integer)
-    int scalingMode = settings.value("view/scalingMode",
-        static_cast<int>(VideoDisplayWidget::ScalingMode::Integer)).toInt();
+    int scalingMode =
+        settings
+            .value("view/scalingMode", static_cast<int>(VideoDisplayWidget::ScalingMode::Integer))
+            .toInt();
     int scalingIndex = scalingModeCombo_->findData(scalingMode);
     if (scalingIndex >= 0) {
         scalingModeCombo_->setCurrentIndex(scalingIndex);
@@ -290,8 +289,7 @@ void PreferencesDialog::saveSettings()
     settings.setValue("directories/local", localDirEdit_->text());
 
     settings.setValue("drive/defaultDrive", defaultDriveCombo_->currentIndex());
-    settings.setValue("drive/mountMode",
-        mountModeCombo_->currentData().toString());
+    settings.setValue("drive/mountMode", mountModeCombo_->currentData().toString());
 
     // Save view settings
     settings.setValue("view/scalingMode", scalingModeCombo_->currentData().toInt());
@@ -307,8 +305,7 @@ void PreferencesDialog::onTestConnection()
 {
     QString host = hostEdit_->text().trimmed();
     if (host.isEmpty()) {
-        QMessageBox::warning(this, tr("Test Connection"),
-            tr("Please enter a host address."));
+        QMessageBox::warning(this, tr("Test Connection"), tr("Please enter a host address."));
         return;
     }
 
@@ -321,10 +318,10 @@ void PreferencesDialog::onTestConnection()
     testClient_->setHost(host);
     testClient_->setPassword(passwordEdit_->text());
 
-    connect(testClient_, &C64URestClient::infoReceived,
-            this, &PreferencesDialog::onTestConnectionSuccess);
-    connect(testClient_, &C64URestClient::connectionError,
-            this, &PreferencesDialog::onTestConnectionError);
+    connect(testClient_, &C64URestClient::infoReceived, this,
+            &PreferencesDialog::onTestConnectionSuccess);
+    connect(testClient_, &C64URestClient::connectionError, this,
+            &PreferencesDialog::onTestConnectionError);
 
     // Show waiting cursor
     QApplication::setOverrideCursor(Qt::WaitCursor);
@@ -340,9 +337,9 @@ void PreferencesDialog::onTestConnectionSuccess(const DeviceInfo &info)
                          "Device: %1\n"
                          "Firmware: %2\n"
                          "Hostname: %3")
-        .arg(info.product)
-        .arg(info.firmwareVersion)
-        .arg(info.hostname);
+                          .arg(info.product)
+                          .arg(info.firmwareVersion)
+                          .arg(info.hostname);
 
     QMessageBox::information(this, tr("Test Connection"), message);
 
@@ -356,8 +353,7 @@ void PreferencesDialog::onTestConnectionError(const QString &error)
 {
     QApplication::restoreOverrideCursor();
 
-    QMessageBox::critical(this, tr("Test Connection"),
-        tr("Connection failed:\n%1").arg(error));
+    QMessageBox::critical(this, tr("Test Connection"), tr("Connection failed:\n%1").arg(error));
 
     if (testClient_) {
         testClient_->deleteLater();
@@ -376,17 +372,17 @@ void PreferencesDialog::setSonglengthsDatabase(SonglengthsDatabase *database)
 
     if (songlengthsDatabase_ != nullptr) {
         // Connect signals
-        connect(songlengthsDatabase_, &SonglengthsDatabase::downloadProgress,
-                this, &PreferencesDialog::onDatabaseDownloadProgress);
-        connect(songlengthsDatabase_, &SonglengthsDatabase::downloadFinished,
-                this, &PreferencesDialog::onDatabaseDownloadFinished);
-        connect(songlengthsDatabase_, &SonglengthsDatabase::downloadFailed,
-                this, &PreferencesDialog::onDatabaseDownloadFailed);
+        connect(songlengthsDatabase_, &SonglengthsDatabase::downloadProgress, this,
+                &PreferencesDialog::onDatabaseDownloadProgress);
+        connect(songlengthsDatabase_, &SonglengthsDatabase::downloadFinished, this,
+                &PreferencesDialog::onDatabaseDownloadFinished);
+        connect(songlengthsDatabase_, &SonglengthsDatabase::downloadFailed, this,
+                &PreferencesDialog::onDatabaseDownloadFailed);
 
         // Update status label
         if (songlengthsDatabase_->isLoaded()) {
-            databaseStatusLabel_->setText(tr("Database: %1 entries loaded")
-                .arg(songlengthsDatabase_->entryCount()));
+            databaseStatusLabel_->setText(
+                tr("Database: %1 entries loaded").arg(songlengthsDatabase_->entryCount()));
         } else if (songlengthsDatabase_->hasCachedDatabase()) {
             databaseStatusLabel_->setText(tr("Database: Cached (not loaded)"));
         } else {
@@ -398,8 +394,7 @@ void PreferencesDialog::setSonglengthsDatabase(SonglengthsDatabase *database)
 void PreferencesDialog::onDownloadDatabase()
 {
     if (songlengthsDatabase_ == nullptr) {
-        QMessageBox::warning(this, tr("Download Database"),
-            tr("Database service not available."));
+        QMessageBox::warning(this, tr("Download Database"), tr("Database service not available."));
         return;
     }
 
@@ -427,7 +422,8 @@ void PreferencesDialog::onDatabaseDownloadFinished(int entryCount)
     databaseProgressBar_->setVisible(false);
     databaseStatusLabel_->setText(tr("Database: %1 entries loaded").arg(entryCount));
 
-    QMessageBox::information(this, tr("Download Complete"),
+    QMessageBox::information(
+        this, tr("Download Complete"),
         tr("Successfully downloaded HVSC Songlengths database.\n%1 entries loaded.")
             .arg(entryCount));
 }
@@ -439,7 +435,7 @@ void PreferencesDialog::onDatabaseDownloadFailed(const QString &error)
     databaseStatusLabel_->setText(tr("Database: Download failed"));
 
     QMessageBox::warning(this, tr("Download Failed"),
-        tr("Failed to download database:\n%1").arg(error));
+                         tr("Failed to download database:\n%1").arg(error));
 }
 
 void PreferencesDialog::setHVSCMetadataService(HVSCMetadataService *service)
@@ -453,25 +449,25 @@ void PreferencesDialog::setHVSCMetadataService(HVSCMetadataService *service)
 
     if (hvscMetadataService_ != nullptr) {
         // Connect STIL signals
-        connect(hvscMetadataService_, &HVSCMetadataService::stilDownloadProgress,
-                this, &PreferencesDialog::onStilDownloadProgress);
-        connect(hvscMetadataService_, &HVSCMetadataService::stilDownloadFinished,
-                this, &PreferencesDialog::onStilDownloadFinished);
-        connect(hvscMetadataService_, &HVSCMetadataService::stilDownloadFailed,
-                this, &PreferencesDialog::onStilDownloadFailed);
+        connect(hvscMetadataService_, &HVSCMetadataService::stilDownloadProgress, this,
+                &PreferencesDialog::onStilDownloadProgress);
+        connect(hvscMetadataService_, &HVSCMetadataService::stilDownloadFinished, this,
+                &PreferencesDialog::onStilDownloadFinished);
+        connect(hvscMetadataService_, &HVSCMetadataService::stilDownloadFailed, this,
+                &PreferencesDialog::onStilDownloadFailed);
 
         // Connect BUGlist signals
-        connect(hvscMetadataService_, &HVSCMetadataService::buglistDownloadProgress,
-                this, &PreferencesDialog::onBuglistDownloadProgress);
-        connect(hvscMetadataService_, &HVSCMetadataService::buglistDownloadFinished,
-                this, &PreferencesDialog::onBuglistDownloadFinished);
-        connect(hvscMetadataService_, &HVSCMetadataService::buglistDownloadFailed,
-                this, &PreferencesDialog::onBuglistDownloadFailed);
+        connect(hvscMetadataService_, &HVSCMetadataService::buglistDownloadProgress, this,
+                &PreferencesDialog::onBuglistDownloadProgress);
+        connect(hvscMetadataService_, &HVSCMetadataService::buglistDownloadFinished, this,
+                &PreferencesDialog::onBuglistDownloadFinished);
+        connect(hvscMetadataService_, &HVSCMetadataService::buglistDownloadFailed, this,
+                &PreferencesDialog::onBuglistDownloadFailed);
 
         // Update STIL status label
         if (hvscMetadataService_->isStilLoaded()) {
-            stilStatusLabel_->setText(tr("%1 entries loaded")
-                .arg(hvscMetadataService_->stilEntryCount()));
+            stilStatusLabel_->setText(
+                tr("%1 entries loaded").arg(hvscMetadataService_->stilEntryCount()));
         } else if (hvscMetadataService_->hasCachedStil()) {
             stilStatusLabel_->setText(tr("Cached (not loaded)"));
         } else {
@@ -480,8 +476,8 @@ void PreferencesDialog::setHVSCMetadataService(HVSCMetadataService *service)
 
         // Update BUGlist status label
         if (hvscMetadataService_->isBuglistLoaded()) {
-            buglistStatusLabel_->setText(tr("%1 entries loaded")
-                .arg(hvscMetadataService_->buglistEntryCount()));
+            buglistStatusLabel_->setText(
+                tr("%1 entries loaded").arg(hvscMetadataService_->buglistEntryCount()));
         } else if (hvscMetadataService_->hasCachedBuglist()) {
             buglistStatusLabel_->setText(tr("Cached (not loaded)"));
         } else {
@@ -493,8 +489,7 @@ void PreferencesDialog::setHVSCMetadataService(HVSCMetadataService *service)
 void PreferencesDialog::onDownloadStil()
 {
     if (hvscMetadataService_ == nullptr) {
-        QMessageBox::warning(this, tr("Download STIL"),
-            tr("HVSC metadata service not available."));
+        QMessageBox::warning(this, tr("Download STIL"), tr("HVSC metadata service not available."));
         return;
     }
 
@@ -522,9 +517,9 @@ void PreferencesDialog::onStilDownloadFinished(int entryCount)
     stilProgressBar_->setVisible(false);
     stilStatusLabel_->setText(tr("%1 entries loaded").arg(entryCount));
 
-    QMessageBox::information(this, tr("Download Complete"),
-        tr("Successfully downloaded STIL database.\n%1 entries loaded.")
-            .arg(entryCount));
+    QMessageBox::information(
+        this, tr("Download Complete"),
+        tr("Successfully downloaded STIL database.\n%1 entries loaded.").arg(entryCount));
 }
 
 void PreferencesDialog::onStilDownloadFailed(const QString &error)
@@ -534,14 +529,14 @@ void PreferencesDialog::onStilDownloadFailed(const QString &error)
     stilStatusLabel_->setText(tr("Download failed"));
 
     QMessageBox::warning(this, tr("Download Failed"),
-        tr("Failed to download STIL database:\n%1").arg(error));
+                         tr("Failed to download STIL database:\n%1").arg(error));
 }
 
 void PreferencesDialog::onDownloadBuglist()
 {
     if (hvscMetadataService_ == nullptr) {
         QMessageBox::warning(this, tr("Download BUGlist"),
-            tr("HVSC metadata service not available."));
+                             tr("HVSC metadata service not available."));
         return;
     }
 
@@ -569,9 +564,9 @@ void PreferencesDialog::onBuglistDownloadFinished(int entryCount)
     buglistProgressBar_->setVisible(false);
     buglistStatusLabel_->setText(tr("%1 entries loaded").arg(entryCount));
 
-    QMessageBox::information(this, tr("Download Complete"),
-        tr("Successfully downloaded BUGlist database.\n%1 entries loaded.")
-            .arg(entryCount));
+    QMessageBox::information(
+        this, tr("Download Complete"),
+        tr("Successfully downloaded BUGlist database.\n%1 entries loaded.").arg(entryCount));
 }
 
 void PreferencesDialog::onBuglistDownloadFailed(const QString &error)
@@ -581,7 +576,7 @@ void PreferencesDialog::onBuglistDownloadFailed(const QString &error)
     buglistStatusLabel_->setText(tr("Download failed"));
 
     QMessageBox::warning(this, tr("Download Failed"),
-        tr("Failed to download BUGlist database:\n%1").arg(error));
+                         tr("Failed to download BUGlist database:\n%1").arg(error));
 }
 
 void PreferencesDialog::setGameBase64Service(GameBase64Service *service)
@@ -595,17 +590,17 @@ void PreferencesDialog::setGameBase64Service(GameBase64Service *service)
 
     if (gameBase64Service_ != nullptr) {
         // Connect signals
-        connect(gameBase64Service_, &GameBase64Service::downloadProgress,
-                this, &PreferencesDialog::onGameBase64DownloadProgress);
-        connect(gameBase64Service_, &GameBase64Service::downloadFinished,
-                this, &PreferencesDialog::onGameBase64DownloadFinished);
-        connect(gameBase64Service_, &GameBase64Service::downloadFailed,
-                this, &PreferencesDialog::onGameBase64DownloadFailed);
+        connect(gameBase64Service_, &GameBase64Service::downloadProgress, this,
+                &PreferencesDialog::onGameBase64DownloadProgress);
+        connect(gameBase64Service_, &GameBase64Service::downloadFinished, this,
+                &PreferencesDialog::onGameBase64DownloadFinished);
+        connect(gameBase64Service_, &GameBase64Service::downloadFailed, this,
+                &PreferencesDialog::onGameBase64DownloadFailed);
 
         // Update status label
         if (gameBase64Service_->isLoaded()) {
-            gameBase64StatusLabel_->setText(tr("%1 games loaded")
-                .arg(gameBase64Service_->gameCount()));
+            gameBase64StatusLabel_->setText(
+                tr("%1 games loaded").arg(gameBase64Service_->gameCount()));
         } else if (gameBase64Service_->hasCachedDatabase()) {
             gameBase64StatusLabel_->setText(tr("Cached (not loaded)"));
         } else {
@@ -618,7 +613,7 @@ void PreferencesDialog::onDownloadGameBase64()
 {
     if (gameBase64Service_ == nullptr) {
         QMessageBox::warning(this, tr("Download GameBase64"),
-            tr("GameBase64 service not available."));
+                             tr("GameBase64 service not available."));
         return;
     }
 
@@ -646,9 +641,9 @@ void PreferencesDialog::onGameBase64DownloadFinished(int gameCount)
     gameBase64ProgressBar_->setVisible(false);
     gameBase64StatusLabel_->setText(tr("%1 games loaded").arg(gameCount));
 
-    QMessageBox::information(this, tr("Download Complete"),
-        tr("Successfully downloaded GameBase64 database.\n%1 games loaded.")
-            .arg(gameCount));
+    QMessageBox::information(
+        this, tr("Download Complete"),
+        tr("Successfully downloaded GameBase64 database.\n%1 games loaded.").arg(gameCount));
 }
 
 void PreferencesDialog::onGameBase64DownloadFailed(const QString &error)
@@ -658,5 +653,5 @@ void PreferencesDialog::onGameBase64DownloadFailed(const QString &error)
     gameBase64StatusLabel_->setText(tr("Download failed"));
 
     QMessageBox::warning(this, tr("Download Failed"),
-        tr("Failed to download GameBase64 database:\n%1").arg(error));
+                         tr("Failed to download GameBase64 database:\n%1").arg(error));
 }

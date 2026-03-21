@@ -9,10 +9,10 @@
 #ifndef TRANSFERSERVICE_H
 #define TRANSFERSERVICE_H
 
+#include "models/transferqueue.h"
+
 #include <QObject>
 #include <QString>
-
-#include "models/transferqueue.h"
 
 class IFtpClient;
 class DeviceConnection;
@@ -48,8 +48,7 @@ public:
      * @param queue The transfer queue to delegate operations to (not owned).
      * @param parent Optional parent QObject for memory management.
      */
-    explicit TransferService(DeviceConnection *connection,
-                             TransferQueue *queue,
+    explicit TransferService(DeviceConnection *connection, TransferQueue *queue,
                              QObject *parent = nullptr);
 
     /**
@@ -272,7 +271,7 @@ public:
      * @brief Returns the underlying TransferQueue (for model access).
      * @return Pointer to the TransferQueue.
      */
-    [[nodiscard]] TransferQueue* queue() { return queue_; }
+    [[nodiscard]] TransferQueue *queue() { return queue_; }
 
 signals:
     /// @name Operation Signals
@@ -405,4 +404,4 @@ private:
     TransferQueue *queue_ = nullptr;
 };
 
-#endif // TRANSFERSERVICE_H
+#endif  // TRANSFERSERVICE_H

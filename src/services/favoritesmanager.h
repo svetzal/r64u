@@ -109,4 +109,4 @@ private:
     QStringList favorites_;
 };
 
-#endif // FAVORITESMANAGER_H
+#endif  // FAVORITESMANAGER_H

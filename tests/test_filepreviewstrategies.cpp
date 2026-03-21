@@ -9,14 +9,14 @@
  * - Error handling for corrupt/invalid data
  */
 
-#include <QtTest>
-#include <QWidget>
-
-#include "ui/filepreview/filepreviewfactory.h"
-#include "ui/filepreview/textfilepreview.h"
-#include "ui/filepreview/diskimagepreview.h"
-#include "ui/filepreview/sidfilepreview.h"
 #include "ui/filepreview/defaultfilepreview.h"
+#include "ui/filepreview/diskimagepreview.h"
+#include "ui/filepreview/filepreviewfactory.h"
+#include "ui/filepreview/sidfilepreview.h"
+#include "ui/filepreview/textfilepreview.h"
+
+#include <QWidget>
+#include <QtTest>
 
 class TestFilePreviewStrategies : public QObject
 {
@@ -28,109 +28,109 @@ private slots:
     void testFactory_SelectsDiskImagePreview_ForD64()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/disk.d64");
-        QVERIFY(dynamic_cast<DiskImagePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<DiskImagePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsDiskImagePreview_ForD71()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/disk.D71");
-        QVERIFY(dynamic_cast<DiskImagePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<DiskImagePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsDiskImagePreview_ForD81()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/disk.d81");
-        QVERIFY(dynamic_cast<DiskImagePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<DiskImagePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsSidFilePreview_ForSid()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/music.sid");
-        QVERIFY(dynamic_cast<SidFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<SidFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsSidFilePreview_ForSidUpperCase()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/music.SID");
-        QVERIFY(dynamic_cast<SidFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<SidFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsTextFilePreview_ForTxt()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/readme.txt");
-        QVERIFY(dynamic_cast<TextFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsTextFilePreview_ForCfg()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/config.cfg");
-        QVERIFY(dynamic_cast<TextFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsTextFilePreview_ForJson()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/data.json");
-        QVERIFY(dynamic_cast<TextFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsTextFilePreview_ForHtml()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/page.html");
-        QVERIFY(dynamic_cast<TextFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsTextFilePreview_ForHtm()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/page.htm");
-        QVERIFY(dynamic_cast<TextFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsTextFilePreview_ForXml()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/data.xml");
-        QVERIFY(dynamic_cast<TextFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsTextFilePreview_ForIni()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/settings.ini");
-        QVERIFY(dynamic_cast<TextFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsTextFilePreview_ForMd()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/readme.md");
-        QVERIFY(dynamic_cast<TextFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsTextFilePreview_ForLog()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/app.log");
-        QVERIFY(dynamic_cast<TextFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsDefaultPreview_ForUnknownType()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/file.xyz");
-        QVERIFY(dynamic_cast<DefaultFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<DefaultFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsDefaultPreview_ForPrg()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/game.prg");
-        QVERIFY(dynamic_cast<DefaultFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<DefaultFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsDefaultPreview_ForNoExtension()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/filename");
-        QVERIFY(dynamic_cast<DefaultFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<DefaultFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_SelectsDefaultPreview_ForEmptyPath()
     {
         auto strategy = FilePreviewFactory::createStrategy("");
-        QVERIFY(dynamic_cast<DefaultFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<DefaultFilePreview *>(strategy.get()) != nullptr);
     }
 
     // === DiskImagePreview canHandle Tests ===
@@ -329,31 +329,31 @@ private slots:
     void testFactory_HandlesPathWithSpaces()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/with spaces/file.txt");
-        QVERIFY(dynamic_cast<TextFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_HandlesPathWithSpecialChars()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/with-special_chars/file.d64");
-        QVERIFY(dynamic_cast<DiskImagePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<DiskImagePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_HandlesDeepPath()
     {
         auto strategy = FilePreviewFactory::createStrategy("/very/deep/nested/path/to/file.sid");
-        QVERIFY(dynamic_cast<SidFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<SidFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_HandlesJustFilename()
     {
         auto strategy = FilePreviewFactory::createStrategy("music.sid");
-        QVERIFY(dynamic_cast<SidFilePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<SidFilePreview *>(strategy.get()) != nullptr);
     }
 
     void testFactory_HandlesMultipleDots()
     {
         auto strategy = FilePreviewFactory::createStrategy("/path/to/file.backup.d64");
-        QVERIFY(dynamic_cast<DiskImagePreview*>(strategy.get()) != nullptr);
+        QVERIFY(dynamic_cast<DiskImagePreview *>(strategy.get()) != nullptr);
     }
 
     // === Error Handling Tests ===

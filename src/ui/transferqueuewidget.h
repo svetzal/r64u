@@ -1,10 +1,10 @@
 #ifndef TRANSFERQUEUEWIDGET_H
 #define TRANSFERQUEUEWIDGET_H
 
-#include <QWidget>
+#include <QLabel>
 #include <QListView>
 #include <QPushButton>
-#include <QLabel>
+#include <QWidget>
 
 class TransferQueue;
 
@@ -33,4 +33,4 @@ private:
     QPushButton *cancelButton_ = nullptr;
 };
 
-#endif // TRANSFERQUEUEWIDGET_H
+#endif  // TRANSFERQUEUEWIDGET_H

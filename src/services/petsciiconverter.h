@@ -85,4 +85,4 @@ private:
     static const quint8 asciiToPetsciiTable[128];
 };
 
-#endif // PETSCIICONVERTER_H
+#endif  // PETSCIICONVERTER_H

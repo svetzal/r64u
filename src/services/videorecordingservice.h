@@ -6,12 +6,12 @@
 #ifndef VIDEORECORDINGSERVICE_H
 #define VIDEORECORDINGSERVICE_H
 
-#include <QObject>
-#include <QFile>
-#include <QMutex>
-#include <QImage>
-#include <QString>
 #include <QDateTime>
+#include <QFile>
+#include <QImage>
+#include <QMutex>
+#include <QObject>
+#include <QString>
 
 /**
  * @brief Records video and audio to an AVI file.
@@ -123,7 +123,8 @@ private:
     qint64 moviListSizePos_ = 0;
 
     // Index entries for all chunks (video and audio)
-    struct ChunkInfo {
+    struct ChunkInfo
+    {
         QByteArray fourCC;  // "00dc" for video, "01wb" for audio
         qint64 offset;
         int size;
@@ -137,4 +138,4 @@ private:
     static constexpr int AudioBitsPerSample = 16;
 };
 
-#endif // VIDEORECORDINGSERVICE_H
+#endif  // VIDEORECORDINGSERVICE_H

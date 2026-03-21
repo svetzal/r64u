@@ -1,13 +1,14 @@
 #include "remotefilemodel.h"
-#include <QStyle>
+
 #include <QApplication>
 #include <QDebug>
-#include <functional>
+#include <QStyle>
+
 #include <algorithm>
+#include <functional>
 
 RemoteFileModel::RemoteFileModel(QObject *parent)
-    : QAbstractItemModel(parent)
-    , rootNode_(new TreeNode)
+    : QAbstractItemModel(parent), rootNode_(new TreeNode)
 {
     rootNode_->name = "/";
     rootNode_->fullPath = "/";
@@ -37,10 +38,9 @@ void RemoteFileModel::setFtpClient(IFtpClient *client)
     ftpClient_ = client;
 
     if (ftpClient_) {
-        connect(ftpClient_, &IFtpClient::directoryListed,
-                this, &RemoteFileModel::onDirectoryListed);
-        connect(ftpClient_, &IFtpClient::error,
-                this, &RemoteFileModel::onFtpError);
+        connect(ftpClient_, &IFtpClient::directoryListed, this,
+                &RemoteFileModel::onDirectoryListed);
+        connect(ftpClient_, &IFtpClient::error, this, &RemoteFileModel::onFtpError);
     }
 }
 
@@ -109,7 +109,7 @@ int RemoteFileModel::rowCount(const QModelIndex &parent) const
 int RemoteFileModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
-    return 3; // Name, Size, Type
+    return 3;  // Name, Size, Type
 }
 
 QVariant RemoteFileModel::data(const QModelIndex &index, int role) const
@@ -126,9 +126,12 @@ QVariant RemoteFileModel::data(const QModelIndex &index, int role) const
     switch (role) {
     case Qt::DisplayRole:
         switch (index.column()) {
-        case 0: return node->name;
-        case 1: return node->isDirectory ? QVariant() : QString::number(node->size);
-        case 2: return fileTypeString(node->fileType);
+        case 0:
+            return node->name;
+        case 1:
+            return node->isDirectory ? QVariant() : QString::number(node->size);
+        case 2:
+            return fileTypeString(node->fileType);
         }
         break;
 
@@ -167,9 +170,12 @@ QVariant RemoteFileModel::headerData(int section, Qt::Orientation orientation, i
     }
 
     switch (section) {
-    case 0: return tr("Name");
-    case 1: return tr("Size");
-    case 2: return tr("Type");
+    case 0:
+        return tr("Name");
+    case 1:
+        return tr("Size");
+    case 2:
+        return tr("Type");
     }
 
     return QVariant();
@@ -285,14 +291,15 @@ void RemoteFileModel::refresh(const QModelIndex &index)
         // Remove any pending operations for nodes we're about to delete.
         // This prevents dangling pointers in pendingFetches_ if a directory
         // listing arrives after the node is deleted.
-        std::function<void(TreeNode*)> cleanupPendingOps = [this, &cleanupPendingOps](TreeNode* n) {
+        std::function<void(TreeNode *)> cleanupPendingOps = [this,
+                                                             &cleanupPendingOps](TreeNode *n) {
             pendingFetches_.remove(n->fullPath);
             requestedListings_.remove(n->fullPath);
-            for (TreeNode* child : n->children) {
+            for (TreeNode *child : n->children) {
                 cleanupPendingOps(child);
             }
         };
-        for (TreeNode* child : node->children) {
+        for (TreeNode *child : node->children) {
             cleanupPendingOps(child);
         }
 
@@ -332,7 +339,7 @@ void RemoteFileModel::clear()
 void RemoteFileModel::invalidateCache()
 {
     // Recursively mark all nodes as stale
-    std::function<void(TreeNode*)> invalidateNode = [&](TreeNode *node) {
+    std::function<void(TreeNode *)> invalidateNode = [&](TreeNode *node) {
         if (node->fetched) {
             node->fetched = false;
             node->fetchedAt = QDateTime();
@@ -443,16 +450,26 @@ QIcon RemoteFileModel::iconForFileType(FileType type)
 QString RemoteFileModel::fileTypeString(FileType type)
 {
     switch (type) {
-    case FileType::Directory: return tr("Folder");
-    case FileType::SidMusic: return tr("SID Music");
-    case FileType::ModMusic: return tr("MOD Music");
-    case FileType::Program: return tr("Program");
-    case FileType::Cartridge: return tr("Cartridge");
-    case FileType::DiskImage: return tr("Disk Image");
-    case FileType::TapeImage: return tr("Tape Image");
-    case FileType::Rom: return tr("ROM");
-    case FileType::Config: return tr("Configuration");
-    default: return tr("File");
+    case FileType::Directory:
+        return tr("Folder");
+    case FileType::SidMusic:
+        return tr("SID Music");
+    case FileType::ModMusic:
+        return tr("MOD Music");
+    case FileType::Program:
+        return tr("Program");
+    case FileType::Cartridge:
+        return tr("Cartridge");
+    case FileType::DiskImage:
+        return tr("Disk Image");
+    case FileType::TapeImage:
+        return tr("Tape Image");
+    case FileType::Rom:
+        return tr("ROM");
+    case FileType::Config:
+        return tr("Configuration");
+    default:
+        return tr("File");
     }
 }
 
@@ -475,9 +492,11 @@ void RemoteFileModel::onDirectoryListed(const QString &path, const QList<FtpEntr
         // If we requested this listing (it was in requestedListings_) but there's no
         // corresponding node in pendingFetches_, something is wrong. Don't try to guess
         // which node to use - this could cause entries to be added to the wrong node.
-        qWarning() << "Model: Listing for" << path << "was in requestedListings_ but not in pendingFetches_"
+        qWarning() << "Model: Listing for" << path
+                   << "was in requestedListings_ but not in pendingFetches_"
                    << "- this indicates a bug. Ignoring to prevent corruption.";
-        qWarning() << "Model: rootPath_:" << rootPath_ << "pendingFetches_ keys:" << pendingFetches_.keys();
+        qWarning() << "Model: rootPath_:" << rootPath_
+                   << "pendingFetches_ keys:" << pendingFetches_.keys();
         return;
     }
 
@@ -486,8 +505,8 @@ void RemoteFileModel::onDirectoryListed(const QString &path, const QList<FtpEntr
     // Validate that the node's path matches what we requested
     // This catches dangling pointers or state corruption
     if (node->fullPath != path) {
-        qWarning() << "Model: Node path mismatch - expected:" << path
-                   << "got:" << node->fullPath << "- ignoring to prevent corruption!";
+        qWarning() << "Model: Node path mismatch - expected:" << path << "got:" << node->fullPath
+                   << "- ignoring to prevent corruption!";
         return;
     }
 
@@ -511,12 +530,12 @@ void RemoteFileModel::onFtpError(const QString &message)
     emit errorOccurred(message);
 }
 
-RemoteFileModel::TreeNode* RemoteFileModel::nodeFromIndex(const QModelIndex &index) const
+RemoteFileModel::TreeNode *RemoteFileModel::nodeFromIndex(const QModelIndex &index) const
 {
     if (!index.isValid()) {
         return rootNode_;
     }
-    return static_cast<TreeNode*>(index.internalPointer());
+    return static_cast<TreeNode *>(index.internalPointer());
 }
 
 QModelIndex RemoteFileModel::indexFromNode(TreeNode *node) const
@@ -534,7 +553,7 @@ QModelIndex RemoteFileModel::indexFromNode(TreeNode *node) const
     return createIndex(row, 0, node);
 }
 
-RemoteFileModel::TreeNode* RemoteFileModel::findNodeByPath(const QString &path) const
+RemoteFileModel::TreeNode *RemoteFileModel::findNodeByPath(const QString &path) const
 {
     if (path == rootPath_ || path == "/") {
         return rootNode_;
@@ -563,13 +582,15 @@ RemoteFileModel::TreeNode* RemoteFileModel::findNodeByPath(const QString &path) 
 void RemoteFileModel::populateNode(TreeNode *node, const QList<FtpEntry> &entries)
 {
     QModelIndex parentIndex = indexFromNode(node);
-    qDebug() << "Model: populateNode for" << node->name << "parentIndex valid:" << parentIndex.isValid()
-             << "entries:" << entries.count() << "existing children:" << node->children.count();
+    qDebug() << "Model: populateNode for" << node->name
+             << "parentIndex valid:" << parentIndex.isValid() << "entries:" << entries.count()
+             << "existing children:" << node->children.count();
 
     // Defensive check: clear any existing children before populating
     // This prevents model corruption if a listing is processed twice due to edge cases
     if (!node->children.isEmpty()) {
-        qWarning() << "Model: populateNode called on node with existing children - clearing them first";
+        qWarning()
+            << "Model: populateNode called on node with existing children - clearing them first";
         beginRemoveRows(parentIndex, 0, node->children.count() - 1);
         qDeleteAll(node->children);
         node->children.clear();
@@ -579,16 +600,18 @@ void RemoteFileModel::populateNode(TreeNode *node, const QList<FtpEntry> &entrie
     if (!entries.isEmpty()) {
         // Sort entries: directories first, then alphabetically by name (case-insensitive)
         QList<FtpEntry> sortedEntries = entries;
-        std::sort(sortedEntries.begin(), sortedEntries.end(), [](const FtpEntry &a, const FtpEntry &b) {
-            // Directories come before files
-            if (a.isDirectory != b.isDirectory) {
-                return a.isDirectory;  // true (dir) < false (file)
-            }
-            // Same type: sort alphabetically (case-insensitive)
-            return a.name.compare(b.name, Qt::CaseInsensitive) < 0;
-        });
+        std::sort(sortedEntries.begin(), sortedEntries.end(),
+                  [](const FtpEntry &a, const FtpEntry &b) {
+                      // Directories come before files
+                      if (a.isDirectory != b.isDirectory) {
+                          return a.isDirectory;  // true (dir) < false (file)
+                      }
+                      // Same type: sort alphabetically (case-insensitive)
+                      return a.name.compare(b.name, Qt::CaseInsensitive) < 0;
+                  });
 
-        qDebug() << "Model: beginInsertRows parentIndex:" << parentIndex << "rows 0 to" << sortedEntries.count() - 1;
+        qDebug() << "Model: beginInsertRows parentIndex:" << parentIndex << "rows 0 to"
+                 << sortedEntries.count() - 1;
         beginInsertRows(parentIndex, 0, sortedEntries.count() - 1);
 
         for (const FtpEntry &entry : sortedEntries) {

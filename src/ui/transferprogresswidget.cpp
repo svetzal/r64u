@@ -1,12 +1,12 @@
 #include "transferprogresswidget.h"
-#include "services/transferservice.h"
+
 #include "models/transferqueue.h"
+#include "services/transferservice.h"
 
 #include <QHBoxLayout>
 #include <QMessageBox>
 
-TransferProgressWidget::TransferProgressWidget(QWidget *parent)
-    : QWidget(parent)
+TransferProgressWidget::TransferProgressWidget(QWidget *parent) : QWidget(parent)
 {
     setupUi();
 }
@@ -38,8 +38,7 @@ void TransferProgressWidget::setupUi()
     // Setup 2-second delay timer for progress display
     delayTimer_ = new QTimer(this);
     delayTimer_->setSingleShot(true);
-    connect(delayTimer_, &QTimer::timeout,
-            this, &TransferProgressWidget::onShowProgress);
+    connect(delayTimer_, &QTimer::timeout, this, &TransferProgressWidget::onShowProgress);
 }
 
 void TransferProgressWidget::setTransferService(TransferService *service)
@@ -52,30 +51,30 @@ void TransferProgressWidget::setTransferService(TransferService *service)
     transferService_ = service;
 
     if (transferService_) {
-        connect(transferService_, &TransferService::operationStarted,
-                this, &TransferProgressWidget::onOperationStarted);
-        connect(transferService_, &TransferService::operationCompleted,
-                this, &TransferProgressWidget::onOperationCompleted);
-        connect(transferService_, &TransferService::operationFailed,
-                this, &TransferProgressWidget::onOperationFailed);
-        connect(transferService_, &TransferService::allOperationsCompleted,
-                this, &TransferProgressWidget::onAllOperationsCompleted);
-        connect(transferService_, &TransferService::operationsCancelled,
-                this, &TransferProgressWidget::onOperationsCancelled);
-        connect(transferService_, &TransferService::queueChanged,
-                this, &TransferProgressWidget::onQueueChanged);
-        connect(transferService_, &TransferService::deleteProgressUpdate,
-                this, &TransferProgressWidget::onDeleteProgressUpdate);
+        connect(transferService_, &TransferService::operationStarted, this,
+                &TransferProgressWidget::onOperationStarted);
+        connect(transferService_, &TransferService::operationCompleted, this,
+                &TransferProgressWidget::onOperationCompleted);
+        connect(transferService_, &TransferService::operationFailed, this,
+                &TransferProgressWidget::onOperationFailed);
+        connect(transferService_, &TransferService::allOperationsCompleted, this,
+                &TransferProgressWidget::onAllOperationsCompleted);
+        connect(transferService_, &TransferService::operationsCancelled, this,
+                &TransferProgressWidget::onOperationsCancelled);
+        connect(transferService_, &TransferService::queueChanged, this,
+                &TransferProgressWidget::onQueueChanged);
+        connect(transferService_, &TransferService::deleteProgressUpdate, this,
+                &TransferProgressWidget::onDeleteProgressUpdate);
         // Note: overwriteConfirmationNeeded and folderExistsConfirmationNeeded signals
         // are handled by TransferProgressContainer, not this widget
-        connect(transferService_, &TransferService::scanningStarted,
-                this, &TransferProgressWidget::onScanningStarted);
-        connect(transferService_, &TransferService::scanningProgress,
-                this, &TransferProgressWidget::onScanningProgress);
-        connect(transferService_, &TransferService::directoryCreationProgress,
-                this, &TransferProgressWidget::onDirectoryCreationProgress);
-        connect(cancelButton_, &QPushButton::clicked,
-                transferService_, &TransferService::cancelAll);
+        connect(transferService_, &TransferService::scanningStarted, this,
+                &TransferProgressWidget::onScanningStarted);
+        connect(transferService_, &TransferService::scanningProgress, this,
+                &TransferProgressWidget::onScanningProgress);
+        connect(transferService_, &TransferService::directoryCreationProgress, this,
+                &TransferProgressWidget::onDirectoryCreationProgress);
+        connect(cancelButton_, &QPushButton::clicked, transferService_,
+                &TransferService::cancelAll);
     }
 }
 
@@ -189,27 +188,28 @@ void TransferProgressWidget::updateProgressDisplay()
         int progress = (batchProgress.directoriesCreated * 100) / batchProgress.directoriesToCreate;
         progressBar_->setValue(progress);
         statusLabel_->setText(tr("Creating directories... (%1 of %2)")
-            .arg(batchProgress.directoriesCreated)
-            .arg(batchProgress.directoriesToCreate));
+                                  .arg(batchProgress.directoriesCreated)
+                                  .arg(batchProgress.directoriesToCreate));
     } else if (batchProgress.isScanning) {
         progressBar_->setMaximum(0);
         if (transferService_->isScanningForDelete()) {
             if (batchProgress.filesDiscovered > 0) {
                 statusLabel_->setText(tr("Scanning for delete... (scanned %1 dirs, found %2 items)")
-                    .arg(batchProgress.directoriesScanned)
-                    .arg(batchProgress.filesDiscovered));
+                                          .arg(batchProgress.directoriesScanned)
+                                          .arg(batchProgress.filesDiscovered));
             } else {
                 statusLabel_->setText(tr("Scanning for delete... (scanned %1 dirs)")
-                    .arg(batchProgress.directoriesScanned));
+                                          .arg(batchProgress.directoriesScanned));
             }
         } else {
             if (batchProgress.filesDiscovered > 0) {
-                statusLabel_->setText(tr("Scanning directories... (scanned %1 dirs, found %2 files)")
-                    .arg(batchProgress.directoriesScanned)
-                    .arg(batchProgress.filesDiscovered));
+                statusLabel_->setText(
+                    tr("Scanning directories... (scanned %1 dirs, found %2 files)")
+                        .arg(batchProgress.directoriesScanned)
+                        .arg(batchProgress.filesDiscovered));
             } else {
                 statusLabel_->setText(tr("Scanning directories... (scanned %1 dirs)")
-                    .arg(batchProgress.directoriesScanned));
+                                          .arg(batchProgress.directoriesScanned));
             }
         }
     } else if (batchProgress.isProcessingDelete) {
@@ -223,9 +223,7 @@ void TransferProgressWidget::updateProgressDisplay()
 
         // Cap at total to avoid showing "17 of 16" when complete
         int displayItem = qMin(completed + 1, total);
-        statusLabel_->setText(tr("Deleting %1 of %2 items...")
-            .arg(displayItem)
-            .arg(total));
+        statusLabel_->setText(tr("Deleting %1 of %2 items...").arg(displayItem).arg(total));
     } else if (batchProgress.isValid() && batchProgress.totalItems > 0) {
         progressBar_->setMaximum(100);
         int completed = batchProgress.completedItems + batchProgress.failedItems;
@@ -248,15 +246,15 @@ void TransferProgressWidget::updateProgressDisplay()
         int displayItem = qMin(completed + 1, batchProgress.totalItems);
         if (!batchProgress.folderName.isEmpty()) {
             statusLabel_->setText(tr("%1 - %2 %3 of %4 items...")
-                .arg(batchProgress.folderName)
-                .arg(actionVerb)
-                .arg(displayItem)
-                .arg(batchProgress.totalItems));
+                                      .arg(batchProgress.folderName)
+                                      .arg(actionVerb)
+                                      .arg(displayItem)
+                                      .arg(batchProgress.totalItems));
         } else {
             statusLabel_->setText(tr("%1 %2 of %3 items...")
-                .arg(actionVerb)
-                .arg(displayItem)
-                .arg(batchProgress.totalItems));
+                                      .arg(actionVerb)
+                                      .arg(displayItem)
+                                      .arg(batchProgress.totalItems));
         }
     }
 }
@@ -273,11 +271,13 @@ void TransferProgressWidget::onScanningStarted(const QString &folderName, Operat
     setVisible(true);
     progressBar_->setMaximum(0);  // Indeterminate initially
 
-    QString actionVerb = (type == OperationType::Delete) ? tr("Scanning for delete") : tr("Scanning");
+    QString actionVerb =
+        (type == OperationType::Delete) ? tr("Scanning for delete") : tr("Scanning");
     statusLabel_->setText(tr("%1: %2...").arg(actionVerb, folderName));
 }
 
-void TransferProgressWidget::onScanningProgress(int directoriesScanned, int directoriesRemaining, int filesDiscovered)
+void TransferProgressWidget::onScanningProgress(int directoriesScanned, int directoriesRemaining,
+                                                int filesDiscovered)
 {
     // Ensure widget is visible
     if (!isVisible()) {
@@ -289,27 +289,28 @@ void TransferProgressWidget::onScanningProgress(int directoriesScanned, int dire
         // Still scanning - show progress with indeterminate bar
         progressBar_->setMaximum(0);
 
-        QString actionVerb = (currentOperationType_ == OperationType::Delete) ?
-            tr("Scanning for delete") : tr("Scanning");
+        QString actionVerb = (currentOperationType_ == OperationType::Delete)
+                                 ? tr("Scanning for delete")
+                                 : tr("Scanning");
 
         if (filesDiscovered > 0) {
             statusLabel_->setText(tr("%1... (scanned %2 dirs, found %3 files, %4 dirs remaining)")
-                .arg(actionVerb)
-                .arg(directoriesScanned)
-                .arg(filesDiscovered)
-                .arg(directoriesRemaining));
+                                      .arg(actionVerb)
+                                      .arg(directoriesScanned)
+                                      .arg(filesDiscovered)
+                                      .arg(directoriesRemaining));
         } else {
             statusLabel_->setText(tr("%1... (scanned %2 dirs, %3 remaining)")
-                .arg(actionVerb)
-                .arg(directoriesScanned)
-                .arg(directoriesRemaining));
+                                      .arg(actionVerb)
+                                      .arg(directoriesScanned)
+                                      .arg(directoriesRemaining));
         }
     } else {
         // Scanning complete - show total found
         if (filesDiscovered > 0) {
             statusLabel_->setText(tr("Scan complete: found %1 files in %2 directories")
-                .arg(filesDiscovered)
-                .arg(directoriesScanned));
+                                      .arg(filesDiscovered)
+                                      .arg(directoriesScanned));
         }
         // The progress bar will update when actual transfers start
     }
@@ -327,7 +328,5 @@ void TransferProgressWidget::onDirectoryCreationProgress(int created, int total)
     int progress = (total > 0) ? (created * 100) / total : 0;
     progressBar_->setValue(progress);
 
-    statusLabel_->setText(tr("Creating directories... (%1 of %2)")
-        .arg(created)
-        .arg(total));
+    statusLabel_->setText(tr("Creating directories... (%1 of %2)").arg(created).arg(total));
 }

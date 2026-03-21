@@ -4,20 +4,18 @@
  */
 
 #include "videostreamreceiver.h"
+
 #include "utils/logging.h"
+
 #include <QNetworkDatagram>
 #include <QVariant>
 
 VideoStreamReceiver::VideoStreamReceiver(QObject *parent)
-    : QObject(parent)
-    , socket_(new QUdpSocket(this))
+    : QObject(parent), socket_(new QUdpSocket(this))
 {
-    connect(socket_, &QUdpSocket::readyRead,
-            this, &VideoStreamReceiver::onReadyRead);
-    connect(socket_, &QUdpSocket::errorOccurred,
-            this, [this](QAbstractSocket::SocketError) {
-        emit socketError(socket_->errorString());
-    });
+    connect(socket_, &QUdpSocket::readyRead, this, &VideoStreamReceiver::onReadyRead);
+    connect(socket_, &QUdpSocket::errorOccurred, this,
+            [this](QAbstractSocket::SocketError) { emit socketError(socket_->errorString()); });
 
     // Pre-allocate frame buffer for maximum size (PAL)
     // Each line is 192 bytes (384 pixels at 4 bits each)
@@ -37,13 +35,13 @@ bool VideoStreamReceiver::bind(quint16 port)
     }
 
     // Set a large receive buffer to handle packet bursts
-    socket_->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, QVariant(2 * 1024 * 1024));
+    socket_->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption,
+                             QVariant(2 * 1024 * 1024));
 
     if (!socket_->bind(QHostAddress::Any, port)) {
         LOG_VERBOSE() << "VideoStreamReceiver: Failed to bind:" << socket_->errorString();
-        emit socketError(QString("Failed to bind to port %1: %2")
-                         .arg(port)
-                         .arg(socket_->errorString()));
+        emit socketError(
+            QString("Failed to bind to port %1: %2").arg(port).arg(socket_->errorString()));
         return false;
     }
     LOG_VERBOSE() << "VideoStreamReceiver: Bound successfully to port" << socket_->localPort();
@@ -98,14 +96,15 @@ void VideoStreamReceiver::onReadyRead()
             // Log first few packets and then periodically
             if (packetLogCounter < 5 || packetLogCounter % 1000 == 0) {
                 LOG_VERBOSE() << "VideoStreamReceiver: Received packet size:" << packet.size()
-                         << "from:" << datagram.senderAddress().toString()
-                         << "expected size:" << PacketSize;
+                              << "from:" << datagram.senderAddress().toString()
+                              << "expected size:" << PacketSize;
             }
             packetLogCounter++;
             if (packet.size() == PacketSize) {
                 processPacket(packet);
             } else {
-                LOG_VERBOSE() << "VideoStreamReceiver: Ignoring malformed packet, size:" << packet.size();
+                LOG_VERBOSE() << "VideoStreamReceiver: Ignoring malformed packet, size:"
+                              << packet.size();
             }
         }
     }
@@ -130,7 +129,7 @@ void VideoStreamReceiver::processPacket(const QByteArray &packet)
             bool isValidWraparound = (lastSequenceNumber_ == 0xFFFF && header.sequenceNumber == 0);
             if (!isValidWraparound) {
                 quint16 gap = header.sequenceNumber - expectedSeq;
-                if (gap < 1000) { // Reasonable gap (not wraparound)
+                if (gap < 1000) {  // Reasonable gap (not wraparound)
                     totalPacketsLost_ += gap;
                 } else if (gap > 0xF000) {
                     // Sequence went backwards - out of order packet
@@ -163,9 +162,7 @@ void VideoStreamReceiver::processPacket(const QByteArray &packet)
 
     // Ensure we don't write beyond buffer bounds
     if (bufferOffset + PayloadSize <= frameBuffer_.size()) {
-        memcpy(frameBuffer_.data() + bufferOffset,
-               packet.constData() + HeaderSize,
-               PayloadSize);
+        memcpy(frameBuffer_.data() + bufferOffset, packet.constData() + HeaderSize, PayloadSize);
     }
 
     // Track which packets we've received (using line number as identifier)
@@ -252,9 +249,11 @@ void VideoStreamReceiver::completeFrame()
     // Log first few frames and then periodically
     if (totalFramesCompleted_ <= 3 || totalFramesCompleted_ % 50 == 0) {
         LOG_VERBOSE() << "VideoStreamReceiver: Frame" << totalFramesCompleted_ << "complete"
-                 << "format:" << (videoFormat_ == VideoFormat::PAL ? "PAL" :
-                                  videoFormat_ == VideoFormat::NTSC ? "NTSC" : "Unknown")
-                 << "height:" << frameHeight << "size:" << frameSize;
+                      << "format:"
+                      << (videoFormat_ == VideoFormat::PAL    ? "PAL"
+                          : videoFormat_ == VideoFormat::NTSC ? "NTSC"
+                                                              : "Unknown")
+                      << "height:" << frameHeight << "size:" << frameSize;
     }
 
     emit frameReady(frameData, currentFrameNum_, videoFormat_);

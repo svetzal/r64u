@@ -1,44 +1,38 @@
 #include "explorepanel.h"
+
+#include "drivestatuswidget.h"
 #include "filedetailspanel.h"
 #include "pathnavigationwidget.h"
-#include "drivestatuswidget.h"
 #include "playlistwidget.h"
-#include "services/deviceconnection.h"
+
+#include "models/remotefilemodel.h"
 #include "services/configfileloader.h"
-#include "services/filepreviewservice.h"
+#include "services/deviceconnection.h"
 #include "services/favoritesmanager.h"
+#include "services/filepreviewservice.h"
+#include "services/gamebase64service.h"
+#include "services/hvscmetadataservice.h"
 #include "services/playlistmanager.h"
 #include "services/songlengthsdatabase.h"
-#include "services/hvscmetadataservice.h"
-#include "services/gamebase64service.h"
 #include "services/streamingmanager.h"
-#include "models/remotefilemodel.h"
 
-#include <QVBoxLayout>
-#include <QLabel>
-#include <QHeaderView>
-#include <QMessageBox>
 #include <QFileInfo>
-#include <QTimer>
+#include <QHeaderView>
+#include <QLabel>
+#include <QMessageBox>
 #include <QSettings>
 #include <QShowEvent>
+#include <QTimer>
 #include <QToolButton>
+#include <QVBoxLayout>
 
-ExplorePanel::ExplorePanel(DeviceConnection *connection,
-                           RemoteFileModel *model,
-                           ConfigFileLoader *configLoader,
-                           FilePreviewService *previewService,
-                           FavoritesManager *favoritesManager,
-                           PlaylistManager *playlistManager,
+ExplorePanel::ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
+                           ConfigFileLoader *configLoader, FilePreviewService *previewService,
+                           FavoritesManager *favoritesManager, PlaylistManager *playlistManager,
                            QWidget *parent)
-    : QWidget(parent)
-    , deviceConnection_(connection)
-    , remoteFileModel_(model)
-    , configFileLoader_(configLoader)
-    , previewService_(previewService)
-    , favoritesManager_(favoritesManager)
-    , playlistManager_(playlistManager)
-    , currentDirectory_("/")
+    : QWidget(parent), deviceConnection_(connection), remoteFileModel_(model),
+      configFileLoader_(configLoader), previewService_(previewService),
+      favoritesManager_(favoritesManager), playlistManager_(playlistManager), currentDirectory_("/")
 {
     // These dependencies are required - assert in debug builds
     Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
@@ -114,7 +108,8 @@ void ExplorePanel::setupUi()
     favoritesMenuAction->setToolTip(tr("Quick access to favorite locations"));
     favoritesMenuAction->setMenu(favoritesMenu_);
     // Make it a proper dropdown button
-    if (auto *button = qobject_cast<QToolButton *>(toolBar_->widgetForAction(favoritesMenuAction))) {
+    if (auto *button =
+            qobject_cast<QToolButton *>(toolBar_->widgetForAction(favoritesMenuAction))) {
         button->setPopupMode(QToolButton::InstantPopup);
     }
     connect(favoritesMenu_, &QMenu::triggered, this, &ExplorePanel::onFavoriteSelected);
@@ -135,13 +130,11 @@ void ExplorePanel::setupUi()
 
     // Guard against null selection model (can happen if no model is set)
     if (auto *selModel = treeView_->selectionModel()) {
-        connect(selModel, &QItemSelectionModel::selectionChanged,
-                this, &ExplorePanel::onSelectionChanged);
+        connect(selModel, &QItemSelectionModel::selectionChanged, this,
+                &ExplorePanel::onSelectionChanged);
     }
-    connect(treeView_, &QTreeView::doubleClicked,
-            this, &ExplorePanel::onDoubleClicked);
-    connect(treeView_, &QTreeView::customContextMenuRequested,
-            this, &ExplorePanel::onContextMenu);
+    connect(treeView_, &QTreeView::doubleClicked, this, &ExplorePanel::onDoubleClicked);
+    connect(treeView_, &QTreeView::customContextMenuRequested, this, &ExplorePanel::onContextMenu);
 
     remoteLayout->addWidget(treeView_);
 
@@ -159,14 +152,13 @@ void ExplorePanel::setupUi()
 
     // File details panel
     fileDetailsPanel_ = new FileDetailsPanel();
-    connect(fileDetailsPanel_, &FileDetailsPanel::contentRequested,
-            this, &ExplorePanel::onFileContentRequested);
+    connect(fileDetailsPanel_, &FileDetailsPanel::contentRequested, this,
+            &ExplorePanel::onFileContentRequested);
     rightSplitter_->addWidget(fileDetailsPanel_);
 
     // Playlist widget
     playlistWidget_ = new PlaylistWidget(playlistManager_);
-    connect(playlistWidget_, &PlaylistWidget::statusMessage,
-            this, &ExplorePanel::statusMessage);
+    connect(playlistWidget_, &PlaylistWidget::statusMessage, this, &ExplorePanel::statusMessage);
     rightSplitter_->addWidget(playlistWidget_);
 
     // Set initial right splitter sizes (70% details, 30% playlist)
@@ -184,16 +176,22 @@ void ExplorePanel::setupContextMenu()
 {
     contextMenu_ = new QMenu(this);
     contextPlayAction_ = contextMenu_->addAction(tr("Play"), this, &ExplorePanel::onPlay);
-    contextAddToPlaylistAction_ = contextMenu_->addAction(tr("Add to Playlist"), this, &ExplorePanel::onAddToPlaylist);
+    contextAddToPlaylistAction_ =
+        contextMenu_->addAction(tr("Add to Playlist"), this, &ExplorePanel::onAddToPlaylist);
     contextRunAction_ = contextMenu_->addAction(tr("Run"), this, &ExplorePanel::onRun);
-    contextLoadConfigAction_ = contextMenu_->addAction(tr("Load Config"), this, &ExplorePanel::onLoadConfig);
+    contextLoadConfigAction_ =
+        contextMenu_->addAction(tr("Load Config"), this, &ExplorePanel::onLoadConfig);
     contextMenu_->addSeparator();
-    contextMountAAction_ = contextMenu_->addAction(tr("Mount to Drive A"), this, &ExplorePanel::onMountToDriveA);
-    contextMountBAction_ = contextMenu_->addAction(tr("Mount to Drive B"), this, &ExplorePanel::onMountToDriveB);
+    contextMountAAction_ =
+        contextMenu_->addAction(tr("Mount to Drive A"), this, &ExplorePanel::onMountToDriveA);
+    contextMountBAction_ =
+        contextMenu_->addAction(tr("Mount to Drive B"), this, &ExplorePanel::onMountToDriveB);
     contextMenu_->addSeparator();
-    contextDownloadAction_ = contextMenu_->addAction(tr("Download"), this, &ExplorePanel::onDownload);
+    contextDownloadAction_ =
+        contextMenu_->addAction(tr("Download"), this, &ExplorePanel::onDownload);
     contextMenu_->addSeparator();
-    contextToggleFavoriteAction_ = contextMenu_->addAction(tr("Toggle Favorite"), this, &ExplorePanel::onToggleFavorite);
+    contextToggleFavoriteAction_ =
+        contextMenu_->addAction(tr("Toggle Favorite"), this, &ExplorePanel::onToggleFavorite);
     contextMenu_->addSeparator();
     contextMenu_->addAction(tr("Refresh"), this, &ExplorePanel::onRefresh);
 }
@@ -202,24 +200,24 @@ void ExplorePanel::setupConnections()
 {
     // Subscribe to device connection state changes
     if (deviceConnection_) {
-        connect(deviceConnection_, &DeviceConnection::stateChanged,
-                this, &ExplorePanel::onConnectionStateChanged);
+        connect(deviceConnection_, &DeviceConnection::stateChanged, this,
+                &ExplorePanel::onConnectionStateChanged);
     }
 
     // Connect to file preview service for file content
     if (previewService_) {
-        connect(previewService_, &FilePreviewService::previewReady,
-                this, &ExplorePanel::onPreviewReady);
-        connect(previewService_, &FilePreviewService::previewFailed,
-                this, &ExplorePanel::onPreviewFailed);
+        connect(previewService_, &FilePreviewService::previewReady, this,
+                &ExplorePanel::onPreviewReady);
+        connect(previewService_, &FilePreviewService::previewFailed, this,
+                &ExplorePanel::onPreviewFailed);
     }
 
     // Connect to config file loader
     if (configFileLoader_) {
-        connect(configFileLoader_, &ConfigFileLoader::loadFinished,
-                this, &ExplorePanel::onConfigLoadFinished);
-        connect(configFileLoader_, &ConfigFileLoader::loadFailed,
-                this, &ExplorePanel::onConfigLoadFailed);
+        connect(configFileLoader_, &ConfigFileLoader::loadFinished, this,
+                &ExplorePanel::onConfigLoadFinished);
+        connect(configFileLoader_, &ConfigFileLoader::loadFailed, this,
+                &ExplorePanel::onConfigLoadFailed);
     }
 
     // Connect drive status eject buttons
@@ -242,8 +240,8 @@ void ExplorePanel::setupConnections()
 
     // Connect to favorites manager
     if (favoritesManager_) {
-        connect(favoritesManager_, &FavoritesManager::favoritesChanged,
-                this, &ExplorePanel::onFavoritesChanged);
+        connect(favoritesManager_, &FavoritesManager::favoritesChanged, this,
+                &ExplorePanel::onFavoritesChanged);
         // Initialize the favorites menu
         onFavoritesChanged();
     }
@@ -273,7 +271,8 @@ void ExplorePanel::setCurrentDirectory(const QString &path)
     if (toggleFavoriteAction_ && favoritesManager_) {
         bool isFavorite = favoritesManager_->isFavorite(path);
         toggleFavoriteAction_->setChecked(isFavorite);
-        toggleFavoriteAction_->setText(isFavorite ? QString::fromUtf8("⭐") : QString::fromUtf8("☆"));
+        toggleFavoriteAction_->setText(isFavorite ? QString::fromUtf8("⭐")
+                                                  : QString::fromUtf8("☆"));
     }
 }
 
@@ -449,10 +448,10 @@ void ExplorePanel::onSelectionChanged()
     }
 
     bool canPlay = hasSelection && (fileType == RemoteFileModel::FileType::SidMusic ||
-                                     fileType == RemoteFileModel::FileType::ModMusic);
+                                    fileType == RemoteFileModel::FileType::ModMusic);
     bool canRun = hasSelection && (fileType == RemoteFileModel::FileType::Program ||
-                                    fileType == RemoteFileModel::FileType::Cartridge ||
-                                    fileType == RemoteFileModel::FileType::DiskImage);
+                                   fileType == RemoteFileModel::FileType::Cartridge ||
+                                   fileType == RemoteFileModel::FileType::DiskImage);
     bool canMount = hasSelection && fileType == RemoteFileModel::FileType::DiskImage;
 
     if (playAction_) {
@@ -470,7 +469,8 @@ void ExplorePanel::onSelectionChanged()
         QString pathToCheck = hasSelection ? selected : currentDirectory_;
         bool isFavorite = favoritesManager_->isFavorite(pathToCheck);
         toggleFavoriteAction_->setChecked(isFavorite);
-        toggleFavoriteAction_->setText(isFavorite ? QString::fromUtf8("⭐") : QString::fromUtf8("☆"));
+        toggleFavoriteAction_->setText(isFavorite ? QString::fromUtf8("⭐")
+                                                  : QString::fromUtf8("☆"));
     }
 
     // Update file details panel
@@ -573,7 +573,8 @@ void ExplorePanel::onContextMenu(const QPoint &pos)
         if (contextToggleFavoriteAction_ && favoritesManager_) {
             QString path = remoteFileModel_->filePath(index);
             bool isFav = favoritesManager_->isFavorite(path);
-            contextToggleFavoriteAction_->setText(isFav ? tr("Remove from Favorites") : tr("Add to Favorites"));
+            contextToggleFavoriteAction_->setText(isFav ? tr("Remove from Favorites")
+                                                        : tr("Add to Favorites"));
         }
 
         contextMenu_->exec(treeView_->viewport()->mapToGlobal(pos));
@@ -839,8 +840,10 @@ void ExplorePanel::onConfigLoadFinished(const QString &path)
 
 void ExplorePanel::onConfigLoadFailed(const QString &path, const QString &error)
 {
-    emit statusMessage(tr("Failed to load %1: %2").arg(QFileInfo(path).fileName()).arg(error), 5000);
-    QMessageBox::warning(this, tr("Configuration Error"),
+    emit statusMessage(tr("Failed to load %1: %2").arg(QFileInfo(path).fileName()).arg(error),
+                       5000);
+    QMessageBox::warning(
+        this, tr("Configuration Error"),
         tr("Failed to load configuration file:\n%1\n\nError: %2").arg(path).arg(error));
 }
 
@@ -869,7 +872,8 @@ void ExplorePanel::onToggleFavorite()
     // Update the toggle button state and icon
     if (toggleFavoriteAction_) {
         toggleFavoriteAction_->setChecked(isNowFavorite);
-        toggleFavoriteAction_->setText(isNowFavorite ? QString::fromUtf8("⭐") : QString::fromUtf8("☆"));
+        toggleFavoriteAction_->setText(isNowFavorite ? QString::fromUtf8("⭐")
+                                                     : QString::fromUtf8("☆"));
     }
 }
 

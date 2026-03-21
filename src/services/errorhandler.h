@@ -11,6 +11,7 @@
 
 #include <QObject>
 #include <QString>
+
 #include <functional>
 
 class QWidget;
@@ -29,9 +30,9 @@ enum class ErrorCategory {
  * @brief Severity levels determining how errors are displayed.
  */
 enum class ErrorSeverity {
-    Info,      ///< Informational - status bar only, short timeout
-    Warning,   ///< Warning - status bar, longer timeout
-    Critical   ///< Critical - status bar + dialog box
+    Info,     ///< Informational - status bar only, short timeout
+    Warning,  ///< Warning - status bar, longer timeout
+    Critical  ///< Critical - status bar + dialog box
 };
 
 /**
@@ -91,9 +92,7 @@ public:
      * @param title Short error title/summary.
      * @param details Detailed error message.
      */
-    void handleError(ErrorCategory category,
-                     ErrorSeverity severity,
-                     const QString &title,
+    void handleError(ErrorCategory category, ErrorSeverity severity, const QString &title,
                      const QString &details = QString());
 
     /**
@@ -103,9 +102,7 @@ public:
      * @param details Detailed error message.
      * @param retryCallback Function to call if user chooses retry.
      */
-    void handleErrorWithRetry(ErrorCategory category,
-                              const QString &title,
-                              const QString &details,
+    void handleErrorWithRetry(ErrorCategory category, const QString &title, const QString &details,
                               const std::function<void()> &retryCallback);
     /// @}
 
@@ -151,9 +148,7 @@ signals:
      * @param title The error title.
      * @param details The error details.
      */
-    void errorLogged(ErrorCategory category,
-                     ErrorSeverity severity,
-                     const QString &title,
+    void errorLogged(ErrorCategory category, ErrorSeverity severity, const QString &title,
                      const QString &details);
 
 private:
@@ -171,8 +166,7 @@ private:
      * @param retryCallback Function to call on retry.
      * @return True if user chose retry.
      */
-    bool showRetryDialog(const QString &title,
-                         const QString &message,
+    bool showRetryDialog(const QString &title, const QString &message,
                          const std::function<void()> &retryCallback);
 
     /**
@@ -182,9 +176,7 @@ private:
      * @param title The error title.
      * @param details The error details.
      */
-    void logError(ErrorCategory category,
-                  ErrorSeverity severity,
-                  const QString &title,
+    void logError(ErrorCategory category, ErrorSeverity severity, const QString &title,
                   const QString &details);
 
     /**
@@ -211,4 +203,4 @@ private:
     QWidget *parentWidget_ = nullptr;
 };
 
-#endif // ERRORHANDLER_H
+#endif  // ERRORHANDLER_H

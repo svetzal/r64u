@@ -11,10 +11,10 @@
  * - Guard conditions on connectToDevice() and disconnectFromDevice()
  */
 
-#include <QtTest>
-#include <QSignalSpy>
-
 #include "services/deviceconnection.h"
+
+#include <QSignalSpy>
+#include <QtTest>
 
 class TestDeviceConnection : public QObject
 {

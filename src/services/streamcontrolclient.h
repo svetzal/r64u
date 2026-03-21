@@ -9,9 +9,9 @@
 #ifndef STREAMCONTROLCLIENT_H
 #define STREAMCONTROLCLIENT_H
 
+#include <QHostAddress>
 #include <QObject>
 #include <QTcpSocket>
-#include <QHostAddress>
 
 /**
  * @brief TCP client for controlling C64 Ultimate video/audio streams.
@@ -86,8 +86,7 @@ public:
      * @param targetPort UDP port to receive the video stream (default: 21000).
      * @param durationTicks Stream duration in 5ms ticks (0 = infinite).
      */
-    void startVideoStream(const QString &targetHost,
-                          quint16 targetPort = DefaultVideoPort,
+    void startVideoStream(const QString &targetHost, quint16 targetPort = DefaultVideoPort,
                           quint16 durationTicks = 0);
 
     /**
@@ -96,8 +95,7 @@ public:
      * @param targetPort UDP port to receive the audio stream (default: 21001).
      * @param durationTicks Stream duration in 5ms ticks (0 = infinite).
      */
-    void startAudioStream(const QString &targetHost,
-                          quint16 targetPort = DefaultAudioPort,
+    void startAudioStream(const QString &targetHost, quint16 targetPort = DefaultAudioPort,
                           quint16 durationTicks = 0);
 
     /**
@@ -116,8 +114,7 @@ public:
      * @param videoPort UDP port for video (default: 21000).
      * @param audioPort UDP port for audio (default: 21001).
      */
-    void startAllStreams(const QString &targetHost,
-                         quint16 videoPort = DefaultVideoPort,
+    void startAllStreams(const QString &targetHost, quint16 videoPort = DefaultVideoPort,
                          quint16 audioPort = DefaultAudioPort);
 
     /**
@@ -166,7 +163,8 @@ private:
     };
 
     /// Pending command structure
-    struct PendingCommand {
+    struct PendingCommand
+    {
         CommandType type;
         QString description;
         QByteArray data;
@@ -174,10 +172,8 @@ private:
 
     void sendCommand(const PendingCommand &command);
     void connectAndSend();
-    [[nodiscard]] QByteArray buildStartCommand(CommandType type,
-                                                const QString &targetHost,
-                                                quint16 targetPort,
-                                                quint16 durationTicks) const;
+    [[nodiscard]] QByteArray buildStartCommand(CommandType type, const QString &targetHost,
+                                               quint16 targetPort, quint16 durationTicks) const;
     [[nodiscard]] QByteArray buildStopCommand(CommandType type) const;
     [[nodiscard]] QString commandTypeToString(CommandType type) const;
 
@@ -192,4 +188,4 @@ private:
     bool connecting_ = false;
 };
 
-#endif // STREAMCONTROLCLIENT_H
+#endif  // STREAMCONTROLCLIENT_H

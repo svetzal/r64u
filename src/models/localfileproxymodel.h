@@ -1,8 +1,8 @@
 #ifndef LOCALFILEPROXYMODEL_H
 #define LOCALFILEPROXYMODEL_H
 
-#include <QSortFilterProxyModel>
 #include <QFileSystemModel>
+#include <QSortFilterProxyModel>
 
 /**
  * Proxy model that customizes QFileSystemModel display:
@@ -32,7 +32,8 @@ public:
     explicit LocalFileProxyModel(QObject *parent = nullptr);
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+    QVariant headerData(int section, Qt::Orientation orientation,
+                        int role = Qt::DisplayRole) const override;
 
 protected:
     bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
@@ -43,4 +44,4 @@ private:
     static QString fileTypeString(FileType type);
 };
 
-#endif // LOCALFILEPROXYMODEL_H
+#endif  // LOCALFILEPROXYMODEL_H

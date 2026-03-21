@@ -1,12 +1,13 @@
 #include "transferqueuewidget.h"
+
 #include "../models/transferqueue.h"
 
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QStyledItemDelegate>
-#include <QPainter>
 #include <QApplication>
+#include <QHBoxLayout>
+#include <QPainter>
 #include <QStyleOptionProgressBar>
+#include <QStyledItemDelegate>
+#include <QVBoxLayout>
 
 class TransferItemDelegate : public QStyledItemDelegate
 {
@@ -93,23 +94,20 @@ public:
             progressBarOption.text = QString("%1%").arg(progress);
             progressBarOption.textVisible = true;
 
-            QApplication::style()->drawControl(QStyle::CE_ProgressBar,
-                                                &progressBarOption, painter);
+            QApplication::style()->drawControl(QStyle::CE_ProgressBar, &progressBarOption, painter);
         }
 
         painter->restore();
     }
 
-    QSize sizeHint(const QStyleOptionViewItem &option,
-                   const QModelIndex &index) const override
+    QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override
     {
         Q_UNUSED(index)
         return QSize(option.rect.width(), 50);
     }
 };
 
-TransferQueueWidget::TransferQueueWidget(QWidget *parent)
-    : QWidget(parent)
+TransferQueueWidget::TransferQueueWidget(QWidget *parent) : QWidget(parent)
 {
     setupUi();
 }
@@ -124,10 +122,9 @@ void TransferQueueWidget::setTransferQueue(TransferQueue *queue)
 
     if (queue_) {
         listView_->setModel(queue_);
-        connect(queue_, &TransferQueue::queueChanged,
-                this, &TransferQueueWidget::onQueueChanged);
-        connect(queue_, &TransferQueue::dataChanged,
-                this, [this]() { listView_->viewport()->update(); });
+        connect(queue_, &TransferQueue::queueChanged, this, &TransferQueueWidget::onQueueChanged);
+        connect(queue_, &TransferQueue::dataChanged, this,
+                [this]() { listView_->viewport()->update(); });
     }
 
     onQueueChanged();
@@ -150,14 +147,12 @@ void TransferQueueWidget::setupUi()
 
     clearButton_ = new QPushButton(tr("Clear Done"));
     clearButton_->setEnabled(false);
-    connect(clearButton_, &QPushButton::clicked,
-            this, &TransferQueueWidget::onClearCompleted);
+    connect(clearButton_, &QPushButton::clicked, this, &TransferQueueWidget::onClearCompleted);
     headerLayout->addWidget(clearButton_);
 
     cancelButton_ = new QPushButton(tr("Cancel All"));
     cancelButton_->setEnabled(false);
-    connect(cancelButton_, &QPushButton::clicked,
-            this, &TransferQueueWidget::onCancelAll);
+    connect(cancelButton_, &QPushButton::clicked, this, &TransferQueueWidget::onCancelAll);
     headerLayout->addWidget(cancelButton_);
 
     layout->addLayout(headerLayout);

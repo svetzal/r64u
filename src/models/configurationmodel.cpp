@@ -1,9 +1,6 @@
 #include "configurationmodel.h"
 
-ConfigurationModel::ConfigurationModel(QObject *parent)
-    : QObject(parent)
-{
-}
+ConfigurationModel::ConfigurationModel(QObject *parent) : QObject(parent) {}
 
 void ConfigurationModel::setCategories(const QStringList &categories)
 {
@@ -40,9 +37,8 @@ void ConfigurationModel::setCategoryItems(const QString &category,
     setCategoryItemsWithInfo(category, itemsWithInfo);
 }
 
-void ConfigurationModel::setCategoryItemsWithInfo(
-    const QString &category,
-    const QHash<QString, ConfigItemInfo> &items)
+void ConfigurationModel::setCategoryItemsWithInfo(const QString &category,
+                                                  const QHash<QString, ConfigItemInfo> &items)
 {
     // Count dirty items being removed
     if (items_.contains(category)) {
@@ -104,8 +100,7 @@ QVariant ConfigurationModel::value(const QString &category, const QString &item)
     return items_[category][item].value;
 }
 
-ConfigItemInfo ConfigurationModel::itemInfo(const QString &category,
-                                            const QString &item) const
+ConfigItemInfo ConfigurationModel::itemInfo(const QString &category, const QString &item) const
 {
     if (!items_.contains(category)) {
         return {};
@@ -153,8 +148,7 @@ bool ConfigurationModel::setValue(const QString &category, const QString &item,
     return true;
 }
 
-bool ConfigurationModel::isItemDirty(const QString &category,
-                                     const QString &item) const
+bool ConfigurationModel::isItemDirty(const QString &category, const QString &item) const
 {
     if (!items_.contains(category)) {
         return false;
@@ -173,8 +167,8 @@ QHash<QString, QVariant> ConfigurationModel::dirtyItems() const
         const QString &category = catIt.key();
         const QHash<QString, ConfigItemInfo> &categoryItems = catIt.value();
 
-        for (auto itemIt = categoryItems.constBegin();
-             itemIt != categoryItems.constEnd(); ++itemIt) {
+        for (auto itemIt = categoryItems.constBegin(); itemIt != categoryItems.constEnd();
+             ++itemIt) {
             if (itemIt.value().isDirty) {
                 QString path = category + "/" + itemIt.key();
                 result[path] = itemIt.value().value;
@@ -192,8 +186,7 @@ void ConfigurationModel::clearDirtyFlags()
     }
 
     for (auto catIt = items_.begin(); catIt != items_.end(); ++catIt) {
-        for (auto itemIt = catIt.value().begin();
-             itemIt != catIt.value().end(); ++itemIt) {
+        for (auto itemIt = catIt.value().begin(); itemIt != catIt.value().end(); ++itemIt) {
             itemIt.value().isDirty = false;
         }
     }
@@ -202,8 +195,7 @@ void ConfigurationModel::clearDirtyFlags()
     emit dirtyStateChanged(false);
 }
 
-void ConfigurationModel::clearItemDirtyFlag(const QString &category,
-                                            const QString &item)
+void ConfigurationModel::clearItemDirtyFlag(const QString &category, const QString &item)
 {
     if (!items_.contains(category)) {
         return;

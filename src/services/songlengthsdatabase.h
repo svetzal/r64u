@@ -9,11 +9,11 @@
 #ifndef SONGLENGTHSDATABASE_H
 #define SONGLENGTHSDATABASE_H
 
-#include <QObject>
-#include <QString>
 #include <QHash>
 #include <QList>
 #include <QNetworkAccessManager>
+#include <QObject>
+#include <QString>
 
 /**
  * @brief Manages the HVSC Songlengths database for SID duration lookup.
@@ -31,7 +31,7 @@ class SonglengthsDatabase : public QObject
 
 public:
     /// URL to download the Songlengths.md5 database
-    static constexpr const char* DatabaseUrl =
+    static constexpr const char *DatabaseUrl =
         "https://www.hvsc.c64.org/download/C64Music/DOCUMENTS/Songlengths.md5";
 
     /// Default song duration in seconds when not in database
@@ -40,11 +40,12 @@ public:
     /**
      * @brief Song duration information for a single SID file.
      */
-    struct SongLengths {
-        bool found = false;              ///< True if the SID was found in database
-        QString hvscPath;                ///< HVSC path (e.g., "/MUSICIANS/T/Tel_Jeroen/Cybernoid_II.sid")
-        QList<int> durations;            ///< Duration in seconds for each subsong
-        QList<QString> formattedTimes;   ///< Formatted times (e.g., "3:57") for each subsong
+    struct SongLengths
+    {
+        bool found = false;    ///< True if the SID was found in database
+        QString hvscPath;      ///< HVSC path (e.g., "/MUSICIANS/T/Tel_Jeroen/Cybernoid_II.sid")
+        QList<int> durations;  ///< Duration in seconds for each subsong
+        QList<QString> formattedTimes;  ///< Formatted times (e.g., "3:57") for each subsong
     };
 
     explicit SonglengthsDatabase(QObject *parent = nullptr);
@@ -170,4 +171,4 @@ private:
     QHash<QString, QString> md5ToPath_;
 };
 
-#endif // SONGLENGTHSDATABASE_H
+#endif  // SONGLENGTHSDATABASE_H

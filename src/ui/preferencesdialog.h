@@ -1,16 +1,17 @@
 #ifndef PREFERENCESDIALOG_H
 #define PREFERENCESDIALOG_H
 
-#include <QDialog>
-#include <QLineEdit>
-#include <QCheckBox>
-#include <QComboBox>
-#include <QLabel>
-#include <QPushButton>
-#include <QProgressBar>
+#include "videodisplaywidget.h"
 
 #include "../services/c64urestclient.h"
-#include "videodisplaywidget.h"
+
+#include <QCheckBox>
+#include <QComboBox>
+#include <QDialog>
+#include <QLabel>
+#include <QLineEdit>
+#include <QProgressBar>
+#include <QPushButton>
 
 class SonglengthsDatabase;
 class HVSCMetadataService;
@@ -100,4 +101,4 @@ private:
     QProgressBar *gameBase64ProgressBar_ = nullptr;
 };
 
-#endif // PREFERENCESDIALOG_H
+#endif  // PREFERENCESDIALOG_H

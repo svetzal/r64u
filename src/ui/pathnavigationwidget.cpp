@@ -3,8 +3,7 @@
 #include <QHBoxLayout>
 
 PathNavigationWidget::PathNavigationWidget(const QString &prefix, QWidget *parent)
-    : QWidget(parent)
-    , prefix_(prefix)
+    : QWidget(parent), prefix_(prefix)
 {
     auto *layout = new QHBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);

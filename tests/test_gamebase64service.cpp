@@ -1,7 +1,7 @@
-#include <QtTest>
-#include <QSignalSpy>
-
 #include "services/gamebase64service.h"
+
+#include <QSignalSpy>
+#include <QtTest>
 
 class TestGameBase64Service : public QObject
 {
@@ -86,8 +86,7 @@ private slots:
     {
         QCOMPARE(QString(GameBase64Service::DatabaseUrl),
                  QString("http://www.twinbirds.com/gamebase64browser/GBC_v18.sqlitedb.gz"));
-        QCOMPARE(QString(GameBase64Service::DatabaseFilename),
-                 QString("gamebase64.db"));
+        QCOMPARE(QString(GameBase64Service::DatabaseFilename), QString("gamebase64.db"));
     }
 
     // Lookup tests (without database loaded)

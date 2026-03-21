@@ -1,8 +1,8 @@
-#include <QtTest/QtTest>
-#include <QSignalSpy>
-
 #include "mocks/mockftpclient.h"
 #include "services/filepreviewservice.h"
+
+#include <QSignalSpy>
+#include <QtTest/QtTest>
 
 class TestFilePreviewService : public QObject
 {

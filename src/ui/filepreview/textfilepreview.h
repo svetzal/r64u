@@ -10,9 +10,10 @@
 #define TEXTFILEPREVIEW_H
 
 #include "filepreviewstrategy.h"
+
+#include <QLabel>
 #include <QObject>
 #include <QTextBrowser>
-#include <QLabel>
 #include <QVBoxLayout>
 
 /**
@@ -30,7 +31,7 @@ public:
     ~TextFilePreview() override = default;
 
     [[nodiscard]] bool canHandle(const QString &path) const override;
-    [[nodiscard]] QWidget* createPreviewWidget(QWidget *parent) override;
+    [[nodiscard]] QWidget *createPreviewWidget(QWidget *parent) override;
     void showPreview(const QString &path, const QByteArray &data) override;
     void showLoading(const QString &path) override;
     void showError(const QString &error) override;
@@ -49,4 +50,4 @@ private:
     bool isHtml_ = false;
 };
 
-#endif // TEXTFILEPREVIEW_H
+#endif  // TEXTFILEPREVIEW_H

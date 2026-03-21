@@ -13,15 +13,15 @@
  * get stuck at the same file consistently.
  */
 
-#include <QtTest>
+#include "models/transferqueue.h"
+#include "services/c64uftpclient.h"
+
 #include <QCoreApplication>
+#include <QElapsedTimer>
 #include <QSignalSpy>
 #include <QTemporaryDir>
-#include <QElapsedTimer>
 #include <QTimer>
-
-#include "services/c64uftpclient.h"
-#include "models/transferqueue.h"
+#include <QtTest>
 
 class RealDeviceDownloadTest : public QObject
 {
@@ -47,7 +47,8 @@ private slots:
         }
 
         if (testFolders_.isEmpty()) {
-            QSKIP("No TEST_FOLDERS specified. Set TEST_FOLDERS environment variable with comma-separated folder paths.");
+            QSKIP("No TEST_FOLDERS specified. Set TEST_FOLDERS environment variable with "
+                  "comma-separated folder paths.");
         }
 
         qDebug() << "=== Real Device Download Test ===";
@@ -124,10 +125,9 @@ private slots:
             int queueSize = queue_->rowCount();
 
             if (currentCompleted != lastCompletedCount) {
-                qDebug() << "Progress: completed=" << currentCompleted
-                         << "failed=" << currentFailed
-                         << "queueSize=" << queueSize
-                         << "elapsed=" << timer.elapsed() / 1000 << "s";
+                qDebug() << "Progress: completed=" << currentCompleted << "failed=" << currentFailed
+                         << "queueSize=" << queueSize << "elapsed=" << timer.elapsed() / 1000
+                         << "s";
                 lastCompletedCount = currentCompleted;
             }
         });
@@ -157,16 +157,25 @@ private slots:
 
                 QString statusStr;
                 switch (static_cast<TransferItem::Status>(status)) {
-                case TransferItem::Status::Pending: statusStr = "Pending"; break;
-                case TransferItem::Status::InProgress: statusStr = "InProgress"; break;
-                case TransferItem::Status::Completed: statusStr = "Completed"; break;
-                case TransferItem::Status::Failed: statusStr = "Failed"; break;
-                default: statusStr = "Unknown"; break;
+                case TransferItem::Status::Pending:
+                    statusStr = "Pending";
+                    break;
+                case TransferItem::Status::InProgress:
+                    statusStr = "InProgress";
+                    break;
+                case TransferItem::Status::Completed:
+                    statusStr = "Completed";
+                    break;
+                case TransferItem::Status::Failed:
+                    statusStr = "Failed";
+                    break;
+                default:
+                    statusStr = "Unknown";
+                    break;
                 }
 
-                qCritical() << "  Item" << i << ":" << statusStr
-                           << "remote:" << remotePath
-                           << "local:" << localPath;
+                qCritical() << "  Item" << i << ":" << statusStr << "remote:" << remotePath
+                            << "local:" << localPath;
                 if (!errorMsg.isEmpty()) {
                     qCritical() << "    Error:" << errorMsg;
                 }
@@ -229,14 +238,16 @@ private slots:
                     QModelIndex idx = queue_->index(j);
                     auto status = queue_->data(idx, TransferQueue::StatusRole).toInt();
                     if (status == static_cast<int>(TransferItem::Status::InProgress)) {
-                        auto remotePath = queue_->data(idx, TransferQueue::RemotePathRole).toString();
+                        auto remotePath =
+                            queue_->data(idx, TransferQueue::RemotePathRole).toString();
                         qCritical() << "  STUCK:" << remotePath;
                     }
                 }
             }
 
             QVERIFY2(completed, qPrintable(QString("Iteration %1 should complete").arg(i + 1)));
-            qDebug() << "Iteration" << (i + 1) << "completed in" << timer.elapsed() / 1000 << "seconds";
+            qDebug() << "Iteration" << (i + 1) << "completed in" << timer.elapsed() / 1000
+                     << "seconds";
 
             // Clear queue for next iteration
             queue_->clear();

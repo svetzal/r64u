@@ -1,8 +1,8 @@
-#include <QtTest>
+#include "services/videostreamreceiver.h"
+
 #include <QSignalSpy>
 #include <QUdpSocket>
-
-#include "services/videostreamreceiver.h"
+#include <QtTest>
 
 class TestVideoStreamReceiver : public QObject
 {
@@ -11,7 +11,7 @@ class TestVideoStreamReceiver : public QObject
 private:
     // Helper to create a video packet with specific header values
     QByteArray createVideoPacket(quint16 seqNum, quint16 frameNum, quint16 lineNum,
-                                  bool isLast = false, int linesPerPacket = 4)
+                                 bool isLast = false, int linesPerPacket = 4)
     {
         QByteArray packet(VideoStreamReceiver::PacketSize, '\0');
 
@@ -30,10 +30,10 @@ private:
         packet[5] = static_cast<char>((lineField >> 8) & 0xFF);
         packet[6] = static_cast<char>(VideoStreamReceiver::PixelsPerLine & 0xFF);
         packet[7] = static_cast<char>((VideoStreamReceiver::PixelsPerLine >> 8) & 0xFF);
-        packet[8] = static_cast<char>(linesPerPacket);  // lines per packet
+        packet[8] = static_cast<char>(linesPerPacket);                     // lines per packet
         packet[9] = static_cast<char>(VideoStreamReceiver::BitsPerPixel);  // bits per pixel
-        packet[10] = 0;  // encoding type low
-        packet[11] = 0;  // encoding type high
+        packet[10] = 0;                                                    // encoding type low
+        packet[11] = 0;                                                    // encoding type high
 
         // Fill payload with test pattern
         for (int i = VideoStreamReceiver::HeaderSize; i < VideoStreamReceiver::PacketSize; i++) {
@@ -214,7 +214,8 @@ private slots:
 
         QCOMPARE(frameNum, static_cast<quint16>(1));
         QCOMPARE(frameFormat, VideoStreamReceiver::VideoFormat::PAL);
-        QCOMPARE(frameData.size(), VideoStreamReceiver::BytesPerLine * VideoStreamReceiver::PalHeight);
+        QCOMPARE(frameData.size(),
+                 VideoStreamReceiver::BytesPerLine * VideoStreamReceiver::PalHeight);
 
         receiver.close();
     }
@@ -244,7 +245,8 @@ private slots:
 
         auto args = frameSpy.first();
         QByteArray frameData = args.at(0).toByteArray();
-        QCOMPARE(frameData.size(), VideoStreamReceiver::BytesPerLine * VideoStreamReceiver::NtscHeight);
+        QCOMPARE(frameData.size(),
+                 VideoStreamReceiver::BytesPerLine * VideoStreamReceiver::NtscHeight);
 
         receiver.close();
     }

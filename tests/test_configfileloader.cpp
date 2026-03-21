@@ -1,7 +1,7 @@
-#include <QtTest>
-#include <QJsonDocument>
-
 #include "services/configfileloader.h"
+
+#include <QJsonDocument>
+#include <QtTest>
 
 class TestConfigFileLoader : public QObject
 {
@@ -51,11 +51,10 @@ private slots:
 
     void testParseMultipleSections()
     {
-        QByteArray data =
-            "[Section1]\n"
-            "key1=value1\n"
-            "[Section2]\n"
-            "key2=value2\n";
+        QByteArray data = "[Section1]\n"
+                          "key1=value1\n"
+                          "[Section2]\n"
+                          "key2=value2\n";
         QJsonObject result = ConfigFileLoader::parseConfigFile(data);
 
         QCOMPARE(result.count(), 2);
@@ -96,11 +95,10 @@ private slots:
 
     void testParseMultipleKeyValues()
     {
-        QByteArray data =
-            "[Settings]\n"
-            "Volume=80\n"
-            "Mute=0\n"
-            "Balance=Center\n";
+        QByteArray data = "[Settings]\n"
+                          "Volume=80\n"
+                          "Mute=0\n"
+                          "Balance=Center\n";
         QJsonObject result = ConfigFileLoader::parseConfigFile(data);
 
         QJsonObject settings = result["Settings"].toObject();
@@ -126,8 +124,7 @@ private slots:
         QByteArray data = "[Section]\nkey=value=with=equals\n";
         QJsonObject result = ConfigFileLoader::parseConfigFile(data);
 
-        QCOMPARE(result["Section"].toObject()["key"].toString(),
-                 QString("value=with=equals"));
+        QCOMPARE(result["Section"].toObject()["key"].toString(), QString("value=with=equals"));
     }
 
     void testParseEmptyValue()
@@ -146,7 +143,7 @@ private slots:
         QJsonObject result = ConfigFileLoader::parseConfigFile(data);
 
         QJsonValue value = result["Section"].toObject()["count"];
-        QVERIFY(value.isDouble()); // JSON stores ints as doubles
+        QVERIFY(value.isDouble());  // JSON stores ints as doubles
         QCOMPARE(value.toInt(), 42);
     }
 
@@ -185,8 +182,7 @@ private slots:
         QByteArray data = "[Section]\nVolume= 0 dB\n";
         QJsonObject result = ConfigFileLoader::parseConfigFile(data);
 
-        QCOMPARE(result["Section"].toObject()["Volume"].toString(),
-                 QString(" 0 dB"));
+        QCOMPARE(result["Section"].toObject()["Volume"].toString(), QString(" 0 dB"));
     }
 
     void testParseTrimsTrailingSpace()
@@ -222,10 +218,9 @@ private slots:
 
     void testParseHashComment()
     {
-        QByteArray data =
-            "[Section]\n"
-            "# This is a comment\n"
-            "key=value\n";
+        QByteArray data = "[Section]\n"
+                          "# This is a comment\n"
+                          "key=value\n";
         QJsonObject result = ConfigFileLoader::parseConfigFile(data);
 
         QJsonObject section = result["Section"].toObject();
@@ -236,10 +231,9 @@ private slots:
 
     void testParseSemicolonComment()
     {
-        QByteArray data =
-            "[Section]\n"
-            "; This is a comment\n"
-            "key=value\n";
+        QByteArray data = "[Section]\n"
+                          "; This is a comment\n"
+                          "key=value\n";
         QJsonObject result = ConfigFileLoader::parseConfigFile(data);
 
         QJsonObject section = result["Section"].toObject();
@@ -252,40 +246,37 @@ private slots:
         QByteArray data = "[Section]\nkey=value#notcomment\n";
         QJsonObject result = ConfigFileLoader::parseConfigFile(data);
 
-        QCOMPARE(result["Section"].toObject()["key"].toString(),
-                 QString("value#notcomment"));
+        QCOMPARE(result["Section"].toObject()["key"].toString(), QString("value#notcomment"));
     }
 
     // ========== parseConfigFile - real-world examples ==========
 
     void testParseRealAudioMixerConfig()
     {
-        QByteArray data =
-            "[Audio Mixer]\n"
-            "Sid Left=Sid 1\n"
-            "Sid Right=Sid 2\n"
-            "Sid Volume= 0 dB\n"
-            "Drive Volume=-12 dB\n"
-            "Sample Rate=48000\n";
+        QByteArray data = "[Audio Mixer]\n"
+                          "Sid Left=Sid 1\n"
+                          "Sid Right=Sid 2\n"
+                          "Sid Volume= 0 dB\n"
+                          "Drive Volume=-12 dB\n"
+                          "Sample Rate=48000\n";
         QJsonObject result = ConfigFileLoader::parseConfigFile(data);
 
         QJsonObject mixer = result["Audio Mixer"].toObject();
         QCOMPARE(mixer["Sid Left"].toString(), QString("Sid 1"));
         QCOMPARE(mixer["Sid Right"].toString(), QString("Sid 2"));
-        QCOMPARE(mixer["Sid Volume"].toString(), QString(" 0 dB")); // Leading space preserved
+        QCOMPARE(mixer["Sid Volume"].toString(), QString(" 0 dB"));  // Leading space preserved
         QCOMPARE(mixer["Drive Volume"].toString(), QString("-12 dB"));
         QCOMPARE(mixer["Sample Rate"].toInt(), 48000);
     }
 
     void testParseRealNetworkConfig()
     {
-        QByteArray data =
-            "[Network Settings]\n"
-            "Use DHCP=1\n"
-            "IP Address=192.168.1.100\n"
-            "Netmask=255.255.255.0\n"
-            "Gateway=192.168.1.1\n"
-            "Hostname=ultimate64\n";
+        QByteArray data = "[Network Settings]\n"
+                          "Use DHCP=1\n"
+                          "IP Address=192.168.1.100\n"
+                          "Netmask=255.255.255.0\n"
+                          "Gateway=192.168.1.1\n"
+                          "Hostname=ultimate64\n";
         QJsonObject result = ConfigFileLoader::parseConfigFile(data);
 
         QJsonObject network = result["Network Settings"].toObject();
@@ -296,20 +287,19 @@ private slots:
 
     void testParseMultipleSectionsRealWorld()
     {
-        QByteArray data =
-            "# Ultimate64 Configuration\n"
-            "\n"
-            "[Drive A Settings]\n"
-            "Drive Type=1541\n"
-            "Speed=Normal\n"
-            "\n"
-            "[Drive B Settings]\n"
-            "Drive Type=1571\n"
-            "Speed=Fast\n"
-            "\n"
-            "[SID Settings]\n"
-            "Model=8580\n"
-            "Filter Bias=1472\n";
+        QByteArray data = "# Ultimate64 Configuration\n"
+                          "\n"
+                          "[Drive A Settings]\n"
+                          "Drive Type=1541\n"
+                          "Speed=Normal\n"
+                          "\n"
+                          "[Drive B Settings]\n"
+                          "Drive Type=1571\n"
+                          "Speed=Fast\n"
+                          "\n"
+                          "[SID Settings]\n"
+                          "Model=8580\n"
+                          "Filter Bias=1472\n";
         QJsonObject result = ConfigFileLoader::parseConfigFile(data);
 
         QCOMPARE(result.count(), 3);
@@ -357,7 +347,7 @@ private slots:
 
     void testParseLargeIntegerValue()
     {
-        QByteArray data = "[Section]\nbignum=2147483647\n"; // INT_MAX
+        QByteArray data = "[Section]\nbignum=2147483647\n";  // INT_MAX
         QJsonObject result = ConfigFileLoader::parseConfigFile(data);
 
         QCOMPARE(result["Section"].toObject()["bignum"].toInt(), 2147483647);
@@ -378,11 +368,10 @@ private slots:
     {
         // Later sections with same name replace earlier ones
         // (Though this is unusual - testing edge case behavior)
-        QByteArray data =
-            "[Section]\n"
-            "key1=first\n"
-            "[Section]\n"
-            "key2=second\n";
+        QByteArray data = "[Section]\n"
+                          "key1=first\n"
+                          "[Section]\n"
+                          "key2=second\n";
         QJsonObject result = ConfigFileLoader::parseConfigFile(data);
 
         // The second [Section] replaces the first
@@ -396,8 +385,7 @@ private slots:
         QByteArray data = "[Section]\nkey=value\twith\ttabs\n";
         QJsonObject result = ConfigFileLoader::parseConfigFile(data);
 
-        QCOMPARE(result["Section"].toObject()["key"].toString(),
-                 QString("value\twith\ttabs"));
+        QCOMPARE(result["Section"].toObject()["key"].toString(), QString("value\twith\ttabs"));
     }
 
     void testParseUtf8Content()
@@ -405,8 +393,7 @@ private slots:
         QByteArray data = QString::fromUtf8("[Section]\nname=Müller\n").toUtf8();
         QJsonObject result = ConfigFileLoader::parseConfigFile(data);
 
-        QCOMPARE(result["Section"].toObject()["name"].toString(),
-                 QString::fromUtf8("Müller"));
+        QCOMPARE(result["Section"].toObject()["name"].toString(), QString::fromUtf8("Müller"));
     }
 };
 

@@ -9,13 +9,14 @@
 #ifndef AUDIOSTREAMRECEIVER_H
 #define AUDIOSTREAMRECEIVER_H
 
-#include <QObject>
-#include <QUdpSocket>
 #include <QByteArray>
-#include <QQueue>
-#include <QMutex>
 #include <QElapsedTimer>
+#include <QMutex>
+#include <QObject>
+#include <QQueue>
 #include <QTimer>
+#include <QUdpSocket>
+
 #include <functional>
 
 /**
@@ -79,11 +80,7 @@ public:
     /**
      * @brief Audio format enumeration.
      */
-    enum class AudioFormat {
-        Unknown,
-        PAL,
-        NTSC
-    };
+    enum class AudioFormat { Unknown, PAL, NTSC };
 
     /**
      * @brief Constructs an audio stream receiver.
@@ -159,7 +156,8 @@ public:
     /**
      * @brief Callback interface for diagnostics timing data.
      */
-    struct DiagnosticsCallback {
+    struct DiagnosticsCallback
+    {
         std::function<void(qint64 arrivalTimeUs)> onPacketReceived;
         std::function<void()> onBufferUnderrun;
         std::function<void(int gap)> onSampleDiscontinuity;
@@ -206,7 +204,8 @@ private slots:
     void onFlushTimer();
 
 private:
-    struct AudioPacket {
+    struct AudioPacket
+    {
         quint16 sequenceNumber;
         QByteArray samples;
     };
@@ -244,4 +243,4 @@ private:
     QElapsedTimer diagnosticsTimer_;
 };
 
-#endif // AUDIOSTREAMRECEIVER_H
+#endif  // AUDIOSTREAMRECEIVER_H

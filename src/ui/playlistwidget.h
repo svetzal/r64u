@@ -6,14 +6,14 @@
 #ifndef PLAYLISTWIDGET_H
 #define PLAYLISTWIDGET_H
 
-#include <QWidget>
-#include <QTreeWidget>
-#include <QToolBar>
-#include <QSpinBox>
-#include <QMenu>
 #include <QLabel>
+#include <QMenu>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QTimer>
+#include <QToolBar>
+#include <QTreeWidget>
+#include <QWidget>
 
 class PlaylistManager;
 
@@ -116,4 +116,4 @@ private:
     QAction *moveDownAction_ = nullptr;
 };
 
-#endif // PLAYLISTWIDGET_H
+#endif  // PLAYLISTWIDGET_H

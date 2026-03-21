@@ -4,11 +4,12 @@
 // This mock replaces C64URestClient for testing.
 // It provides the same interface but allows controlling responses.
 
-#include <QObject>
 #include <QJsonObject>
+#include <QObject>
 
 // Forward declare the structs that the real header defines
-struct DeviceInfo {
+struct DeviceInfo
+{
     QString product;
     QString firmwareVersion;
     QString fpgaVersion;
@@ -18,7 +19,8 @@ struct DeviceInfo {
     QString apiVersion;
 };
 
-struct ConfigItemMetadata {
+struct ConfigItemMetadata
+{
     QVariant current;
     QVariant defaultValue;
     QStringList values;
@@ -29,7 +31,8 @@ struct ConfigItemMetadata {
     bool hasRange = false;
 };
 
-struct DriveInfo {
+struct DriveInfo
+{
     QString name;
     bool enabled = false;
     int busId = 0;
@@ -90,16 +93,14 @@ public:
 
     // File operations
     void getFileInfo(const QString &path);
-    void createD64(const QString &path, const QString &diskName = QString(),
-                   int tracks = 35);
+    void createD64(const QString &path, const QString &diskName = QString(), int tracks = 35);
     void createD81(const QString &path, const QString &diskName = QString());
 
     // Configuration
     void getConfigCategories();
     void getConfigCategoryItems(const QString &category);
     void getConfigItem(const QString &category, const QString &item);
-    void setConfigItem(const QString &category, const QString &item,
-                       const QVariant &value);
+    void setConfigItem(const QString &category, const QString &item, const QVariant &value);
     void updateConfigsBatch(const QJsonObject &configs);
     void saveConfigToFlash();
     void loadConfigFromFlash();
@@ -120,8 +121,7 @@ signals:
     void configCategoriesReceived(const QStringList &categories);
     void configCategoryItemsReceived(const QString &category,
                                      const QHash<QString, ConfigItemMetadata> &items);
-    void configItemReceived(const QString &category, const QString &item,
-                            const QVariant &value);
+    void configItemReceived(const QString &category, const QString &item, const QVariant &value);
     void configItemSet(const QString &category, const QString &item);
     void configsUpdated();
     void configSavedToFlash();
@@ -137,4 +137,4 @@ private:
     QJsonObject lastConfigsBatch_;
 };
 
-#endif // MOCKRESTCLIENT_H
+#endif  // MOCKRESTCLIENT_H

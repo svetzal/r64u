@@ -89,25 +89,25 @@ public:
      * @brief Returns the video receiver for UI connection.
      * @return Pointer to the video receiver.
      */
-    [[nodiscard]] VideoStreamReceiver* videoReceiver() const { return videoReceiver_; }
+    [[nodiscard]] VideoStreamReceiver *videoReceiver() const { return videoReceiver_; }
 
     /**
      * @brief Returns the keyboard input service for UI connection.
      * @return Pointer to the keyboard input service.
      */
-    [[nodiscard]] KeyboardInputService* keyboardInput() const { return keyboardInput_; }
+    [[nodiscard]] KeyboardInputService *keyboardInput() const { return keyboardInput_; }
 
     /**
      * @brief Returns the audio receiver for recording support.
      * @return Pointer to the audio receiver.
      */
-    [[nodiscard]] AudioStreamReceiver* audioReceiver() const { return audioReceiver_; }
+    [[nodiscard]] AudioStreamReceiver *audioReceiver() const { return audioReceiver_; }
 
     /**
      * @brief Returns the streaming diagnostics service.
      * @return Pointer to the diagnostics service.
      */
-    [[nodiscard]] StreamingDiagnostics* diagnostics() const { return diagnostics_; }
+    [[nodiscard]] StreamingDiagnostics *diagnostics() const { return diagnostics_; }
 
 signals:
     /**
@@ -164,4 +164,4 @@ private:
     QString currentTargetHost_;
 };
 
-#endif // STREAMINGMANAGER_H
+#endif  // STREAMINGMANAGER_H

@@ -1,14 +1,14 @@
 #ifndef FILEDETAILSPANEL_H
 #define FILEDETAILSPANEL_H
 
-#include <QWidget>
-#include <QStackedWidget>
-#include <QTextBrowser>
-#include <QLabel>
-#include <QStyleHints>
-
 #include "services/diskimagereader.h"
 #include "services/sidfileparser.h"
+
+#include <QLabel>
+#include <QStackedWidget>
+#include <QStyleHints>
+#include <QTextBrowser>
+#include <QWidget>
 
 class SonglengthsDatabase;
 class HVSCMetadataService;
@@ -92,4 +92,4 @@ private:
     GameBase64Service *gameBase64Service_ = nullptr;
 };
 
-#endif // FILEDETAILSPANEL_H
+#endif  // FILEDETAILSPANEL_H

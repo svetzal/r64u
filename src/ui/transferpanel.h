@@ -1,8 +1,8 @@
 #ifndef TRANSFERPANEL_H
 #define TRANSFERPANEL_H
 
-#include <QWidget>
 #include <QSplitter>
+#include <QWidget>
 
 class DeviceConnection;
 class RemoteFileModel;
@@ -17,10 +17,8 @@ class TransferPanel : public QWidget
     Q_OBJECT
 
 public:
-    explicit TransferPanel(DeviceConnection *connection,
-                           RemoteFileModel *model,
-                           TransferService *transferService,
-                           QWidget *parent = nullptr);
+    explicit TransferPanel(DeviceConnection *connection, RemoteFileModel *model,
+                           TransferService *transferService, QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
     void setCurrentLocalDir(const QString &path);
@@ -63,4 +61,4 @@ private:
     TransferProgressContainer *progressContainer_ = nullptr;
 };
 
-#endif // TRANSFERPANEL_H
+#endif  // TRANSFERPANEL_H

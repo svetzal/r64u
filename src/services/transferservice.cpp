@@ -1,50 +1,39 @@
 #include "transferservice.h"
+
 #include "deviceconnection.h"
 
 #include <QFileInfo>
 
-TransferService::TransferService(DeviceConnection *connection,
-                                 TransferQueue *queue,
+TransferService::TransferService(DeviceConnection *connection, TransferQueue *queue,
                                  QObject *parent)
-    : QObject(parent)
-    , connection_(connection)
-    , queue_(queue)
+    : QObject(parent), connection_(connection), queue_(queue)
 {
     // Forward signals from TransferQueue
-    connect(queue_, &TransferQueue::operationStarted,
-            this, &TransferService::operationStarted);
-    connect(queue_, &TransferQueue::operationCompleted,
-            this, &TransferService::operationCompleted);
-    connect(queue_, &TransferQueue::operationFailed,
-            this, &TransferService::operationFailed);
-    connect(queue_, &TransferQueue::allOperationsCompleted,
-            this, &TransferService::allOperationsCompleted);
-    connect(queue_, &TransferQueue::operationsCancelled,
-            this, &TransferService::operationsCancelled);
-    connect(queue_, &TransferQueue::queueChanged,
-            this, &TransferService::queueChanged);
-    connect(queue_, &TransferQueue::deleteProgressUpdate,
-            this, &TransferService::deleteProgressUpdate);
-    connect(queue_, &TransferQueue::overwriteConfirmationNeeded,
-            this, &TransferService::overwriteConfirmationNeeded);
-    connect(queue_, &TransferQueue::folderExistsConfirmationNeeded,
-            this, &TransferService::folderExistsConfirmationNeeded);
-    connect(queue_, &TransferQueue::batchStarted,
-            this, &TransferService::batchStarted);
-    connect(queue_, &TransferQueue::batchProgressUpdate,
-            this, &TransferService::batchProgressUpdate);
-    connect(queue_, &TransferQueue::batchCompleted,
-            this, &TransferService::batchCompleted);
-    connect(queue_, &TransferQueue::statusMessage,
-            this, &TransferService::statusMessage);
+    connect(queue_, &TransferQueue::operationStarted, this, &TransferService::operationStarted);
+    connect(queue_, &TransferQueue::operationCompleted, this, &TransferService::operationCompleted);
+    connect(queue_, &TransferQueue::operationFailed, this, &TransferService::operationFailed);
+    connect(queue_, &TransferQueue::allOperationsCompleted, this,
+            &TransferService::allOperationsCompleted);
+    connect(queue_, &TransferQueue::operationsCancelled, this,
+            &TransferService::operationsCancelled);
+    connect(queue_, &TransferQueue::queueChanged, this, &TransferService::queueChanged);
+    connect(queue_, &TransferQueue::deleteProgressUpdate, this,
+            &TransferService::deleteProgressUpdate);
+    connect(queue_, &TransferQueue::overwriteConfirmationNeeded, this,
+            &TransferService::overwriteConfirmationNeeded);
+    connect(queue_, &TransferQueue::folderExistsConfirmationNeeded, this,
+            &TransferService::folderExistsConfirmationNeeded);
+    connect(queue_, &TransferQueue::batchStarted, this, &TransferService::batchStarted);
+    connect(queue_, &TransferQueue::batchProgressUpdate, this,
+            &TransferService::batchProgressUpdate);
+    connect(queue_, &TransferQueue::batchCompleted, this, &TransferService::batchCompleted);
+    connect(queue_, &TransferQueue::statusMessage, this, &TransferService::statusMessage);
 
     // Forward scanning progress signals
-    connect(queue_, &TransferQueue::scanningStarted,
-            this, &TransferService::scanningStarted);
-    connect(queue_, &TransferQueue::scanningProgress,
-            this, &TransferService::scanningProgress);
-    connect(queue_, &TransferQueue::directoryCreationProgress,
-            this, &TransferService::directoryCreationProgress);
+    connect(queue_, &TransferQueue::scanningStarted, this, &TransferService::scanningStarted);
+    connect(queue_, &TransferQueue::scanningProgress, this, &TransferService::scanningProgress);
+    connect(queue_, &TransferQueue::directoryCreationProgress, this,
+            &TransferService::directoryCreationProgress);
 }
 
 TransferService::~TransferService() = default;
@@ -75,7 +64,8 @@ bool TransferService::uploadDirectory(const QString &localDir, const QString &re
 
     QFileInfo fileInfo(localDir);
     queue_->enqueueRecursiveUpload(localDir, remoteDir);
-    emit statusMessage(tr("Queued folder upload: %1 -> %2").arg(fileInfo.fileName(), remoteDir), 3000);
+    emit statusMessage(tr("Queued folder upload: %1 -> %2").arg(fileInfo.fileName(), remoteDir),
+                       3000);
     return true;
 }
 

@@ -1,10 +1,10 @@
 #ifndef REMOTEFILEBROWSERWIDGET_H
 #define REMOTEFILEBROWSERWIDGET_H
 
-#include <QWidget>
-#include <QTreeView>
-#include <QToolBar>
 #include <QMenu>
+#include <QToolBar>
+#include <QTreeView>
+#include <QWidget>
 
 class RemoteFileModel;
 class C64UFtpClient;
@@ -15,8 +15,7 @@ class RemoteFileBrowserWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit RemoteFileBrowserWidget(RemoteFileModel *model,
-                                     C64UFtpClient *ftpClient,
+    explicit RemoteFileBrowserWidget(RemoteFileModel *model, C64UFtpClient *ftpClient,
                                      QWidget *parent = nullptr);
 
     void setCurrentDirectory(const QString &path);
@@ -87,4 +86,4 @@ private:
     QAction *setDestAction_ = nullptr;
 };
 
-#endif // REMOTEFILEBROWSERWIDGET_H
+#endif  // REMOTEFILEBROWSERWIDGET_H

@@ -3,8 +3,7 @@
 #include <QHBoxLayout>
 
 BatchProgressWidget::BatchProgressWidget(int batchId, QWidget *parent)
-    : QWidget(parent)
-    , batchId_(batchId)
+    : QWidget(parent), batchId_(batchId)
 {
     setupUi();
 }
@@ -38,9 +37,8 @@ void BatchProgressWidget::setupUi()
     cancelButton_->setToolTip(tr("Cancel this operation"));
     layout->addWidget(cancelButton_);
 
-    connect(cancelButton_, &QPushButton::clicked, this, [this]() {
-        emit cancelRequested(batchId_);
-    });
+    connect(cancelButton_, &QPushButton::clicked, this,
+            [this]() { emit cancelRequested(batchId_); });
 
     updateStateAppearance();
 }
@@ -54,11 +52,10 @@ void BatchProgressWidget::updateProgress(const BatchProgress &progress)
         setState(State::Scanning);
         if (progress.filesDiscovered > 0) {
             statusLabel_->setText(tr("Scanning... (%1 dirs, %2 files)")
-                .arg(progress.directoriesScanned)
-                .arg(progress.filesDiscovered));
+                                      .arg(progress.directoriesScanned)
+                                      .arg(progress.filesDiscovered));
         } else {
-            statusLabel_->setText(tr("Scanning... (%1 dirs)")
-                .arg(progress.directoriesScanned));
+            statusLabel_->setText(tr("Scanning... (%1 dirs)").arg(progress.directoriesScanned));
         }
     } else if (progress.isCreatingDirectories && progress.directoriesToCreate > 0) {
         setState(State::Creating);
@@ -66,8 +63,8 @@ void BatchProgressWidget::updateProgress(const BatchProgress &progress)
         int pct = (progress.directoriesCreated * 100) / progress.directoriesToCreate;
         progressBar_->setValue(pct);
         statusLabel_->setText(tr("Creating directories (%1 of %2)")
-            .arg(progress.directoriesCreated)
-            .arg(progress.directoriesToCreate));
+                                  .arg(progress.directoriesCreated)
+                                  .arg(progress.directoriesToCreate));
     } else if (progress.isProcessingDelete) {
         setState(State::Active);
         progressBar_->setMaximum(100);
@@ -77,9 +74,7 @@ void BatchProgressWidget::updateProgress(const BatchProgress &progress)
         progressBar_->setValue(pct);
         // Cap at total to avoid showing "17 of 16" when complete
         int displayItem = qMin(completed + 1, total);
-        statusLabel_->setText(tr("Deleting %1 of %2 items...")
-            .arg(displayItem)
-            .arg(total));
+        statusLabel_->setText(tr("Deleting %1 of %2 items...").arg(displayItem).arg(total));
     } else if (progress.totalItems > 0) {
         setState(State::Active);
         progressBar_->setMaximum(100);
@@ -104,15 +99,15 @@ void BatchProgressWidget::updateProgress(const BatchProgress &progress)
         int displayItem = qMin(completed + 1, progress.totalItems);
         if (!progress.folderName.isEmpty()) {
             statusLabel_->setText(tr("%1 - %2 %3 of %4 items...")
-                .arg(progress.folderName)
-                .arg(actionVerb)
-                .arg(displayItem)
-                .arg(progress.totalItems));
+                                      .arg(progress.folderName)
+                                      .arg(actionVerb)
+                                      .arg(displayItem)
+                                      .arg(progress.totalItems));
         } else {
             statusLabel_->setText(tr("%1 %2 of %3 items...")
-                .arg(actionVerb)
-                .arg(displayItem)
-                .arg(progress.totalItems));
+                                      .arg(actionVerb)
+                                      .arg(displayItem)
+                                      .arg(progress.totalItems));
         }
     }
 

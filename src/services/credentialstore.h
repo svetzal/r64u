@@ -15,4 +15,4 @@ private:
     CredentialStore() = default;
 };
 
-#endif // CREDENTIALSTORE_H
+#endif  // CREDENTIALSTORE_H

@@ -9,12 +9,12 @@
 #ifndef FILEPREVIEWSERVICE_H
 #define FILEPREVIEWSERVICE_H
 
+#include "iftpclient.h"  // Full include needed for QPointer
+
+#include <QByteArray>
 #include <QObject>
 #include <QPointer>
 #include <QString>
-#include <QByteArray>
-
-#include "iftpclient.h"  // Full include needed for QPointer
 
 /**
  * @brief Service for downloading file content for preview purposes.
@@ -110,4 +110,4 @@ private:
     QString pendingPath_;
 };
 
-#endif // FILEPREVIEWSERVICE_H
+#endif  // FILEPREVIEWSERVICE_H

@@ -1,8 +1,8 @@
 #ifndef CONFIGFILELOADER_H
 #define CONFIGFILELOADER_H
 
-#include <QObject>
 #include <QJsonObject>
+#include <QObject>
 
 class C64UFtpClient;
 class C64URestClient;
@@ -40,4 +40,4 @@ private:
     QString pendingPath_;
 };
 
-#endif // CONFIGFILELOADER_H
+#endif  // CONFIGFILELOADER_H

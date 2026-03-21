@@ -1,8 +1,9 @@
 #include "filepreviewfactory.h"
-#include "textfilepreview.h"
+
+#include "defaultfilepreview.h"
 #include "diskimagepreview.h"
 #include "sidfilepreview.h"
-#include "defaultfilepreview.h"
+#include "textfilepreview.h"
 
 std::unique_ptr<FilePreviewStrategy> FilePreviewFactory::createStrategy(const QString &path)
 {

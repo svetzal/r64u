@@ -1,8 +1,8 @@
-#include <QtTest>
-#include <QSignalSpy>
-
 #include "mocks/mockftpclient.h"
 #include "models/remotefilemodel.h"
+
+#include <QSignalSpy>
+#include <QtTest>
 
 class TestRemoteFileModel : public QObject
 {
@@ -412,24 +412,35 @@ private slots:
         QCOMPARE(RemoteFileModel::detectFileType("kernal.rom"), RemoteFileModel::FileType::Rom);
         QCOMPARE(RemoteFileModel::detectFileType("kernal.bin"), RemoteFileModel::FileType::Rom);
 
-        QCOMPARE(RemoteFileModel::detectFileType("settings.cfg"), RemoteFileModel::FileType::Config);
+        QCOMPARE(RemoteFileModel::detectFileType("settings.cfg"),
+                 RemoteFileModel::FileType::Config);
 
         QCOMPARE(RemoteFileModel::detectFileType("readme.txt"), RemoteFileModel::FileType::Unknown);
-        QCOMPARE(RemoteFileModel::detectFileType("noextension"), RemoteFileModel::FileType::Unknown);
+        QCOMPARE(RemoteFileModel::detectFileType("noextension"),
+                 RemoteFileModel::FileType::Unknown);
     }
 
     void testFileTypeString()
     {
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Directory), QString("Folder"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::SidMusic), QString("SID Music"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::ModMusic), QString("MOD Music"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Program), QString("Program"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Cartridge), QString("Cartridge"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::DiskImage), QString("Disk Image"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::TapeImage), QString("Tape Image"));
+        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Directory),
+                 QString("Folder"));
+        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::SidMusic),
+                 QString("SID Music"));
+        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::ModMusic),
+                 QString("MOD Music"));
+        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Program),
+                 QString("Program"));
+        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Cartridge),
+                 QString("Cartridge"));
+        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::DiskImage),
+                 QString("Disk Image"));
+        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::TapeImage),
+                 QString("Tape Image"));
         QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Rom), QString("ROM"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Config), QString("Configuration"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Unknown), QString("File"));
+        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Config),
+                 QString("Configuration"));
+        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Unknown),
+                 QString("File"));
     }
 
     // === Model Reset and Refresh Tests ===
@@ -652,10 +663,7 @@ private slots:
         QVERIFY(!result.isValid());
     }
 
-    void testFlagsWithInvalidIndex()
-    {
-        QCOMPARE(model->flags(QModelIndex()), Qt::NoItemFlags);
-    }
+    void testFlagsWithInvalidIndex() { QCOMPARE(model->flags(QModelIndex()), Qt::NoItemFlags); }
 
     void testFlagsWithValidIndex()
     {

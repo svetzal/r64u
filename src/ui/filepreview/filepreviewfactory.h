@@ -10,7 +10,9 @@
 #define FILEPREVIEWFACTORY_H
 
 #include "filepreviewstrategy.h"
+
 #include <QString>
+
 #include <memory>
 
 /**
@@ -33,4 +35,4 @@ public:
     [[nodiscard]] static std::unique_ptr<FilePreviewStrategy> createStrategy(const QString &path);
 };
 
-#endif // FILEPREVIEWFACTORY_H
+#endif  // FILEPREVIEWFACTORY_H

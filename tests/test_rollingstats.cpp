@@ -1,7 +1,8 @@
-#include <QtTest>
-#include <cmath>
-
 #include "utils/rollingstats.h"
+
+#include <QtTest>
+
+#include <cmath>
 
 class TestRollingStats : public QObject
 {
@@ -54,7 +55,8 @@ private slots:
         QCOMPARE(stats.min(), 10.0);
         QCOMPARE(stats.max(), 30.0);
 
-        // Sample stddev for [10, 20, 30] = sqrt(((10-20)^2 + (20-20)^2 + (30-20)^2) / 2) = sqrt(200/2) = 10
+        // Sample stddev for [10, 20, 30] = sqrt(((10-20)^2 + (20-20)^2 + (30-20)^2) / 2) =
+        // sqrt(200/2) = 10
         QVERIFY(std::abs(stats.stddev() - 10.0) < 0.0001);
     }
 
@@ -116,7 +118,8 @@ private slots:
 
         // Add values: 2, 4, 4, 4, 5, 5, 7, 9
         // Mean = 40/8 = 5
-        // Variance = ((2-5)^2 + (4-5)^2 + (4-5)^2 + (4-5)^2 + (5-5)^2 + (5-5)^2 + (7-5)^2 + (9-5)^2) / 7
+        // Variance = ((2-5)^2 + (4-5)^2 + (4-5)^2 + (4-5)^2 + (5-5)^2 + (5-5)^2 + (7-5)^2 +
+        // (9-5)^2) / 7
         //          = (9 + 1 + 1 + 1 + 0 + 0 + 4 + 16) / 7 = 32/7
         // Sample stddev = sqrt(32/7) ≈ 2.138
 

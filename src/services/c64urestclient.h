@@ -9,51 +9,54 @@
 #ifndef C64URESTCLIENT_H
 #define C64URESTCLIENT_H
 
-#include <QObject>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
-#include <QJsonObject>
-#include <QJsonArray>
+#include <QObject>
 
 /**
  * @brief Device information returned by the Ultimate API.
  */
-struct DeviceInfo {
-    QString product;         ///< Product name (e.g., "Ultimate 64")
-    QString firmwareVersion; ///< Firmware version string
-    QString fpgaVersion;     ///< FPGA core version
-    QString coreVersion;     ///< Core version string
-    QString hostname;        ///< Network hostname
-    QString uniqueId;        ///< Unique device identifier
-    QString apiVersion;      ///< REST API version
+struct DeviceInfo
+{
+    QString product;          ///< Product name (e.g., "Ultimate 64")
+    QString firmwareVersion;  ///< Firmware version string
+    QString fpgaVersion;      ///< FPGA core version
+    QString coreVersion;      ///< Core version string
+    QString hostname;         ///< Network hostname
+    QString uniqueId;         ///< Unique device identifier
+    QString apiVersion;       ///< REST API version
 };
 
 /**
  * @brief Metadata for a configuration item including available options.
  */
-struct ConfigItemMetadata {
-    QVariant current;           ///< Current value
-    QVariant defaultValue;      ///< Default value
-    QStringList values;         ///< Available options for enum types
-    QStringList presets;        ///< Preset options for file-type items
-    int min = 0;                ///< Minimum value for numeric types
-    int max = 0;                ///< Maximum value for numeric types
-    QString format;             ///< Format string (e.g., "%d" or "%d00 ms")
-    bool hasRange = false;      ///< True if min/max are valid
+struct ConfigItemMetadata
+{
+    QVariant current;       ///< Current value
+    QVariant defaultValue;  ///< Default value
+    QStringList values;     ///< Available options for enum types
+    QStringList presets;    ///< Preset options for file-type items
+    int min = 0;            ///< Minimum value for numeric types
+    int max = 0;            ///< Maximum value for numeric types
+    QString format;         ///< Format string (e.g., "%d" or "%d00 ms")
+    bool hasRange = false;  ///< True if min/max are valid
 };
 
 /**
  * @brief Information about a single drive on the device.
  */
-struct DriveInfo {
-    QString name;            ///< Drive identifier (e.g., "A", "B")
-    bool enabled = false;    ///< Whether the drive is enabled
-    int busId = 0;           ///< IEC bus device number
-    QString type;            ///< Drive type (1541, 1571, 1581, etc.)
-    QString rom;             ///< Current ROM image
-    QString imageFile;       ///< Filename of mounted disk image
-    QString imagePath;       ///< Full path to mounted image
-    QString lastError;       ///< Last error message, if any
+struct DriveInfo
+{
+    QString name;          ///< Drive identifier (e.g., "A", "B")
+    bool enabled = false;  ///< Whether the drive is enabled
+    int busId = 0;         ///< IEC bus device number
+    QString type;          ///< Drive type (1541, 1571, 1581, etc.)
+    QString rom;           ///< Current ROM image
+    QString imageFile;     ///< Filename of mounted disk image
+    QString imagePath;     ///< Full path to mounted image
+    QString lastError;     ///< Last error message, if any
 };
 
 /**
@@ -278,8 +281,7 @@ public:
      * @param diskName Optional disk name (default: empty).
      * @param tracks Number of tracks: 35 or 40 (default: 35).
      */
-    void createD64(const QString &path, const QString &diskName = QString(),
-                   int tracks = 35);
+    void createD64(const QString &path, const QString &diskName = QString(), int tracks = 35);
 
     /**
      * @brief Creates a new D81 disk image.
@@ -324,8 +326,7 @@ public:
      *
      * Emits configItemSet() on success.
      */
-    void setConfigItem(const QString &category, const QString &item,
-                       const QVariant &value);
+    void setConfigItem(const QString &category, const QString &item, const QVariant &value);
 
     /**
      * @brief Updates multiple configuration values.
@@ -409,8 +410,7 @@ signals:
      * @param item Item name.
      * @param value The item's current value.
      */
-    void configItemReceived(const QString &category, const QString &item,
-                            const QVariant &value);
+    void configItemReceived(const QString &category, const QString &item, const QVariant &value);
 
     /**
      * @brief Emitted when a single configuration item is set.
@@ -471,8 +471,7 @@ private:
     void sendGetRequest(const QString &endpoint, const QString &operation);
     void sendPutRequest(const QString &endpoint, const QString &operation,
                         const QByteArray &data = QByteArray());
-    void sendPostRequest(const QString &endpoint, const QString &operation,
-                         const QByteArray &data,
+    void sendPostRequest(const QString &endpoint, const QString &operation, const QByteArray &data,
                          const QString &contentType = "application/octet-stream");
 
     void handleVersionResponse(const QJsonObject &json);
@@ -480,8 +479,7 @@ private:
     void handleDrivesResponse(const QJsonObject &json);
     void handleFileInfoResponse(const QJsonObject &json);
     void handleConfigCategoriesResponse(const QJsonObject &json);
-    void handleConfigCategoryItemsResponse(const QString &category,
-                                           const QJsonObject &json);
+    void handleConfigCategoryItemsResponse(const QString &category, const QJsonObject &json);
     void handleGenericResponse(const QString &operation, const QJsonObject &json);
 
     [[nodiscard]] QStringList extractErrors(const QJsonObject &json) const;
@@ -494,7 +492,7 @@ private:
     QString password_;
 
     // Operation tracking
-    QHash<QNetworkReply*, QString> pendingOperations_;
+    QHash<QNetworkReply *, QString> pendingOperations_;
 };
 
-#endif // C64URESTCLIENT_H
+#endif  // C64URESTCLIENT_H

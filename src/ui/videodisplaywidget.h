@@ -9,14 +9,16 @@
 #ifndef VIDEODISPLAYWIDGET_H
 #define VIDEODISPLAYWIDGET_H
 
-#include <QWidget>
+#include "services/videostreamreceiver.h"
+
+#include <QElapsedTimer>
 #include <QImage>
 #include <QQueue>
 #include <QTimer>
-#include <QElapsedTimer>
+#include <QWidget>
+
 #include <array>
 #include <functional>
-#include "services/videostreamreceiver.h"
 
 /**
  * @brief Widget for rendering VIC-II video frames.
@@ -45,9 +47,9 @@ public:
      * @brief Video scaling mode for upscaling the display.
      */
     enum class ScalingMode {
-        Sharp,      ///< Nearest-neighbor (no interpolation) - crisp pixels
-        Smooth,     ///< Bilinear interpolation - smooth but fuzzy
-        Integer     ///< Integer scaling with letterboxing - pixel-perfect
+        Sharp,   ///< Nearest-neighbor (no interpolation) - crisp pixels
+        Smooth,  ///< Bilinear interpolation - smooth but fuzzy
+        Integer  ///< Integer scaling with letterboxing - pixel-perfect
     };
     Q_ENUM(ScalingMode)
 
@@ -131,7 +133,8 @@ public:
     /**
      * @brief Callback interface for diagnostics timing data.
      */
-    struct DiagnosticsCallback {
+    struct DiagnosticsCallback
+    {
         std::function<void(qint64 displayTimeUs)> onFrameDisplayed;
         std::function<void()> onDisplayUnderrun;
         std::function<void(int bufferLevel)> onBufferLevelChanged;
@@ -162,8 +165,7 @@ public slots:
      * @param frameNumber The frame sequence number.
      * @param format The video format (PAL or NTSC).
      */
-    void displayFrame(const QByteArray &frameData,
-                      quint16 frameNumber,
+    void displayFrame(const QByteArray &frameData, quint16 frameNumber,
                       VideoStreamReceiver::VideoFormat format);
 
     /**
@@ -201,7 +203,8 @@ private slots:
     void onDisplayTimer();
 
 private:
-    struct BufferedFrame {
+    struct BufferedFrame
+    {
         QByteArray frameData;
         quint16 frameNumber;
         VideoStreamReceiver::VideoFormat format;
@@ -234,4 +237,4 @@ private:
     QElapsedTimer diagnosticsTimer_;
 };
 
-#endif // VIDEODISPLAYWIDGET_H
+#endif  // VIDEODISPLAYWIDGET_H

@@ -1,9 +1,6 @@
 #include "c64urestclient.h"
 
-C64URestClient::C64URestClient(QObject *parent)
-    : QObject(parent)
-{
-}
+C64URestClient::C64URestClient(QObject *parent) : QObject(parent) {}
 
 void C64URestClient::setHost(const QString &host)
 {
@@ -58,8 +55,7 @@ void C64URestClient::getDrives()
     emit drivesReceived(QList<DriveInfo>());
 }
 
-void C64URestClient::mountImage(const QString &drive, const QString &imagePath,
-                                 const QString &mode)
+void C64URestClient::mountImage(const QString &drive, const QString &imagePath, const QString &mode)
 {
     Q_UNUSED(drive)
     Q_UNUSED(imagePath)
@@ -76,29 +72,17 @@ void C64URestClient::resetDrive(const QString &drive)
     Q_UNUSED(drive)
 }
 
-void C64URestClient::resetMachine()
-{
-}
+void C64URestClient::resetMachine() {}
 
-void C64URestClient::rebootMachine()
-{
-}
+void C64URestClient::rebootMachine() {}
 
-void C64URestClient::pauseMachine()
-{
-}
+void C64URestClient::pauseMachine() {}
 
-void C64URestClient::resumeMachine()
-{
-}
+void C64URestClient::resumeMachine() {}
 
-void C64URestClient::powerOffMachine()
-{
-}
+void C64URestClient::powerOffMachine() {}
 
-void C64URestClient::pressMenuButton()
-{
-}
+void C64URestClient::pressMenuButton() {}
 
 void C64URestClient::writeMem(const QString &address, const QByteArray &data)
 {
@@ -129,9 +113,7 @@ void C64URestClient::createD81(const QString &path, const QString &diskName)
     Q_UNUSED(diskName)
 }
 
-void C64URestClient::getConfigCategories()
-{
-}
+void C64URestClient::getConfigCategories() {}
 
 void C64URestClient::getConfigCategoryItems(const QString &category)
 {
@@ -145,7 +127,7 @@ void C64URestClient::getConfigItem(const QString &category, const QString &item)
 }
 
 void C64URestClient::setConfigItem(const QString &category, const QString &item,
-                                    const QVariant &value)
+                                   const QVariant &value)
 {
     Q_UNUSED(category)
     Q_UNUSED(item)
@@ -158,17 +140,11 @@ void C64URestClient::updateConfigsBatch(const QJsonObject &configs)
     // Don't auto-emit; let test control timing via mockEmitConfigsUpdated()
 }
 
-void C64URestClient::saveConfigToFlash()
-{
-}
+void C64URestClient::saveConfigToFlash() {}
 
-void C64URestClient::loadConfigFromFlash()
-{
-}
+void C64URestClient::loadConfigFromFlash() {}
 
-void C64URestClient::resetConfigToDefaults()
-{
-}
+void C64URestClient::resetConfigToDefaults() {}
 
 // === Mock control methods ===
 

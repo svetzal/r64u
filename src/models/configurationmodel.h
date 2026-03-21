@@ -9,21 +9,22 @@
 #ifndef CONFIGURATIONMODEL_H
 #define CONFIGURATIONMODEL_H
 
-#include <QObject>
 #include <QHash>
+#include <QObject>
 #include <QStringList>
 #include <QVariant>
 
 /**
  * @brief Metadata for a configuration item.
  */
-struct ConfigItemInfo {
-    QVariant value;           ///< Current value
-    QVariant defaultValue;    ///< Default value (if available)
-    QVariant minValue;        ///< Minimum value (for numeric items)
-    QVariant maxValue;        ///< Maximum value (for numeric items)
-    QStringList options;      ///< Available options (for enum items)
-    bool isDirty = false;     ///< True if modified since last save/load
+struct ConfigItemInfo
+{
+    QVariant value;         ///< Current value
+    QVariant defaultValue;  ///< Default value (if available)
+    QVariant minValue;      ///< Minimum value (for numeric items)
+    QVariant maxValue;      ///< Maximum value (for numeric items)
+    QStringList options;    ///< Available options (for enum items)
+    bool isDirty = false;   ///< True if modified since last save/load
 };
 
 /**
@@ -112,8 +113,7 @@ public:
      * Clears any existing items for the category.
      * Emits categoryItemsChanged().
      */
-    void setCategoryItems(const QString &category,
-                          const QHash<QString, QVariant> &items);
+    void setCategoryItems(const QString &category, const QHash<QString, QVariant> &items);
 
     /**
      * @brief Sets detailed item info for a category.
@@ -166,8 +166,7 @@ public:
      * @param item Item name.
      * @return Item info, or default ConfigItemInfo if not found.
      */
-    [[nodiscard]] ConfigItemInfo itemInfo(const QString &category,
-                                          const QString &item) const;
+    [[nodiscard]] ConfigItemInfo itemInfo(const QString &category, const QString &item) const;
 
     /**
      * @brief Sets an item's value.
@@ -179,8 +178,7 @@ public:
      * Marks the item as dirty if the value changed.
      * Emits itemValueChanged() and dirtyStateChanged() if applicable.
      */
-    bool setValue(const QString &category, const QString &item,
-                  const QVariant &value);
+    bool setValue(const QString &category, const QString &item, const QVariant &value);
     /// @}
 
     /// @name Dirty State Tracking
@@ -198,8 +196,7 @@ public:
      * @param item Item name.
      * @return True if the item is dirty.
      */
-    [[nodiscard]] bool isItemDirty(const QString &category,
-                                   const QString &item) const;
+    [[nodiscard]] bool isItemDirty(const QString &category, const QString &item) const;
 
     /**
      * @brief Returns all dirty items.
@@ -255,8 +252,7 @@ signals:
      * @param item Item name.
      * @param value New value.
      */
-    void itemValueChanged(const QString &category, const QString &item,
-                          const QVariant &value);
+    void itemValueChanged(const QString &category, const QString &item, const QVariant &value);
 
     /**
      * @brief Emitted when dirty state changes.
@@ -275,4 +271,4 @@ private:
     int dirtyCount_ = 0;
 };
 
-#endif // CONFIGURATIONMODEL_H
+#endif  // CONFIGURATIONMODEL_H

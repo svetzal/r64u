@@ -6,11 +6,11 @@
 #ifndef CONFIGITEMSPANEL_H
 #define CONFIGITEMSPANEL_H
 
-#include <QWidget>
-#include <QScrollArea>
 #include <QFormLayout>
 #include <QHash>
+#include <QScrollArea>
 #include <QVariant>
+#include <QWidget>
 
 class ConfigurationModel;
 class QLabel;
@@ -66,22 +66,19 @@ signals:
      * @param item Item name.
      * @param value New value.
      */
-    void itemChanged(const QString &category, const QString &item,
-                     const QVariant &value);
+    void itemChanged(const QString &category, const QString &item, const QVariant &value);
 
 private slots:
     void onCategoryItemsChanged(const QString &category);
-    void onItemValueChanged(const QString &category, const QString &item,
-                            const QVariant &value);
+    void onItemValueChanged(const QString &category, const QString &item, const QVariant &value);
     void onDirtyStateChanged(bool isDirty);
 
 private:
     void setupUi();
     void clearItems();
     void populateItems();
-    QWidget* createEditorWidget(const QString &itemName, const QVariant &value,
-                                const QStringList &options,
-                                const QVariant &minValue = QVariant(),
+    QWidget *createEditorWidget(const QString &itemName, const QVariant &value,
+                                const QStringList &options, const QVariant &minValue = QVariant(),
                                 const QVariant &maxValue = QVariant());
     void updateLabelStyle(const QString &itemName, bool isDirty);
 
@@ -95,9 +92,9 @@ private:
     QLabel *emptyLabel_ = nullptr;
 
     // Track labels for dirty state styling
-    QHash<QString, QLabel*> itemLabels_;
+    QHash<QString, QLabel *> itemLabels_;
     // Track editor widgets for value updates
-    QHash<QString, QWidget*> itemEditors_;
+    QHash<QString, QWidget *> itemEditors_;
 };
 
-#endif // CONFIGITEMSPANEL_H
+#endif  // CONFIGITEMSPANEL_H

@@ -1,12 +1,12 @@
 #ifndef TRANSFERPROGRESSCONTAINER_H
 #define TRANSFERPROGRESSCONTAINER_H
 
-#include <QWidget>
-#include <QVBoxLayout>
+#include "models/transferqueue.h"
+
 #include <QMap>
 #include <QTimer>
-
-#include "models/transferqueue.h"
+#include <QVBoxLayout>
+#include <QWidget>
 
 class TransferService;
 class BatchProgressWidget;
@@ -70,13 +70,13 @@ private slots:
 private:
     void setupUi();
     void updateVisibility();
-    BatchProgressWidget* findOrCreateWidget(int batchId);
+    BatchProgressWidget *findOrCreateWidget(int batchId);
     void updateAllBatchWidgets();
     void processQueueChanged();  // Actual processing after debounce
 
     TransferService *transferService_ = nullptr;
     QVBoxLayout *layout_ = nullptr;
-    QMap<int, BatchProgressWidget*> widgets_;
+    QMap<int, BatchProgressWidget *> widgets_;
     OperationType currentOperationType_ = OperationType::Download;
 
     // Debounce timer for queueChanged signals to prevent UI flood
@@ -84,4 +84,4 @@ private:
     static constexpr int kQueueChangedDebounceMs = 50;  // 50ms debounce
 };
 
-#endif // TRANSFERPROGRESSCONTAINER_H
+#endif  // TRANSFERPROGRESSCONTAINER_H

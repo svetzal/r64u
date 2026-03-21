@@ -1,11 +1,11 @@
 #ifndef EXPLOREPANEL_H
 #define EXPLOREPANEL_H
 
-#include <QWidget>
-#include <QTreeView>
+#include <QMenu>
 #include <QSplitter>
 #include <QToolBar>
-#include <QMenu>
+#include <QTreeView>
+#include <QWidget>
 
 class DeviceConnection;
 class RemoteFileModel;
@@ -27,12 +27,9 @@ class ExplorePanel : public QWidget
     Q_OBJECT
 
 public:
-    explicit ExplorePanel(DeviceConnection *connection,
-                          RemoteFileModel *model,
-                          ConfigFileLoader *configLoader,
-                          FilePreviewService *previewService,
-                          FavoritesManager *favoritesManager,
-                          PlaylistManager *playlistManager,
+    explicit ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
+                          ConfigFileLoader *configLoader, FilePreviewService *previewService,
+                          FavoritesManager *favoritesManager, PlaylistManager *playlistManager,
                           QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
@@ -150,4 +147,4 @@ private:
     QMenu *favoritesMenu_ = nullptr;
 };
 
-#endif // EXPLOREPANEL_H
+#endif  // EXPLOREPANEL_H

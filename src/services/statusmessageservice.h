@@ -2,9 +2,9 @@
 #define STATUSMESSAGESERVICE_H
 
 #include <QObject>
+#include <QQueue>
 #include <QString>
 #include <QTimer>
-#include <QQueue>
 
 /**
  * @brief Service for coordinating status bar messages with priority queuing
@@ -36,9 +36,9 @@ public:
      * @brief Message priority/severity levels
      */
     enum class Priority {
-        Info = 0,      ///< Informational messages (lowest priority)
-        Warning = 1,   ///< Warning messages (medium priority)
-        Error = 2      ///< Error messages (highest priority)
+        Info = 0,     ///< Informational messages (lowest priority)
+        Warning = 1,  ///< Warning messages (medium priority)
+        Error = 2     ///< Error messages (highest priority)
     };
     Q_ENUM(Priority)
 
@@ -135,7 +135,8 @@ private slots:
     void onMessageTimeout();
 
 private:
-    struct QueuedMessage {
+    struct QueuedMessage
+    {
         QString text;
         Priority priority;
         int timeout;
@@ -146,8 +147,8 @@ private:
     void displayImmediately(const QString &message, Priority priority, int timeout);
 
     QQueue<QueuedMessage> messageQueue_;
-    QTimer *displayTimer_;      // Minimum display time timer
-    QTimer *messageTimer_;      // Current message timeout timer
+    QTimer *displayTimer_;  // Minimum display time timer
+    QTimer *messageTimer_;  // Current message timeout timer
 
     QString currentMessage_;
     Priority currentPriority_ = Priority::Info;
@@ -155,4 +156,4 @@ private:
     int minimumDisplayTime_ = 100;  // 100ms minimum to prevent flickering
 };
 
-#endif // STATUSMESSAGESERVICE_H
+#endif  // STATUSMESSAGESERVICE_H

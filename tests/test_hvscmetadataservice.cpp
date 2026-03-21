@@ -1,6 +1,6 @@
-#include <QtTest>
-
 #include "services/hvscmetadataservice.h"
+
+#include <QtTest>
 
 class TestHVSCMetadataService : public QObject
 {
@@ -8,7 +8,8 @@ class TestHVSCMetadataService : public QObject
 
 private:
     // Sample STIL.txt content for testing
-    QString createSampleStilContent() {
+    QString createSampleStilContent()
+    {
         return R"(### /MUSICIANS/T/Tel_Jeroen ###################################################
 /MUSICIANS/T/Tel_Jeroen/Cybernoid_II.sid
 COMMENT: This is the main theme from Cybernoid II.
@@ -43,7 +44,8 @@ COMMENT: Contains a sample from an unknown source.
     }
 
     // Sample BUGlist.txt content for testing
-    QString createSampleBuglistContent() {
+    QString createSampleBuglistContent()
+    {
         return R"(### /MUSICIANS/T/Tel_Jeroen ###################################################
 /MUSICIANS/T/Tel_Jeroen/Bugged_Tune.sid
 BUG: The tune ends abruptly due to missing loop code.
@@ -95,7 +97,8 @@ private slots:
         HVSCMetadataService service;
 
         // Without loading data, should return not found
-        HVSCMetadataService::StilInfo info = service.lookupStil("/MUSICIANS/T/Tel_Jeroen/Cybernoid_II.sid");
+        HVSCMetadataService::StilInfo info =
+            service.lookupStil("/MUSICIANS/T/Tel_Jeroen/Cybernoid_II.sid");
         QVERIFY(!info.found);
     }
 
@@ -114,8 +117,10 @@ private slots:
 
         // Test that paths are normalized (backslashes converted, leading slash added)
         HVSCMetadataService::StilInfo info1 = service.lookupStil("/path/to/file.sid");
-        HVSCMetadataService::StilInfo info2 = service.lookupStil("path/to/file.sid");  // No leading slash
-        HVSCMetadataService::StilInfo info3 = service.lookupStil("\\path\\to\\file.sid");  // Backslashes
+        HVSCMetadataService::StilInfo info2 =
+            service.lookupStil("path/to/file.sid");  // No leading slash
+        HVSCMetadataService::StilInfo info3 =
+            service.lookupStil("\\path\\to\\file.sid");  // Backslashes
 
         // All should normalize to the same lookup
         QCOMPARE(info1.found, info2.found);

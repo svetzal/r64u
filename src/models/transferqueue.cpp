@@ -1,24 +1,23 @@
 #include "transferqueue.h"
+
 #include "../services/iftpclient.h"
 
-#include <QFileInfo>
+#include <QDebug>
 #include <QDir>
 #include <QDirIterator>
-#include <QDebug>
+#include <QFileInfo>
+
 #include <algorithm>
 
 TransferQueue::TransferQueue(QObject *parent)
-    : QAbstractListModel(parent)
-    , operationTimeoutTimer_(new QTimer(this))
-    , debounceTimer_(new QTimer(this))
+    : QAbstractListModel(parent), operationTimeoutTimer_(new QTimer(this)),
+      debounceTimer_(new QTimer(this))
 {
     operationTimeoutTimer_->setSingleShot(true);
-    connect(operationTimeoutTimer_, &QTimer::timeout,
-            this, &TransferQueue::onOperationTimeout);
+    connect(operationTimeoutTimer_, &QTimer::timeout, this, &TransferQueue::onOperationTimeout);
 
     debounceTimer_->setSingleShot(true);
-    connect(debounceTimer_, &QTimer::timeout,
-            this, &TransferQueue::onDebounceTimeout);
+    connect(debounceTimer_, &QTimer::timeout, this, &TransferQueue::onDebounceTimeout);
 }
 
 TransferQueue::~TransferQueue()
@@ -81,8 +80,8 @@ void TransferQueue::transitionTo(QueueState newState)
         return;
     }
 
-    qDebug() << "TransferQueue: State transition"
-             << queueStateToString(state_) << "->" << queueStateToString(newState);
+    qDebug() << "TransferQueue: State transition" << queueStateToString(state_) << "->"
+             << queueStateToString(newState);
 
     state_ = newState;
 }
@@ -96,22 +95,17 @@ void TransferQueue::setFtpClient(IFtpClient *client)
     ftpClient_ = client;
 
     if (ftpClient_) {
-        connect(ftpClient_, &IFtpClient::uploadProgress,
-                this, &TransferQueue::onUploadProgress);
-        connect(ftpClient_, &IFtpClient::uploadFinished,
-                this, &TransferQueue::onUploadFinished);
-        connect(ftpClient_, &IFtpClient::downloadProgress,
-                this, &TransferQueue::onDownloadProgress);
-        connect(ftpClient_, &IFtpClient::downloadFinished,
-                this, &TransferQueue::onDownloadFinished);
-        connect(ftpClient_, &IFtpClient::error,
-                this, &TransferQueue::onFtpError);
-        connect(ftpClient_, &IFtpClient::directoryCreated,
-                this, &TransferQueue::onDirectoryCreated);
-        connect(ftpClient_, &IFtpClient::directoryListed,
-                this, &TransferQueue::onDirectoryListed);
-        connect(ftpClient_, &IFtpClient::fileRemoved,
-                this, &TransferQueue::onFileRemoved);
+        connect(ftpClient_, &IFtpClient::uploadProgress, this, &TransferQueue::onUploadProgress);
+        connect(ftpClient_, &IFtpClient::uploadFinished, this, &TransferQueue::onUploadFinished);
+        connect(ftpClient_, &IFtpClient::downloadProgress, this,
+                &TransferQueue::onDownloadProgress);
+        connect(ftpClient_, &IFtpClient::downloadFinished, this,
+                &TransferQueue::onDownloadFinished);
+        connect(ftpClient_, &IFtpClient::error, this, &TransferQueue::onFtpError);
+        connect(ftpClient_, &IFtpClient::directoryCreated, this,
+                &TransferQueue::onDirectoryCreated);
+        connect(ftpClient_, &IFtpClient::directoryListed, this, &TransferQueue::onDirectoryListed);
+        connect(ftpClient_, &IFtpClient::fileRemoved, this, &TransferQueue::onFileRemoved);
     }
 }
 
@@ -119,7 +113,8 @@ void TransferQueue::setFtpClient(IFtpClient *client)
 // Single-file enqueue operations
 // ============================================================================
 
-void TransferQueue::enqueueUpload(const QString &localPath, const QString &remotePath, int targetBatchId)
+void TransferQueue::enqueueUpload(const QString &localPath, const QString &remotePath,
+                                  int targetBatchId)
 {
     int batchIdx = -1;
     if (targetBatchId >= 0) {
@@ -135,8 +130,10 @@ void TransferQueue::enqueueUpload(const QString &localPath, const QString &remot
         batchIdx = activeBatchIndex_;
         if (batchIdx < 0 || batches_[batchIdx].operationType != OperationType::Upload) {
             QString fileName = QFileInfo(localPath).fileName();
-            QString sourcePath = currentFolderOp_.sourcePath.isEmpty() ? QString() : currentFolderOp_.sourcePath;
-            int batchId = createBatch(OperationType::Upload, tr("Uploading %1").arg(fileName), fileName, sourcePath);
+            QString sourcePath =
+                currentFolderOp_.sourcePath.isEmpty() ? QString() : currentFolderOp_.sourcePath;
+            int batchId = createBatch(OperationType::Upload, tr("Uploading %1").arg(fileName),
+                                      fileName, sourcePath);
             for (int i = 0; i < batches_.size(); ++i) {
                 if (batches_[i].batchId == batchId) {
                     batchIdx = i;
@@ -179,7 +176,8 @@ void TransferQueue::enqueueUpload(const QString &localPath, const QString &remot
     }
 }
 
-void TransferQueue::enqueueDownload(const QString &remotePath, const QString &localPath, int targetBatchId)
+void TransferQueue::enqueueDownload(const QString &remotePath, const QString &localPath,
+                                    int targetBatchId)
 {
     int batchIdx = -1;
 
@@ -196,8 +194,10 @@ void TransferQueue::enqueueDownload(const QString &remotePath, const QString &lo
         batchIdx = activeBatchIndex_;
         if (batchIdx < 0 || batches_[batchIdx].operationType != OperationType::Download) {
             QString fileName = QFileInfo(remotePath).fileName();
-            QString sourcePath = (state_ == QueueState::Scanning) ? currentFolderOp_.sourcePath : QString();
-            int batchId = createBatch(OperationType::Download, tr("Downloading %1").arg(fileName), fileName, sourcePath);
+            QString sourcePath =
+                (state_ == QueueState::Scanning) ? currentFolderOp_.sourcePath : QString();
+            int batchId = createBatch(OperationType::Download, tr("Downloading %1").arg(fileName),
+                                      fileName, sourcePath);
             for (int i = 0; i < batches_.size(); ++i) {
                 if (batches_[i].batchId == batchId) {
                     batchIdx = i;
@@ -245,20 +245,24 @@ void TransferQueue::enqueueDownload(const QString &remotePath, const QString &lo
 
 void TransferQueue::enqueueRecursiveUpload(const QString &localDir, const QString &remoteDir)
 {
-    if (!ftpClient_ || !ftpClient_->isConnected()) return;
+    if (!ftpClient_ || !ftpClient_->isConnected())
+        return;
 
     QDir baseDir(localDir);
-    if (!baseDir.exists()) return;
+    if (!baseDir.exists())
+        return;
 
     if (isPathBeingTransferred(localDir, OperationType::Upload)) {
         qDebug() << "TransferQueue: Ignoring duplicate upload request for" << localDir;
-        emit statusMessage(tr("'%1' is already being uploaded").arg(QFileInfo(localDir).fileName()), 3000);
+        emit statusMessage(tr("'%1' is already being uploaded").arg(QFileInfo(localDir).fileName()),
+                           3000);
         return;
     }
 
     QString baseName = QFileInfo(localDir).fileName();
     QString targetDir = remoteDir;
-    if (!targetDir.endsWith('/')) targetDir += '/';
+    if (!targetDir.endsWith('/'))
+        targetDir += '/';
     targetDir += baseName;
 
     PendingFolderOp op;
@@ -293,7 +297,8 @@ void TransferQueue::enqueueRecursiveUpload(const QString &localDir, const QStrin
 
 void TransferQueue::enqueueRecursiveDownload(const QString &remoteDir, const QString &localDir)
 {
-    if (!ftpClient_ || !ftpClient_->isConnected()) return;
+    if (!ftpClient_ || !ftpClient_->isConnected())
+        return;
 
     QString normalizedRemote = remoteDir;
     while (normalizedRemote.endsWith('/') && normalizedRemote.length() > 1) {
@@ -302,13 +307,16 @@ void TransferQueue::enqueueRecursiveDownload(const QString &remoteDir, const QSt
 
     if (isPathBeingTransferred(normalizedRemote, OperationType::Download)) {
         qDebug() << "TransferQueue: Ignoring duplicate download request for" << normalizedRemote;
-        emit statusMessage(tr("'%1' is already being downloaded").arg(QFileInfo(normalizedRemote).fileName()), 3000);
+        emit statusMessage(
+            tr("'%1' is already being downloaded").arg(QFileInfo(normalizedRemote).fileName()),
+            3000);
         return;
     }
 
     QString folderName = QFileInfo(normalizedRemote).fileName();
     QString targetDir = localDir;
-    if (!targetDir.endsWith('/')) targetDir += '/';
+    if (!targetDir.endsWith('/'))
+        targetDir += '/';
     targetDir += folderName;
 
     PendingFolderOp op;
@@ -343,7 +351,8 @@ void TransferQueue::enqueueRecursiveDownload(const QString &remoteDir, const QSt
 
 void TransferQueue::onDebounceTimeout()
 {
-    qDebug() << "TransferQueue: Debounce timeout, processing" << pendingFolderOps_.size() << "pending folder ops";
+    qDebug() << "TransferQueue: Debounce timeout, processing" << pendingFolderOps_.size()
+             << "pending folder ops";
 
     if (pendingFolderOps_.isEmpty()) {
         transitionTo(QueueState::Idle);
@@ -407,8 +416,7 @@ void TransferQueue::startFolderOperation(const PendingFolderOp &op)
                               op.operationType == OperationType::Upload
                                   ? tr("Uploading %1").arg(folderName)
                                   : tr("Downloading %1").arg(folderName),
-                              folderName,
-                              op.sourcePath);
+                              folderName, op.sourcePath);
     currentFolderOp_.batchId = batchId;
 
     // Mark batch as not yet scanned
@@ -422,7 +430,8 @@ void TransferQueue::startFolderOperation(const PendingFolderOp &op)
     if (op.operationType == OperationType::Upload) {
         // Handle Replace: delete existing folder first
         if (op.destExists && replaceExisting_) {
-            qDebug() << "TransferQueue: Folder" << op.targetPath << "needs deletion before upload (Replace)";
+            qDebug() << "TransferQueue: Folder" << op.targetPath
+                     << "needs deletion before upload (Replace)";
             pendingUploadAfterDelete_ = true;
             enqueueRecursiveDelete(op.targetPath);
             return;
@@ -444,11 +453,13 @@ void TransferQueue::startFolderOperation(const PendingFolderOp &op)
     } else {
         // Download: Handle Replace - delete existing local folder first
         if (op.destExists && replaceExisting_) {
-            qDebug() << "TransferQueue: Local folder" << op.targetPath << "needs deletion before download (Replace)";
+            qDebug() << "TransferQueue: Local folder" << op.targetPath
+                     << "needs deletion before download (Replace)";
             QDir localDir(op.targetPath);
             if (localDir.exists() && !localDir.removeRecursively()) {
                 qDebug() << "TransferQueue: Failed to delete local folder" << op.targetPath;
-                emit statusMessage(tr("Failed to delete local folder '%1'").arg(op.targetPath), 5000);
+                emit statusMessage(tr("Failed to delete local folder '%1'").arg(op.targetPath),
+                                   5000);
             }
         }
 
@@ -536,7 +547,8 @@ void TransferQueue::finishDirectoryCreation()
     // Queue all files for upload
     QDir dir(currentFolderOp_.sourcePath);
     if (!dir.exists()) {
-        qWarning() << "TransferQueue: Source directory doesn't exist:" << currentFolderOp_.sourcePath;
+        qWarning() << "TransferQueue: Source directory doesn't exist:"
+                   << currentFolderOp_.sourcePath;
         return;
     }
 
@@ -570,7 +582,8 @@ void TransferQueue::finishDirectoryCreation()
 // Scanning (for downloads and deletes)
 // ============================================================================
 
-void TransferQueue::startScan(const QString &remotePath, const QString &localBase, const QString &remoteBase, int batchId)
+void TransferQueue::startScan(const QString &remotePath, const QString &localBase,
+                              const QString &remoteBase, int batchId)
 {
     transitionTo(QueueState::Scanning);
 
@@ -621,14 +634,16 @@ void TransferQueue::handleDirectoryListing(const QString &path, const QList<FtpE
         localTargetDir = currentScan.localBasePath;
     } else {
         QString relativePath = path.mid(currentScan.remoteBasePath.length());
-        if (relativePath.startsWith('/')) relativePath = relativePath.mid(1);
+        if (relativePath.startsWith('/'))
+            relativePath = relativePath.mid(1);
         localTargetDir = currentScan.localBasePath + '/' + relativePath;
     }
 
     // Process entries
     for (const FtpEntry &entry : entries) {
         QString entryRemotePath = path;
-        if (!entryRemotePath.endsWith('/')) entryRemotePath += '/';
+        if (!entryRemotePath.endsWith('/'))
+            entryRemotePath += '/';
         entryRemotePath += entry.name;
 
         if (entry.isDirectory) {
@@ -671,7 +686,8 @@ void TransferQueue::finishScanning()
     // Check for empty batches
     QList<int> emptyBatchIds;
     for (const TransferBatch &batch : batches_) {
-        if (batch.operationType == OperationType::Download && batch.scanned && batch.totalCount() == 0) {
+        if (batch.operationType == OperationType::Download && batch.scanned &&
+            batch.totalCount() == 0) {
             emptyBatchIds.append(batch.batchId);
         }
     }
@@ -682,7 +698,8 @@ void TransferQueue::finishScanning()
     }
 
     if (!emptyBatchIds.isEmpty()) {
-        emit statusMessage(tr("%n empty folder(s) - nothing to download", "", emptyBatchIds.size()), 3000);
+        emit statusMessage(tr("%n empty folder(s) - nothing to download", "", emptyBatchIds.size()),
+                           3000);
     }
 
     transitionTo(QueueState::Idle);
@@ -699,7 +716,8 @@ void TransferQueue::enqueueDelete(const QString &remotePath, bool isDirectory)
     if (batchIdx < 0 || batches_[batchIdx].operationType != OperationType::Delete) {
         QString fileName = QFileInfo(remotePath).fileName();
         QString sourcePath = !recursiveDeleteBase_.isEmpty() ? recursiveDeleteBase_ : QString();
-        int batchId = createBatch(OperationType::Delete, tr("Deleting %1").arg(fileName), fileName, sourcePath);
+        int batchId = createBatch(OperationType::Delete, tr("Deleting %1").arg(fileName), fileName,
+                                  sourcePath);
         for (int i = 0; i < batches_.size(); ++i) {
             if (batches_[i].batchId == batchId) {
                 batchIdx = i;
@@ -742,7 +760,8 @@ void TransferQueue::enqueueDelete(const QString &remotePath, bool isDirectory)
 
 void TransferQueue::enqueueRecursiveDelete(const QString &remotePath)
 {
-    if (!ftpClient_ || !ftpClient_->isConnected()) return;
+    if (!ftpClient_ || !ftpClient_->isConnected())
+        return;
 
     QString normalizedPath = remotePath;
     while (normalizedPath.endsWith('/') && normalizedPath.length() > 1) {
@@ -751,7 +770,8 @@ void TransferQueue::enqueueRecursiveDelete(const QString &remotePath)
 
     if (isPathBeingTransferred(normalizedPath, OperationType::Delete)) {
         qDebug() << "TransferQueue: Ignoring duplicate delete request for" << normalizedPath;
-        emit statusMessage(tr("'%1' is already being deleted").arg(QFileInfo(normalizedPath).fileName()), 3000);
+        emit statusMessage(
+            tr("'%1' is already being deleted").arg(QFileInfo(normalizedPath).fileName()), 3000);
         return;
     }
 
@@ -777,7 +797,8 @@ void TransferQueue::enqueueRecursiveDelete(const QString &remotePath)
     ftpClient_->list(normalizedPath);
 }
 
-void TransferQueue::handleDirectoryListingForDelete(const QString &path, const QList<FtpEntry> &entries)
+void TransferQueue::handleDirectoryListingForDelete(const QString &path,
+                                                    const QList<FtpEntry> &entries)
 {
     requestedDeleteListings_.remove(path);
 
@@ -790,13 +811,15 @@ void TransferQueue::handleDirectoryListingForDelete(const QString &path, const Q
         }
     }
 
-    if (!found) return;
+    if (!found)
+        return;
 
     directoriesScanned_++;
 
     for (const FtpEntry &entry : entries) {
         QString entryPath = path;
-        if (!entryPath.endsWith('/')) entryPath += '/';
+        if (!entryPath.endsWith('/'))
+            entryPath += '/';
         entryPath += entry.name;
 
         if (entry.isDirectory) {
@@ -827,14 +850,16 @@ void TransferQueue::handleDirectoryListingForDelete(const QString &path, const Q
     } else {
         // Sort: files first, then directories deepest-first
         std::sort(deleteQueue_.begin(), deleteQueue_.end(),
-            [](const DeleteItem &a, const DeleteItem &b) {
-                if (!a.isDirectory && b.isDirectory) return true;
-                if (a.isDirectory && !b.isDirectory) return false;
-                if (a.isDirectory && b.isDirectory) {
-                    return a.path.count('/') > b.path.count('/');
-                }
-                return false;
-            });
+                  [](const DeleteItem &a, const DeleteItem &b) {
+                      if (!a.isDirectory && b.isDirectory)
+                          return true;
+                      if (a.isDirectory && !b.isDirectory)
+                          return false;
+                      if (a.isDirectory && b.isDirectory) {
+                          return a.path.count('/') > b.path.count('/');
+                      }
+                      return false;
+                  });
 
         transitionTo(QueueState::Deleting);
         emit queueChanged();
@@ -928,14 +953,14 @@ void TransferQueue::processNext()
         if (items_[i].status == TransferItem::Status::Pending) {
             currentIndex_ = i;
 
-            QString fileName = QFileInfo(
-                items_[i].operationType == OperationType::Upload
-                    ? items_[i].localPath : items_[i].remotePath
-            ).fileName();
+            QString fileName =
+                QFileInfo(items_[i].operationType == OperationType::Upload ? items_[i].localPath
+                                                                           : items_[i].remotePath)
+                    .fileName();
 
             // Check for file existence confirmation (downloads)
-            if (items_[i].operationType == OperationType::Download &&
-                !overwriteAll_ && !items_[i].confirmed) {
+            if (items_[i].operationType == OperationType::Download && !overwriteAll_ &&
+                !items_[i].confirmed) {
                 QFileInfo localFile(items_[i].localPath);
                 if (localFile.exists()) {
                     transitionTo(QueueState::AwaitingFileConfirm);
@@ -947,10 +972,11 @@ void TransferQueue::processNext()
             }
 
             // Check for remote file existence (uploads)
-            if (items_[i].operationType == OperationType::Upload &&
-                !overwriteAll_ && !items_[i].confirmed) {
+            if (items_[i].operationType == OperationType::Upload && !overwriteAll_ &&
+                !items_[i].confirmed) {
                 QString parentDir = QFileInfo(items_[i].remotePath).path();
-                if (parentDir.isEmpty()) parentDir = "/";
+                if (parentDir.isEmpty())
+                    parentDir = "/";
 
                 requestedUploadFileCheckListings_.insert(parentDir);
                 ftpClient_->list(parentDir);
@@ -1106,17 +1132,17 @@ void TransferQueue::onFtpError(const QString &message)
         items_[currentIndex_].errorMessage = message;
         emit dataChanged(index(currentIndex_), index(currentIndex_));
 
-        QString fileName = QFileInfo(
-            items_[currentIndex_].operationType == OperationType::Upload
-                ? items_[currentIndex_].localPath
-                : items_[currentIndex_].remotePath
-        ).fileName();
+        QString fileName = QFileInfo(items_[currentIndex_].operationType == OperationType::Upload
+                                         ? items_[currentIndex_].localPath
+                                         : items_[currentIndex_].remotePath)
+                               .fileName();
         emit operationFailed(fileName, message);
 
         int batchId = items_[currentIndex_].batchId;
         if (TransferBatch *batch = findBatch(batchId)) {
             batch->failedCount++;
-            emit batchProgressUpdate(batchId, batch->completedCount + batch->failedCount, batch->totalCount());
+            emit batchProgressUpdate(batchId, batch->completedCount + batch->failedCount,
+                                     batch->totalCount());
 
             if (batch->isComplete()) {
                 completeBatch(batchId);
@@ -1184,7 +1210,8 @@ void TransferQueue::onDirectoryListed(const QString &path, const QList<FtpEntry>
     qDebug() << "TransferQueue: Ignoring untracked listing for" << path;
 }
 
-void TransferQueue::handleDirectoryListingForFolderCheck(const QString &path, const QList<FtpEntry> &entries)
+void TransferQueue::handleDirectoryListingForFolderCheck(const QString &path,
+                                                         const QList<FtpEntry> &entries)
 {
     requestedFolderCheckListings_.remove(path);
 
@@ -1211,7 +1238,8 @@ void TransferQueue::handleDirectoryListingForFolderCheck(const QString &path, co
     checkFolderConfirmation();
 }
 
-void TransferQueue::handleDirectoryListingForUploadCheck(const QString &path, const QList<FtpEntry> &entries)
+void TransferQueue::handleDirectoryListingForUploadCheck(const QString &path,
+                                                         const QList<FtpEntry> &entries)
 {
     requestedUploadFileCheckListings_.remove(path);
 
@@ -1257,8 +1285,7 @@ void TransferQueue::onFileRemoved(const QString &path)
 
     // Handle single delete in regular queue
     for (const auto &item : items_) {
-        if (item.operationType == OperationType::Delete &&
-            item.remotePath == path &&
+        if (item.operationType == OperationType::Delete && item.remotePath == path &&
             item.status == TransferItem::Status::InProgress) {
 
             stopOperationTimeout();
@@ -1368,7 +1395,8 @@ void TransferQueue::respondToFolderExists(FolderExistsResponse response)
 // Batch management
 // ============================================================================
 
-int TransferQueue::createBatch(OperationType type, const QString &description, const QString &folderName, const QString &sourcePath)
+int TransferQueue::createBatch(OperationType type, const QString &description,
+                               const QString &folderName, const QString &sourcePath)
 {
     // Purge completed batches
     for (int i = batches_.size() - 1; i >= 0; --i) {
@@ -1426,8 +1454,7 @@ void TransferQueue::completeBatch(int batchId)
     }
 
     qDebug() << "TransferQueue: Completing batch" << batchId
-             << "completed:" << batch->completedCount
-             << "failed:" << batch->failedCount
+             << "completed:" << batch->completedCount << "failed:" << batch->failedCount
              << "total:" << batch->totalCount();
 
     activeBatchIndex_ = -1;
@@ -1524,7 +1551,7 @@ void TransferQueue::markCurrentComplete(TransferItem::Status status)
     currentIndex_ = -1;
 }
 
-TransferBatch* TransferQueue::findBatch(int batchId)
+TransferBatch *TransferQueue::findBatch(int batchId)
 {
     for (auto &batch : batches_) {
         if (batch.batchId == batchId) {
@@ -1534,7 +1561,7 @@ TransferBatch* TransferQueue::findBatch(int batchId)
     return nullptr;
 }
 
-const TransferBatch* TransferQueue::findBatch(int batchId) const
+const TransferBatch *TransferQueue::findBatch(int batchId) const
 {
     for (const auto &batch : batches_) {
         if (batch.batchId == batchId) {
@@ -1544,7 +1571,7 @@ const TransferBatch* TransferQueue::findBatch(int batchId) const
     return nullptr;
 }
 
-TransferBatch* TransferQueue::activeBatch()
+TransferBatch *TransferQueue::activeBatch()
 {
     if (activeBatchIndex_ >= 0 && activeBatchIndex_ < batches_.size()) {
         return &batches_[activeBatchIndex_];
@@ -1708,9 +1735,8 @@ void TransferQueue::cancelBatch(int batchId)
     }
 
     for (auto &item : items_) {
-        if (item.batchId == batchId &&
-            (item.status == TransferItem::Status::Pending ||
-             item.status == TransferItem::Status::InProgress)) {
+        if (item.batchId == batchId && (item.status == TransferItem::Status::Pending ||
+                                        item.status == TransferItem::Status::InProgress)) {
             item.status = TransferItem::Status::Failed;
             item.errorMessage = tr("Cancelled");
         }
@@ -1856,8 +1882,8 @@ QVariant TransferQueue::data(const QModelIndex &index, int role) const
     switch (role) {
     case Qt::DisplayRole:
     case FileNameRole: {
-        QString path = (item.operationType == OperationType::Upload)
-            ? item.localPath : item.remotePath;
+        QString path =
+            (item.operationType == OperationType::Upload) ? item.localPath : item.remotePath;
         return QFileInfo(path).fileName();
     }
     case LocalPathRole:
@@ -2000,13 +2026,13 @@ void TransferQueue::onOperationTimeout()
 
     for (int i = 0; i < items_.size(); ++i) {
         if (items_[i].status == TransferItem::Status::InProgress) {
-            QString fileName = QFileInfo(items_[i].localPath.isEmpty()
-                                        ? items_[i].remotePath
-                                        : items_[i].localPath).fileName();
+            QString fileName = QFileInfo(items_[i].localPath.isEmpty() ? items_[i].remotePath
+                                                                       : items_[i].localPath)
+                                   .fileName();
 
             items_[i].status = TransferItem::Status::Failed;
-            items_[i].errorMessage = tr("Operation timed out after %1 minutes")
-                                     .arg(OperationTimeoutMs / 60000);
+            items_[i].errorMessage =
+                tr("Operation timed out after %1 minutes").arg(OperationTimeoutMs / 60000);
             emit dataChanged(index(i), index(i));
             emit operationFailed(fileName, items_[i].errorMessage);
             break;

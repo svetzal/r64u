@@ -137,14 +137,16 @@ QString SidFileParser::formatForDisplay(const SidInfo &info)
         if (info.secondSidAddress != 0) {
             quint16 addr = 0xD400 + (info.secondSidAddress & 0xFE) * 16;
             output += QString("2nd SID: $%1 (%2)\n")
-                .arg(addr, 4, 16, QChar('0')).toUpper()
-                .arg(sidModelToString(info.secondSidModel));
+                          .arg(addr, 4, 16, QChar('0'))
+                          .toUpper()
+                          .arg(sidModelToString(info.secondSidModel));
         }
         if (info.thirdSidAddress != 0) {
             quint16 addr = 0xD400 + (info.thirdSidAddress & 0xFE) * 16;
             output += QString("3rd SID: $%1 (%2)\n")
-                .arg(addr, 4, 16, QChar('0')).toUpper()
-                .arg(sidModelToString(info.thirdSidModel));
+                          .arg(addr, 4, 16, QChar('0'))
+                          .toUpper()
+                          .arg(sidModelToString(info.thirdSidModel));
         }
     }
 
@@ -202,8 +204,7 @@ quint16 SidFileParser::readWord(const QByteArray &data, int offset)
         return 0;
     }
     // Big-endian
-    return (static_cast<quint8>(data.at(offset)) << 8) |
-           static_cast<quint8>(data.at(offset + 1));
+    return (static_cast<quint8>(data.at(offset)) << 8) | static_cast<quint8>(data.at(offset + 1));
 }
 
 quint32 SidFileParser::readLongword(const QByteArray &data, int offset)

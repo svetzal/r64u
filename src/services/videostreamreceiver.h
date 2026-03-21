@@ -9,12 +9,13 @@
 #ifndef VIDEOSTREAMRECEIVER_H
 #define VIDEOSTREAMRECEIVER_H
 
-#include <QObject>
-#include <QUdpSocket>
 #include <QByteArray>
-#include <QVector>
-#include <QSet>
 #include <QElapsedTimer>
+#include <QObject>
+#include <QSet>
+#include <QUdpSocket>
+#include <QVector>
+
 #include <functional>
 
 /**
@@ -87,11 +88,7 @@ public:
     /**
      * @brief Video format enumeration.
      */
-    enum class VideoFormat {
-        Unknown,
-        PAL,
-        NTSC
-    };
+    enum class VideoFormat { Unknown, PAL, NTSC };
 
     /**
      * @brief Constructs a video stream receiver.
@@ -143,7 +140,8 @@ public:
     /**
      * @brief Callback interface for diagnostics timing data.
      */
-    struct DiagnosticsCallback {
+    struct DiagnosticsCallback
+    {
         std::function<void(qint64 arrivalTimeUs)> onPacketReceived;
         std::function<void(quint16 frameNumber, qint64 startTimeUs)> onFrameStarted;
         std::function<void(quint16 frameNumber, qint64 endTimeUs, bool complete)> onFrameCompleted;
@@ -195,10 +193,11 @@ private:
     /**
      * @brief Video packet header structure.
      */
-    struct PacketHeader {
+    struct PacketHeader
+    {
         quint16 sequenceNumber;
         quint16 frameNumber;
-        quint16 lineNumber;     // Bits 0-14: line num, Bit 15: last packet flag
+        quint16 lineNumber;  // Bits 0-14: line num, Bit 15: last packet flag
         quint16 pixelsPerLine;
         quint8 linesPerPacket;
         quint8 bitsPerPixel;
@@ -218,11 +217,11 @@ private:
     QUdpSocket *socket_ = nullptr;
 
     // Frame assembly
-    QByteArray frameBuffer_;           // Current frame being assembled
-    quint16 currentFrameNum_ = 0;      // Current frame number
-    QSet<quint16> receivedPackets_;    // Line numbers of received packets
-    int expectedPackets_ = 0;          // Expected packet count for current frame
-    bool frameInProgress_ = false;     // Whether we're assembling a frame
+    QByteArray frameBuffer_;         // Current frame being assembled
+    quint16 currentFrameNum_ = 0;    // Current frame number
+    QSet<quint16> receivedPackets_;  // Line numbers of received packets
+    int expectedPackets_ = 0;        // Expected packet count for current frame
+    bool frameInProgress_ = false;   // Whether we're assembling a frame
 
     // Format detection
     VideoFormat videoFormat_ = VideoFormat::Unknown;
@@ -240,4 +239,4 @@ private:
     qint64 frameStartTimeUs_ = 0;
 };
 
-#endif // VIDEOSTREAMRECEIVER_H
+#endif  // VIDEOSTREAMRECEIVER_H

@@ -1,9 +1,6 @@
 #include "mockrestclient.h"
 
-MockRestClient::MockRestClient(QObject *parent)
-    : QObject(parent)
-{
-}
+MockRestClient::MockRestClient(QObject *parent) : QObject(parent) {}
 
 void MockRestClient::getInfo()
 {

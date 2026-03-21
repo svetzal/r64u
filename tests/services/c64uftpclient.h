@@ -4,12 +4,12 @@
 // This mock replaces C64UFtpClient for testing.
 // It provides the same interface but allows controlling responses.
 
-#include <QQueue>
-#include <QMap>
-#include <QList>
-#include <QDateTime>
-
 #include "services/iftpclient.h"
+
+#include <QDateTime>
+#include <QList>
+#include <QMap>
+#include <QQueue>
 
 /**
  * Mock replacement for C64UFtpClient.
@@ -80,7 +80,8 @@ public:
     // Signals are inherited from IFtpClient
 
 private:
-    struct PendingOp {
+    struct PendingOp
+    {
         enum Type { List, Download, Upload, Mkdir, DownloadToMemory };
         Type type;
         QString path;
@@ -107,4 +108,4 @@ private:
     QString nextOpError_;
 };
 
-#endif // MOCKFTPCLIENT_H
+#endif  // MOCKFTPCLIENT_H

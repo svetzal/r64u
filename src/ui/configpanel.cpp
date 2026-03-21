@@ -1,16 +1,16 @@
 #include "configpanel.h"
-#include "configitemspanel.h"
-#include "services/deviceconnection.h"
-#include "models/configurationmodel.h"
 
-#include <QVBoxLayout>
+#include "configitemspanel.h"
+
+#include "models/configurationmodel.h"
+#include "services/deviceconnection.h"
+
 #include <QMessageBox>
 #include <QPushButton>
+#include <QVBoxLayout>
 
 ConfigPanel::ConfigPanel(DeviceConnection *connection, QWidget *parent)
-    : QWidget(parent)
-    , deviceConnection_(connection)
-    , configModel_(new ConfigurationModel(this))
+    : QWidget(parent), deviceConnection_(connection), configModel_(new ConfigurationModel(this))
 {
     // DeviceConnection is required - assert in debug builds
     Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
@@ -32,25 +32,21 @@ void ConfigPanel::setupUi()
 
     saveToFlashAction_ = toolBar_->addAction(tr("Save to Flash"));
     saveToFlashAction_->setToolTip(tr("Persist current settings to non-volatile storage"));
-    connect(saveToFlashAction_, &QAction::triggered,
-            this, &ConfigPanel::onSaveToFlash);
+    connect(saveToFlashAction_, &QAction::triggered, this, &ConfigPanel::onSaveToFlash);
 
     loadFromFlashAction_ = toolBar_->addAction(tr("Load from Flash"));
     loadFromFlashAction_->setToolTip(tr("Revert to last saved settings"));
-    connect(loadFromFlashAction_, &QAction::triggered,
-            this, &ConfigPanel::onLoadFromFlash);
+    connect(loadFromFlashAction_, &QAction::triggered, this, &ConfigPanel::onLoadFromFlash);
 
     resetToDefaultsAction_ = toolBar_->addAction(tr("Reset to Defaults"));
     resetToDefaultsAction_->setToolTip(tr("Reset all settings to factory defaults"));
-    connect(resetToDefaultsAction_, &QAction::triggered,
-            this, &ConfigPanel::onResetToDefaults);
+    connect(resetToDefaultsAction_, &QAction::triggered, this, &ConfigPanel::onResetToDefaults);
 
     toolBar_->addSeparator();
 
     refreshAction_ = toolBar_->addAction(tr("Refresh"));
     refreshAction_->setToolTip(tr("Reload all configuration from device"));
-    connect(refreshAction_, &QAction::triggered,
-            this, &ConfigPanel::onRefresh);
+    connect(refreshAction_, &QAction::triggered, this, &ConfigPanel::onRefresh);
 
     toolBar_->addSeparator();
 
@@ -72,17 +68,14 @@ void ConfigPanel::setupUi()
     categoryList_->setAlternatingRowColors(true);
     categoryList_->setSpacing(2);
     // Match the styling of tree views with slightly more padding
-    categoryList_->setStyleSheet(
-        "QListWidget::item { padding: 4px 8px; }"
-    );
-    connect(categoryList_, &QListWidget::currentItemChanged,
-            this, &ConfigPanel::onCategorySelected);
+    categoryList_->setStyleSheet("QListWidget::item { padding: 4px 8px; }");
+    connect(categoryList_, &QListWidget::currentItemChanged, this,
+            &ConfigPanel::onCategorySelected);
     splitter_->addWidget(categoryList_);
 
     // Config items panel
     itemsPanel_ = new ConfigItemsPanel(configModel_);
-    connect(itemsPanel_, &ConfigItemsPanel::itemChanged,
-            this, &ConfigPanel::onItemEdited);
+    connect(itemsPanel_, &ConfigItemsPanel::itemChanged, this, &ConfigPanel::onItemEdited);
     splitter_->addWidget(itemsPanel_);
 
     // Set splitter sizes (category list gets ~25%, items panel gets ~75%)
@@ -95,16 +88,15 @@ void ConfigPanel::setupConnections()
 {
     // Subscribe to device connection state changes
     if (deviceConnection_) {
-        connect(deviceConnection_, &DeviceConnection::stateChanged,
-                this, &ConfigPanel::onConnectionStateChanged);
+        connect(deviceConnection_, &DeviceConnection::stateChanged, this,
+                &ConfigPanel::onConnectionStateChanged);
     }
 
     // Connect model signals
     if (configModel_) {
-        connect(configModel_, &ConfigurationModel::dirtyStateChanged,
-                this, &ConfigPanel::onDirtyStateChanged);
-        connect(configModel_, &ConfigurationModel::categoriesChanged,
-                this, [this]() {
+        connect(configModel_, &ConfigurationModel::dirtyStateChanged, this,
+                &ConfigPanel::onDirtyStateChanged);
+        connect(configModel_, &ConfigurationModel::categoriesChanged, this, [this]() {
             // Update category list when categories change
             if (!categoryList_ || !configModel_) {
                 return;
@@ -123,18 +115,17 @@ void ConfigPanel::setupConnections()
     // Connect REST client signals - guard against null restClient()
     if (deviceConnection_ && deviceConnection_->restClient()) {
         C64URestClient *restClient = deviceConnection_->restClient();
-        connect(restClient, &C64URestClient::configCategoriesReceived,
-                this, &ConfigPanel::onCategoriesReceived);
-        connect(restClient, &C64URestClient::configCategoryItemsReceived,
-                this, &ConfigPanel::onCategoryItemsReceived);
-        connect(restClient, &C64URestClient::configSavedToFlash,
-                this, &ConfigPanel::onSavedToFlash);
-        connect(restClient, &C64URestClient::configLoadedFromFlash,
-                this, &ConfigPanel::onLoadedFromFlash);
-        connect(restClient, &C64URestClient::configResetToDefaults,
-                this, &ConfigPanel::onResetComplete);
-        connect(restClient, &C64URestClient::configItemSet,
-                this, &ConfigPanel::onItemSetResult);
+        connect(restClient, &C64URestClient::configCategoriesReceived, this,
+                &ConfigPanel::onCategoriesReceived);
+        connect(restClient, &C64URestClient::configCategoryItemsReceived, this,
+                &ConfigPanel::onCategoryItemsReceived);
+        connect(restClient, &C64URestClient::configSavedToFlash, this,
+                &ConfigPanel::onSavedToFlash);
+        connect(restClient, &C64URestClient::configLoadedFromFlash, this,
+                &ConfigPanel::onLoadedFromFlash);
+        connect(restClient, &C64URestClient::configResetToDefaults, this,
+                &ConfigPanel::onResetComplete);
+        connect(restClient, &C64URestClient::configItemSet, this, &ConfigPanel::onItemSetResult);
     }
 }
 
@@ -167,8 +158,8 @@ void ConfigPanel::onConnectionStateChanged()
 
 void ConfigPanel::refreshIfEmpty()
 {
-    if (deviceConnection_ && deviceConnection_->canPerformOperations() &&
-        categoryList_ && categoryList_->count() == 0) {
+    if (deviceConnection_ && deviceConnection_->canPerformOperations() && categoryList_ &&
+        categoryList_->count() == 0) {
         onRefresh();
     }
 }
@@ -220,7 +211,8 @@ void ConfigPanel::onResetToDefaults()
     msgBox.setText(tr("This will reset all configuration settings to factory defaults.\n\n"
                       "Are you sure you want to continue?"));
     msgBox.setIcon(QMessageBox::Warning);
-    QPushButton *resetButton = msgBox.addButton(tr("Reset to Defaults"), QMessageBox::DestructiveRole);
+    QPushButton *resetButton =
+        msgBox.addButton(tr("Reset to Defaults"), QMessageBox::DestructiveRole);
     msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
     msgBox.exec();
 
@@ -261,7 +253,7 @@ void ConfigPanel::onCategoriesReceived(const QStringList &categories)
 }
 
 void ConfigPanel::onCategoryItemsReceived(const QString &category,
-                                           const QHash<QString, ConfigItemMetadata> &items)
+                                          const QHash<QString, ConfigItemMetadata> &items)
 {
     // Convert REST metadata to model's ConfigItemInfo format
     QHash<QString, ConfigItemInfo> infoItems;
@@ -339,15 +331,13 @@ void ConfigPanel::onCategorySelected(QListWidgetItem *current, QListWidgetItem *
     }
 
     // Load items for this category if not already loaded
-    if (configModel_ && configModel_->itemCount(category) == 0 &&
-        deviceConnection_ && deviceConnection_->canPerformOperations() &&
-        deviceConnection_->restClient()) {
+    if (configModel_ && configModel_->itemCount(category) == 0 && deviceConnection_ &&
+        deviceConnection_->canPerformOperations() && deviceConnection_->restClient()) {
         deviceConnection_->restClient()->getConfigCategoryItems(category);
     }
 }
 
-void ConfigPanel::onItemEdited(const QString &category, const QString &item,
-                                const QVariant &value)
+void ConfigPanel::onItemEdited(const QString &category, const QString &item, const QVariant &value)
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
         emit statusMessage(tr("Not connected - changes are local only"), 3000);

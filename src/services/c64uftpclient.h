@@ -9,16 +9,16 @@
 #ifndef C64UFTPCLIENT_H
 #define C64UFTPCLIENT_H
 
-#include <QTcpSocket>
-#include <QQueue>
-#include <QFile>
+#include "iftpclient.h"
+
 #include <QDateTime>
+#include <QFile>
+#include <QQueue>
+#include <QTcpSocket>
 #include <QTimer>
 
 #include <memory>
 #include <optional>
-
-#include "iftpclient.h"
 
 /**
  * @brief Asynchronous FTP client for Ultimate 64/II+ devices.
@@ -52,28 +52,29 @@ class C64UFtpClient : public IFtpClient
 public:
     /// @name FTP Protocol Constants
     /// @{
-    static constexpr quint16 DefaultPort = 21;  ///< Default FTP control port
+    static constexpr quint16 DefaultPort = 21;         ///< Default FTP control port
     static constexpr int ConnectionTimeoutMs = 15000;  ///< Connection timeout in milliseconds
-    static constexpr int FtpReplyCodeLength = 3;  ///< Length of FTP reply code
-    static constexpr int FtpReplyTextOffset = 4;  ///< Offset to reply text after code
-    static constexpr int CrLfLength = 2;  ///< Length of CRLF line ending
+    static constexpr int FtpReplyCodeLength = 3;       ///< Length of FTP reply code
+    static constexpr int FtpReplyTextOffset = 4;       ///< Offset to reply text after code
+    static constexpr int CrLfLength = 2;               ///< Length of CRLF line ending
     static constexpr int PassivePortMultiplier = 256;  ///< Multiplier for passive port calculation
     /// @}
 
     /// @name FTP Response Codes (RFC 959)
     /// @{
-    static constexpr int FtpReplyServiceReady = 220;  ///< Service ready for new user
-    static constexpr int FtpReplyUserLoggedIn = 230;  ///< User logged in, proceed
+    static constexpr int FtpReplyServiceReady = 220;      ///< Service ready for new user
+    static constexpr int FtpReplyUserLoggedIn = 230;      ///< User logged in, proceed
     static constexpr int FtpReplyPasswordRequired = 331;  ///< User name okay, need password
-    static constexpr int FtpReplyPathCreated = 257;  ///< Pathname created
-    static constexpr int FtpReplyActionOk = 250;  ///< Requested file action okay
-    static constexpr int FtpReplyEnteringPassive = 227;  ///< Entering passive mode
-    static constexpr int FtpReplyFileStatusOk = 150;  ///< File status okay, opening connection
+    static constexpr int FtpReplyPathCreated = 257;       ///< Pathname created
+    static constexpr int FtpReplyActionOk = 250;          ///< Requested file action okay
+    static constexpr int FtpReplyEnteringPassive = 227;   ///< Entering passive mode
+    static constexpr int FtpReplyFileStatusOk = 150;      ///< File status okay, opening connection
     static constexpr int FtpReplyDataConnectionOpen = 125;  ///< Data connection already open
-    static constexpr int FtpReplyTransferComplete = 226;  ///< Transfer complete
-    static constexpr int FtpReplyPendingFurtherInfo = 350;  ///< Requested action pending further info
+    static constexpr int FtpReplyTransferComplete = 226;    ///< Transfer complete
+    static constexpr int FtpReplyPendingFurtherInfo =
+        350;                                            ///< Requested action pending further info
     static constexpr int FtpReplyErrorThreshold = 400;  ///< Codes >= this indicate error
-    static constexpr int FtpReplyFileExists = 553;  ///< File/directory already exists
+    static constexpr int FtpReplyFileExists = 553;      ///< File/directory already exists
     /// @}
 
     // State enum is inherited from IFtpClient
@@ -119,7 +120,10 @@ public:
      * @brief Checks if the client is connected and ready.
      * @return True if in Ready or Busy state.
      */
-    [[nodiscard]] bool isConnected() const override { return state_ == State::Ready || state_ == State::Busy; }
+    [[nodiscard]] bool isConnected() const override
+    {
+        return state_ == State::Ready || state_ == State::Busy;
+    }
 
     /**
      * @brief Checks if successfully logged in.
@@ -277,7 +281,8 @@ private:
         Quit
     };
 
-    struct PendingCommand {
+    struct PendingCommand
+    {
         Command cmd;
         QString arg;
         QString localPath;  // For transfers
@@ -288,13 +293,15 @@ private:
     };
 
     // RAII struct for pending LIST state - cleared with single reset()
-    struct PendingListState {
+    struct PendingListState
+    {
         QString path;
         QByteArray buffer;  // Save buffer when 226 arrives before data socket closes
     };
 
     // RAII struct for pending RETR state - cleared with single reset()
-    struct PendingRetrState {
+    struct PendingRetrState
+    {
         QString remotePath;
         QString localPath;
         std::shared_ptr<QFile> file;
@@ -319,7 +326,6 @@ public:
     [[nodiscard]] QList<FtpEntry> parseDirectoryListing(const QByteArray &data);
 
 private:
-
     // Network connections
     QTcpSocket *controlSocket_ = nullptr;
     QTcpSocket *dataSocket_ = nullptr;
@@ -344,11 +350,11 @@ private:
     QString responseBuffer_;
 
     // Data transfer state - separate buffers for LIST and RETR to prevent corruption
-    QByteArray listBuffer_;   // Buffer for LIST (directory listing) data
-    QByteArray retrBuffer_;   // Buffer for RETR (file download to memory) data
+    QByteArray listBuffer_;  // Buffer for LIST (directory listing) data
+    QByteArray retrBuffer_;  // Buffer for RETR (file download to memory) data
     qint64 transferSize_ = 0;
     bool downloading_ = false;
-    std::shared_ptr<QFile> transferFile_;  // Legacy - no longer used for STOR
+    std::shared_ptr<QFile> transferFile_;     // Legacy - no longer used for STOR
     std::shared_ptr<QFile> currentRetrFile_;  // Current RETR command file
     std::shared_ptr<QFile> currentStorFile_;  // Current STOR command file
     bool currentRetrIsMemory_ = false;
@@ -359,4 +365,4 @@ private:
     std::optional<PendingRetrState> pendingRetr_;  // RETR command completion
 };
 
-#endif // C64UFTPCLIENT_H
+#endif  // C64UFTPCLIENT_H
