@@ -287,8 +287,10 @@ void TestStatusMessageService::testMessageTimeoutClearsDisplay()
     QCOMPARE(spy.count(), 1);
     QVERIFY(service_->isDisplaying());
 
-    // Wait for timeout plus some margin
-    QTest::qWait(100);
+    // Wait for the message to timeout and the clear signal to arrive.
+    // QTRY_VERIFY_WITH_TIMEOUT processes events repeatedly, making this
+    // robust against timer jitter introduced in Qt 6.10.1 / macOS Tahoe.
+    QTRY_VERIFY_WITH_TIMEOUT(spy.count() >= 2, 500);
 
     // Should have received a clear message (empty string)
     bool foundClear = false;
