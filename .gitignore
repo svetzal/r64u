@@ -71,6 +71,9 @@ Testing/
 CPackConfig.cmake
 CPackSourceConfig.cmake
 
+# Doxygen generated documentation
+docs/api/
+
 # Generated source files (in-source builds)
 generated/
 logs.txt
