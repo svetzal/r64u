@@ -9,55 +9,12 @@
 #ifndef C64URESTCLIENT_H
 #define C64URESTCLIENT_H
 
+#include "irestclient.h"
+
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
-#include <QObject>
-
-/**
- * @brief Device information returned by the Ultimate API.
- */
-struct DeviceInfo
-{
-    QString product;          ///< Product name (e.g., "Ultimate 64")
-    QString firmwareVersion;  ///< Firmware version string
-    QString fpgaVersion;      ///< FPGA core version
-    QString coreVersion;      ///< Core version string
-    QString hostname;         ///< Network hostname
-    QString uniqueId;         ///< Unique device identifier
-    QString apiVersion;       ///< REST API version
-};
-
-/**
- * @brief Metadata for a configuration item including available options.
- */
-struct ConfigItemMetadata
-{
-    QVariant current;       ///< Current value
-    QVariant defaultValue;  ///< Default value
-    QStringList values;     ///< Available options for enum types
-    QStringList presets;    ///< Preset options for file-type items
-    int min = 0;            ///< Minimum value for numeric types
-    int max = 0;            ///< Maximum value for numeric types
-    QString format;         ///< Format string (e.g., "%d" or "%d00 ms")
-    bool hasRange = false;  ///< True if min/max are valid
-};
-
-/**
- * @brief Information about a single drive on the device.
- */
-struct DriveInfo
-{
-    QString name;          ///< Drive identifier (e.g., "A", "B")
-    bool enabled = false;  ///< Whether the drive is enabled
-    int busId = 0;         ///< IEC bus device number
-    QString type;          ///< Drive type (1541, 1571, 1581, etc.)
-    QString rom;           ///< Current ROM image
-    QString imageFile;     ///< Filename of mounted disk image
-    QString imagePath;     ///< Full path to mounted image
-    QString lastError;     ///< Last error message, if any
-};
 
 /**
  * @brief REST API client for Ultimate 64/II+ devices.
@@ -70,20 +27,21 @@ struct DriveInfo
  * - Configuration management
  * - Device information queries
  *
- * All operations are asynchronous with results delivered via Qt signals.
+ * All operations are asynchronous with results delivered via Qt signals
+ * inherited from IRestClient.
  *
  * @par Example usage:
  * @code
- * C64URestClient *rest = new C64URestClient(this);
+ * IRestClient *rest = new C64URestClient(this);
  * rest->setHost("192.168.1.64");
  *
- * connect(rest, &C64URestClient::infoReceived, this, &MyClass::onInfo);
- * connect(rest, &C64URestClient::operationFailed, this, &MyClass::onError);
+ * connect(rest, &IRestClient::infoReceived, this, &MyClass::onInfo);
+ * connect(rest, &IRestClient::operationFailed, this, &MyClass::onError);
  *
  * rest->getInfo();
  * @endcode
  */
-class C64URestClient : public QObject
+class C64URestClient : public IRestClient
 {
     Q_OBJECT
 
@@ -108,25 +66,25 @@ public:
      * @brief Sets the target host.
      * @param host Hostname or IP address of the Ultimate device.
      */
-    void setHost(const QString &host);
+    void setHost(const QString &host) override;
 
     /**
      * @brief Returns the currently configured host.
      * @return The hostname or IP address.
      */
-    [[nodiscard]] QString host() const { return host_; }
+    [[nodiscard]] QString host() const override { return host_; }
 
     /**
      * @brief Sets the authentication password.
      * @param password Password for API authentication.
      */
-    void setPassword(const QString &password);
+    void setPassword(const QString &password) override;
 
     /**
      * @brief Checks if a password is configured.
      * @return True if a password has been set.
      */
-    [[nodiscard]] bool hasPassword() const { return !password_.isEmpty(); }
+    [[nodiscard]] bool hasPassword() const override { return !password_.isEmpty(); }
 
     /// @name Device Information
     /// @{
@@ -136,14 +94,14 @@ public:
      *
      * Emits versionReceived() on success.
      */
-    void getVersion();
+    void getVersion() override;
 
     /**
      * @brief Requests full device information.
      *
      * Emits infoReceived() on success.
      */
-    void getInfo();
+    void getInfo() override;
     /// @}
 
     /// @name Content Playback
@@ -154,31 +112,31 @@ public:
      * @param filePath Path to the SID file on the device.
      * @param songNumber Optional song number for multi-song SIDs (-1 for default).
      */
-    void playSid(const QString &filePath, int songNumber = -1);
+    void playSid(const QString &filePath, int songNumber = -1) override;
 
     /**
      * @brief Plays a MOD music file.
      * @param filePath Path to the MOD file on the device.
      */
-    void playMod(const QString &filePath);
+    void playMod(const QString &filePath) override;
 
     /**
      * @brief Loads a PRG file without running it.
      * @param filePath Path to the PRG file on the device.
      */
-    void loadPrg(const QString &filePath);
+    void loadPrg(const QString &filePath) override;
 
     /**
      * @brief Runs a PRG file.
      * @param filePath Path to the PRG file on the device.
      */
-    void runPrg(const QString &filePath);
+    void runPrg(const QString &filePath) override;
 
     /**
      * @brief Runs a cartridge image.
      * @param filePath Path to the CRT file on the device.
      */
-    void runCrt(const QString &filePath);
+    void runCrt(const QString &filePath) override;
     /// @}
 
     /// @name Drive Control
@@ -189,7 +147,7 @@ public:
      *
      * Emits drivesReceived() on success.
      */
-    void getDrives();
+    void getDrives() override;
 
     /**
      * @brief Mounts a disk image on a drive.
@@ -198,19 +156,19 @@ public:
      * @param mode Mount mode: "readonly" or "readwrite".
      */
     void mountImage(const QString &drive, const QString &imagePath,
-                    const QString &mode = "readwrite");
+                    const QString &mode = "readwrite") override;
 
     /**
      * @brief Unmounts a disk image from a drive.
      * @param drive Drive identifier.
      */
-    void unmountImage(const QString &drive);
+    void unmountImage(const QString &drive) override;
 
     /**
      * @brief Resets a drive to its initial state.
      * @param drive Drive identifier.
      */
-    void resetDrive(const QString &drive);
+    void resetDrive(const QString &drive) override;
     /// @}
 
     /// @name Machine Control
@@ -219,39 +177,39 @@ public:
     /**
      * @brief Resets the C64 machine.
      */
-    void resetMachine();
+    void resetMachine() override;
 
     /**
      * @brief Reboots the Ultimate device.
      */
-    void rebootMachine();
+    void rebootMachine() override;
 
     /**
      * @brief Pauses the C64 machine execution.
      */
-    void pauseMachine();
+    void pauseMachine() override;
 
     /**
      * @brief Resumes C64 machine execution.
      */
-    void resumeMachine();
+    void resumeMachine() override;
 
     /**
      * @brief Powers off the Ultimate device.
      */
-    void powerOffMachine();
+    void powerOffMachine() override;
 
     /**
      * @brief Simulates pressing the menu button.
      */
-    void pressMenuButton();
+    void pressMenuButton() override;
 
     /**
      * @brief Writes data to C64 memory via DMA.
      * @param address Hexadecimal memory address (e.g., "0277").
      * @param data Data bytes to write.
      */
-    void writeMem(const QString &address, const QByteArray &data);
+    void writeMem(const QString &address, const QByteArray &data) override;
 
     /**
      * @brief Types text into the C64 via keyboard buffer injection.
@@ -261,7 +219,7 @@ public:
      * character count at $C6. Limited to 10 characters at a time.
      * For longer text, call multiple times with delays.
      */
-    void typeText(const QString &text);
+    void typeText(const QString &text) override;
     /// @}
 
     /// @name File Operations
@@ -273,7 +231,7 @@ public:
      *
      * Emits fileInfoReceived() on success.
      */
-    void getFileInfo(const QString &path);
+    void getFileInfo(const QString &path) override;
 
     /**
      * @brief Creates a new D64 disk image.
@@ -281,14 +239,15 @@ public:
      * @param diskName Optional disk name (default: empty).
      * @param tracks Number of tracks: 35 or 40 (default: 35).
      */
-    void createD64(const QString &path, const QString &diskName = QString(), int tracks = 35);
+    void createD64(const QString &path, const QString &diskName = QString(),
+                   int tracks = 35) override;
 
     /**
      * @brief Creates a new D81 disk image.
      * @param path Path where the image will be created.
      * @param diskName Optional disk name (default: empty).
      */
-    void createD81(const QString &path, const QString &diskName = QString());
+    void createD81(const QString &path, const QString &diskName = QString()) override;
     /// @}
 
     /// @name Configuration
@@ -299,7 +258,7 @@ public:
      *
      * Emits configCategoriesReceived() on success.
      */
-    void getConfigCategories();
+    void getConfigCategories() override;
 
     /**
      * @brief Gets all items in a configuration category.
@@ -307,7 +266,7 @@ public:
      *
      * Emits configCategoryItemsReceived() on success.
      */
-    void getConfigCategoryItems(const QString &category);
+    void getConfigCategoryItems(const QString &category) override;
 
     /**
      * @brief Gets a single configuration item value.
@@ -316,7 +275,7 @@ public:
      *
      * Emits configItemReceived() on success.
      */
-    void getConfigItem(const QString &category, const QString &item);
+    void getConfigItem(const QString &category, const QString &item) override;
 
     /**
      * @brief Sets a single configuration item value.
@@ -326,7 +285,8 @@ public:
      *
      * Emits configItemSet() on success.
      */
-    void setConfigItem(const QString &category, const QString &item, const QVariant &value);
+    void setConfigItem(const QString &category, const QString &item,
+                       const QVariant &value) override;
 
     /**
      * @brief Updates multiple configuration values.
@@ -334,7 +294,7 @@ public:
      *
      * Emits configsUpdated() on success.
      */
-    void updateConfigsBatch(const QJsonObject &configs);
+    void updateConfigsBatch(const QJsonObject &configs) override;
 
     /**
      * @brief Saves configuration to flash.
@@ -342,7 +302,7 @@ public:
      * Persists current settings to non-volatile storage.
      * Emits configSavedToFlash() on success.
      */
-    void saveConfigToFlash();
+    void saveConfigToFlash() override;
 
     /**
      * @brief Loads configuration from flash.
@@ -350,117 +310,14 @@ public:
      * Reverts to last saved settings from non-volatile storage.
      * Emits configLoadedFromFlash() on success.
      */
-    void loadConfigFromFlash();
+    void loadConfigFromFlash() override;
 
     /**
      * @brief Resets configuration to factory defaults.
      *
      * Emits configResetToDefaults() on success.
      */
-    void resetConfigToDefaults();
-    /// @}
-
-signals:
-    /// @name Information Signals
-    /// @{
-
-    /**
-     * @brief Emitted when the API version is received.
-     * @param version The API version string.
-     */
-    void versionReceived(const QString &version);
-
-    /**
-     * @brief Emitted when device information is received.
-     * @param info The device information structure.
-     */
-    void infoReceived(const DeviceInfo &info);
-
-    /**
-     * @brief Emitted when drive information is received.
-     * @param drives List of drive information structures.
-     */
-    void drivesReceived(const QList<DriveInfo> &drives);
-
-    /**
-     * @brief Emitted when file information is received.
-     * @param path The file path.
-     * @param size File size in bytes.
-     * @param extension File extension.
-     */
-    void fileInfoReceived(const QString &path, qint64 size, const QString &extension);
-
-    /**
-     * @brief Emitted when configuration categories are received.
-     * @param categories List of category names.
-     */
-    void configCategoriesReceived(const QStringList &categories);
-
-    /**
-     * @brief Emitted when configuration category items are received.
-     * @param category Category name.
-     * @param items Map of item names to metadata including current values and options.
-     */
-    void configCategoryItemsReceived(const QString &category,
-                                     const QHash<QString, ConfigItemMetadata> &items);
-
-    /**
-     * @brief Emitted when a single configuration item value is received.
-     * @param category Category name.
-     * @param item Item name.
-     * @param value The item's current value.
-     */
-    void configItemReceived(const QString &category, const QString &item, const QVariant &value);
-
-    /**
-     * @brief Emitted when a single configuration item is set.
-     * @param category Category name.
-     * @param item Item name.
-     */
-    void configItemSet(const QString &category, const QString &item);
-
-    /**
-     * @brief Emitted when configuration update completes.
-     */
-    void configsUpdated();
-
-    /**
-     * @brief Emitted when configuration is saved to flash.
-     */
-    void configSavedToFlash();
-
-    /**
-     * @brief Emitted when configuration is loaded from flash.
-     */
-    void configLoadedFromFlash();
-
-    /**
-     * @brief Emitted when configuration is reset to defaults.
-     */
-    void configResetToDefaults();
-    /// @}
-
-    /// @name Operation Signals
-    /// @{
-
-    /**
-     * @brief Emitted when an operation succeeds.
-     * @param operation Name of the operation that succeeded.
-     */
-    void operationSucceeded(const QString &operation);
-
-    /**
-     * @brief Emitted when an operation fails.
-     * @param operation Name of the operation that failed.
-     * @param error Error description.
-     */
-    void operationFailed(const QString &operation, const QString &error);
-
-    /**
-     * @brief Emitted when a network connection error occurs.
-     * @param error Error description.
-     */
-    void connectionError(const QString &error);
+    void resetConfigToDefaults() override;
     /// @}
 
 private slots:

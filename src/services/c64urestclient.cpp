@@ -5,7 +5,7 @@
 #include <QUrlQuery>
 
 C64URestClient::C64URestClient(QObject *parent)
-    : QObject(parent), networkManager_(new QNetworkAccessManager(this))
+    : IRestClient(parent), networkManager_(new QNetworkAccessManager(this))
 {
     connect(networkManager_, &QNetworkAccessManager::finished, this,
             &C64URestClient::onReplyFinished);
