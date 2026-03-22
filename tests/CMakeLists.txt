@@ -593,6 +593,7 @@ endif()
 add_executable(test_hvscmetadataservice
     test_hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
 )
 
 target_include_directories(test_hvscmetadataservice PRIVATE
@@ -612,6 +613,50 @@ add_test(NAME HVSCMetadataServiceTest COMMAND test_hvscmetadataservice)
 if(BUILD_COVERAGE)
     add_coverage_target(hvscmetadataservice test_hvscmetadataservice)
     add_dependencies(coverage coverage_hvscmetadataservice)
+endif()
+
+# HVSCParser tests - pure parsing functions, no I/O dependencies
+add_executable(test_hvscparser
+    test_hvscparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
+)
+
+target_include_directories(test_hvscparser PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_hvscparser PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME HVSCParserTest COMMAND test_hvscparser)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(hvscparser test_hvscparser)
+    add_dependencies(coverage coverage_hvscparser)
+endif()
+
+# SonglengthsParser tests - pure parsing functions, no I/O dependencies
+add_executable(test_songlengthsparser
+    test_songlengthsparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
+)
+
+target_include_directories(test_songlengthsparser PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_songlengthsparser PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME SonglengthsParserTest COMMAND test_songlengthsparser)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(songlengthsparser test_songlengthsparser)
+    add_dependencies(coverage coverage_songlengthsparser)
 endif()
 
 # GameBase64Service tests

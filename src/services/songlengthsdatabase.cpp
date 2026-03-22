@@ -5,13 +5,13 @@
 
 #include "songlengthsdatabase.h"
 
+#include "songlengthsparser.h"
+
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
 #include <QNetworkReply>
-#include <QRegularExpression>
 #include <QStandardPaths>
-#include <QTextStream>
 
 SonglengthsDatabase::SonglengthsDatabase(QObject *parent)
     : QObject(parent), networkManager_(new QNetworkAccessManager(this))
@@ -60,11 +60,11 @@ SonglengthsDatabase::SongLengths SonglengthsDatabase::lookup(const QString &md5H
     SongLengths result;
     QString hash = md5Hash.toLower();
 
-    if (database_.contains(hash)) {
+    if (parsedDb_.durations.contains(hash)) {
         result.found = true;
-        result.hvscPath = md5ToPath_.value(hash);
-        result.durations = database_.value(hash);
-        result.formattedTimes = formattedTimes_.value(hash);
+        result.hvscPath = parsedDb_.md5ToPath.value(hash);
+        result.durations = parsedDb_.durations.value(hash);
+        result.formattedTimes = parsedDb_.formattedTimes.value(hash);
     }
 
     return result;
@@ -147,7 +147,7 @@ void SonglengthsDatabase::onDownloadFinished()
 
     // Parse the database
     if (parseDatabase(data)) {
-        emit downloadFinished(database_.size());
+        emit downloadFinished(parsedDb_.durations.size());
         emit databaseLoaded();
     } else {
         emit downloadFailed(tr("Failed to parse database"));
@@ -156,73 +156,8 @@ void SonglengthsDatabase::onDownloadFinished()
 
 bool SonglengthsDatabase::parseDatabase(const QByteArray &data)
 {
-    database_.clear();
-    formattedTimes_.clear();
-    md5ToPath_.clear();
-
-    QTextStream stream(data);
-    stream.setEncoding(QStringConverter::Encoding::Latin1);
-
-    // Regular expression to match database entries
-    // Format: <32-char hex MD5>=<time> <time> ...
-    static const QRegularExpression entryRegex(R"(^([0-9a-fA-F]{32})=(.+)$)");
-
-    // Regular expression to match path comments
-    // Format: ; /PATH/TO/FILE.sid
-    static const QRegularExpression pathCommentRegex(R"(^; (/[^\s]+\.sid)$)",
-                                                     QRegularExpression::CaseInsensitiveOption);
-
-    QString currentPath;
-
-    while (!stream.atEnd()) {
-        QString line = stream.readLine().trimmed();
-
-        // Skip empty lines and section headers
-        if (line.isEmpty() || line.startsWith('[')) {
-            continue;
-        }
-
-        // Check for path comment
-        if (line.startsWith(';')) {
-            QRegularExpressionMatch pathMatch = pathCommentRegex.match(line);
-            if (pathMatch.hasMatch()) {
-                currentPath = pathMatch.captured(1);
-            }
-            continue;
-        }
-
-        QRegularExpressionMatch match = entryRegex.match(line);
-        if (match.hasMatch()) {
-            QString md5 = match.captured(1).toLower();
-            QString timesStr = match.captured(2);
-
-            QList<int> durations = parseTimeList(timesStr);
-            if (!durations.isEmpty()) {
-                database_.insert(md5, durations);
-
-                // Store the HVSC path for this MD5
-                if (!currentPath.isEmpty()) {
-                    md5ToPath_.insert(md5, currentPath);
-                }
-
-                // Store formatted times too
-                QList<QString> formatted;
-                QStringList parts = timesStr.split(' ', Qt::SkipEmptyParts);
-                for (const QString &part : parts) {
-                    // Remove milliseconds for display
-                    QString clean = part;
-                    int dotPos = clean.indexOf('.');
-                    if (dotPos >= 0) {
-                        clean = clean.left(dotPos);
-                    }
-                    formatted.append(clean);
-                }
-                formattedTimes_.insert(md5, formatted);
-            }
-        }
-    }
-
-    return !database_.isEmpty();
+    parsedDb_ = songlengths::parseDatabase(data);
+    return !parsedDb_.durations.isEmpty();
 }
 
 bool SonglengthsDatabase::parseDatabaseFile(const QString &filePath)
@@ -236,36 +171,4 @@ bool SonglengthsDatabase::parseDatabaseFile(const QString &filePath)
     file.close();
 
     return parseDatabase(data);
-}
-
-QList<int> SonglengthsDatabase::parseTimeList(const QString &timeStr)
-{
-    QList<int> durations;
-    QStringList parts = timeStr.split(' ', Qt::SkipEmptyParts);
-
-    for (const QString &part : parts) {
-        int seconds = parseTime(part);
-        if (seconds > 0) {
-            durations.append(seconds);
-        }
-    }
-
-    return durations;
-}
-
-int SonglengthsDatabase::parseTime(const QString &time)
-{
-    // Format: mm:ss or mm:ss.SSS
-    static const QRegularExpression timeRegex(R"(^(\d+):(\d{2})(?:\.(\d{1,3}))?$)");
-
-    QRegularExpressionMatch match = timeRegex.match(time);
-    if (!match.hasMatch()) {
-        return 0;
-    }
-
-    int minutes = match.captured(1).toInt();
-    int seconds = match.captured(2).toInt();
-    // We ignore milliseconds for now
-
-    return (minutes * 60) + seconds;
 }

@@ -9,7 +9,8 @@
 #ifndef SONGLENGTHSDATABASE_H
 #define SONGLENGTHSDATABASE_H
 
-#include <QHash>
+#include "songlengthsparser.h"
+
 #include <QList>
 #include <QNetworkAccessManager>
 #include <QObject>
@@ -54,12 +55,12 @@ public:
     /**
      * @brief Checks if the database has been loaded.
      */
-    [[nodiscard]] bool isLoaded() const { return !database_.isEmpty(); }
+    [[nodiscard]] bool isLoaded() const { return !parsedDb_.durations.isEmpty(); }
 
     /**
      * @brief Returns the number of entries in the database.
      */
-    [[nodiscard]] int entryCount() const { return database_.size(); }
+    [[nodiscard]] int entryCount() const { return parsedDb_.durations.size(); }
 
     /**
      * @brief Returns the path to the cached database file.
@@ -155,20 +156,11 @@ private slots:
 private:
     bool parseDatabase(const QByteArray &data);
     bool parseDatabaseFile(const QString &filePath);
-    static QList<int> parseTimeList(const QString &timeStr);
-    static int parseTime(const QString &time);
 
     QNetworkAccessManager *networkManager_ = nullptr;
     QNetworkReply *currentDownload_ = nullptr;
 
-    // Database: MD5 hash -> list of durations in seconds for each subsong
-    QHash<QString, QList<int>> database_;
-
-    // Also store formatted times for display
-    QHash<QString, QList<QString>> formattedTimes_;
-
-    // MD5 hash -> HVSC path mapping for metadata lookup
-    QHash<QString, QString> md5ToPath_;
+    songlengths::ParsedDatabase parsedDb_;
 };
 
 #endif  // SONGLENGTHSDATABASE_H

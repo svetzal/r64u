@@ -9,6 +9,8 @@
 #ifndef HVSCMETADATASERVICE_H
 #define HVSCMETADATASERVICE_H
 
+#include "hvscparser.h"
+
 #include <QHash>
 #include <QList>
 #include <QNetworkAccessManager>
@@ -37,56 +39,12 @@ public:
     static constexpr const char *BuglistUrl =
         "https://www.hvsc.c64.org/download/C64Music/DOCUMENTS/BUGlist.txt";
 
-    /**
-     * @brief Information about a cover/sample in a tune.
-     */
-    struct CoverInfo
-    {
-        QString title;      ///< Original song title
-        QString artist;     ///< Original artist
-        QString timestamp;  ///< Optional timestamp (e.g., "1:05" or "1:05-2:30")
-    };
-
-    /**
-     * @brief STIL entry for a single subtune.
-     */
-    struct SubtuneEntry
-    {
-        int subtune = 0;          ///< Subtune number (0 = whole file)
-        QString name;             ///< Tune name
-        QString author;           ///< Tune author (if different from SID header)
-        QString comment;          ///< Commentary/history
-        QList<CoverInfo> covers;  ///< Cover/sample information
-    };
-
-    /**
-     * @brief Complete STIL information for a SID file.
-     */
-    struct StilInfo
-    {
-        bool found = false;           ///< True if entry exists in STIL
-        QString path;                 ///< HVSC path
-        QList<SubtuneEntry> entries;  ///< Entries for file and/or subtunes
-    };
-
-    /**
-     * @brief Bug report for a SID file.
-     */
-    struct BugEntry
-    {
-        int subtune = 0;      ///< Subtune number (0 = whole file)
-        QString description;  ///< Bug description
-    };
-
-    /**
-     * @brief Complete bug information for a SID file.
-     */
-    struct BugInfo
-    {
-        bool found = false;       ///< True if entry exists in BUGlist
-        QString path;             ///< HVSC path
-        QList<BugEntry> entries;  ///< Bug entries for file and/or subtunes
-    };
+    // Type aliases for backward compatibility — types are defined in hvscparser.h
+    using CoverInfo = hvsc::CoverInfo;
+    using SubtuneEntry = hvsc::SubtuneEntry;
+    using StilInfo = hvsc::StilInfo;
+    using BugEntry = hvsc::BugEntry;
+    using BugInfo = hvsc::BugInfo;
 
     explicit HVSCMetadataService(QObject *parent = nullptr);
     ~HVSCMetadataService() override = default;
@@ -199,19 +157,15 @@ private:
     bool parseBuglist(const QByteArray &data);
     bool parseBuglistFile(const QString &filePath);
 
-    // Parse a single STIL/BUGlist entry block (lines between file paths)
-    static QList<SubtuneEntry> parseStilEntry(const QStringList &lines);
-    static QList<BugEntry> parseBugEntry(const QStringList &lines);
-
     QNetworkAccessManager *networkManager_ = nullptr;
     QNetworkReply *stilDownload_ = nullptr;
     QNetworkReply *buglistDownload_ = nullptr;
 
     // STIL database: HVSC path -> entries
-    QHash<QString, QList<SubtuneEntry>> stilDatabase_;
+    QHash<QString, QList<hvsc::SubtuneEntry>> stilDatabase_;
 
     // BUGlist database: HVSC path -> bug entries
-    QHash<QString, QList<BugEntry>> buglistDatabase_;
+    QHash<QString, QList<hvsc::BugEntry>> buglistDatabase_;
 };
 
 #endif  // HVSCMETADATASERVICE_H

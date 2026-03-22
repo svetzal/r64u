@@ -5,12 +5,12 @@
 
 #include "hvscmetadataservice.h"
 
+#include "hvscparser.h"
+
 #include <QDir>
 #include <QFile>
 #include <QNetworkReply>
-#include <QRegularExpression>
 #include <QStandardPaths>
-#include <QTextStream>
 
 HVSCMetadataService::HVSCMetadataService(QObject *parent)
     : QObject(parent), networkManager_(new QNetworkAccessManager(this))
@@ -78,42 +78,12 @@ bool HVSCMetadataService::loadBuglistFromCache()
 
 HVSCMetadataService::StilInfo HVSCMetadataService::lookupStil(const QString &hvscPath) const
 {
-    StilInfo result;
-    QString path = hvscPath;
-
-    // Normalize path: ensure it starts with / and uses forward slashes
-    path = path.replace('\\', '/');
-    if (!path.startsWith('/')) {
-        path = '/' + path;
-    }
-
-    if (stilDatabase_.contains(path)) {
-        result.found = true;
-        result.path = path;
-        result.entries = stilDatabase_.value(path);
-    }
-
-    return result;
+    return hvsc::lookupStil(stilDatabase_, hvscPath);
 }
 
 HVSCMetadataService::BugInfo HVSCMetadataService::lookupBuglist(const QString &hvscPath) const
 {
-    BugInfo result;
-    QString path = hvscPath;
-
-    // Normalize path
-    path = path.replace('\\', '/');
-    if (!path.startsWith('/')) {
-        path = '/' + path;
-    }
-
-    if (buglistDatabase_.contains(path)) {
-        result.found = true;
-        result.path = path;
-        result.entries = buglistDatabase_.value(path);
-    }
-
-    return result;
+    return hvsc::lookupBuglist(buglistDatabase_, hvscPath);
 }
 
 void HVSCMetadataService::downloadStil()
@@ -244,54 +214,7 @@ void HVSCMetadataService::onBuglistDownloadFinished()
 
 bool HVSCMetadataService::parseStil(const QByteArray &data)
 {
-    stilDatabase_.clear();
-
-    QTextStream stream(data);
-    stream.setEncoding(QStringConverter::Encoding::Latin1);
-
-    // Regex for file path entries (start with / and end with .sid)
-    static const QRegularExpression pathRegex(R"(^(/[^\s]+\.sid)$)",
-                                              QRegularExpression::CaseInsensitiveOption);
-
-    // Regex for subtune markers (#N)
-    static const QRegularExpression subtuneRegex(R"(^\(#(\d+)\)$)");
-
-    QString currentPath;
-    QStringList currentBlock;
-
-    while (!stream.atEnd()) {
-        QString line = stream.readLine();
-
-        // Skip section headers (lines starting with ###)
-        if (line.startsWith("###")) {
-            continue;
-        }
-
-        // Check for file path
-        QRegularExpressionMatch pathMatch = pathRegex.match(line.trimmed());
-        if (pathMatch.hasMatch()) {
-            // Save previous entry
-            if (!currentPath.isEmpty() && !currentBlock.isEmpty()) {
-                stilDatabase_.insert(currentPath, parseStilEntry(currentBlock));
-            }
-
-            // Start new entry
-            currentPath = pathMatch.captured(1);
-            currentBlock.clear();
-            continue;
-        }
-
-        // Accumulate lines for current entry
-        if (!currentPath.isEmpty() && !line.trimmed().isEmpty()) {
-            currentBlock.append(line);
-        }
-    }
-
-    // Don't forget the last entry
-    if (!currentPath.isEmpty() && !currentBlock.isEmpty()) {
-        stilDatabase_.insert(currentPath, parseStilEntry(currentBlock));
-    }
-
+    stilDatabase_ = hvsc::parseStilData(data);
     return !stilDatabase_.isEmpty();
 }
 
@@ -310,51 +233,7 @@ bool HVSCMetadataService::parseStilFile(const QString &filePath)
 
 bool HVSCMetadataService::parseBuglist(const QByteArray &data)
 {
-    buglistDatabase_.clear();
-
-    QTextStream stream(data);
-    stream.setEncoding(QStringConverter::Encoding::Latin1);
-
-    // Regex for file path entries
-    static const QRegularExpression pathRegex(R"(^(/[^\s]+\.sid)$)",
-                                              QRegularExpression::CaseInsensitiveOption);
-
-    QString currentPath;
-    QStringList currentBlock;
-
-    while (!stream.atEnd()) {
-        QString line = stream.readLine();
-
-        // Skip section headers
-        if (line.startsWith("###")) {
-            continue;
-        }
-
-        // Check for file path
-        QRegularExpressionMatch pathMatch = pathRegex.match(line.trimmed());
-        if (pathMatch.hasMatch()) {
-            // Save previous entry
-            if (!currentPath.isEmpty() && !currentBlock.isEmpty()) {
-                buglistDatabase_.insert(currentPath, parseBugEntry(currentBlock));
-            }
-
-            // Start new entry
-            currentPath = pathMatch.captured(1);
-            currentBlock.clear();
-            continue;
-        }
-
-        // Accumulate lines for current entry
-        if (!currentPath.isEmpty() && !line.trimmed().isEmpty()) {
-            currentBlock.append(line);
-        }
-    }
-
-    // Don't forget the last entry
-    if (!currentPath.isEmpty() && !currentBlock.isEmpty()) {
-        buglistDatabase_.insert(currentPath, parseBugEntry(currentBlock));
-    }
-
+    buglistDatabase_ = hvsc::parseBuglistData(data);
     return !buglistDatabase_.isEmpty();
 }
 
@@ -369,170 +248,4 @@ bool HVSCMetadataService::parseBuglistFile(const QString &filePath)
     file.close();
 
     return parseBuglist(data);
-}
-
-QList<HVSCMetadataService::SubtuneEntry>
-HVSCMetadataService::parseStilEntry(const QStringList &lines)
-{
-    QList<SubtuneEntry> entries;
-    SubtuneEntry current;
-
-    // Field patterns (with their leading spaces)
-    static const QRegularExpression nameRegex(R"(^   NAME: (.+)$)");
-    static const QRegularExpression authorRegex(R"(^ AUTHOR: (.+)$)");
-    static const QRegularExpression titleRegex(R"(^  TITLE: (.+)$)");
-    static const QRegularExpression artistRegex(R"(^ ARTIST: (.+)$)");
-    static const QRegularExpression commentRegex(R"(^COMMENT: (.+)$)");
-    static const QRegularExpression subtuneRegex(R"(^\(#(\d+)\)$)");
-    static const QRegularExpression continuationRegex(R"(^         (.+)$)");  // 9 spaces
-
-    QString *currentMultiline = nullptr;  // Points to field being continued
-    CoverInfo *currentCover = nullptr;
-
-    for (const QString &line : lines) {
-        // Check for subtune marker
-        QRegularExpressionMatch subtuneMatch = subtuneRegex.match(line.trimmed());
-        if (subtuneMatch.hasMatch()) {
-            // Save current entry if it has content
-            if (current.subtune > 0 || !current.comment.isEmpty() || !current.name.isEmpty() ||
-                !current.covers.isEmpty()) {
-                entries.append(current);
-            }
-            current = SubtuneEntry();
-            current.subtune = subtuneMatch.captured(1).toInt();
-            currentMultiline = nullptr;
-            currentCover = nullptr;
-            continue;
-        }
-
-        // Check for NAME field
-        QRegularExpressionMatch nameMatch = nameRegex.match(line);
-        if (nameMatch.hasMatch()) {
-            current.name = nameMatch.captured(1).trimmed();
-            currentMultiline = &current.name;
-            currentCover = nullptr;
-            continue;
-        }
-
-        // Check for AUTHOR field
-        QRegularExpressionMatch authorMatch = authorRegex.match(line);
-        if (authorMatch.hasMatch()) {
-            current.author = authorMatch.captured(1).trimmed();
-            currentMultiline = &current.author;
-            currentCover = nullptr;
-            continue;
-        }
-
-        // Check for TITLE field (cover info)
-        QRegularExpressionMatch titleMatch = titleRegex.match(line);
-        if (titleMatch.hasMatch()) {
-            CoverInfo cover;
-            QString titleStr = titleMatch.captured(1).trimmed();
-
-            // Check for timestamp in parentheses at end
-            static const QRegularExpression timestampRegex(R"(\((\d+:\d{2}(?:-\d+:\d{2})?)\)$)");
-            QRegularExpressionMatch tsMatch = timestampRegex.match(titleStr);
-            if (tsMatch.hasMatch()) {
-                cover.timestamp = tsMatch.captured(1);
-                titleStr = titleStr.left(tsMatch.capturedStart()).trimmed();
-            }
-
-            cover.title = titleStr;
-            current.covers.append(cover);
-            currentCover = &current.covers.last();
-            currentMultiline = &currentCover->title;
-            continue;
-        }
-
-        // Check for ARTIST field (cover artist)
-        QRegularExpressionMatch artistMatch = artistRegex.match(line);
-        if (artistMatch.hasMatch()) {
-            if (currentCover != nullptr) {
-                currentCover->artist = artistMatch.captured(1).trimmed();
-                currentMultiline = &currentCover->artist;
-            }
-            continue;
-        }
-
-        // Check for COMMENT field
-        QRegularExpressionMatch commentMatch = commentRegex.match(line);
-        if (commentMatch.hasMatch()) {
-            if (!current.comment.isEmpty()) {
-                current.comment += "\n";
-            }
-            current.comment += commentMatch.captured(1).trimmed();
-            currentMultiline = &current.comment;
-            currentCover = nullptr;
-            continue;
-        }
-
-        // Check for continuation line (9 spaces)
-        QRegularExpressionMatch contMatch = continuationRegex.match(line);
-        if (contMatch.hasMatch() && currentMultiline != nullptr) {
-            *currentMultiline += " " + contMatch.captured(1).trimmed();
-            continue;
-        }
-    }
-
-    // Don't forget the last entry
-    if (current.subtune > 0 || !current.comment.isEmpty() || !current.name.isEmpty() ||
-        !current.covers.isEmpty()) {
-        entries.append(current);
-    }
-
-    return entries;
-}
-
-QList<HVSCMetadataService::BugEntry> HVSCMetadataService::parseBugEntry(const QStringList &lines)
-{
-    QList<BugEntry> entries;
-    BugEntry current;
-
-    // Field patterns
-    static const QRegularExpression bugRegex(R"(^BUG: (.+)$)");
-    static const QRegularExpression subtuneRegex(R"(^\(#(\d+)\)$)");
-    static const QRegularExpression continuationRegex(
-        R"(^     (.+)$)");  // 5 spaces for BUG continuation
-
-    QString *currentMultiline = nullptr;
-
-    for (const QString &line : lines) {
-        // Check for subtune marker
-        QRegularExpressionMatch subtuneMatch = subtuneRegex.match(line.trimmed());
-        if (subtuneMatch.hasMatch()) {
-            // Save current entry if it has content
-            if (!current.description.isEmpty()) {
-                entries.append(current);
-            }
-            current = BugEntry();
-            current.subtune = subtuneMatch.captured(1).toInt();
-            currentMultiline = nullptr;
-            continue;
-        }
-
-        // Check for BUG field
-        QRegularExpressionMatch bugMatch = bugRegex.match(line);
-        if (bugMatch.hasMatch()) {
-            if (!current.description.isEmpty()) {
-                current.description += "\n";
-            }
-            current.description += bugMatch.captured(1).trimmed();
-            currentMultiline = &current.description;
-            continue;
-        }
-
-        // Check for continuation line
-        QRegularExpressionMatch contMatch = continuationRegex.match(line);
-        if (contMatch.hasMatch() && currentMultiline != nullptr) {
-            *currentMultiline += " " + contMatch.captured(1).trimmed();
-            continue;
-        }
-    }
-
-    // Don't forget the last entry
-    if (!current.description.isEmpty()) {
-        entries.append(current);
-    }
-
-    return entries;
 }

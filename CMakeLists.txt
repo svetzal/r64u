@@ -85,7 +85,9 @@ set(SOURCES
     src/services/favoritesmanager.cpp
     src/services/videorecordingservice.cpp
     src/services/playlistmanager.cpp
+    src/services/songlengthsparser.cpp
     src/services/songlengthsdatabase.cpp
+    src/services/hvscparser.cpp
     src/services/hvscmetadataservice.cpp
     src/services/gamebase64service.cpp
     src/services/streamingdiagnostics.cpp
