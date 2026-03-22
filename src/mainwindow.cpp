@@ -10,6 +10,7 @@
 #include "services/filepreviewservice.h"
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
+#include "services/irestclient.h"
 #include "services/playlistmanager.h"
 #include "services/songlengthsdatabase.h"
 #include "services/statusmessageservice.h"
@@ -316,7 +317,7 @@ void MainWindow::setupConnections()
     // Route error signals through ErrorHandler for consistent presentation
     connect(deviceConnection_, &DeviceConnection::connectionError, errorHandler_,
             &ErrorHandler::handleConnectionError);
-    connect(deviceConnection_->restClient(), &C64URestClient::operationFailed, errorHandler_,
+    connect(deviceConnection_->restClient(), &IRestClient::operationFailed, errorHandler_,
             &ErrorHandler::handleOperationFailed);
     connect(remoteFileModel_, &RemoteFileModel::errorOccurred, errorHandler_,
             &ErrorHandler::handleDataError);
@@ -329,7 +330,7 @@ void MainWindow::setupConnections()
             });
 
     // REST client success signals
-    connect(deviceConnection_->restClient(), &C64URestClient::operationSucceeded, this,
+    connect(deviceConnection_->restClient(), &IRestClient::operationSucceeded, this,
             &MainWindow::onOperationSucceeded);
 
     // Model signals for loading state (not errors)

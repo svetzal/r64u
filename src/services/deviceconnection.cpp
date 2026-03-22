@@ -1,12 +1,14 @@
 #include "deviceconnection.h"
 
+#include "c64uftpclient.h"
+#include "c64urestclient.h"
+
 DeviceConnection::DeviceConnection(QObject *parent)
     : DeviceConnection(new C64URestClient(nullptr), new C64UFtpClient(nullptr), parent)
 {
 }
 
-DeviceConnection::DeviceConnection(C64URestClient *restClient, C64UFtpClient *ftpClient,
-                                   QObject *parent)
+DeviceConnection::DeviceConnection(IRestClient *restClient, IFtpClient *ftpClient, QObject *parent)
     : QObject(parent), restClient_(restClient), ftpClient_(ftpClient),
       reconnectTimer_(new QTimer(this))
 {
@@ -15,19 +17,18 @@ DeviceConnection::DeviceConnection(C64URestClient *restClient, C64UFtpClient *ft
     ftpClient_->setParent(this);
 
     // REST client signals
-    connect(restClient_, &C64URestClient::infoReceived, this,
-            &DeviceConnection::onRestInfoReceived);
-    connect(restClient_, &C64URestClient::drivesReceived, this,
+    connect(restClient_, &IRestClient::infoReceived, this, &DeviceConnection::onRestInfoReceived);
+    connect(restClient_, &IRestClient::drivesReceived, this,
             &DeviceConnection::onRestDrivesReceived);
-    connect(restClient_, &C64URestClient::connectionError, this,
+    connect(restClient_, &IRestClient::connectionError, this,
             &DeviceConnection::onRestConnectionError);
-    connect(restClient_, &C64URestClient::operationFailed, this,
+    connect(restClient_, &IRestClient::operationFailed, this,
             &DeviceConnection::onRestOperationFailed);
 
     // FTP client signals
-    connect(ftpClient_, &C64UFtpClient::connected, this, &DeviceConnection::onFtpConnected);
-    connect(ftpClient_, &C64UFtpClient::disconnected, this, &DeviceConnection::onFtpDisconnected);
-    connect(ftpClient_, &C64UFtpClient::error, this, &DeviceConnection::onFtpError);
+    connect(ftpClient_, &IFtpClient::connected, this, &DeviceConnection::onFtpConnected);
+    connect(ftpClient_, &IFtpClient::disconnected, this, &DeviceConnection::onFtpDisconnected);
+    connect(ftpClient_, &IFtpClient::error, this, &DeviceConnection::onFtpError);
 
     // Reconnect timer
     reconnectTimer_->setSingleShot(true);

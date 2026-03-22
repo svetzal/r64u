@@ -1,7 +1,7 @@
 #ifndef CONFIGPANEL_H
 #define CONFIGPANEL_H
 
-#include "services/c64urestclient.h"
+#include "services/irestclient.h"
 
 #include <QLabel>
 #include <QListWidget>

@@ -1,17 +1,36 @@
 #include "mockrestclient.h"
 
-MockRestClient::MockRestClient(QObject *parent) : QObject(parent) {}
+MockRestClient::MockRestClient(QObject *parent) : IRestClient(parent) {}
 
 void MockRestClient::getInfo()
 {
     getInfoCalls_++;
-    // Don't do anything - tests will manually emit signals
+    // Don't auto-emit - tests control timing via mockEmitInfoReceived()
 }
 
 void MockRestClient::getDrives()
 {
     getDrivesCalls_++;
-    // Don't do anything - tests will manually emit signals
+    // Don't auto-emit
+}
+
+void MockRestClient::writeMem(const QString &address, const QByteArray &data)
+{
+    writeMemCalls_++;
+    lastWriteMemAddress_ = address;
+    lastWriteMemData_ = data;
+}
+
+void MockRestClient::typeText(const QString &text)
+{
+    typeTextCalls_++;
+    lastTypeText_ = text;
+}
+
+void MockRestClient::updateConfigsBatch(const QJsonObject &configs)
+{
+    lastConfigsBatch_ = configs;
+    // Don't auto-emit; let test control timing via mockEmitConfigsUpdated()
 }
 
 void MockRestClient::mockEmitInfoReceived(const DeviceInfo &info)
@@ -34,8 +53,19 @@ void MockRestClient::mockEmitOperationFailed(const QString &operation, const QSt
     emit operationFailed(operation, error);
 }
 
+void MockRestClient::mockEmitConfigsUpdated()
+{
+    emit configsUpdated();
+}
+
 void MockRestClient::mockReset()
 {
     getInfoCalls_ = 0;
     getDrivesCalls_ = 0;
+    writeMemCalls_ = 0;
+    typeTextCalls_ = 0;
+    lastWriteMemAddress_.clear();
+    lastWriteMemData_.clear();
+    lastTypeText_.clear();
+    lastConfigsBatch_ = QJsonObject();
 }

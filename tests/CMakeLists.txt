@@ -84,9 +84,10 @@ endif()
 add_executable(test_deviceconnection
     test_deviceconnection.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
 )
 
 target_include_directories(test_deviceconnection PRIVATE
@@ -180,21 +181,16 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_sidfileparser)
 endif()
 
-# ConfigFileLoader tests - uses legacy mock that shadows C64UFtpClient
+# ConfigFileLoader tests - uses IFtpClient/IRestClient interfaces
 add_executable(test_configfileloader
     test_configfileloader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/configfileloader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
-    ${LEGACY_MOCK_SOURCES}
-    services/c64urestclient.cpp
-)
-
-target_include_directories(test_configfileloader BEFORE PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/services  # Mock services directory
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
 )
 
 target_include_directories(test_configfileloader PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
 )
 
@@ -323,6 +319,7 @@ add_executable(test_transferservice
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp

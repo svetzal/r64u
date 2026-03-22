@@ -26,7 +26,7 @@ TransferPanel::TransferPanel(DeviceConnection *connection, RemoteFileModel *mode
 
     // Create browser widgets with their dependencies
     // Guard against null ftpClient() - it should exist if deviceConnection_ is valid
-    C64UFtpClient *ftpClient = deviceConnection_ ? deviceConnection_->ftpClient() : nullptr;
+    IFtpClient *ftpClient = deviceConnection_ ? deviceConnection_->ftpClient() : nullptr;
     remoteBrowser_ = new RemoteFileBrowserWidget(model, ftpClient, this);
     localBrowser_ = new LocalFileBrowserWidget(this);
     progressContainer_ = new TransferProgressContainer(this);

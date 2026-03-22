@@ -1,7 +1,7 @@
 #include "configfileloader.h"
 
-#include "c64uftpclient.h"
-#include "c64urestclient.h"
+#include "iftpclient.h"
+#include "irestclient.h"
 
 #include <QDebug>
 #include <QJsonDocument>
@@ -22,7 +22,7 @@ ConfigFileLoader::~ConfigFileLoader()
     }
 }
 
-void ConfigFileLoader::setFtpClient(C64UFtpClient *client)
+void ConfigFileLoader::setFtpClient(IFtpClient *client)
 {
     if (ftpClient_) {
         disconnect(ftpClient_, nullptr, this, nullptr);
@@ -31,14 +31,14 @@ void ConfigFileLoader::setFtpClient(C64UFtpClient *client)
     ftpClient_ = client;
 
     if (ftpClient_) {
-        connect(ftpClient_, &C64UFtpClient::downloadToMemoryFinished, this,
+        connect(ftpClient_, &IFtpClient::downloadToMemoryFinished, this,
                 &ConfigFileLoader::onDownloadFinished);
         // Track destruction to avoid dangling pointer access
         connect(ftpClient_, &QObject::destroyed, this, &ConfigFileLoader::onFtpClientDestroyed);
     }
 }
 
-void ConfigFileLoader::setRestClient(C64URestClient *client)
+void ConfigFileLoader::setRestClient(IRestClient *client)
 {
     if (restClient_) {
         disconnect(restClient_, nullptr, this, nullptr);
@@ -47,9 +47,9 @@ void ConfigFileLoader::setRestClient(C64URestClient *client)
     restClient_ = client;
 
     if (restClient_) {
-        connect(restClient_, &C64URestClient::configsUpdated, this,
+        connect(restClient_, &IRestClient::configsUpdated, this,
                 &ConfigFileLoader::onConfigsUpdated);
-        connect(restClient_, &C64URestClient::operationFailed, this,
+        connect(restClient_, &IRestClient::operationFailed, this,
                 &ConfigFileLoader::onOperationFailed);
         // Track destruction to avoid dangling pointer access
         connect(restClient_, &QObject::destroyed, this, &ConfigFileLoader::onRestClientDestroyed);

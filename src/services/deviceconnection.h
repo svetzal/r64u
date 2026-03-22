@@ -9,8 +9,8 @@
 #ifndef DEVICECONNECTION_H
 #define DEVICECONNECTION_H
 
-#include "c64uftpclient.h"
-#include "c64urestclient.h"
+#include "iftpclient.h"
+#include "irestclient.h"
 
 #include <QObject>
 #include <QTimer>
@@ -71,8 +71,7 @@ public:
      *
      * This constructor is primarily for testing, allowing mock clients to be injected.
      */
-    DeviceConnection(C64URestClient *restClient, C64UFtpClient *ftpClient,
-                     QObject *parent = nullptr);
+    DeviceConnection(IRestClient *restClient, IFtpClient *ftpClient, QObject *parent = nullptr);
 
     /**
      * @brief Destructor. Disconnects if connected.
@@ -179,15 +178,15 @@ public:
 
     /**
      * @brief Returns the REST API client.
-     * @return Pointer to the C64URestClient instance.
+     * @return Pointer to the IRestClient instance.
      */
-    [[nodiscard]] C64URestClient *restClient() { return restClient_; }
+    [[nodiscard]] IRestClient *restClient() { return restClient_; }
 
     /**
      * @brief Returns the FTP client.
-     * @return Pointer to the C64UFtpClient instance.
+     * @return Pointer to the IFtpClient instance.
      */
-    [[nodiscard]] C64UFtpClient *ftpClient() { return ftpClient_; }
+    [[nodiscard]] IFtpClient *ftpClient() { return ftpClient_; }
     /// @}
 
 public slots:
@@ -313,8 +312,8 @@ private:
     void stopReconnect();
 
     // Protocol clients
-    C64URestClient *restClient_ = nullptr;
-    C64UFtpClient *ftpClient_ = nullptr;
+    IRestClient *restClient_ = nullptr;
+    IFtpClient *ftpClient_ = nullptr;
 
     // Configuration
     QString host_;

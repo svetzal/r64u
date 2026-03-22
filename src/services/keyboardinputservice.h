@@ -12,7 +12,7 @@
 #include <QKeyEvent>
 #include <QObject>
 
-class C64URestClient;
+class IRestClient;
 
 /**
  * @brief Sends keyboard input to the C64 via the REST API.
@@ -43,7 +43,7 @@ public:
      * @param restClient REST client for sending commands.
      * @param parent Optional parent QObject.
      */
-    explicit KeyboardInputService(C64URestClient *restClient, QObject *parent = nullptr);
+    explicit KeyboardInputService(IRestClient *restClient, QObject *parent = nullptr);
 
     /**
      * @brief Handles a Qt key press event.
@@ -92,7 +92,7 @@ private:
      */
     [[nodiscard]] static quint8 asciiToPetscii(char ascii);
 
-    C64URestClient *restClient_;
+    IRestClient *restClient_;
 };
 
 #endif  // KEYBOARDINPUTSERVICE_H

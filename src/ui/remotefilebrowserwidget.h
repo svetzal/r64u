@@ -7,7 +7,7 @@
 #include <QWidget>
 
 class RemoteFileModel;
-class C64UFtpClient;
+class IFtpClient;
 class PathNavigationWidget;
 
 class RemoteFileBrowserWidget : public QWidget
@@ -15,7 +15,7 @@ class RemoteFileBrowserWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit RemoteFileBrowserWidget(RemoteFileModel *model, C64UFtpClient *ftpClient,
+    explicit RemoteFileBrowserWidget(RemoteFileModel *model, IFtpClient *ftpClient,
                                      QWidget *parent = nullptr);
 
     void setCurrentDirectory(const QString &path);
@@ -62,7 +62,7 @@ private:
 
     // Dependencies (not owned)
     RemoteFileModel *remoteFileModel_ = nullptr;
-    C64UFtpClient *ftpClient_ = nullptr;
+    IFtpClient *ftpClient_ = nullptr;
 
     // State
     QString currentDirectory_;

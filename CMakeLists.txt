@@ -63,6 +63,7 @@ set(SOURCES
     src/ui/filepreview/sidfilepreview.cpp
     src/ui/filepreview/defaultfilepreview.cpp
     src/ui/filepreview/filepreviewfactory.cpp
+    src/services/irestclient.cpp
     src/services/c64urestclient.cpp
     src/services/iftpclient.cpp
     src/services/c64uftpclient.cpp

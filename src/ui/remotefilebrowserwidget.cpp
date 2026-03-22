@@ -3,7 +3,7 @@
 #include "pathnavigationwidget.h"
 
 #include "models/remotefilemodel.h"
-#include "services/c64uftpclient.h"
+#include "services/iftpclient.h"
 
 #include <QFileInfo>
 #include <QHeaderView>
@@ -15,7 +15,7 @@
 #include <QShowEvent>
 #include <QVBoxLayout>
 
-RemoteFileBrowserWidget::RemoteFileBrowserWidget(RemoteFileModel *model, C64UFtpClient *ftpClient,
+RemoteFileBrowserWidget::RemoteFileBrowserWidget(RemoteFileModel *model, IFtpClient *ftpClient,
                                                  QWidget *parent)
     : QWidget(parent), remoteFileModel_(model), ftpClient_(ftpClient), currentDirectory_("/")
 {
@@ -130,11 +130,11 @@ void RemoteFileBrowserWidget::setupConnections()
 {
     // FTP client signals - guard against null ftpClient_
     if (ftpClient_) {
-        connect(ftpClient_, &C64UFtpClient::directoryCreated, this,
+        connect(ftpClient_, &IFtpClient::directoryCreated, this,
                 &RemoteFileBrowserWidget::onDirectoryCreated);
-        connect(ftpClient_, &C64UFtpClient::fileRemoved, this,
+        connect(ftpClient_, &IFtpClient::fileRemoved, this,
                 &RemoteFileBrowserWidget::onFileRemoved);
-        connect(ftpClient_, &C64UFtpClient::fileRenamed, this,
+        connect(ftpClient_, &IFtpClient::fileRenamed, this,
                 &RemoteFileBrowserWidget::onFileRenamed);
     }
 }

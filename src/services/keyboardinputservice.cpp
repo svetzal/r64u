@@ -5,11 +5,11 @@
 
 #include "keyboardinputservice.h"
 
-#include "c64urestclient.h"
+#include "irestclient.h"
 
 #include "utils/logging.h"
 
-KeyboardInputService::KeyboardInputService(C64URestClient *restClient, QObject *parent)
+KeyboardInputService::KeyboardInputService(IRestClient *restClient, QObject *parent)
     : QObject(parent), restClient_(restClient)
 {
 }

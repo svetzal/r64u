@@ -2,8 +2,8 @@
 
 #include "audioplaybackservice.h"
 #include "audiostreamreceiver.h"
-#include "c64urestclient.h"
 #include "deviceconnection.h"
+#include "irestclient.h"
 #include "keyboardinputservice.h"
 #include "streamcontrolclient.h"
 #include "streamingdiagnostics.h"
@@ -27,7 +27,7 @@ StreamingManager::StreamingManager(DeviceConnection *connection, QObject *parent
     audioReceiver_ = new AudioStreamReceiver(this);
     audioPlayback_ = new AudioPlaybackService(this);
     // Guard against null restClient
-    C64URestClient *restClient = deviceConnection_ ? deviceConnection_->restClient() : nullptr;
+    IRestClient *restClient = deviceConnection_ ? deviceConnection_->restClient() : nullptr;
     keyboardInput_ = new KeyboardInputService(restClient, this);
     diagnostics_ = new StreamingDiagnostics(this);
 

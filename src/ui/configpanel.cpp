@@ -114,18 +114,17 @@ void ConfigPanel::setupConnections()
 
     // Connect REST client signals - guard against null restClient()
     if (deviceConnection_ && deviceConnection_->restClient()) {
-        C64URestClient *restClient = deviceConnection_->restClient();
-        connect(restClient, &C64URestClient::configCategoriesReceived, this,
+        IRestClient *restClient = deviceConnection_->restClient();
+        connect(restClient, &IRestClient::configCategoriesReceived, this,
                 &ConfigPanel::onCategoriesReceived);
-        connect(restClient, &C64URestClient::configCategoryItemsReceived, this,
+        connect(restClient, &IRestClient::configCategoryItemsReceived, this,
                 &ConfigPanel::onCategoryItemsReceived);
-        connect(restClient, &C64URestClient::configSavedToFlash, this,
-                &ConfigPanel::onSavedToFlash);
-        connect(restClient, &C64URestClient::configLoadedFromFlash, this,
+        connect(restClient, &IRestClient::configSavedToFlash, this, &ConfigPanel::onSavedToFlash);
+        connect(restClient, &IRestClient::configLoadedFromFlash, this,
                 &ConfigPanel::onLoadedFromFlash);
-        connect(restClient, &C64URestClient::configResetToDefaults, this,
+        connect(restClient, &IRestClient::configResetToDefaults, this,
                 &ConfigPanel::onResetComplete);
-        connect(restClient, &C64URestClient::configItemSet, this, &ConfigPanel::onItemSetResult);
+        connect(restClient, &IRestClient::configItemSet, this, &ConfigPanel::onItemSetResult);
     }
 }
 

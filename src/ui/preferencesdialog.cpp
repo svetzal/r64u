@@ -318,9 +318,9 @@ void PreferencesDialog::onTestConnection()
     testClient_->setHost(host);
     testClient_->setPassword(passwordEdit_->text());
 
-    connect(testClient_, &C64URestClient::infoReceived, this,
+    connect(testClient_, &IRestClient::infoReceived, this,
             &PreferencesDialog::onTestConnectionSuccess);
-    connect(testClient_, &C64URestClient::connectionError, this,
+    connect(testClient_, &IRestClient::connectionError, this,
             &PreferencesDialog::onTestConnectionError);
 
     // Show waiting cursor

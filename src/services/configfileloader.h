@@ -4,8 +4,8 @@
 #include <QJsonObject>
 #include <QObject>
 
-class C64UFtpClient;
-class C64URestClient;
+class IFtpClient;
+class IRestClient;
 
 class ConfigFileLoader : public QObject
 {
@@ -15,8 +15,8 @@ public:
     explicit ConfigFileLoader(QObject *parent = nullptr);
     ~ConfigFileLoader() override;
 
-    void setFtpClient(C64UFtpClient *client);
-    void setRestClient(C64URestClient *client);
+    void setFtpClient(IFtpClient *client);
+    void setRestClient(IRestClient *client);
 
     void loadConfigFile(const QString &remotePath);
 
@@ -35,8 +35,8 @@ private slots:
     void onRestClientDestroyed();
 
 private:
-    C64UFtpClient *ftpClient_ = nullptr;
-    C64URestClient *restClient_ = nullptr;
+    IFtpClient *ftpClient_ = nullptr;
+    IRestClient *restClient_ = nullptr;
     QString pendingPath_;
 };
 

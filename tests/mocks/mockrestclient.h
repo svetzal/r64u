@@ -1,49 +1,23 @@
 /**
  * @file mockrestclient.h
- * @brief Mock REST client for testing DeviceConnection.
- *
- * This mock provides the same signal interface as C64URestClient
- * without any network activity.
+ * @brief Mock REST client implementing IRestClient for testing.
  */
 
 #ifndef MOCKRESTCLIENT_H
 #define MOCKRESTCLIENT_H
 
+#include "services/irestclient.h"
+
 #include <QList>
-#include <QObject>
-#include <QString>
-
-// Forward declare the structs from c64urestclient.h
-struct DeviceInfo
-{
-    QString product;
-    QString firmwareVersion;
-    QString fpgaVersion;
-    QString coreVersion;
-    QString hostname;
-    QString uniqueId;
-    QString apiVersion;
-};
-
-struct DriveInfo
-{
-    QString name;
-    bool enabled = false;
-    int busId = 0;
-    QString type;
-    QString rom;
-    QString imageFile;
-    QString imagePath;
-    QString lastError;
-};
 
 /**
- * @brief Mock REST client for testing DeviceConnection.
+ * @brief Mock REST client for testing services that depend on IRestClient.
  *
- * Provides the same signals as C64URestClient and allows
- * controlled emission of those signals for testing state machine behavior.
+ * Provides controlled signal emission for testing state machine behavior.
+ * All virtual methods are no-ops unless specified. Use mock control methods
+ * to simulate device responses.
  */
-class MockRestClient : public QObject
+class MockRestClient : public IRestClient
 {
     Q_OBJECT
 
@@ -51,59 +25,84 @@ public:
     explicit MockRestClient(QObject *parent = nullptr);
     ~MockRestClient() override = default;
 
-    // Methods that match C64URestClient interface
-    void setHost(const QString &host) { host_ = host; }
-    QString host() const { return host_; }
-    void setPassword(const QString &password) { password_ = password; }
+    // IRestClient interface - configuration
+    void setHost(const QString &host) override { host_ = host; }
+    [[nodiscard]] QString host() const override { return host_; }
+    void setPassword(const QString &password) override { password_ = password; }
+    [[nodiscard]] bool hasPassword() const override { return !password_.isEmpty(); }
 
-    void getInfo();
-    void getDrives();
+    // IRestClient interface - device info
+    void getVersion() override {}
+    void getInfo() override;
+    void getDrives() override;
+
+    // IRestClient interface - content playback (no-op stubs)
+    void playSid(const QString &, int = -1) override {}
+    void playMod(const QString &) override {}
+    void loadPrg(const QString &) override {}
+    void runPrg(const QString &) override {}
+    void runCrt(const QString &) override {}
+
+    // IRestClient interface - drive control (no-op stubs)
+    void mountImage(const QString &, const QString &, const QString & = "readwrite") override {}
+    void unmountImage(const QString &) override {}
+    void resetDrive(const QString &) override {}
+
+    // IRestClient interface - machine control (no-op stubs)
+    void resetMachine() override {}
+    void rebootMachine() override {}
+    void pauseMachine() override {}
+    void resumeMachine() override {}
+    void powerOffMachine() override {}
+    void pressMenuButton() override {}
+    void writeMem(const QString &address, const QByteArray &data) override;
+    void typeText(const QString &text) override;
+
+    // IRestClient interface - file operations (no-op stubs)
+    void getFileInfo(const QString &) override {}
+    void createD64(const QString &, const QString & = QString(), int = 35) override {}
+    void createD81(const QString &, const QString & = QString()) override {}
+
+    // IRestClient interface - configuration
+    void getConfigCategories() override {}
+    void getConfigCategoryItems(const QString &) override {}
+    void getConfigItem(const QString &, const QString &) override {}
+    void setConfigItem(const QString &, const QString &, const QVariant &) override {}
+    void updateConfigsBatch(const QJsonObject &configs) override;
+    void saveConfigToFlash() override {}
+    void loadConfigFromFlash() override {}
+    void resetConfigToDefaults() override {}
 
     /// @name Mock Control Methods
     /// @{
-
-    /**
-     * @brief Simulates successful device info response.
-     */
     void mockEmitInfoReceived(const DeviceInfo &info);
-
-    /**
-     * @brief Simulates successful drives response.
-     */
     void mockEmitDrivesReceived(const QList<DriveInfo> &drives);
-
-    /**
-     * @brief Simulates connection error.
-     */
     void mockEmitConnectionError(const QString &error);
-
-    /**
-     * @brief Simulates operation failure.
-     */
     void mockEmitOperationFailed(const QString &operation, const QString &error);
-
-    /**
-     * @brief Resets mock state.
-     */
+    void mockEmitConfigsUpdated();
     void mockReset();
 
-    int mockGetInfoCallCount() const { return getInfoCalls_; }
-    int mockGetDrivesCallCount() const { return getDrivesCalls_; }
+    [[nodiscard]] int mockGetInfoCallCount() const { return getInfoCalls_; }
+    [[nodiscard]] int mockGetDrivesCallCount() const { return getDrivesCalls_; }
+    [[nodiscard]] int mockGetWriteMemCallCount() const { return writeMemCalls_; }
+    [[nodiscard]] int mockGetTypeTextCallCount() const { return typeTextCalls_; }
+    [[nodiscard]] QString mockLastWriteMemAddress() const { return lastWriteMemAddress_; }
+    [[nodiscard]] QByteArray mockLastWriteMemData() const { return lastWriteMemData_; }
+    [[nodiscard]] QString mockLastTypeTextArg() const { return lastTypeText_; }
+    [[nodiscard]] QJsonObject mockLastUpdateConfigsBatchArg() const { return lastConfigsBatch_; }
     /// @}
-
-signals:
-    // Signals matching C64URestClient
-    void infoReceived(const DeviceInfo &info);
-    void drivesReceived(const QList<DriveInfo> &drives);
-    void connectionError(const QString &error);
-    void operationFailed(const QString &operation, const QString &error);
-    void operationSucceeded(const QString &operation);
 
 private:
     QString host_;
     QString password_;
     int getInfoCalls_ = 0;
     int getDrivesCalls_ = 0;
+    int writeMemCalls_ = 0;
+    int typeTextCalls_ = 0;
+    QString lastWriteMemAddress_;
+    QByteArray lastWriteMemData_;
+    QString lastTypeText_;
+    QJsonObject lastConfigsBatch_;
 };
 
 #endif  // MOCKRESTCLIENT_H

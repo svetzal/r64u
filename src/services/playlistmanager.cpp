@@ -5,9 +5,8 @@
 
 #include "playlistmanager.h"
 
-#include "c64uftpclient.h"
-#include "c64urestclient.h"
 #include "deviceconnection.h"
+#include "iftpclient.h"
 #include "songlengthsdatabase.h"
 #include "streamingmanager.h"
 
@@ -29,7 +28,7 @@ PlaylistManager::PlaylistManager(DeviceConnection *connection, QObject *parent)
 
     // Connect to FTP client for SID data fetching (for duration lookup)
     if (deviceConnection_ != nullptr && deviceConnection_->ftpClient() != nullptr) {
-        connect(deviceConnection_->ftpClient(), &C64UFtpClient::downloadToMemoryFinished, this,
+        connect(deviceConnection_->ftpClient(), &IFtpClient::downloadToMemoryFinished, this,
                 &PlaylistManager::onSidDataReceived);
     }
 
