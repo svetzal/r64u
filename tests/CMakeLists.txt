@@ -512,6 +512,32 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_filebrowsersync)
 endif()
 
+# KeyboardInputService tests
+add_executable(test_keyboardinputservice
+    test_keyboardinputservice.cpp
+    mocks/mockrestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
+)
+
+target_include_directories(test_keyboardinputservice PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_keyboardinputservice PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+)
+
+add_test(NAME KeyboardInputServiceTest COMMAND test_keyboardinputservice)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(keyboardinputservice test_keyboardinputservice)
+    add_dependencies(coverage coverage_keyboardinputservice)
+endif()
+
 # RollingStats tests - header-only utility
 add_executable(test_rollingstats
     test_rollingstats.cpp
