@@ -155,7 +155,7 @@ void FileDetailsPanel::showFileDetails(const QString &path, qint64 size, const Q
         QString sizeStr;
         if (size < 1024) {
             sizeStr = tr("Size: %1 bytes").arg(size);
-        } else if (size < 1024 * 1024) {
+        } else if (size < qint64{1024} * 1024) {
             sizeStr = tr("Size: %1 KB").arg(size / 1024.0, 0, 'f', 1);
         } else {
             sizeStr = tr("Size: %1 MB").arg(size / (1024.0 * 1024.0), 0, 'f', 2);
@@ -238,8 +238,7 @@ bool FileDetailsPanel::isSidFile(const QString &path) const
 
 void FileDetailsPanel::showDiskDirectory(const QByteArray &diskImageData, const QString &filename)
 {
-    DiskImageReader reader;
-    DiskImageReader::DiskDirectory dir = reader.parse(diskImageData, filename);
+    DiskImageReader::DiskDirectory dir = DiskImageReader::parse(diskImageData, filename);
 
     if (dir.format == DiskImageReader::Format::Unknown) {
         showError(tr("Unable to parse disk image"));

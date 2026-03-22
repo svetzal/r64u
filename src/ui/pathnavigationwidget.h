@@ -10,7 +10,7 @@ class PathNavigationWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit PathNavigationWidget(const QString &prefix, QWidget *parent = nullptr);
+    explicit PathNavigationWidget(QString prefix, QWidget *parent = nullptr);
 
     void setPath(const QString &path);
     QString path() const;

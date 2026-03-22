@@ -41,8 +41,7 @@ QWidget *DiskImagePreview::createPreviewWidget(QWidget *parent)
 
 void DiskImagePreview::showPreview(const QString &path, const QByteArray &data)
 {
-    DiskImageReader reader;
-    DiskImageReader::DiskDirectory dir = reader.parse(data, path);
+    DiskImageReader::DiskDirectory dir = DiskImageReader::parse(data, path);
 
     if (dir.format == DiskImageReader::Format::Unknown) {
         showError(tr("Unable to parse disk image"));

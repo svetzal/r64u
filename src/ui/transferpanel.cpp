@@ -153,7 +153,7 @@ void TransferPanel::loadSettings()
     setCurrentRemoteDir(savedRemoteDir);
 }
 
-void TransferPanel::saveSettings()
+void TransferPanel::saveSettings() const
 {
     QSettings settings;
     settings.setValue("directories/local", currentLocalDir());

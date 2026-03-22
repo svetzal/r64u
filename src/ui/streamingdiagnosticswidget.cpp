@@ -237,9 +237,9 @@ void StreamingDiagnosticsWidget::clear()
 void StreamingDiagnosticsWidget::updateCompactDisplay(const DiagnosticsSnapshot &snapshot)
 {
     // Format: "99.8% | 0.1% loss | 2.3ms jitter"
-    double totalPackets =
+    auto totalPackets =
         static_cast<double>(snapshot.videoPacketsReceived + snapshot.audioPacketsReceived);
-    double totalLost = static_cast<double>(snapshot.videoPacketsLost + snapshot.audioPacketsLost);
+    auto totalLost = static_cast<double>(snapshot.videoPacketsLost + snapshot.audioPacketsLost);
     double overallLoss =
         (totalPackets > 0) ? (totalLost / (totalPackets + totalLost) * 100.0) : 0.0;
     double maxJitter = qMax(snapshot.videoPacketJitterMs, snapshot.audioPacketJitterMs);

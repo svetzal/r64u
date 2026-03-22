@@ -1362,7 +1362,6 @@ void TransferQueue::respondToFolderExists(FolderExistsResponse response)
         return;
     }
 
-    OperationType opType = pendingConfirmation_.opType;
     pendingConfirmation_.clear();
     transitionTo(QueueState::Idle);
 

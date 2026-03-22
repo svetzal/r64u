@@ -2,8 +2,10 @@
 
 #include <QHBoxLayout>
 
-PathNavigationWidget::PathNavigationWidget(const QString &prefix, QWidget *parent)
-    : QWidget(parent), prefix_(prefix)
+#include <utility>
+
+PathNavigationWidget::PathNavigationWidget(QString prefix, QWidget *parent)
+    : QWidget(parent), prefix_(std::move(prefix))
 {
     auto *layout = new QHBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);

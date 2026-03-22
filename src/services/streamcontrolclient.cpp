@@ -193,7 +193,7 @@ QByteArray StreamControlClient::buildStartCommand(CommandType type, const QStrin
     QByteArray destBytes = destination.toLatin1();
 
     // Parameter length = 2 (duration) + destination string length
-    quint16 paramLength = static_cast<quint16>(2 + destBytes.size());
+    auto paramLength = static_cast<quint16>(2 + destBytes.size());
 
     QByteArray command;
     command.reserve(4 + paramLength);

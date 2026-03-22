@@ -28,7 +28,7 @@ public:
 
     // Settings
     void loadSettings();
-    void saveSettings();
+    void saveSettings() const;
 
     // Selection info for MainWindow
     QString selectedLocalPath() const;

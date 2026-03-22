@@ -248,12 +248,14 @@ void VideoStreamReceiver::completeFrame()
 
     // Log first few frames and then periodically
     if (totalFramesCompleted_ <= 3 || totalFramesCompleted_ % 50 == 0) {
+        const char *formatStr = "Unknown";
+        if (videoFormat_ == VideoFormat::PAL) {
+            formatStr = "PAL";
+        } else if (videoFormat_ == VideoFormat::NTSC) {
+            formatStr = "NTSC";
+        }
         LOG_VERBOSE() << "VideoStreamReceiver: Frame" << totalFramesCompleted_ << "complete"
-                      << "format:"
-                      << (videoFormat_ == VideoFormat::PAL    ? "PAL"
-                          : videoFormat_ == VideoFormat::NTSC ? "NTSC"
-                                                              : "Unknown")
-                      << "height:" << frameHeight << "size:" << frameSize;
+                      << "format:" << formatStr << "height:" << frameHeight << "size:" << frameSize;
     }
 
     emit frameReady(frameData, currentFrameNum_, videoFormat_);

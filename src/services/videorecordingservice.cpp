@@ -9,6 +9,9 @@
 #include <QDataStream>
 #include <QMutexLocker>
 
+#include <algorithm>
+#include <cmath>
+
 VideoRecordingService::VideoRecordingService(QObject *parent) : QObject(parent) {}
 
 VideoRecordingService::~VideoRecordingService()
@@ -153,7 +156,7 @@ void VideoRecordingService::writeChunk(const QByteArray &fourCC, const QByteArra
     file_.write(fourCC.leftJustified(4, '\0', true));
 
     // Write size as little-endian 32-bit
-    quint32 size = static_cast<quint32>(data.size());
+    auto size = static_cast<quint32>(data.size());
     char sizeBytes[4];
     sizeBytes[0] = static_cast<char>(size & 0xFF);
     sizeBytes[1] = static_cast<char>((size >> 8) & 0xFF);
@@ -381,13 +384,11 @@ void VideoRecordingService::finalizeAvi()
         durationMs = 1;
     }
     double fps = (frameCount_ > 1) ? (frameCount_ - 1) * 1000.0 / durationMs : 30.0;
-    if (fps < 1.0)
-        fps = 1.0;
-    if (fps > 60.0)
-        fps = 60.0;
+    fps = std::max(fps, 1.0);
+    fps = std::min(fps, 60.0);
 
-    quint32 microSecPerFrame = static_cast<quint32>(1000000.0 / fps);
-    quint32 fpsRate = static_cast<quint32>(fps + 0.5);
+    auto microSecPerFrame = static_cast<quint32>(1000000.0 / fps);
+    auto fpsRate = static_cast<quint32>(std::lround(fps));
 
     // Update RIFF file size
     qint64 fileEnd = file_.pos();
@@ -440,7 +441,7 @@ void VideoRecordingService::finalizeAvi()
     ds2 << quint16(0);            // wLanguage
     ds2 << quint32(0);            // dwInitialFrames
     ds2 << quint32(1);            // dwScale
-    ds2 << quint32(fpsRate);      // dwRate
+    ds2 << fpsRate;               // dwRate
     ds2 << quint32(0);            // dwStart
     ds2 << quint32(frameCount_);  // dwLength
     ds2 << quint32(1000000);      // dwSuggestedBufferSize

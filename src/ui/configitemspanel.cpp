@@ -134,7 +134,7 @@ QWidget *ConfigItemsPanel::createEditorWidget(const QString &itemName, const QVa
     }
 
     // Check value type
-    QMetaType::Type type = static_cast<QMetaType::Type>(value.typeId());
+    auto type = static_cast<QMetaType::Type>(value.typeId());
 
     if (type == QMetaType::Bool) {
         auto *checkBox = new QCheckBox();

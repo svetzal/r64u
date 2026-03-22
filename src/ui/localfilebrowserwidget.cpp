@@ -19,9 +19,14 @@
 LocalFileBrowserWidget::LocalFileBrowserWidget(QWidget *parent) : FileBrowserWidget(parent)
 {
     currentDirectory_ = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-    setupUi();
-    setupContextMenu();
-    setupConnections();
+    // NOLINT: Qt template-method initialization pattern. These virtual methods are defined
+    // in this concrete class and are intentionally called here to set up the widget.
+    // Virtual dispatch is safe because LocalFileBrowserWidget is not designed to be subclassed.
+    LocalFileBrowserWidget::setupUi();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
+    LocalFileBrowserWidget::
+        setupContextMenu();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
+    LocalFileBrowserWidget::
+        setupConnections();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
 }
 
 void LocalFileBrowserWidget::setupUi()
@@ -68,7 +73,7 @@ void LocalFileBrowserWidget::setupUi()
     treeView_->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     treeView_->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
 
-    updateActions();
+    LocalFileBrowserWidget::updateActions();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
 }
 
 void LocalFileBrowserWidget::setupContextMenu()
@@ -105,7 +110,8 @@ void LocalFileBrowserWidget::setupConnections()
 
 void LocalFileBrowserWidget::updateActions()
 {
-    bool hasSelection = !selectedPath().isEmpty();
+    bool hasSelection = !LocalFileBrowserWidget::selectedPath()
+                             .isEmpty();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
 
     uploadAction_->setEnabled(hasSelection);
     newFolderAction_->setEnabled(true);

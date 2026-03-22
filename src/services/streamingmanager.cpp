@@ -87,10 +87,13 @@ bool StreamingManager::startStreaming()
         return false;
     }
 
-    // Clear any pending commands from previous sessions
-    if (streamControl_) {
-        streamControl_->clearPendingCommands();
+    if (!streamControl_) {
+        emit error(tr("Stream control client not available"));
+        return false;
     }
+
+    // Clear any pending commands from previous sessions
+    streamControl_->clearPendingCommands();
 
     // Extract device host from REST client URL
     QString deviceUrl = deviceConnection_->restClient()->host();

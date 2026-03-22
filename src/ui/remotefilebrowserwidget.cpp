@@ -320,7 +320,6 @@ void RemoteFileBrowserWidget::onDownload()
 
     // Emit download request for each selected file
     for (const QString &remotePath : paths) {
-        QModelIndex index = remoteFileModel_->index(0, 0);  // Start search from root
         // Find the index for this path to check if it's a directory
         bool isDir = false;
         QModelIndexList matches = treeView_->selectionModel()->selectedIndexes();

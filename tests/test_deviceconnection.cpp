@@ -197,7 +197,7 @@ private slots:
 
     void testGuard_ConnectWithoutHost()
     {
-        DeviceConnection *noHostConn = new DeviceConnection(this);
+        auto *noHostConn = new DeviceConnection(this);
         QSignalSpy errorSpy(noHostConn, &DeviceConnection::connectionError);
 
         noHostConn->connectToDevice();
@@ -479,7 +479,7 @@ private slots:
         // For this test, we verify the state machine allows the transition.
 
         // Second cycle - use a fresh DeviceConnection to avoid socket cleanup issues
-        DeviceConnection *conn2 = new DeviceConnection(this);
+        auto *conn2 = new DeviceConnection(this);
         conn2->setHost("192.168.1.64");
         conn2->setAutoReconnect(false);
 

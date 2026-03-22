@@ -11,10 +11,10 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-    app.setApplicationName("r64u");
-    app.setApplicationVersion(R64U_VERSION);
-    app.setOrganizationName("r64u");
-    app.setOrganizationDomain("example.com");
+    QApplication::setApplicationName("r64u");
+    QApplication::setApplicationVersion(R64U_VERSION);
+    QApplication::setOrganizationName("r64u");
+    QApplication::setOrganizationDomain("example.com");
 
     // Parse command line arguments
     QCommandLineParser parser;
@@ -49,5 +49,5 @@ int main(int argc, char *argv[])
     MainWindow window;
     window.show();
 
-    return app.exec();
+    return QApplication::exec();
 }

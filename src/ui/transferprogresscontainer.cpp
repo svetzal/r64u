@@ -255,7 +255,9 @@ void TransferProgressContainer::onScanningStarted(const QString &folderName, Ope
 void TransferProgressContainer::onScanningProgress(int directoriesScanned, int directoriesRemaining,
                                                    int filesDiscovered)
 {
+    Q_UNUSED(directoriesScanned)
     Q_UNUSED(directoriesRemaining)
+    Q_UNUSED(filesDiscovered)
 
     if (transferService_ && transferService_->hasActiveBatch()) {
         BatchProgress progress = transferService_->activeBatchProgress();
@@ -363,7 +365,7 @@ void TransferProgressContainer::onOverwriteConfirmationNeeded(const QString &fil
     QPushButton *overwriteAllButton =
         msgBox.addButton(tr("Overwrite All"), QMessageBox::AcceptRole);
     QPushButton *skipButton = msgBox.addButton(tr("Skip"), QMessageBox::RejectRole);
-    QPushButton *cancelButton = msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
+    msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
 
     msgBox.setDefaultButton(skipButton);
     msgBox.exec();
@@ -411,7 +413,7 @@ void TransferProgressContainer::onFolderExistsConfirmationNeeded(const QStringLi
 
     QPushButton *mergeButton = msgBox.addButton(tr("Merge"), QMessageBox::AcceptRole);
     QPushButton *replaceButton = msgBox.addButton(tr("Replace"), QMessageBox::DestructiveRole);
-    QPushButton *cancelButton = msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
+    msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
 
     msgBox.setDefaultButton(mergeButton);
     msgBox.exec();

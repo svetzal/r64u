@@ -4,6 +4,8 @@
 #include <QSignalSpy>
 #include <QtTest>
 
+#include <tuple>
+
 class TestStreamingDiagnostics : public QObject
 {
     Q_OBJECT
@@ -141,8 +143,8 @@ private slots:
         callback.onPacketReceived(2000);  // 2ms
 
         // Should not crash, diagnostics should be collecting data
-        DiagnosticsSnapshot snapshot = diagnostics.currentSnapshot();
-        // Can't easily verify the jitter calculation without more samples
+        // (Can't easily verify the jitter calculation without more samples)
+        std::ignore = diagnostics.currentSnapshot();
     }
 
     void testVideoFrameCallback()

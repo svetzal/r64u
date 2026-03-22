@@ -741,12 +741,13 @@ void C64UFtpClient::onDataDisconnected()
     if (pendingList_) {
         // Use the saved buffer from pendingList_, not listBuffer_
         // (which may have been cleared by a new list() call)
-        qDebug() << "FTP: Processing pending LIST, total data:" << pendingList_->buffer.size()
-                 << "bytes";
-        QList<FtpEntry> entries = parseDirectoryListing(pendingList_->buffer);
-        qDebug() << "FTP: Parsed" << entries.size() << "entries";
+        // Extract both values before any further calls that could invalidate the optional
+        QByteArray listBuffer = pendingList_->buffer;
         QString path = pendingList_->path;
         pendingList_.reset();  // Clear all pending LIST state with one call
+        qDebug() << "FTP: Processing pending LIST, total data:" << listBuffer.size() << "bytes";
+        QList<FtpEntry> entries = parseDirectoryListing(listBuffer);
+        qDebug() << "FTP: Parsed" << entries.size() << "entries";
         emit directoryListed(path, entries);
         processNextCommand();
     } else if (pendingRetr_) {

@@ -49,7 +49,7 @@ private:
         QVector<QByteArray> packets;
         // PAL: 68 packets (272 lines / 4 lines per packet)
         for (int i = 0; i < VideoStreamReceiver::PalPacketsPerFrame; i++) {
-            quint16 lineNum = static_cast<quint16>(i * 4);
+            auto lineNum = static_cast<quint16>(i * 4);
             bool isLast = (i == VideoStreamReceiver::PalPacketsPerFrame - 1);
             packets.append(createVideoPacket(startSeq + i, frameNum, lineNum, isLast));
         }
@@ -62,7 +62,7 @@ private:
         QVector<QByteArray> packets;
         // NTSC: 60 packets (240 lines / 4 lines per packet)
         for (int i = 0; i < VideoStreamReceiver::NtscPacketsPerFrame; i++) {
-            quint16 lineNum = static_cast<quint16>(i * 4);
+            auto lineNum = static_cast<quint16>(i * 4);
             bool isLast = (i == VideoStreamReceiver::NtscPacketsPerFrame - 1);
             packets.append(createVideoPacket(startSeq + i, frameNum, lineNum, isLast));
         }
@@ -202,9 +202,9 @@ private slots:
         QCOMPARE(format, VideoStreamReceiver::VideoFormat::PAL);
 
         // Check frame data
-        auto args = frameSpy.first();
+        const auto &args = frameSpy.first();
         QByteArray frameData = args.at(0).toByteArray();
-        quint16 frameNum = args.at(1).value<quint16>();
+        auto frameNum = args.at(1).value<quint16>();
         auto frameFormat = args.at(2).value<VideoStreamReceiver::VideoFormat>();
 
         QCOMPARE(frameNum, static_cast<quint16>(1));
@@ -236,7 +236,7 @@ private slots:
         auto format = formatSpy.first().first().value<VideoStreamReceiver::VideoFormat>();
         QCOMPARE(format, VideoStreamReceiver::VideoFormat::NTSC);
 
-        auto args = frameSpy.first();
+        const auto &args = frameSpy.first();
         QByteArray frameData = args.at(0).toByteArray();
         QCOMPARE(frameData.size(),
                  VideoStreamReceiver::BytesPerLine * VideoStreamReceiver::NtscHeight);
@@ -325,7 +325,7 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(statsSpy.count() >= 1, 5000);
 
         // Check stats values
-        auto args = statsSpy.last();
+        const auto &args = statsSpy.last();
         quint64 packetsReceived = args.at(0).toULongLong();
         quint64 framesCompleted = args.at(1).toULongLong();
 

@@ -14,6 +14,7 @@
 #include <QElapsedTimer>
 #include <QImage>
 #include <QQueue>
+#include <QRgb>
 #include <QTimer>
 #include <QWidget>
 
@@ -217,7 +218,24 @@ private:
     void stopDisplayTimer();
 
     /// Standard VIC-II color palette (RGB values)
-    static const std::array<QRgb, 16> VicPalette;
+    static constexpr std::array<QRgb, 16> VicPalette = {{
+        qRgb(0x00, 0x00, 0x00),  // 0: Black
+        qRgb(0xFF, 0xFF, 0xFF),  // 1: White
+        qRgb(0x9F, 0x4E, 0x44),  // 2: Red
+        qRgb(0x6A, 0xBF, 0xC6),  // 3: Cyan
+        qRgb(0xA0, 0x57, 0xA3),  // 4: Purple
+        qRgb(0x5C, 0xAB, 0x5E),  // 5: Green
+        qRgb(0x50, 0x45, 0x9B),  // 6: Blue
+        qRgb(0xC9, 0xD4, 0x87),  // 7: Yellow
+        qRgb(0xA1, 0x68, 0x3C),  // 8: Orange
+        qRgb(0x6D, 0x54, 0x12),  // 9: Brown
+        qRgb(0xCB, 0x7E, 0x75),  // 10: Light Red
+        qRgb(0x62, 0x62, 0x62),  // 11: Dark Grey
+        qRgb(0x89, 0x89, 0x89),  // 12: Medium Grey
+        qRgb(0x9A, 0xE2, 0x9B),  // 13: Light Green
+        qRgb(0x88, 0x7E, 0xCB),  // 14: Light Blue
+        qRgb(0xAD, 0xAD, 0xAD)   // 15: Light Grey
+    }};
 
     // Display state
     QImage displayImage_;

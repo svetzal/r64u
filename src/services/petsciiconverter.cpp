@@ -80,8 +80,8 @@ QString PetsciiConverter::toAscii(const QByteArray &data, bool stopAtPadding)
     QString result;
     result.reserve(data.size());
 
-    for (int i = 0; i < data.size(); i++) {
-        quint8 petscii = static_cast<quint8>(data[i]);
+    for (const auto byte : data) {
+        auto petscii = static_cast<quint8>(byte);
 
         // $A0 is shift-space (padding character in filenames)
         if (stopAtPadding && petscii == 0xA0) {
@@ -120,8 +120,8 @@ QString PetsciiConverter::toDisplayString(const QByteArray &data)
     QString result;
     result.reserve(data.size());
 
-    for (int i = 0; i < data.size(); i++) {
-        quint8 petscii = static_cast<quint8>(data[i]);
+    for (const auto byte : data) {
+        auto petscii = static_cast<quint8>(byte);
 
         // Stop at null
         if (petscii == 0x00) {
@@ -141,8 +141,8 @@ QByteArray PetsciiConverter::fromAscii(const QString &text)
     QByteArray result;
     result.reserve(text.size());
 
-    for (int i = 0; i < text.size(); i++) {
-        ushort unicode = text[i].unicode();
+    for (const auto &ch : text) {
+        ushort unicode = ch.unicode();
 
         if (unicode < 128) {
             result.append(static_cast<char>(asciiToPetsciiTable[unicode]));

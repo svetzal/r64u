@@ -458,7 +458,7 @@ private slots:
     {
         // Verify all 256 bytes can be converted without crash
         for (int i = 0; i < 256; i++) {
-            quint8 petscii = static_cast<quint8>(i);
+            auto petscii = static_cast<quint8>(i);
             // Just ensure no crash - the result can be anything
             PetsciiConverter::toAscii(petscii);
             PetsciiConverter::isPrintable(petscii);

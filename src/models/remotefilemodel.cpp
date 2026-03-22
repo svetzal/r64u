@@ -132,6 +132,8 @@ QVariant RemoteFileModel::data(const QModelIndex &index, int role) const
             return node->isDirectory ? QVariant() : QString::number(node->size);
         case 2:
             return fileTypeString(node->fileType);
+        default:
+            break;
         }
         break;
 
@@ -158,6 +160,9 @@ QVariant RemoteFileModel::data(const QModelIndex &index, int role) const
 
     case FileTypeRole:
         return static_cast<int>(node->fileType);
+
+    default:
+        break;
     }
 
     return QVariant();
@@ -176,6 +181,8 @@ QVariant RemoteFileModel::headerData(int section, Qt::Orientation orientation, i
         return tr("Size");
     case 2:
         return tr("Type");
+    default:
+        break;
     }
 
     return QVariant();
@@ -615,7 +622,7 @@ void RemoteFileModel::populateNode(TreeNode *node, const QList<FtpEntry> &entrie
         beginInsertRows(parentIndex, 0, sortedEntries.count() - 1);
 
         for (const FtpEntry &entry : sortedEntries) {
-            TreeNode *child = new TreeNode;
+            auto *child = new TreeNode;
             child->name = entry.name;
             child->isDirectory = entry.isDirectory;
             child->size = entry.size;

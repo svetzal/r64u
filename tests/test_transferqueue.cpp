@@ -660,7 +660,7 @@ private slots:
         queue->enqueueRecursiveUpload(localDir, "/remote");
 
         // Should have queued mkdir for root directory first
-        QVERIFY(mockFtp->mockGetMkdirRequests().size() >= 1);
+        QVERIFY(!mockFtp->mockGetMkdirRequests().empty());
 
         // Process all mkdirs and uploads
         flushAndProcess();
@@ -688,7 +688,7 @@ private slots:
         queue->enqueueRecursiveUpload(localDir, "/remote");
 
         // Should have queued mkdirs for the directories
-        QVERIFY(mockFtp->mockGetMkdirRequests().size() >= 1);
+        QVERIFY(!mockFtp->mockGetMkdirRequests().empty());
 
         // Process all mkdirs
         flushAndProcess();
@@ -1316,7 +1316,7 @@ private slots:
         queue->enqueueRecursiveUpload(localDir, "/remote");
 
         // First mkdir should be for the root directory
-        QVERIFY(mockFtp->mockGetMkdirRequests().size() >= 1);
+        QVERIFY(!mockFtp->mockGetMkdirRequests().empty());
 
         // Fail the first mkdir
         mockFtp->mockSetNextOperationFails("Cannot create directory");
@@ -2124,7 +2124,7 @@ private slots:
 
         // Only one batch exists initially (second folder is queued)
         // This is the serialized behavior - no concurrent operations
-        QVERIFY2(queue->allBatchIds().size() >= 1, "At least one batch should exist");
+        QVERIFY2(!queue->allBatchIds().empty(), "At least one batch should exist");
 
         // Process all operations - both folders should be downloaded sequentially
         flushAndProcess();
@@ -2168,15 +2168,8 @@ private slots:
         BatchProgress progress = queue->batchProgress(batchId);
         QCOMPARE(progress.totalItems, 3);
 
-        // Now verify by checking items_ through the model
-        for (int i = 0; i < queue->rowCount(); ++i) {
-            QModelIndex index = queue->index(i);
-            // All items should have the same batch ID
-            int itemBatchId =
-                queue->data(index, Qt::UserRole + 10).toInt();  // Check via internal item
-            // Since we don't expose batchId through model roles, verify via batch progress
-            // The key point is all items are in the single batch
-        }
+        // Note: batchId is not exposed through model roles; batch progress is verified above
+        QVERIFY(queue->rowCount() > 0);
 
         // Process downloads
         flushAndProcess();
@@ -2227,10 +2220,10 @@ private slots:
         // First batch should be created immediately for folder1
         // Second folder should be queued (not start a second batch yet)
         QList<int> batchIds = queue->allBatchIds();
-        QVERIFY2(batchIds.size() >= 1, "At least one batch should be created");
+        QVERIFY2(!batchIds.empty(), "At least one batch should be created");
 
         // Only one mkdir should be queued initially (for folder1's root)
-        QVERIFY2(mockFtp->mockGetMkdirRequests().size() >= 1,
+        QVERIFY2(!mockFtp->mockGetMkdirRequests().empty(),
                  "At least one mkdir should be requested");
 
         // Process everything - both folders should be processed serially
@@ -2321,7 +2314,7 @@ private slots:
         QVERIFY(singleFileBatchId > 0);
 
         // Process folder's mkdir (folder upload is now in CreatingDirectories state)
-        QVERIFY(mockFtp->mockGetMkdirRequests().size() >= 1);
+        QVERIFY(!mockFtp->mockGetMkdirRequests().empty());
 
         // At this point, folderUploadInProgress_ is true
         // Process one operation at a time to control the flow
@@ -2411,7 +2404,7 @@ private slots:
         queue->respondToFolderExists(FolderExistsResponse::Merge);
 
         // Now listing should be requested
-        QVERIFY(mockFtp->mockGetListRequests().size() >= 1);
+        QVERIFY(!mockFtp->mockGetListRequests().empty());
 
         // Process listing
         flushAndProcessNext();
@@ -2474,7 +2467,7 @@ private slots:
         QVERIFY(!QFile::exists(existingFolder + "/todelete.txt"));
 
         // Now listing should be requested
-        QVERIFY(mockFtp->mockGetListRequests().size() >= 1);
+        QVERIFY(!mockFtp->mockGetListRequests().empty());
 
         // Process listing and download
         flushAndProcess();
@@ -2513,7 +2506,7 @@ private slots:
         QCOMPARE(folderExistsSpy.count(), 0);
 
         // Listing should be requested immediately
-        QVERIFY(mockFtp->mockGetListRequests().size() >= 1);
+        QVERIFY(!mockFtp->mockGetListRequests().empty());
 
         // Clean up
         queue->setAutoMerge(false);
