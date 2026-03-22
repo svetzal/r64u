@@ -53,7 +53,7 @@ void TestTransferQueue::testConnectionLostMidTransfer()
 
 ## Build Environment
 
-Qt 6.10.1 is installed via the native Qt installer at `~/Qt/`.
+Qt 6.11.0 is installed via the native Qt installer at `~/Qt/`.
 
 ```bash
 # Build and run all tests (preferred method)
@@ -89,17 +89,17 @@ cmake --build build --target format
 cmake --build build --target quality
 
 # Code coverage (Apple LLVM profdata/llvm-cov, not lcov)
-cmake -B build -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.10.1/macos -DCMAKE_BUILD_TYPE=Debug -DBUILD_COVERAGE=ON
+cmake -B build -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.11.0/macos -DCMAKE_BUILD_TYPE=Debug -DBUILD_COVERAGE=ON
 cmake --build build
 cmake --build build --target coverage
 
 # AddressSanitizer + UBSan
-cmake -B build_asan -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.10.1/macos -DSANITIZER="address;undefined"
+cmake -B build_asan -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.11.0/macos -DSANITIZER="address;undefined"
 cmake --build build_asan
 cd build_asan && ctest --output-on-failure
 
 # ThreadSanitizer (optional)
-cmake -B build_tsan -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.10.1/macos -DSANITIZER=thread
+cmake -B build_tsan -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.11.0/macos -DSANITIZER=thread
 cmake --build build_tsan
 cd build_tsan && ctest --output-on-failure
 ```
