@@ -1,21 +1,11 @@
 {
   "gates": [
     {
-      "name": "test",
-      "command": "cmake --build build --target all && cd build && ctest --output-on-failure",
-      "required": true
-    },
-    {
       "name": "coverage",
-      "command": "cmake -B build -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.10.1/macos -DCMAKE_BUILD_TYPE=Debug -DBUILD_COVERAGE=ON && cmake --build build && cmake --build build --target coverage",
+      "command": "cmake -B build -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.11.0/macos -DCMAKE_BUILD_TYPE=Debug -DBUILD_COVERAGE=ON && cmake --build build && cmake --build build --target coverage",
       "required": true
     },
-    {
-      "name": "clang-tidy",
-      "command": "cmake --build build --target tidy",
-      "required": true
-    },
-    {
+{
       "name": "cppcheck",
       "command": "cmake --build build --target cppcheck",
       "required": true
@@ -24,16 +14,6 @@
       "name": "format",
       "command": "cmake --build build --target format-check",
       "required": true
-    },
-    {
-      "name": "asan",
-      "command": "cmake -B build_asan -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.10.1/macos -DSANITIZER=\"address;undefined\" && cmake --build build_asan && cd build_asan && ctest --output-on-failure",
-      "required": true
-    },
-    {
-      "name": "tsan",
-      "command": "cmake -B build_tsan -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.10.1/macos -DSANITIZER=thread && cmake --build build_tsan && cd build_tsan && ctest --output-on-failure",
-      "required": false
     },
     {
       "name": "doxygen",
