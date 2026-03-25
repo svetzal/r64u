@@ -73,6 +73,10 @@ set(SOURCES
     src/services/transferservice.cpp
     src/services/errorhandler.cpp
     src/services/statusmessageservice.cpp
+    src/services/istreamcontrolclient.cpp
+    src/services/ivideostreamreceiver.cpp
+    src/services/iaudiostreamreceiver.cpp
+    src/services/iaudioplaybackservice.cpp
     src/services/streamcontrolclient.cpp
     src/services/streamingmanager.cpp
     src/services/videostreamreceiver.cpp
@@ -83,8 +87,10 @@ set(SOURCES
     src/services/petsciiconverter.cpp
     src/services/sidfileparser.cpp
     src/services/favoritesmanager.cpp
+    src/services/favoritescore.cpp
     src/services/videorecordingservice.cpp
     src/services/playlistmanager.cpp
+    src/services/playlistcore.cpp
     src/services/songlengthsparser.cpp
     src/services/songlengthsdatabase.cpp
     src/services/hvscparser.cpp
@@ -134,6 +140,14 @@ set(HEADERS
     src/services/errorhandler.h
     src/services/statusmessageservice.h
     src/services/credentialstore.h
+    src/services/icredentialstore.h
+    src/services/systemcredentialstore.h
+    src/services/istreamcontrolclient.h
+    src/services/ivideostreamreceiver.h
+    src/services/iaudiostreamreceiver.h
+    src/services/iaudioplaybackservice.h
+    src/services/inetworkinterfaceprovider.h
+    src/services/networkinterfaceprovider.h
     src/services/streamcontrolclient.h
     src/services/streamingmanager.h
     src/services/videostreamreceiver.h
@@ -144,8 +158,10 @@ set(HEADERS
     src/services/petsciiconverter.h
     src/services/sidfileparser.h
     src/services/favoritesmanager.h
+    src/services/favoritescore.h
     src/services/videorecordingservice.h
     src/services/playlistmanager.h
+    src/services/playlistcore.h
     src/services/songlengthsdatabase.h
     src/services/hvscmetadataservice.h
     src/services/gamebase64service.h

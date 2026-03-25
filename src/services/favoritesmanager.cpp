@@ -5,6 +5,8 @@
 
 #include "favoritesmanager.h"
 
+#include "favoritescore.h"
+
 #include <QSettings>
 
 FavoritesManager::FavoritesManager(QObject *parent) : QObject(parent)
@@ -14,9 +16,7 @@ FavoritesManager::FavoritesManager(QObject *parent) : QObject(parent)
 
 QStringList FavoritesManager::favorites() const
 {
-    QStringList sorted = favorites_;
-    sorted.sort(Qt::CaseInsensitive);
-    return sorted;
+    return favorites::sorted(favorites_);
 }
 
 bool FavoritesManager::isFavorite(const QString &path) const
@@ -26,11 +26,12 @@ bool FavoritesManager::isFavorite(const QString &path) const
 
 void FavoritesManager::addFavorite(const QString &path)
 {
-    if (path.isEmpty() || favorites_.contains(path)) {
+    auto [paths, added] = favorites::addFavorite(favorites_, path);
+    if (!added) {
         return;
     }
 
-    favorites_.append(path);
+    favorites_ = paths;
     saveSettings();
     emit favoriteAdded(path);
     emit favoritesChanged();
@@ -38,11 +39,12 @@ void FavoritesManager::addFavorite(const QString &path)
 
 void FavoritesManager::removeFavorite(const QString &path)
 {
-    if (!favorites_.contains(path)) {
+    auto [paths, removed] = favorites::removeFavorite(favorites_, path);
+    if (!removed) {
         return;
     }
 
-    favorites_.removeAll(path);
+    favorites_ = paths;
     saveSettings();
     emit favoriteRemoved(path);
     emit favoritesChanged();
@@ -61,12 +63,12 @@ bool FavoritesManager::toggleFavorite(const QString &path)
 
 void FavoritesManager::moveFavorite(int from, int to)
 {
-    if (from < 0 || from >= favorites_.count() || to < 0 || to >= favorites_.count() ||
-        from == to) {
+    QStringList moved = favorites::moveFavorite(favorites_, from, to);
+    if (moved == favorites_) {
         return;
     }
 
-    favorites_.move(from, to);
+    favorites_ = moved;
     saveSettings();
     emit favoritesChanged();
 }

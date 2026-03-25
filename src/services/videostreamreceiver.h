@@ -9,6 +9,8 @@
 #ifndef VIDEOSTREAMRECEIVER_H
 #define VIDEOSTREAMRECEIVER_H
 
+#include "ivideostreamreceiver.h"
+
 #include <QByteArray>
 #include <QElapsedTimer>
 #include <QObject>
@@ -41,13 +43,16 @@
  * }
  * @endcode
  */
-class VideoStreamReceiver : public QObject
+class VideoStreamReceiver : public IVideoStreamReceiver
 {
     Q_OBJECT
 
 public:
     /// Default UDP port for video stream reception
     static constexpr quint16 DefaultPort = 21000;
+
+    /// Type alias for backward compatibility with callers using VideoStreamReceiver::VideoFormat
+    using VideoFormat = IVideoStreamReceiver::VideoFormat;
 
     /// Video packet size in bytes (12-byte header + 768-byte payload)
     static constexpr int PacketSize = 780;
@@ -86,11 +91,6 @@ public:
     static constexpr int NtscPacketsPerFrame = 60;
 
     /**
-     * @brief Video format enumeration.
-     */
-    enum class VideoFormat { Unknown, PAL, NTSC };
-
-    /**
      * @brief Constructs a video stream receiver.
      * @param parent Optional parent QObject for memory management.
      */
@@ -102,22 +102,28 @@ public:
     ~VideoStreamReceiver() override;
 
     /**
+     * @brief Binds the UDP socket to the default video port.
+     * @return true if binding succeeded, false otherwise.
+     */
+    bool bind() override;
+
+    /**
      * @brief Binds the UDP socket to the specified port.
      * @param port UDP port number to listen on (default: 21000).
      * @return true if binding succeeded, false otherwise.
      */
-    bool bind(quint16 port = DefaultPort);
+    bool bind(quint16 port);
 
     /**
      * @brief Closes the UDP socket and stops reception.
      */
-    void close();
+    void close() override;
 
     /**
      * @brief Returns whether the socket is bound and receiving.
      * @return true if active, false otherwise.
      */
-    [[nodiscard]] bool isActive() const;
+    [[nodiscard]] bool isActive() const override;
 
     /**
      * @brief Returns the port the socket is bound to.
@@ -158,20 +164,6 @@ public:
     void setDiagnosticsCallback(const DiagnosticsCallback &callback);
 
 signals:
-    /**
-     * @brief Emitted when a complete frame has been assembled.
-     * @param frameData Raw 4-bit indexed color data (384 × height bytes packed).
-     * @param frameNumber The frame sequence number.
-     * @param format The detected video format (PAL or NTSC).
-     */
-    void frameReady(const QByteArray &frameData, quint16 frameNumber, VideoFormat format);
-
-    /**
-     * @brief Emitted when the video format is detected or changes.
-     * @param format The detected video format.
-     */
-    void formatDetected(VideoFormat format);
-
     /**
      * @brief Emitted when a socket error occurs.
      * @param error Error description.

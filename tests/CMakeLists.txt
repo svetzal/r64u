@@ -12,6 +12,22 @@ set(MOCK_FTP_HEADERS
     mocks/mockftpclient.h
 )
 
+# Streaming interface mock sources (Q_OBJECT mocks need .cpp for MOC)
+set(MOCK_STREAMING_SOURCES
+    mocks/mockstreamcontrolclient.cpp
+    mocks/mockvideostreamreceiver.cpp
+    mocks/mockaudiostreamreceiver.cpp
+    mocks/mockaudioplaybackservice.cpp
+)
+
+set(MOCK_STREAMING_HEADERS
+    mocks/mockstreamcontrolclient.h
+    mocks/mockvideostreamreceiver.h
+    mocks/mockaudiostreamreceiver.h
+    mocks/mockaudioplaybackservice.h
+    mocks/mocknetworkinterfaceprovider.h
+)
+
 # Legacy mock that shadows C64UFtpClient at link time (for ConfigFileLoader tests)
 set(LEGACY_MOCK_SOURCES
     services/c64uftpclient.cpp
@@ -262,6 +278,7 @@ endif()
 # VideoStreamReceiver tests
 add_executable(test_videostreamreceiver
     test_videostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
 )
 
@@ -565,7 +582,9 @@ endif()
 add_executable(test_streamingdiagnostics
     test_streamingdiagnostics.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiver.cpp
 )
 
@@ -657,6 +676,96 @@ add_test(NAME SonglengthsParserTest COMMAND test_songlengthsparser)
 if(BUILD_COVERAGE)
     add_coverage_target(songlengthsparser test_songlengthsparser)
     add_dependencies(coverage coverage_songlengthsparser)
+endif()
+
+# StreamingManager tests - coordination logic using mock streaming services
+add_executable(test_streamingmanager
+    test_streamingmanager.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${MOCK_STREAMING_SOURCES}
+    ${MOCK_STREAMING_HEADERS}
+    mocks/mockrestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/istreamcontrolclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudioplaybackservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/streamingmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/streamcontrolclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/audioplaybackservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.cpp
+)
+
+target_include_directories(test_streamingmanager PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_streamingmanager PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+    Qt6::Network
+    Qt6::Multimedia
+)
+
+add_test(NAME StreamingManagerTest COMMAND test_streamingmanager)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(streamingmanager test_streamingmanager)
+    add_dependencies(coverage coverage_streamingmanager)
+endif()
+
+# FavoritesCore tests - pure favorites logic, no I/O dependencies
+add_executable(test_favoritescore
+    test_favoritescore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/favoritescore.cpp
+)
+
+target_include_directories(test_favoritescore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_favoritescore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME FavoritesCoreTest COMMAND test_favoritescore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(favoritescore test_favoritescore)
+    add_dependencies(coverage coverage_favoritescore)
+endif()
+
+# PlaylistCore tests - pure playlist logic, no I/O dependencies
+add_executable(test_playlistcore
+    test_playlistcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
+)
+
+target_include_directories(test_playlistcore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_playlistcore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME PlaylistCoreTest COMMAND test_playlistcore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(playlistcore test_playlistcore)
+    add_dependencies(coverage coverage_playlistcore)
 endif()
 
 # GameBase64Service tests

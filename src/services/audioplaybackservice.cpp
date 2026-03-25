@@ -8,7 +8,7 @@
 #include <QAudioDevice>
 #include <QMediaDevices>
 
-AudioPlaybackService::AudioPlaybackService(QObject *parent) : QObject(parent)
+AudioPlaybackService::AudioPlaybackService(QObject *parent) : IAudioPlaybackService(parent)
 {
     // Initialize audio format
     audioFormat_.setSampleRate(sampleRate_);

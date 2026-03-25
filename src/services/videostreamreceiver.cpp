@@ -11,7 +11,7 @@
 #include <QVariant>
 
 VideoStreamReceiver::VideoStreamReceiver(QObject *parent)
-    : QObject(parent), socket_(new QUdpSocket(this))
+    : IVideoStreamReceiver(parent), socket_(new QUdpSocket(this))
 {
     connect(socket_, &QUdpSocket::readyRead, this, &VideoStreamReceiver::onReadyRead);
     connect(socket_, &QUdpSocket::errorOccurred, this,
@@ -25,6 +25,11 @@ VideoStreamReceiver::VideoStreamReceiver(QObject *parent)
 VideoStreamReceiver::~VideoStreamReceiver()
 {
     close();
+}
+
+bool VideoStreamReceiver::bind()
+{
+    return bind(DefaultPort);
 }
 
 bool VideoStreamReceiver::bind(quint16 port)
@@ -266,7 +271,8 @@ void VideoStreamReceiver::completeFrame()
     }
 }
 
-VideoStreamReceiver::VideoFormat VideoStreamReceiver::detectFormat(const PacketHeader &header) const
+IVideoStreamReceiver::VideoFormat
+VideoStreamReceiver::detectFormat(const PacketHeader &header) const
 {
     // The format can be detected from the last packet:
     // - PAL: final line_num + lines_per_packet = 272

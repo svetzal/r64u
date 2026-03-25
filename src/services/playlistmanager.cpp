@@ -7,12 +7,12 @@
 
 #include "deviceconnection.h"
 #include "iftpclient.h"
+#include "playlistcore.h"
 #include "songlengthsdatabase.h"
 #include "streamingmanager.h"
 
 #include <QFile>
 #include <QFileInfo>
-#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QRandomGenerator>
@@ -47,26 +47,12 @@ void PlaylistManager::setStreamingManager(StreamingManager *manager)
 
 void PlaylistManager::addItem(const QString &path, int subsong)
 {
-    PlaylistItem item;
-    item.path = path;
-    item.subsong = subsong;
-    item.durationSecs = defaultDuration_;
-
-    // Extract filename as default title
-    QFileInfo fileInfo(path);
-    item.title = fileInfo.completeBaseName();
-
-    addItem(item);
+    addItem(playlist::createItem(path, subsong, state_.defaultDuration));
 }
 
 void PlaylistManager::addItem(const PlaylistItem &item)
 {
-    items_.append(item);
-
-    // Regenerate shuffle order if shuffle is enabled
-    if (shuffle_) {
-        generateShuffleOrder();
-    }
+    state_ = playlist::addItem(state_, item);
 
     // Request SID data to look up duration from database
     if (songlengthsDatabase_ != nullptr && songlengthsDatabase_->isLoaded() &&
@@ -85,100 +71,58 @@ void PlaylistManager::addItem(const PlaylistItem &item)
 
 void PlaylistManager::removeItem(int index)
 {
-    if (index < 0 || index >= items_.count()) {
-        return;
-    }
-
-    // Adjust current index if needed
-    bool wasPlaying = (index == currentIndex_);
-    if (wasPlaying) {
-        stopTimer();
-    }
-
-    items_.removeAt(index);
-
-    // Regenerate shuffle order
-    if (shuffle_) {
-        generateShuffleOrder();
-    }
-
-    // Adjust current index
-    if (currentIndex_ >= items_.count()) {
-        currentIndex_ = items_.isEmpty() ? -1 : items_.count() - 1;
-    } else if (index < currentIndex_) {
-        currentIndex_--;
-    }
+    auto [newState, wasPlaying] = playlist::removeItem(state_, index);
+    bool wasStreaming = wasPlaying && playing_;
+    state_ = newState;
 
     emit playlistChanged();
 
-    if (wasPlaying && !items_.isEmpty() && playing_) {
-        // Continue playing next item
+    if (wasStreaming && !state_.items.isEmpty()) {
         playCurrentItem();
-    } else if (items_.isEmpty()) {
+    } else if (state_.items.isEmpty()) {
         stop();
     }
 }
 
 void PlaylistManager::moveItem(int from, int to)
 {
-    if (from < 0 || from >= items_.count() || to < 0 || to >= items_.count() || from == to) {
-        return;
-    }
-
-    items_.move(from, to);
-
-    // Update current index if affected
-    if (currentIndex_ == from) {
-        currentIndex_ = to;
-    } else if (from < currentIndex_ && to >= currentIndex_) {
-        currentIndex_--;
-    } else if (from > currentIndex_ && to <= currentIndex_) {
-        currentIndex_++;
-    }
-
-    // Regenerate shuffle order
-    if (shuffle_) {
-        generateShuffleOrder();
-    }
-
+    state_ = playlist::moveItem(state_, from, to);
     emit playlistChanged();
 }
 
 void PlaylistManager::clear()
 {
-    if (items_.isEmpty()) {
+    if (state_.items.isEmpty()) {
         return;
     }
 
     stop();
-    items_.clear();
-    shuffleOrder_.clear();
-    currentIndex_ = -1;
+    state_ = playlist::clear(state_);
 
     emit playlistChanged();
 }
 
 PlaylistManager::PlaylistItem PlaylistManager::itemAt(int index) const
 {
-    if (index < 0 || index >= items_.count()) {
+    if (index < 0 || index >= state_.items.count()) {
         return {};
     }
-    return items_.at(index);
+    return state_.items.at(index);
 }
 
 void PlaylistManager::play(int index)
 {
-    if (items_.isEmpty()) {
+    if (state_.items.isEmpty()) {
         return;
     }
 
     if (index < 0) {
         // Use current index or start from beginning
-        if (currentIndex_ < 0) {
-            currentIndex_ = shuffle_ ? shuffledIndex(0) : 0;
+        if (state_.currentIndex < 0) {
+            state_.currentIndex = state_.shuffle ? state_.shuffleOrder.first() : 0;
         }
-    } else if (index < items_.count()) {
-        currentIndex_ = index;
+    } else if (index < state_.items.count()) {
+        state_.currentIndex = index;
     } else {
         return;
     }
@@ -192,8 +136,8 @@ void PlaylistManager::play(int index)
 
     playCurrentItem();
 
-    emit playbackStarted(currentIndex_);
-    emit currentIndexChanged(currentIndex_);
+    emit playbackStarted(state_.currentIndex);
+    emit currentIndexChanged(state_.currentIndex);
 }
 
 void PlaylistManager::stop()
@@ -216,20 +160,19 @@ void PlaylistManager::stop()
 
 void PlaylistManager::next()
 {
-    if (items_.isEmpty()) {
+    if (state_.items.isEmpty()) {
         return;
     }
 
-    int nextIdx = nextIndex();
+    int nextIdx = playlist::nextIndex(state_);
     if (nextIdx < 0) {
-        // End of playlist
         stop();
         return;
     }
 
     stopTimer();
-    currentIndex_ = nextIdx;
-    emit currentIndexChanged(currentIndex_);
+    state_.currentIndex = nextIdx;
+    emit currentIndexChanged(state_.currentIndex);
 
     if (playing_) {
         playCurrentItem();
@@ -238,18 +181,18 @@ void PlaylistManager::next()
 
 void PlaylistManager::previous()
 {
-    if (items_.isEmpty()) {
+    if (state_.items.isEmpty()) {
         return;
     }
 
-    int prevIdx = previousIndex();
+    int prevIdx = playlist::previousIndex(state_);
     if (prevIdx < 0) {
         return;
     }
 
     stopTimer();
-    currentIndex_ = prevIdx;
-    emit currentIndexChanged(currentIndex_);
+    state_.currentIndex = prevIdx;
+    emit currentIndexChanged(state_.currentIndex);
 
     if (playing_) {
         playCurrentItem();
@@ -258,14 +201,15 @@ void PlaylistManager::previous()
 
 void PlaylistManager::setShuffle(bool enabled)
 {
-    if (shuffle_ == enabled) {
+    if (state_.shuffle == enabled) {
         return;
     }
 
-    shuffle_ = enabled;
+    state_.shuffle = enabled;
 
-    if (shuffle_) {
-        generateShuffleOrder();
+    if (state_.shuffle) {
+        state_.shuffleOrder = playlist::generateShuffleOrder(
+            state_.items.size(), QRandomGenerator::global()->generate());
     }
 
     saveSettings();
@@ -274,11 +218,11 @@ void PlaylistManager::setShuffle(bool enabled)
 
 void PlaylistManager::setRepeatMode(RepeatMode mode)
 {
-    if (repeatMode_ == mode) {
+    if (state_.repeatMode == mode) {
         return;
     }
 
-    repeatMode_ = mode;
+    state_.repeatMode = mode;
     saveSettings();
     emit repeatModeChanged(mode);
 }
@@ -287,27 +231,27 @@ void PlaylistManager::setDefaultDuration(int seconds)
 {
     seconds = std::clamp(seconds, 10, 3600);  // 10 seconds to 1 hour
 
-    if (defaultDuration_ == seconds) {
+    if (state_.defaultDuration == seconds) {
         return;
     }
 
-    defaultDuration_ = seconds;
+    state_.defaultDuration = seconds;
     saveSettings();
     emit defaultDurationChanged(seconds);
 }
 
 void PlaylistManager::setItemDuration(int index, int seconds)
 {
-    if (index < 0 || index >= items_.count()) {
+    if (index < 0 || index >= state_.items.count()) {
         return;
     }
 
     seconds = std::clamp(seconds, 10, 3600);
 
-    items_[index].durationSecs = seconds;
+    state_.items[index].durationSecs = seconds;
 
     // If this is the current item and we're playing, restart timer
-    if (index == currentIndex_ && playing_) {
+    if (index == state_.currentIndex && playing_) {
         startTimer();
     }
 
@@ -325,49 +269,25 @@ void PlaylistManager::updateDurationFromData(const QString &path, const QByteArr
         return;
     }
 
-    bool updated = false;
-    for (int i = 0; i < items_.count(); ++i) {
-        if (items_[i].path == path) {
-            int subsongIndex = items_[i].subsong - 1;  // Convert to 0-indexed
-            if (subsongIndex >= 0 && subsongIndex < lengths.durations.size()) {
-                int newDuration = lengths.durations.at(subsongIndex);
-                if (items_[i].durationSecs != newDuration) {
-                    items_[i].durationSecs = newDuration;
-                    updated = true;
-
-                    // If this is the current item and we're playing, restart timer
-                    if (i == currentIndex_ && playing_) {
-                        startTimer();
-                    }
-                }
-            }
-        }
+    auto result = playlist::updateItemDurations(state_.items, path, lengths.durations);
+    if (!result.anyUpdated) {
+        return;
     }
 
-    if (updated) {
-        emit playlistChanged();
+    state_.items = result.items;
+
+    // If the current item was updated and we're playing, restart the timer
+    if (playing_ && result.updatedIndices.contains(state_.currentIndex)) {
+        startTimer();
     }
+
+    emit playlistChanged();
 }
 
 bool PlaylistManager::savePlaylist(const QString &filePath)
 {
-    QJsonObject root;
-    root["version"] = 1;
-
-    QJsonArray itemsArray;
-    for (const PlaylistItem &item : items_) {
-        QJsonObject itemObj;
-        itemObj["path"] = item.path;
-        itemObj["title"] = item.title;
-        itemObj["author"] = item.author;
-        itemObj["subsong"] = item.subsong;
-        itemObj["totalSubsongs"] = item.totalSubsongs;
-        itemObj["duration"] = item.durationSecs;
-        itemsArray.append(itemObj);
-    }
-    root["items"] = itemsArray;
-
-    QJsonDocument doc(root);
+    QJsonObject json = playlist::serialize(state_.items);
+    QJsonDocument doc(json);
     QFile file(filePath);
     if (!file.open(QIODevice::WriteOnly)) {
         return false;
@@ -394,31 +314,15 @@ bool PlaylistManager::loadPlaylist(const QString &filePath)
         return false;
     }
 
-    QJsonObject root = doc.object();
-
     // Stop current playback before loading
     stop();
-    items_.clear();
-    currentIndex_ = -1;
+    state_ = playlist::clear(state_);
 
-    QJsonArray itemsArray = root["items"].toArray();
-    for (const QJsonValue &value : itemsArray) {
-        QJsonObject itemObj = value.toObject();
-        PlaylistItem item;
-        item.path = itemObj["path"].toString();
-        item.title = itemObj["title"].toString();
-        item.author = itemObj["author"].toString();
-        item.subsong = itemObj["subsong"].toInt(1);
-        item.totalSubsongs = itemObj["totalSubsongs"].toInt(1);
-        item.durationSecs = itemObj["duration"].toInt(defaultDuration_);
+    state_.items = playlist::deserialize(doc.object(), state_.defaultDuration);
 
-        if (!item.path.isEmpty()) {
-            items_.append(item);
-        }
-    }
-
-    if (shuffle_) {
-        generateShuffleOrder();
+    if (state_.shuffle && !state_.items.isEmpty()) {
+        state_.shuffleOrder = playlist::generateShuffleOrder(
+            state_.items.size(), QRandomGenerator::global()->generate());
     }
 
     emit playlistChanged();
@@ -428,61 +332,44 @@ bool PlaylistManager::loadPlaylist(const QString &filePath)
 void PlaylistManager::saveSettings()
 {
     QSettings settings;
-    settings.setValue("playlist/shuffle", shuffle_);
-    settings.setValue("playlist/repeatMode", static_cast<int>(repeatMode_));
-    settings.setValue("playlist/defaultDuration", defaultDuration_);
+    settings.setValue("playlist/shuffle", state_.shuffle);
+    settings.setValue("playlist/repeatMode", static_cast<int>(state_.repeatMode));
+    settings.setValue("playlist/defaultDuration", state_.defaultDuration);
 }
 
 void PlaylistManager::loadSettings()
 {
     QSettings settings;
-    shuffle_ = settings.value("playlist/shuffle", false).toBool();
-    repeatMode_ = static_cast<RepeatMode>(settings.value("playlist/repeatMode", 0).toInt());
-    defaultDuration_ = settings.value("playlist/defaultDuration", 180).toInt();
+    state_.shuffle = settings.value("playlist/shuffle", false).toBool();
+    state_.repeatMode = static_cast<RepeatMode>(settings.value("playlist/repeatMode", 0).toInt());
+    state_.defaultDuration = settings.value("playlist/defaultDuration", 180).toInt();
 }
 
 void PlaylistManager::onAdvanceTimer()
 {
-    if (!playing_ || items_.isEmpty()) {
+    if (!playing_ || state_.items.isEmpty()) {
         return;
     }
 
-    // Check repeat mode
-    if (repeatMode_ == RepeatMode::One) {
-        // Replay current track
-        playCurrentItem();
-        emit trackAdvanced(currentIndex_);
-        return;
-    }
-
-    int nextIdx = nextIndex();
+    int nextIdx = playlist::advanceIndex(state_);
     if (nextIdx < 0) {
-        // End of playlist
-        if (repeatMode_ == RepeatMode::All) {
-            // Start over
-            currentIndex_ = shuffle_ ? shuffledIndex(0) : 0;
-            playCurrentItem();
-            emit currentIndexChanged(currentIndex_);
-            emit trackAdvanced(currentIndex_);
-        } else {
-            stop();
-        }
+        stop();
         return;
     }
 
-    currentIndex_ = nextIdx;
+    state_.currentIndex = nextIdx;
     playCurrentItem();
-    emit currentIndexChanged(currentIndex_);
-    emit trackAdvanced(currentIndex_);
+    emit currentIndexChanged(state_.currentIndex);
+    emit trackAdvanced(state_.currentIndex);
 }
 
 void PlaylistManager::startTimer()
 {
-    if (currentIndex_ < 0 || currentIndex_ >= items_.count()) {
+    if (state_.currentIndex < 0 || state_.currentIndex >= state_.items.count()) {
         return;
     }
 
-    int durationMs = items_[currentIndex_].durationSecs * 1000;
+    int durationMs = state_.items[state_.currentIndex].durationSecs * 1000;
     advanceTimer_->start(durationMs);
 }
 
@@ -493,7 +380,7 @@ void PlaylistManager::stopTimer()
 
 void PlaylistManager::playCurrentItem()
 {
-    if (currentIndex_ < 0 || currentIndex_ >= items_.count()) {
+    if (state_.currentIndex < 0 || state_.currentIndex >= state_.items.count()) {
         return;
     }
 
@@ -502,7 +389,7 @@ void PlaylistManager::playCurrentItem()
         return;
     }
 
-    const PlaylistItem &item = items_[currentIndex_];
+    const PlaylistItem &item = state_.items[state_.currentIndex];
 
     // Play the SID via REST API
     // API uses 0-indexed subsongs, but we display 1-indexed
@@ -519,87 +406,15 @@ void PlaylistManager::playCurrentItem()
     startTimer();
 }
 
-void PlaylistManager::generateShuffleOrder()
-{
-    shuffleOrder_.clear();
-    for (int i = 0; i < items_.count(); ++i) {
-        shuffleOrder_.append(i);
-    }
-
-    // Fisher-Yates shuffle
-    for (int i = shuffleOrder_.count() - 1; i > 0; --i) {
-        int j = QRandomGenerator::global()->bounded(i + 1);
-        std::swap(shuffleOrder_[i], shuffleOrder_[j]);
-    }
-}
-
-int PlaylistManager::nextIndex() const
-{
-    if (items_.isEmpty()) {
-        return -1;
-    }
-
-    if (shuffle_) {
-        // Find current position in shuffle order
-        qsizetype idx = shuffleOrder_.indexOf(currentIndex_);
-        int shufflePos = (idx < 0) ? 0 : static_cast<int>(idx);
-        int nextShufflePos = shufflePos + 1;
-        if (nextShufflePos >= shuffleOrder_.count()) {
-            return -1;  // End of shuffled list
-        }
-        return shuffleOrder_[nextShufflePos];
-    } else {
-        int next = currentIndex_ + 1;
-        if (next >= items_.count()) {
-            return -1;  // End of list
-        }
-        return next;
-    }
-}
-
-int PlaylistManager::previousIndex() const
-{
-    if (items_.isEmpty()) {
-        return -1;
-    }
-
-    if (shuffle_) {
-        int shufflePos = shuffleOrder_.indexOf(currentIndex_);
-        if (shufflePos <= 0) {
-            return -1;  // At beginning
-        }
-        return shuffleOrder_[shufflePos - 1];
-    } else {
-        if (currentIndex_ <= 0) {
-            return -1;  // At beginning
-        }
-        return currentIndex_ - 1;
-    }
-}
-
-int PlaylistManager::shuffledIndex(int index) const
-{
-    if (index < 0 || index >= shuffleOrder_.count()) {
-        return 0;
-    }
-    return shuffleOrder_[index];
-}
-
-int PlaylistManager::unshuffledIndex(int shuffledIdx) const
-{
-    return shuffleOrder_.indexOf(shuffledIdx);
-}
-
 void PlaylistManager::onSidDataReceived(const QString &remotePath, const QByteArray &data)
 {
     // Check if this is a path we requested for duration lookup
     if (!pendingDurationLookups_.contains(remotePath)) {
-        return;  // Not our request
+        return;
     }
 
     pendingDurationLookups_.remove(remotePath);
 
-    // Look up duration in database
     if (songlengthsDatabase_ == nullptr || !songlengthsDatabase_->isLoaded()) {
         return;
     }
@@ -609,27 +424,17 @@ void PlaylistManager::onSidDataReceived(const QString &remotePath, const QByteAr
         return;
     }
 
-    // Update all playlist items with this path
-    bool updated = false;
-    for (int i = 0; i < items_.count(); ++i) {
-        if (items_[i].path == remotePath) {
-            int subsongIndex = items_[i].subsong - 1;  // Convert to 0-indexed
-            if (subsongIndex >= 0 && subsongIndex < lengths.durations.size()) {
-                int newDuration = lengths.durations.at(subsongIndex);
-                if (items_[i].durationSecs != newDuration) {
-                    items_[i].durationSecs = newDuration;
-                    updated = true;
-
-                    // If this is the current item and we're playing, restart timer
-                    if (i == currentIndex_ && playing_) {
-                        startTimer();
-                    }
-                }
-            }
-        }
+    auto result = playlist::updateItemDurations(state_.items, remotePath, lengths.durations);
+    if (!result.anyUpdated) {
+        return;
     }
 
-    if (updated) {
-        emit playlistChanged();
+    state_.items = result.items;
+
+    // If the current item was updated and we're playing, restart the timer
+    if (playing_ && result.updatedIndices.contains(state_.currentIndex)) {
+        startTimer();
     }
+
+    emit playlistChanged();
 }

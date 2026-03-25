@@ -9,6 +9,8 @@
 #ifndef AUDIOSTREAMRECEIVER_H
 #define AUDIOSTREAMRECEIVER_H
 
+#include "iaudiostreamreceiver.h"
+
 #include <QByteArray>
 #include <QElapsedTimer>
 #include <QMutex>
@@ -45,13 +47,16 @@
  * }
  * @endcode
  */
-class AudioStreamReceiver : public QObject
+class AudioStreamReceiver : public IAudioStreamReceiver
 {
     Q_OBJECT
 
 public:
     /// Default UDP port for audio stream reception
     static constexpr quint16 DefaultPort = 21001;
+
+    /// Type alias for backward compatibility with callers using AudioStreamReceiver::AudioFormat
+    using AudioFormat = IAudioStreamReceiver::AudioFormat;
 
     /// Audio packet size in bytes (2-byte header + 768-byte payload)
     static constexpr int PacketSize = 770;
@@ -78,11 +83,6 @@ public:
     static constexpr int DefaultJitterBufferSize = 10;
 
     /**
-     * @brief Audio format enumeration.
-     */
-    enum class AudioFormat { Unknown, PAL, NTSC };
-
-    /**
      * @brief Constructs an audio stream receiver.
      * @param parent Optional parent QObject for memory management.
      */
@@ -94,22 +94,28 @@ public:
     ~AudioStreamReceiver() override;
 
     /**
+     * @brief Binds the UDP socket to the default audio port.
+     * @return true if binding succeeded, false otherwise.
+     */
+    bool bind() override;
+
+    /**
      * @brief Binds the UDP socket to the specified port.
      * @param port UDP port number to listen on (default: 21001).
      * @return true if binding succeeded, false otherwise.
      */
-    bool bind(quint16 port = DefaultPort);
+    bool bind(quint16 port);
 
     /**
      * @brief Closes the UDP socket and stops reception.
      */
-    void close();
+    void close() override;
 
     /**
      * @brief Returns whether the socket is bound and receiving.
      * @return true if active, false otherwise.
      */
-    [[nodiscard]] bool isActive() const;
+    [[nodiscard]] bool isActive() const override;
 
     /**
      * @brief Returns the port the socket is bound to.
@@ -139,7 +145,7 @@ public:
      * @brief Sets the audio format (for sample rate selection).
      * @param format The audio format (PAL or NTSC).
      */
-    void setAudioFormat(AudioFormat format);
+    void setAudioFormat(AudioFormat format) override;
 
     /**
      * @brief Returns the current audio format.
@@ -173,13 +179,6 @@ public:
     void setDiagnosticsCallback(const DiagnosticsCallback &callback);
 
 signals:
-    /**
-     * @brief Emitted when audio samples are ready for playback.
-     * @param samples Interleaved stereo samples (L, R, L, R, ...) as 16-bit signed values.
-     * @param sampleCount Number of stereo sample pairs.
-     */
-    void samplesReady(const QByteArray &samples, int sampleCount);
-
     /**
      * @brief Emitted when a socket error occurs.
      * @param error Error description.

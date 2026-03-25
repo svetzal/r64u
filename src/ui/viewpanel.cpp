@@ -130,7 +130,7 @@ void ViewPanel::setupUi()
     layout->addWidget(videoDisplayWidget_, 1);
 
     // Create streaming manager (owns all streaming services)
-    streamingManager_ = new StreamingManager(deviceConnection_, this);
+    streamingManager_ = StreamingManager::createDefault(deviceConnection_, this);
 
     // Create recording service
     recordingService_ = new VideoRecordingService(this);

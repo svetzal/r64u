@@ -8,7 +8,7 @@
 #include "utils/logging.h"
 
 StreamControlClient::StreamControlClient(QObject *parent)
-    : QObject(parent), socket_(new QTcpSocket(this))
+    : IStreamControlClient(parent), socket_(new QTcpSocket(this))
 {
     connect(socket_, &QTcpSocket::connected, this, &StreamControlClient::onSocketConnected);
     connect(socket_, &QTcpSocket::disconnected, this, &StreamControlClient::onSocketDisconnected);

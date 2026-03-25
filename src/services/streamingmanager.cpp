@@ -1,10 +1,21 @@
+/**
+ * @file streamingmanager.cpp
+ * @brief Implementation of the StreamingManager service.
+ */
+
 #include "streamingmanager.h"
 
 #include "audioplaybackservice.h"
 #include "audiostreamreceiver.h"
 #include "deviceconnection.h"
+#include "iaudioplaybackservice.h"
+#include "iaudiostreamreceiver.h"
+#include "inetworkinterfaceprovider.h"
 #include "irestclient.h"
+#include "istreamcontrolclient.h"
+#include "ivideostreamreceiver.h"
 #include "keyboardinputservice.h"
+#include "networkinterfaceprovider.h"
 #include "streamcontrolclient.h"
 #include "streamingdiagnostics.h"
 #include "videostreamreceiver.h"
@@ -12,55 +23,79 @@
 #include "utils/logging.h"
 
 #include <QHostAddress>
-#include <QNetworkInterface>
 #include <QUrl>
 
-StreamingManager::StreamingManager(DeviceConnection *connection, QObject *parent)
-    : QObject(parent), deviceConnection_(connection)
+StreamingManager::StreamingManager(DeviceConnection *connection,
+                                   IStreamControlClient *streamControl,
+                                   IVideoStreamReceiver *videoReceiver,
+                                   IAudioStreamReceiver *audioReceiver,
+                                   IAudioPlaybackService *audioPlayback,
+                                   KeyboardInputService *keyboardInput,
+                                   INetworkInterfaceProvider *networkProvider, QObject *parent)
+    : QObject(parent), deviceConnection_(connection), streamControl_(streamControl),
+      videoReceiver_(videoReceiver), audioReceiver_(audioReceiver), audioPlayback_(audioPlayback),
+      keyboardInput_(keyboardInput), networkProvider_(networkProvider),
+      concreteVideoReceiver_(qobject_cast<VideoStreamReceiver *>(videoReceiver)),
+      concreteAudioReceiver_(qobject_cast<AudioStreamReceiver *>(audioReceiver))
 {
-    // DeviceConnection is required - assert in debug builds
     Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
 
-    // Create streaming services (owned by this manager)
-    streamControl_ = new StreamControlClient(this);
-    videoReceiver_ = new VideoStreamReceiver(this);
-    audioReceiver_ = new AudioStreamReceiver(this);
-    audioPlayback_ = new AudioPlaybackService(this);
-    // Guard against null restClient
-    IRestClient *restClient = deviceConnection_ ? deviceConnection_->restClient() : nullptr;
-    keyboardInput_ = new KeyboardInputService(restClient, this);
-    diagnostics_ = new StreamingDiagnostics(this);
-
-    // Attach diagnostics to receivers
-    diagnostics_->attachVideoReceiver(videoReceiver_);
-    diagnostics_->attachAudioReceiver(audioReceiver_);
-
-    // Set up diagnostics callbacks for high-frequency timing data
-    auto videoCallback = diagnostics_->videoCallback();
-    videoReceiver_->setDiagnosticsCallback(
-        {videoCallback.onPacketReceived, videoCallback.onFrameStarted,
-         videoCallback.onFrameCompleted, videoCallback.onOutOfOrderPacket});
-
-    auto audioCallback = diagnostics_->audioCallback();
-    audioReceiver_->setDiagnosticsCallback({audioCallback.onPacketReceived,
-                                            audioCallback.onBufferUnderrun,
-                                            audioCallback.onSampleDiscontinuity});
-
     // Connect video receiver format detection
-    connect(videoReceiver_, &VideoStreamReceiver::formatDetected, this,
-            [this](VideoStreamReceiver::VideoFormat format) {
+    connect(videoReceiver_, &IVideoStreamReceiver::formatDetected, this,
+            [this](IVideoStreamReceiver::VideoFormat format) {
                 onVideoFormatDetected(static_cast<int>(format));
             });
 
     // Connect audio receiver to playback
-    connect(audioReceiver_, &AudioStreamReceiver::samplesReady, audioPlayback_,
-            &AudioPlaybackService::writeSamples);
+    connect(audioReceiver_, &IAudioStreamReceiver::samplesReady, audioPlayback_,
+            &IAudioPlaybackService::writeSamples);
 
     // Connect stream control signals
-    connect(streamControl_, &StreamControlClient::commandSucceeded, this,
+    connect(streamControl_, &IStreamControlClient::commandSucceeded, this,
             &StreamingManager::onStreamCommandSucceeded);
-    connect(streamControl_, &StreamControlClient::commandFailed, this,
+    connect(streamControl_, &IStreamControlClient::commandFailed, this,
             &StreamingManager::onStreamCommandFailed);
+}
+
+StreamingManager *StreamingManager::createDefault(DeviceConnection *connection, QObject *parent)
+{
+    // Create owned streaming services (parented to manager)
+    auto *streamControl = new StreamControlClient(nullptr);
+    auto *videoReceiver = new VideoStreamReceiver(nullptr);
+    auto *audioReceiver = new AudioStreamReceiver(nullptr);
+    auto *audioPlayback = new AudioPlaybackService(nullptr);
+    IRestClient *restClient = connection ? connection->restClient() : nullptr;
+    auto *keyboardInput = new KeyboardInputService(restClient, nullptr);
+    auto *networkProvider = new NetworkInterfaceProvider();
+
+    auto *manager = new StreamingManager(connection, streamControl, videoReceiver, audioReceiver,
+                                         audioPlayback, keyboardInput, networkProvider, parent);
+
+    // Transfer ownership of all services to the manager
+    streamControl->setParent(manager);
+    videoReceiver->setParent(manager);
+    audioReceiver->setParent(manager);
+    audioPlayback->setParent(manager);
+    keyboardInput->setParent(manager);
+
+    // Attach diagnostics to receivers (diagnostics also owned by manager)
+    auto *diagnostics = new StreamingDiagnostics(manager);
+    manager->diagnostics_ = diagnostics;
+    diagnostics->attachVideoReceiver(videoReceiver);
+    diagnostics->attachAudioReceiver(audioReceiver);
+
+    // Set up diagnostics callbacks
+    auto videoCallback = diagnostics->videoCallback();
+    videoReceiver->setDiagnosticsCallback(
+        {videoCallback.onPacketReceived, videoCallback.onFrameStarted,
+         videoCallback.onFrameCompleted, videoCallback.onOutOfOrderPacket});
+
+    auto audioCallback = diagnostics->audioCallback();
+    audioReceiver->setDiagnosticsCallback({audioCallback.onPacketReceived,
+                                           audioCallback.onBufferUnderrun,
+                                           audioCallback.onSampleDiscontinuity});
+
+    return manager;
 }
 
 StreamingManager::~StreamingManager()
@@ -68,6 +103,7 @@ StreamingManager::~StreamingManager()
     if (isStreaming_) {
         stopStreaming();
     }
+    delete networkProvider_;
 }
 
 bool StreamingManager::startStreaming()
@@ -100,7 +136,6 @@ bool StreamingManager::startStreaming()
     LOG_VERBOSE() << "StreamingManager::startStreaming: deviceUrl from restClient:" << deviceUrl;
     QString deviceHost = QUrl(deviceUrl).host();
     if (deviceHost.isEmpty()) {
-        // Maybe it's already just an IP address without scheme
         deviceHost = deviceUrl;
     }
     LOG_VERBOSE() << "StreamingManager::startStreaming: extracted deviceHost:" << deviceHost;
@@ -185,13 +220,13 @@ void StreamingManager::stopStreaming()
 
 void StreamingManager::onVideoFormatDetected(int format)
 {
-    auto videoFormat = static_cast<VideoStreamReceiver::VideoFormat>(format);
+    auto videoFormat = static_cast<IVideoStreamReceiver::VideoFormat>(format);
     switch (videoFormat) {
-    case VideoStreamReceiver::VideoFormat::PAL:
-        audioReceiver_->setAudioFormat(AudioStreamReceiver::AudioFormat::PAL);
+    case IVideoStreamReceiver::VideoFormat::PAL:
+        audioReceiver_->setAudioFormat(IAudioStreamReceiver::AudioFormat::PAL);
         break;
-    case VideoStreamReceiver::VideoFormat::NTSC:
-        audioReceiver_->setAudioFormat(AudioStreamReceiver::AudioFormat::NTSC);
+    case IVideoStreamReceiver::VideoFormat::NTSC:
+        audioReceiver_->setAudioFormat(IAudioStreamReceiver::AudioFormat::NTSC);
         break;
     default:
         break;
@@ -227,7 +262,6 @@ QString StreamingManager::findLocalHostForDevice() const
         deviceHost = deviceUrl;
     }
 
-    // Parse the device IP address
     QHostAddress deviceAddr(deviceHost);
     if (deviceAddr.isNull() || deviceAddr.protocol() != QAbstractSocket::IPv4Protocol) {
         LOG_VERBOSE() << "StreamingManager::findLocalHostForDevice: Invalid device IP - isNull:"
@@ -237,11 +271,9 @@ QString StreamingManager::findLocalHostForDevice() const
     LOG_VERBOSE() << "StreamingManager::findLocalHostForDevice: device IP address:"
                   << deviceAddr.toString();
 
-    // Find our local IP address that can reach the device
-    // Look for an interface on the same subnet as the C64 device
     QString targetHost;
 
-    for (const QNetworkInterface &iface : QNetworkInterface::allInterfaces()) {
+    for (const QNetworkInterface &iface : networkProvider_->allInterfaces()) {
         if (!(iface.flags() & QNetworkInterface::IsUp) ||
             !(iface.flags() & QNetworkInterface::IsRunning) ||
             (iface.flags() & QNetworkInterface::IsLoopBack)) {
@@ -253,7 +285,6 @@ QString StreamingManager::findLocalHostForDevice() const
                 continue;
             }
 
-            // Check if device is in same subnet
             QHostAddress subnet = entry.netmask();
             if ((entry.ip().toIPv4Address() & subnet.toIPv4Address()) ==
                 (deviceAddr.toIPv4Address() & subnet.toIPv4Address())) {

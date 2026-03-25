@@ -12,7 +12,7 @@
 #include <algorithm>
 
 AudioStreamReceiver::AudioStreamReceiver(QObject *parent)
-    : QObject(parent), socket_(new QUdpSocket(this)), flushTimer_(new QTimer(this))
+    : IAudioStreamReceiver(parent), socket_(new QUdpSocket(this)), flushTimer_(new QTimer(this))
 {
     connect(socket_, &QUdpSocket::readyRead, this, &AudioStreamReceiver::onReadyRead);
     connect(socket_, &QUdpSocket::errorOccurred, this,
@@ -26,6 +26,11 @@ AudioStreamReceiver::AudioStreamReceiver(QObject *parent)
 AudioStreamReceiver::~AudioStreamReceiver()
 {
     close();
+}
+
+bool AudioStreamReceiver::bind()
+{
+    return bind(DefaultPort);
 }
 
 bool AudioStreamReceiver::bind(quint16 port)

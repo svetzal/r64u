@@ -9,6 +9,8 @@
 #ifndef STREAMCONTROLCLIENT_H
 #define STREAMCONTROLCLIENT_H
 
+#include "istreamcontrolclient.h"
+
 #include <QHostAddress>
 #include <QObject>
 #include <QTcpSocket>
@@ -40,7 +42,7 @@
  * client->startVideoStream("192.168.1.100", 21000);
  * @endcode
  */
-class StreamControlClient : public QObject
+class StreamControlClient : public IStreamControlClient
 {
     Q_OBJECT
 
@@ -69,13 +71,13 @@ public:
      * @brief Sets the target C64 Ultimate host.
      * @param host Hostname or IP address of the device.
      */
-    void setHost(const QString &host);
+    void setHost(const QString &host) override;
 
     /**
      * @brief Returns the currently configured host.
      * @return The hostname or IP address.
      */
-    [[nodiscard]] QString host() const { return host_; }
+    [[nodiscard]] QString host() const override { return host_; }
 
     /// @name Stream Control
     /// @{
@@ -115,33 +117,20 @@ public:
      * @param audioPort UDP port for audio (default: 21001).
      */
     void startAllStreams(const QString &targetHost, quint16 videoPort = DefaultVideoPort,
-                         quint16 audioPort = DefaultAudioPort);
+                         quint16 audioPort = DefaultAudioPort) override;
 
     /**
      * @brief Stops both video and audio streams.
      */
-    void stopAllStreams();
+    void stopAllStreams() override;
 
     /**
      * @brief Clears any pending commands without sending them.
      */
-    void clearPendingCommands();
+    void clearPendingCommands() override;
     /// @}
 
 signals:
-    /**
-     * @brief Emitted when a command succeeds.
-     * @param command Description of the command that succeeded.
-     */
-    void commandSucceeded(const QString &command);
-
-    /**
-     * @brief Emitted when a command fails.
-     * @param command Description of the command that failed.
-     * @param error Error description.
-     */
-    void commandFailed(const QString &command, const QString &error);
-
     /**
      * @brief Emitted when a connection error occurs.
      * @param error Error description.

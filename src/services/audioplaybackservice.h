@@ -9,6 +9,8 @@
 #ifndef AUDIOPLAYBACKSERVICE_H
 #define AUDIOPLAYBACKSERVICE_H
 
+#include "iaudioplaybackservice.h"
+
 #include <QAudioFormat>
 #include <QAudioSink>
 #include <QByteArray>
@@ -38,7 +40,7 @@
  * }
  * @endcode
  */
-class AudioPlaybackService : public QObject
+class AudioPlaybackService : public IAudioPlaybackService
 {
     Q_OBJECT
 
@@ -76,18 +78,18 @@ public:
      * @brief Starts audio playback.
      * @return true if playback started successfully, false otherwise.
      */
-    bool start();
+    bool start() override;
 
     /**
      * @brief Stops audio playback.
      */
-    void stop();
+    void stop() override;
 
     /**
      * @brief Returns whether audio is currently playing.
      * @return true if playing, false otherwise.
      */
-    [[nodiscard]] bool isPlaying() const { return isPlaying_; }
+    [[nodiscard]] bool isPlaying() const override { return isPlaying_; }
 
     /**
      * @brief Sets the output sample rate.
@@ -135,7 +137,7 @@ public slots:
      * @param samples Interleaved stereo samples (16-bit signed, little-endian).
      * @param sampleCount Number of stereo sample pairs.
      */
-    void writeSamples(const QByteArray &samples, int sampleCount);
+    void writeSamples(const QByteArray &samples, int sampleCount) override;
 
 signals:
     /**

@@ -9,6 +9,8 @@
 #ifndef PLAYLISTMANAGER_H
 #define PLAYLISTMANAGER_H
 
+#include "playlistcore.h"
+
 #include <QList>
 #include <QObject>
 #include <QSet>
@@ -28,6 +30,9 @@ class StreamingManager;
  * - Shuffle and repeat modes
  * - Settings persistence
  * - Playlist file save/load (.json format)
+ *
+ * Playback logic is delegated to pure functions in the playlist namespace
+ * (playlistcore.h); this class owns I/O: REST calls, QSettings, and QTimer.
  */
 class PlaylistManager : public QObject
 {
@@ -36,25 +41,15 @@ class PlaylistManager : public QObject
 public:
     /**
      * @brief Single item in the playlist.
+     * @note Type alias for playlist::PlaylistItem; public API is unchanged.
      */
-    struct PlaylistItem
-    {
-        QString path;            ///< Remote file path on the Ultimate device
-        QString title;           ///< Song title (from SID metadata or filename)
-        QString author;          ///< Composer name (from SID metadata)
-        int subsong = 1;         ///< Which subsong to play (1-indexed for display)
-        int totalSubsongs = 1;   ///< Total subsongs in the file
-        int durationSecs = 180;  ///< Duration before advancing (default 3 minutes)
-    };
+    using PlaylistItem = playlist::PlaylistItem;
 
     /**
      * @brief Repeat mode for playlist playback.
+     * @note Type alias for playlist::RepeatMode; public API is unchanged.
      */
-    enum class RepeatMode {
-        Off,  ///< Stop after last track
-        All,  ///< Restart from beginning after last track
-        One   ///< Repeat current track indefinitely
-    };
+    using RepeatMode = playlist::RepeatMode;
 
     explicit PlaylistManager(DeviceConnection *connection, QObject *parent = nullptr);
     ~PlaylistManager() override = default;
@@ -107,17 +102,17 @@ public:
     /**
      * @brief Returns all items in the playlist.
      */
-    [[nodiscard]] QList<PlaylistItem> items() const { return items_; }
+    [[nodiscard]] QList<PlaylistItem> items() const { return state_.items; }
 
     /**
      * @brief Returns the number of items in the playlist.
      */
-    [[nodiscard]] int count() const { return items_.count(); }
+    [[nodiscard]] int count() const { return state_.items.count(); }
 
     /**
      * @brief Returns true if the playlist is empty.
      */
-    [[nodiscard]] bool isEmpty() const { return items_.isEmpty(); }
+    [[nodiscard]] bool isEmpty() const { return state_.items.isEmpty(); }
 
     /**
      * @brief Returns the item at the specified index.
@@ -153,7 +148,7 @@ public:
     /**
      * @brief Returns the currently playing index (-1 if none).
      */
-    [[nodiscard]] int currentIndex() const { return currentIndex_; }
+    [[nodiscard]] int currentIndex() const { return state_.currentIndex; }
 
     /**
      * @brief Returns true if playback is active.
@@ -173,7 +168,7 @@ public:
     /**
      * @brief Returns true if shuffle mode is enabled.
      */
-    [[nodiscard]] bool shuffle() const { return shuffle_; }
+    [[nodiscard]] bool shuffle() const { return state_.shuffle; }
 
     /**
      * @brief Sets the repeat mode.
@@ -183,7 +178,7 @@ public:
     /**
      * @brief Returns the current repeat mode.
      */
-    [[nodiscard]] RepeatMode repeatMode() const { return repeatMode_; }
+    [[nodiscard]] RepeatMode repeatMode() const { return state_.repeatMode; }
 
     /**
      * @brief Sets the default track duration in seconds.
@@ -193,7 +188,7 @@ public:
     /**
      * @brief Returns the default track duration in seconds.
      */
-    [[nodiscard]] int defaultDuration() const { return defaultDuration_; }
+    [[nodiscard]] int defaultDuration() const { return state_.defaultDuration; }
 
     /**
      * @brief Sets the duration for a specific item.
@@ -295,29 +290,18 @@ private:
     void startTimer();
     void stopTimer();
     void playCurrentItem();
-    void generateShuffleOrder();
-    [[nodiscard]] int nextIndex() const;
-    [[nodiscard]] int previousIndex() const;
-    [[nodiscard]] int shuffledIndex(int index) const;
-    [[nodiscard]] int unshuffledIndex(int shuffledIdx) const;
 
     DeviceConnection *deviceConnection_ = nullptr;
     SonglengthsDatabase *songlengthsDatabase_ = nullptr;
     StreamingManager *streamingManager_ = nullptr;
 
-    QList<PlaylistItem> items_;
-    QList<int> shuffleOrder_;  // Maps shuffled position to actual index
-    int currentIndex_ = -1;
+    playlist::State state_;
     bool playing_ = false;
-    bool shuffle_ = false;
-    RepeatMode repeatMode_ = RepeatMode::Off;
-    int defaultDuration_ = 180;  // 3 minutes default
 
     QTimer *advanceTimer_ = nullptr;
 
     // Paths for which we're waiting for SID data to look up duration
     QSet<QString> pendingDurationLookups_;
-    bool ftpConnected_ = false;
 };
 
 #endif  // PLAYLISTMANAGER_H
