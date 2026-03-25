@@ -10,7 +10,6 @@
 #include "services/streamingmanager.h"
 #include "services/videorecordingservice.h"
 #include "services/videostreamreceiver.h"
-#include "utils/logging.h"
 
 #include <QDateTime>
 #include <QDir>

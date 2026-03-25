@@ -215,7 +215,7 @@ public:
      * @param filePath Path to save to.
      * @return True if successful.
      */
-    bool savePlaylist(const QString &filePath);
+    bool savePlaylist(const QString &filePath) const;
 
     /**
      * @brief Loads a playlist from a JSON file.
@@ -227,7 +227,7 @@ public:
     /**
      * @brief Saves settings (shuffle, repeat, duration) to QSettings.
      */
-    void saveSettings();
+    void saveSettings() const;
 
     /**
      * @brief Loads settings from QSettings.

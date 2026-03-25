@@ -284,7 +284,7 @@ void PlaylistManager::updateDurationFromData(const QString &path, const QByteArr
     emit playlistChanged();
 }
 
-bool PlaylistManager::savePlaylist(const QString &filePath)
+bool PlaylistManager::savePlaylist(const QString &filePath) const
 {
     QJsonObject json = playlist::serialize(state_.items);
     QJsonDocument doc(json);
@@ -329,7 +329,7 @@ bool PlaylistManager::loadPlaylist(const QString &filePath)
     return true;
 }
 
-void PlaylistManager::saveSettings()
+void PlaylistManager::saveSettings() const
 {
     QSettings settings;
     settings.setValue("playlist/shuffle", state_.shuffle);

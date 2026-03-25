@@ -16,7 +16,6 @@
 #include "mocks/mockvideostreamreceiver.h"
 #include "services/deviceconnection.h"
 #include "services/devicetypes.h"
-#include "services/istreamcontrolclient.h"
 #include "services/keyboardinputservice.h"
 #include "services/streamingmanager.h"
 

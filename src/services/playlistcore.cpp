@@ -180,7 +180,7 @@ QList<int> generateShuffleOrder(int itemCount, quint32 seed)
     // Fisher-Yates shuffle with explicit seed
     QRandomGenerator rng(seed);
     for (int i = itemCount - 1; i > 0; --i) {
-        int j = static_cast<int>(rng.bounded(i + 1));
+        int j = rng.bounded(i + 1);
         std::swap(order[i], order[j]);
     }
 
