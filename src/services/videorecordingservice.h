@@ -6,6 +6,8 @@
 #ifndef VIDEORECORDINGSERVICE_H
 #define VIDEORECORDINGSERVICE_H
 
+#include "avicore.h"
+
 #include <QDateTime>
 #include <QFile>
 #include <QImage>
@@ -123,19 +125,11 @@ private:
     qint64 moviListSizePos_ = 0;
 
     // Index entries for all chunks (video and audio)
-    struct ChunkInfo
-    {
-        QByteArray fourCC;  // "00dc" for video, "01wb" for audio
-        qint64 offset;
-        int size;
-    };
+    using ChunkInfo = avi::ChunkInfo;
     QList<ChunkInfo> chunkIndex_;
 
     // Audio tracking
     int audioSampleCount_ = 0;
-    static constexpr int AudioSampleRate = 48000;  // Close to actual ~47983 Hz
-    static constexpr int AudioChannels = 2;
-    static constexpr int AudioBitsPerSample = 16;
 };
 
 #endif  // VIDEORECORDINGSERVICE_H
