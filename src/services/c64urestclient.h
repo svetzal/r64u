@@ -331,15 +331,7 @@ private:
     void sendPostRequest(const QString &endpoint, const QString &operation, const QByteArray &data,
                          const QString &contentType = "application/octet-stream");
 
-    void handleVersionResponse(const QJsonObject &json);
-    void handleInfoResponse(const QJsonObject &json);
-    void handleDrivesResponse(const QJsonObject &json);
-    void handleFileInfoResponse(const QJsonObject &json);
-    void handleConfigCategoriesResponse(const QJsonObject &json);
-    void handleConfigCategoryItemsResponse(const QString &category, const QJsonObject &json);
     void handleGenericResponse(const QString &operation, const QJsonObject &json);
-
-    [[nodiscard]] QStringList extractErrors(const QJsonObject &json) const;
 
     // Network
     QNetworkAccessManager *networkManager_ = nullptr;

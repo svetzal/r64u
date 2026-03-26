@@ -1,5 +1,7 @@
 #include "c64urestclient.h"
 
+#include "restresponsecore.h"
+
 #include <QJsonDocument>
 #include <QTimer>
 #include <QUrlQuery>
@@ -355,7 +357,7 @@ void C64URestClient::onReplyFinished(QNetworkReply *reply)
             QJsonDocument errorDoc = QJsonDocument::fromJson(errorData);
             if (errorDoc.isObject()) {
                 QJsonObject errorJson = errorDoc.object();
-                QStringList errors = extractErrors(errorJson);
+                QStringList errors = restresponse::extractErrors(errorJson);
                 if (!errors.isEmpty()) {
                     errorMsg = errors.join("; ");
                 }
@@ -379,7 +381,7 @@ void C64URestClient::onReplyFinished(QNetworkReply *reply)
     }
 
     QJsonObject json = doc.object();
-    QStringList errors = extractErrors(json);
+    QStringList errors = restresponse::extractErrors(json);
 
     if (!errors.isEmpty()) {
         emit operationFailed(operation, errors.join("; "));
@@ -388,18 +390,20 @@ void C64URestClient::onReplyFinished(QNetworkReply *reply)
 
     // Route to specific handler
     if (operation == "version") {
-        handleVersionResponse(json);
+        emit versionReceived(restresponse::parseVersionResponse(json));
     } else if (operation == "info") {
-        handleInfoResponse(json);
+        emit infoReceived(restresponse::parseInfoResponse(json));
     } else if (operation == "drives") {
-        handleDrivesResponse(json);
+        emit drivesReceived(restresponse::parseDrivesResponse(json));
     } else if (operation == "fileInfo") {
-        handleFileInfoResponse(json);
+        auto fi = restresponse::parseFileInfoResponse(json);
+        emit fileInfoReceived(fi.path, fi.size, fi.extension);
     } else if (operation == "configCategories") {
-        handleConfigCategoriesResponse(json);
+        emit configCategoriesReceived(restresponse::parseConfigCategoriesResponse(json));
     } else if (operation.startsWith("configCategoryItems:")) {
         QString category = operation.mid(20);  // Length of "configCategoryItems:"
-        handleConfigCategoryItemsResponse(category, json);
+        emit configCategoryItemsReceived(
+            category, restresponse::parseConfigCategoryItemsResponse(category, json));
     } else if (operation.startsWith("getConfigItem:")) {
         // Parse category:item from operation name
         QString catItem = operation.mid(14);  // Length of "getConfigItem:"
@@ -440,161 +444,8 @@ void C64URestClient::onReplyFinished(QNetworkReply *reply)
     }
 }
 
-void C64URestClient::handleVersionResponse(const QJsonObject &json)
-{
-    QString version = json["version"].toString();
-    emit versionReceived(version);
-}
-
-void C64URestClient::handleInfoResponse(const QJsonObject &json)
-{
-    DeviceInfo info;
-    info.product = json["product"].toString();
-    info.firmwareVersion = json["firmware_version"].toString();
-    info.fpgaVersion = json["fpga_version"].toString();
-    info.coreVersion = json["core_version"].toString();
-    info.hostname = json["hostname"].toString();
-    info.uniqueId = json["unique_id"].toString();
-    emit infoReceived(info);
-}
-
-void C64URestClient::handleDrivesResponse(const QJsonObject &json)
-{
-    QList<DriveInfo> drives;
-    QJsonArray drivesArray = json["drives"].toArray();
-
-    for (const QJsonValue &driveVal : drivesArray) {
-        QJsonObject driveObj = driveVal.toObject();
-        // Each drive is an object with a single key (drive name)
-        for (const QString &driveName : driveObj.keys()) {
-            QJsonObject driveData = driveObj[driveName].toObject();
-            DriveInfo drive;
-            drive.name = driveName;
-            drive.enabled = driveData["enabled"].toBool();
-            drive.busId = driveData["bus_id"].toInt();
-            drive.type = driveData["type"].toString();
-            drive.rom = driveData["rom"].toString();
-            drive.imageFile = driveData["image_file"].toString();
-            drive.imagePath = driveData["image_path"].toString();
-            drive.lastError = driveData["last_error"].toString();
-            drives.append(drive);
-        }
-    }
-
-    emit drivesReceived(drives);
-}
-
-void C64URestClient::handleFileInfoResponse(const QJsonObject &json)
-{
-    QJsonObject files = json["files"].toObject();
-    QString path = files["path"].toString();
-    qint64 size = files["size"].toInteger();
-    QString extension = files["extension"].toString();
-    emit fileInfoReceived(path, size, extension);
-}
-
-void C64URestClient::handleConfigCategoriesResponse(const QJsonObject &json)
-{
-    QStringList categories;
-    QJsonArray categoriesArray = json["categories"].toArray();
-    for (const QJsonValue &val : categoriesArray) {
-        categories.append(val.toString());
-    }
-    emit configCategoriesReceived(categories);
-}
-
-void C64URestClient::handleConfigCategoryItemsResponse(const QString &category,
-                                                       const QJsonObject &json)
-{
-    QHash<QString, ConfigItemMetadata> items;
-
-    // The response has the category name as the key containing item objects
-    QJsonObject categoryObj = json[category].toObject();
-    for (auto it = categoryObj.begin(); it != categoryObj.end(); ++it) {
-        QString itemName = it.key();
-        QJsonObject itemObj = it.value().toObject();
-
-        ConfigItemMetadata meta;
-
-        // Parse current value
-        QJsonValue currentVal = itemObj["current"];
-        if (currentVal.isBool()) {
-            meta.current = currentVal.toBool();
-        } else if (currentVal.isDouble()) {
-            double d = currentVal.toDouble();
-            if (d == qRound(d)) {
-                meta.current = static_cast<int>(d);
-            } else {
-                meta.current = d;
-            }
-        } else {
-            meta.current = currentVal.toString();
-        }
-
-        // Parse default value
-        QJsonValue defaultVal = itemObj["default"];
-        if (defaultVal.isBool()) {
-            meta.defaultValue = defaultVal.toBool();
-        } else if (defaultVal.isDouble()) {
-            double d = defaultVal.toDouble();
-            if (d == qRound(d)) {
-                meta.defaultValue = static_cast<int>(d);
-            } else {
-                meta.defaultValue = d;
-            }
-        } else {
-            meta.defaultValue = defaultVal.toString();
-        }
-
-        // Parse values (enum options)
-        if (itemObj.contains("values")) {
-            QJsonArray valuesArray = itemObj["values"].toArray();
-            for (const QJsonValue &val : valuesArray) {
-                meta.values.append(val.toString());
-            }
-        }
-
-        // Parse presets (file options)
-        if (itemObj.contains("presets")) {
-            QJsonArray presetsArray = itemObj["presets"].toArray();
-            for (const QJsonValue &val : presetsArray) {
-                meta.presets.append(val.toString());
-            }
-        }
-
-        // Parse numeric range
-        if (itemObj.contains("min") && itemObj.contains("max")) {
-            meta.min = itemObj["min"].toInt();
-            meta.max = itemObj["max"].toInt();
-            meta.hasRange = true;
-        }
-
-        // Parse format string
-        if (itemObj.contains("format")) {
-            meta.format = itemObj["format"].toString();
-        }
-
-        items[itemName] = meta;
-    }
-
-    emit configCategoryItemsReceived(category, items);
-}
-
 void C64URestClient::handleGenericResponse(const QString &operation, const QJsonObject &json)
 {
     Q_UNUSED(json)
     emit operationSucceeded(operation);
-}
-
-QStringList C64URestClient::extractErrors(const QJsonObject &json) const
-{
-    QStringList errors;
-    QJsonArray errorsArray = json["errors"].toArray();
-    for (const QJsonValue &error : errorsArray) {
-        QString errorStr = error.toString();
-        if (!errorStr.isEmpty()) {
-            errors.append(errorStr);
-        }
-    }
-    return errors;
 }
