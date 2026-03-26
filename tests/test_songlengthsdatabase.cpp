@@ -5,9 +5,11 @@
 #include <QStandardPaths>
 #include <QtTest>
 
+namespace {
+
 // Minimal valid Songlengths.md5 content for testing.
 // Format: optional "; /path/to/file.sid" path comment, then "md5hash=mm:ss mm:ss..."
-static QByteArray buildSampleDatabase()
+QByteArray buildSampleDatabase()
 {
     return QByteArray("; HVSC Songlengths database\n"
                       "; /MUSICIANS/T/Tel_Jeroen/Cybernoid_II.sid\n"
@@ -15,6 +17,8 @@ static QByteArray buildSampleDatabase()
                       "; /MUSICIANS/H/Hubbard_Rob/Commando.sid\n"
                       "ffffffffffffffffffffffffffffffff=0:30 1:00\n");
 }
+
+}  // namespace
 
 class TestSonglengthsDatabase : public QObject
 {
