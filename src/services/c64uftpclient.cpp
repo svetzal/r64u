@@ -1,5 +1,7 @@
 #include "c64uftpclient.h"
 
+#include "ftpcore.h"
+
 #include <QDebug>
 #include <QFileInfo>
 #include <QRegularExpression>
@@ -483,15 +485,16 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
 
     case Command::Pasv:
         if (code == FtpReplyEnteringPassive) {
-            QString dataHost;
-            quint16 dataPort = 0;
-            if (parsePassiveResponse(text, dataHost, dataPort)) {
+            auto passiveResult = ftp::parsePassiveResponse(text);
+            if (passiveResult) {
                 // Use the control socket's peer address instead of the IP from PASV
                 // Many FTP servers return internal IPs that aren't reachable
                 QString actualHost = controlSocket_->peerAddress().toString();
-                qDebug() << "FTP: PASV response host:" << dataHost << "port:" << dataPort;
-                qDebug() << "FTP: Using actual host:" << actualHost << "port:" << dataPort;
-                dataSocket_->connectToHost(actualHost, dataPort);
+                qDebug() << "FTP: PASV response host:" << passiveResult->host
+                         << "port:" << passiveResult->port;
+                qDebug() << "FTP: Using actual host:" << actualHost
+                         << "port:" << passiveResult->port;
+                dataSocket_->connectToHost(actualHost, passiveResult->port);
                 // Send the next command (LIST/RETR/STOR) immediately
                 // The server expects the command before sending data
                 processNextCommand();
@@ -519,7 +522,7 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
                 // Data socket already closed, process immediately
                 qDebug() << "FTP: 226 received, data socket already closed, processing";
                 qDebug() << "FTP: LIST complete, total data:" << listBuffer_.size() << "bytes";
-                QList<FtpEntry> entries = parseDirectoryListing(listBuffer_);
+                QList<FtpEntry> entries = ftp::parseDirectoryListing(listBuffer_);
                 qDebug() << "FTP: Parsed" << entries.size() << "entries";
                 listBuffer_.clear();  // Clear buffer before emitting to prevent accumulation
                 emit directoryListed(path, entries);
@@ -746,7 +749,7 @@ void C64UFtpClient::onDataDisconnected()
         QString path = pendingList_->path;
         pendingList_.reset();  // Clear all pending LIST state with one call
         qDebug() << "FTP: Processing pending LIST, total data:" << listBuffer.size() << "bytes";
-        QList<FtpEntry> entries = parseDirectoryListing(listBuffer);
+        QList<FtpEntry> entries = ftp::parseDirectoryListing(listBuffer);
         qDebug() << "FTP: Parsed" << entries.size() << "entries";
         emit directoryListed(path, entries);
         processNextCommand();
@@ -783,67 +786,6 @@ void C64UFtpClient::onDataError(QAbstractSocket::SocketError socketError)
     }
     qDebug() << "FTP: Data socket error:" << socketError << dataSocket_->errorString();
     emit error(tr("File transfer interrupted: %1").arg(dataSocket_->errorString()));
-}
-
-bool C64UFtpClient::parsePassiveResponse(const QString &text, QString &host, quint16 &port)
-{
-    // Parse response like: 227 Entering Passive Mode (h1,h2,h3,h4,p1,p2)
-    QRegularExpression rx("\\((\\d+),(\\d+),(\\d+),(\\d+),(\\d+),(\\d+)\\)");
-    auto match = rx.match(text);
-
-    if (!match.hasMatch()) {
-        return false;
-    }
-
-    host = QString("%1.%2.%3.%4")
-               .arg(match.captured(1))
-               .arg(match.captured(2))
-               .arg(match.captured(3))
-               .arg(match.captured(4));
-
-    int p1 = match.captured(5).toInt();
-    int p2 = match.captured(6).toInt();
-    port = static_cast<quint16>((p1 * PassivePortMultiplier) + p2);
-
-    return true;
-}
-
-QList<FtpEntry> C64UFtpClient::parseDirectoryListing(const QByteArray &data)
-{
-    QList<FtpEntry> entries;
-    QString listing = QString::fromUtf8(data);
-    QStringList lines = listing.split("\r\n", Qt::SkipEmptyParts);
-
-    // Unix-style listing: drwxr-xr-x 2 user group 4096 Jan 1 12:00 dirname
-    // Or simple listing: filename
-    QRegularExpression unixRx("^([d\\-])([rwx\\-]{9})\\s+\\d+\\s+\\S+\\s+\\S+\\s+(\\d+)\\s+"
-                              "(\\w+\\s+\\d+\\s+[\\d:]+)\\s+(.+)$");
-
-    for (const QString &line : lines) {
-        if (line.isEmpty()) {
-            continue;
-        }
-
-        FtpEntry entry;
-        auto match = unixRx.match(line);
-
-        if (match.hasMatch()) {
-            entry.isDirectory = (match.captured(1) == "d");
-            entry.permissions = match.captured(2);
-            entry.size = match.captured(3).toLongLong();
-            entry.name = match.captured(5);
-        } else {
-            // Simple listing - just filename
-            entry.name = line.trimmed();
-            entry.isDirectory = false;  // Can't tell from simple listing
-        }
-
-        if (!entry.name.isEmpty() && entry.name != "." && entry.name != "..") {
-            entries.append(entry);
-        }
-    }
-
-    return entries;
 }
 
 // Public interface methods

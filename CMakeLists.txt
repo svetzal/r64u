@@ -88,6 +88,11 @@ set(SOURCES
     src/services/sidfileparser.cpp
     src/services/favoritesmanager.cpp
     src/services/favoritescore.cpp
+    src/services/ftpcore.cpp
+    src/services/streamprotocolcore.cpp
+    src/services/restresponsecore.cpp
+    src/services/audiostreamcore.cpp
+    src/services/avicore.cpp
     src/services/videorecordingservice.cpp
     src/services/playlistmanager.cpp
     src/services/playlistcore.cpp
@@ -161,6 +166,11 @@ set(HEADERS
     src/services/sidfileparser.h
     src/services/favoritesmanager.h
     src/services/favoritescore.h
+    src/services/ftpcore.h
+    src/services/streamprotocolcore.h
+    src/services/restresponsecore.h
+    src/services/audiostreamcore.h
+    src/services/avicore.h
     src/services/videorecordingservice.h
     src/services/playlistmanager.h
     src/services/playlistcore.h

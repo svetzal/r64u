@@ -320,11 +320,6 @@ private:
     void handleResponse(int code, const QString &text);
     void handleBusyResponse(int code, const QString &text);
 
-public:
-    // Parsing functions - public for testability (pure functions, no side effects)
-    [[nodiscard]] bool parsePassiveResponse(const QString &text, QString &host, quint16 &port);
-    [[nodiscard]] QList<FtpEntry> parseDirectoryListing(const QByteArray &data);
-
 private:
     // Network connections
     QTcpSocket *controlSocket_ = nullptr;

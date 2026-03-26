@@ -111,8 +111,10 @@ add_executable(test_deviceconnection
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
 )
 
 target_include_directories(test_deviceconnection PRIVATE
@@ -348,7 +350,9 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
 )
@@ -426,6 +430,7 @@ endif()
 add_executable(test_c64uftpclient_protocol
     test_c64uftpclient_protocol.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
 )
 
@@ -595,6 +600,7 @@ add_executable(test_streamingdiagnostics
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
 )
 
 target_include_directories(test_streamingdiagnostics PRIVATE
@@ -707,12 +713,16 @@ add_executable(test_streamingmanager
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamingmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamcontrolclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/streamprotocolcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audioplaybackservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.cpp
 )
@@ -735,6 +745,116 @@ add_test(NAME StreamingManagerTest COMMAND test_streamingmanager)
 if(BUILD_COVERAGE)
     add_coverage_target(streamingmanager test_streamingmanager)
     add_dependencies(coverage coverage_streamingmanager)
+endif()
+
+# AviCore tests - pure AVI RIFF container format logic, no I/O dependencies
+add_executable(test_avicore
+    test_avicore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/avicore.cpp
+)
+
+target_include_directories(test_avicore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_avicore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME AviCoreTest COMMAND test_avicore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(avicore test_avicore)
+    add_dependencies(coverage coverage_avicore)
+endif()
+
+# AudioStreamCore tests - pure audio packet parsing and rate calculation, no I/O dependencies
+add_executable(test_audiostreamcore
+    test_audiostreamcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
+)
+
+target_include_directories(test_audiostreamcore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_audiostreamcore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME AudioStreamCoreTest COMMAND test_audiostreamcore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(audiostreamcore test_audiostreamcore)
+    add_dependencies(coverage coverage_audiostreamcore)
+endif()
+
+# RestResponseCore tests - pure REST JSON response parsing, no I/O dependencies
+add_executable(test_restresponsecore
+    test_restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+)
+
+target_include_directories(test_restresponsecore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_restresponsecore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME RestResponseCoreTest COMMAND test_restresponsecore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(restresponsecore test_restresponsecore)
+    add_dependencies(coverage coverage_restresponsecore)
+endif()
+
+# StreamProtocolCore tests - pure stream control protocol serialisation, no I/O dependencies
+add_executable(test_streamprotocolcore
+    test_streamprotocolcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/streamprotocolcore.cpp
+)
+
+target_include_directories(test_streamprotocolcore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_streamprotocolcore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME StreamProtocolCoreTest COMMAND test_streamprotocolcore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(streamprotocolcore test_streamprotocolcore)
+    add_dependencies(coverage coverage_streamprotocolcore)
+endif()
+
+# FtpCore tests - pure FTP protocol parsing, no I/O dependencies
+add_executable(test_ftpcore
+    test_ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+)
+
+target_include_directories(test_ftpcore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_ftpcore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME FtpCoreTest COMMAND test_ftpcore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(ftpcore test_ftpcore)
+    add_dependencies(coverage coverage_ftpcore)
 endif()
 
 # FavoritesCore tests - pure favorites logic, no I/O dependencies
