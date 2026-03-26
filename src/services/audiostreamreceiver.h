@@ -9,6 +9,7 @@
 #ifndef AUDIOSTREAMRECEIVER_H
 #define AUDIOSTREAMRECEIVER_H
 
+#include "audiostreamcore.h"
 #include "iaudiostreamreceiver.h"
 
 #include <QByteArray>
@@ -58,26 +59,16 @@ public:
     /// Type alias for backward compatibility with callers using AudioStreamReceiver::AudioFormat
     using AudioFormat = IAudioStreamReceiver::AudioFormat;
 
-    /// Audio packet size in bytes (2-byte header + 768-byte payload)
-    static constexpr int PacketSize = 770;
-
-    /// Header size in bytes
-    static constexpr int HeaderSize = 2;
-
-    /// Payload size in bytes (192 stereo samples × 4 bytes)
-    static constexpr int PayloadSize = 768;
-
-    /// Number of stereo samples per packet
-    static constexpr int SamplesPerPacket = 192;
-
-    /// Bytes per stereo sample (L16 + R16)
-    static constexpr int BytesPerSample = 4;
-
-    /// PAL sample rate (Hz)
-    static constexpr double PalSampleRate = 47982.8869047619;
-
-    /// NTSC sample rate (Hz)
-    static constexpr double NtscSampleRate = 47940.3408482143;
+    /// @name Protocol constants (re-exported from audiostream:: for backward compatibility)
+    /// @{
+    static constexpr int PacketSize = audiostream::PacketSize;
+    static constexpr int HeaderSize = audiostream::HeaderSize;
+    static constexpr int PayloadSize = audiostream::PayloadSize;
+    static constexpr int SamplesPerPacket = audiostream::SamplesPerPacket;
+    static constexpr int BytesPerSample = audiostream::BytesPerSample;
+    static constexpr double PalSampleRate = audiostream::PalSampleRate;
+    static constexpr double NtscSampleRate = audiostream::NtscSampleRate;
+    /// @}
 
     /// Default jitter buffer size (in packets)
     static constexpr int DefaultJitterBufferSize = 10;

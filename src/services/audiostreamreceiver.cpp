@@ -102,7 +102,7 @@ void AudioStreamReceiver::setAudioFormat(AudioFormat format)
 
 double AudioStreamReceiver::sampleRate() const
 {
-    return (audioFormat_ == AudioFormat::NTSC) ? NtscSampleRate : PalSampleRate;
+    return audiostream::sampleRateForFormat(audioFormat_ == AudioFormat::NTSC);
 }
 
 void AudioStreamReceiver::setDiagnosticsCallback(const DiagnosticsCallback &callback)
@@ -136,25 +136,20 @@ void AudioStreamReceiver::processPacket(const QByteArray &packet)
         diagnosticsCallback_.onPacketReceived(diagnosticsTimer_.nsecsElapsed() / 1000);
     }
 
-    // Parse header (2-byte sequence number, little-endian)
-    const auto *data = reinterpret_cast<const quint8 *>(packet.constData());
-    auto sequenceNumber = static_cast<quint16>(data[0] | (data[1] << 8));
+    // Parse header and payload using pure core function
+    auto parsed = audiostream::parsePacket(packet);
+    if (!parsed) {
+        return;  // Malformed packet (wrong size)
+    }
+    quint16 sequenceNumber = parsed->sequenceNumber;
 
     // Track sequence numbers for packet loss and sample discontinuity detection
     if (!firstPacket_) {
-        quint16 expectedSeq = lastSequenceNumber_ + 1;
-        if (sequenceNumber != expectedSeq) {
-            // Check for valid wraparound (0xFFFF -> 0)
-            bool isValidWraparound = (lastSequenceNumber_ == 0xFFFF && sequenceNumber == 0);
-            if (!isValidWraparound) {
-                quint16 gap = sequenceNumber - expectedSeq;
-                if (gap < 1000) {  // Reasonable gap
-                    totalPacketsLost_ += gap;
-                    // Report sample discontinuity
-                    if (diagnosticsCallback_.onSampleDiscontinuity) {
-                        diagnosticsCallback_.onSampleDiscontinuity(static_cast<int>(gap));
-                    }
-                }
+        auto analysis = audiostream::analyzeSequence(sequenceNumber, lastSequenceNumber_);
+        if (analysis.isDiscontinuity) {
+            totalPacketsLost_ += analysis.gap;
+            if (diagnosticsCallback_.onSampleDiscontinuity) {
+                diagnosticsCallback_.onSampleDiscontinuity(static_cast<int>(analysis.gap));
             }
         }
     }
@@ -162,7 +157,7 @@ void AudioStreamReceiver::processPacket(const QByteArray &packet)
     firstPacket_ = false;
 
     // Extract audio payload
-    QByteArray samples = packet.mid(HeaderSize, PayloadSize);
+    QByteArray samples = parsed->samples;
 
     // Add to jitter buffer
     AudioPacket audioPacket;
@@ -238,8 +233,5 @@ void AudioStreamReceiver::stopFlushTimer()
 
 int AudioStreamReceiver::calculateFlushIntervalUs() const
 {
-    // Calculate microseconds per packet based on sample rate
-    // interval = samples_per_packet / sample_rate * 1,000,000
-    double rate = sampleRate();
-    return static_cast<int>((SamplesPerPacket / rate) * 1000000.0);
+    return audiostream::calculateFlushIntervalUs(sampleRate());
 }
