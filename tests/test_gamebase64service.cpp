@@ -1,3 +1,4 @@
+#include "mocks/mockfiledownloader.h"
 #include "services/gamebase64service.h"
 
 #include <QSignalSpy>
@@ -10,6 +11,7 @@ class TestGameBase64Service : public QObject
 private slots:
     void initTestCase()
     {
+        QStandardPaths::setTestModeEnabled(true);
         // Called before all test functions
     }
 
@@ -21,7 +23,8 @@ private slots:
     // Initial state tests
     void testInitialStateNotLoaded()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         // Should not be loaded without database file
         // Note: might be loaded if user has downloaded it, but we test structure
@@ -30,7 +33,8 @@ private slots:
 
     void testCacheFilePathNotEmpty()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         QString dbPath = service.databaseCacheFilePath();
 
@@ -40,7 +44,8 @@ private slots:
 
     void testHasCachedDatabaseReturnsBool()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         // Just verify it returns without crash
         bool hasCached = service.hasCachedDatabase();
@@ -92,7 +97,8 @@ private slots:
     // Lookup tests (without database loaded)
     void testLookupByGameIdNotLoaded()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         // Even if cache exists, test without loaded data
         GameBase64Service::GameInfo info = service.lookupByGameId(1);
@@ -105,7 +111,8 @@ private slots:
 
     void testLookupByNameNotLoaded()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         GameBase64Service::GameInfo info = service.lookupByName("Commando");
 
@@ -116,7 +123,8 @@ private slots:
 
     void testLookupByNameEmptyString()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         GameBase64Service::GameInfo info = service.lookupByName("");
         QVERIFY(!info.found);
@@ -124,7 +132,8 @@ private slots:
 
     void testLookupByFilenameNotLoaded()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         GameBase64Service::GameInfo info = service.lookupByFilename("Commando.d64");
 
@@ -135,7 +144,8 @@ private slots:
 
     void testLookupByFilenameEmptyString()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         GameBase64Service::GameInfo info = service.lookupByFilename("");
         QVERIFY(!info.found);
@@ -143,7 +153,8 @@ private slots:
 
     void testLookupBySidFilenameNotLoaded()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         GameBase64Service::GameInfo info = service.lookupBySidFilename("Commando.sid");
 
@@ -154,7 +165,8 @@ private slots:
 
     void testLookupBySidFilenameEmptyString()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         GameBase64Service::GameInfo info = service.lookupBySidFilename("");
         QVERIFY(!info.found);
@@ -163,7 +175,8 @@ private slots:
     // Search tests (without database loaded)
     void testSearchByNameNotLoaded()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         GameBase64Service::SearchResults results = service.searchByName("Commando");
 
@@ -173,7 +186,8 @@ private slots:
 
     void testSearchByNameEmptyQuery()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         GameBase64Service::SearchResults results = service.searchByName("");
         QVERIFY(results.success);
@@ -182,7 +196,8 @@ private slots:
 
     void testSearchByMusicianNotLoaded()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         GameBase64Service::SearchResults results = service.searchByMusician("Rob Hubbard");
 
@@ -191,7 +206,8 @@ private slots:
 
     void testSearchByMusicianEmptyQuery()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         GameBase64Service::SearchResults results = service.searchByMusician("");
         QVERIFY(results.success);
@@ -200,7 +216,8 @@ private slots:
 
     void testSearchByPublisherNotLoaded()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         GameBase64Service::SearchResults results = service.searchByPublisher("Ocean");
 
@@ -209,7 +226,8 @@ private slots:
 
     void testSearchByPublisherEmptyQuery()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         GameBase64Service::SearchResults results = service.searchByPublisher("");
         QVERIFY(results.success);
@@ -219,7 +237,8 @@ private slots:
     // Signal existence tests
     void testSignalsExist()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         QSignalSpy progressSpy(&service, &GameBase64Service::downloadProgress);
         QSignalSpy finishedSpy(&service, &GameBase64Service::downloadFinished);
@@ -237,11 +256,77 @@ private slots:
     // Cancel download test
     void testCancelDownloadWhenNotDownloading()
     {
-        GameBase64Service service;
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
 
         // Should not crash when canceling with no active download
         service.cancelDownload();
         QVERIFY(true);
+    }
+
+    // --- Orchestration tests ---
+
+    void testDownloadDatabase_callsDownloaderWithCorrectUrl()
+    {
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
+
+        service.downloadDatabase();
+
+        QCOMPARE(mock.mockDownloadCallCount(), 1);
+        QCOMPARE(mock.mockLastUrl(), QUrl(QString::fromLatin1(GameBase64Service::DatabaseUrl)));
+    }
+
+    void testDownloadDatabase_ignoresWhenAlreadyDownloading()
+    {
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
+
+        service.downloadDatabase();
+        service.downloadDatabase();  // second call should be ignored
+
+        QCOMPARE(mock.mockDownloadCallCount(), 1);
+    }
+
+    void testDownloadProgress_forwardsSignal()
+    {
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
+
+        QSignalSpy spy(&service, &GameBase64Service::downloadProgress);
+
+        service.downloadDatabase();
+        mock.mockEmitProgress(1024, 4096);
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toLongLong(), 1024LL);
+        QCOMPARE(spy.at(0).at(1).toLongLong(), 4096LL);
+    }
+
+    void testDownloadFailed_forwardsError()
+    {
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
+
+        QSignalSpy spy(&service, &GameBase64Service::downloadFailed);
+
+        service.downloadDatabase();
+        mock.mockEmitFailed(QStringLiteral("Timeout"));
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QStringLiteral("Timeout"));
+    }
+
+    void testCancelDownload_delegatesToDownloader()
+    {
+        MockFileDownloader mock;
+        GameBase64Service service(&mock);
+
+        service.downloadDatabase();
+        service.cancelDownload();
+
+        QCOMPARE(mock.mockCancelCallCount(), 1);
+        QVERIFY(!mock.mockIsDownloading());
     }
 };
 

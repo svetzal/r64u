@@ -91,6 +91,8 @@ set(SOURCES
     src/services/videorecordingservice.cpp
     src/services/playlistmanager.cpp
     src/services/playlistcore.cpp
+    src/services/ifiledownloader.cpp
+    src/services/httpfiledownloader.cpp
     src/services/songlengthsparser.cpp
     src/services/songlengthsdatabase.cpp
     src/services/hvscparser.cpp
@@ -162,6 +164,8 @@ set(HEADERS
     src/services/videorecordingservice.h
     src/services/playlistmanager.h
     src/services/playlistcore.h
+    src/services/ifiledownloader.h
+    src/services/httpfiledownloader.h
     src/services/songlengthsdatabase.h
     src/services/hvscmetadataservice.h
     src/services/gamebase64service.h

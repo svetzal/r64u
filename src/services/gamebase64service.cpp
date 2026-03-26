@@ -12,10 +12,16 @@
 // For gzip decompression
 #include <zlib.h>
 
-GameBase64Service::GameBase64Service(QObject *parent)
-    : QObject(parent), networkManager_(new QNetworkAccessManager(this)),
-      connectionName_(QUuid::createUuid().toString())
+GameBase64Service::GameBase64Service(IFileDownloader *downloader, QObject *parent)
+    : QObject(parent), downloader_(downloader), connectionName_(QUuid::createUuid().toString())
 {
+    connect(downloader_, &IFileDownloader::downloadProgress, this,
+            &GameBase64Service::onDownloaderProgress);
+    connect(downloader_, &IFileDownloader::downloadFinished, this,
+            &GameBase64Service::onDownloaderFinished);
+    connect(downloader_, &IFileDownloader::downloadFailed, this,
+            &GameBase64Service::onDownloaderFailed);
+
     // Try to load from cache on startup
     if (hasCachedDatabase()) {
         loadFromCache();
@@ -40,7 +46,7 @@ QString GameBase64Service::databaseCacheFilePath() const
 
 void GameBase64Service::downloadDatabase()
 {
-    if (currentDownload_ != nullptr) {
+    if (downloader_->isDownloading()) {
         return;  // Already downloading
     }
 
@@ -48,57 +54,21 @@ void GameBase64Service::downloadDatabase()
     QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     QDir().mkpath(dataPath);
 
-    QUrl url{QString::fromLatin1(DatabaseUrl)};
-    QNetworkRequest request{url};
-    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
-                         QNetworkRequest::NoLessSafeRedirectPolicy);
-
-    currentDownload_ = networkManager_->get(request);
-    connect(currentDownload_, &QNetworkReply::downloadProgress, this,
-            &GameBase64Service::onDownloadProgress);
-    connect(currentDownload_, &QNetworkReply::finished, this,
-            &GameBase64Service::onDownloadFinished);
+    downloader_->download(QUrl(QString::fromLatin1(DatabaseUrl)));
 }
 
 void GameBase64Service::cancelDownload()
 {
-    if (currentDownload_ != nullptr) {
-        currentDownload_->abort();
-        currentDownload_->deleteLater();
-        currentDownload_ = nullptr;
-    }
+    downloader_->cancel();
 }
 
-void GameBase64Service::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
+void GameBase64Service::onDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal)
 {
     emit downloadProgress(bytesReceived, bytesTotal);
 }
 
-void GameBase64Service::onDownloadFinished()
+void GameBase64Service::onDownloaderFinished(const QByteArray &data)
 {
-    if (currentDownload_ == nullptr) {
-        return;
-    }
-
-    QNetworkReply *reply = currentDownload_;
-    currentDownload_ = nullptr;
-
-    if (reply->error() != QNetworkReply::NoError) {
-        QString errorMsg = reply->errorString();
-        reply->deleteLater();
-        emit downloadFailed(errorMsg);
-        return;
-    }
-
-    // Save compressed data to temp file
-    QByteArray compressedData = reply->readAll();
-    reply->deleteLater();
-
-    if (compressedData.isEmpty()) {
-        emit downloadFailed(tr("Downloaded file is empty"));
-        return;
-    }
-
     QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     QString gzipPath = dataPath + "/gamebase64.db.gz";
     QString dbPath = databaseCacheFilePath();
@@ -110,7 +80,7 @@ void GameBase64Service::onDownloadFinished()
             tr("Failed to save compressed database: %1").arg(gzipFile.errorString()));
         return;
     }
-    gzipFile.write(compressedData);
+    gzipFile.write(data);
     gzipFile.close();
 
     // Decompress
@@ -131,6 +101,11 @@ void GameBase64Service::onDownloadFinished()
     } else {
         emit downloadFailed(tr("Failed to load downloaded database"));
     }
+}
+
+void GameBase64Service::onDownloaderFailed(const QString &error)
+{
+    emit downloadFailed(error);
 }
 
 bool GameBase64Service::decompressGzip(const QString &gzipPath, const QString &outputPath)

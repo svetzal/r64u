@@ -1,9 +1,9 @@
 #ifndef GAMEBASE64SERVICE_H
 #define GAMEBASE64SERVICE_H
 
+#include "ifiledownloader.h"
+
 #include <QHash>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
 #include <QObject>
 #include <QSqlDatabase>
 
@@ -67,7 +67,7 @@ public:
         QList<GameInfo> games;
     };
 
-    explicit GameBase64Service(QObject *parent = nullptr);
+    explicit GameBase64Service(IFileDownloader *downloader, QObject *parent = nullptr);
     ~GameBase64Service() override;
 
     // Database state
@@ -112,8 +112,9 @@ signals:
     void databaseUnloaded();
 
 private slots:
-    void onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void onDownloadFinished();
+    void onDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void onDownloaderFinished(const QByteArray &data);
+    void onDownloaderFailed(const QString &error);
 
 private:
     void openDatabase(const QString &path);
@@ -121,8 +122,7 @@ private:
     [[nodiscard]] GameInfo buildGameInfoFromQuery(const QSqlQuery &query) const;
     [[nodiscard]] static bool decompressGzip(const QString &gzipPath, const QString &outputPath);
 
-    QNetworkAccessManager *networkManager_ = nullptr;
-    QNetworkReply *currentDownload_ = nullptr;
+    IFileDownloader *downloader_ = nullptr;
     QSqlDatabase database_;
     QString connectionName_;
 

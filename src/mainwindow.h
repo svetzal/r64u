@@ -17,6 +17,7 @@ class ErrorHandler;
 class StatusMessageService;
 class FavoritesManager;
 class PlaylistManager;
+class HttpFileDownloader;
 class SonglengthsDatabase;
 class HVSCMetadataService;
 class GameBase64Service;
@@ -90,8 +91,12 @@ private:
     StatusMessageService *statusMessageService_ = nullptr;
     FavoritesManager *favoritesManager_ = nullptr;
     PlaylistManager *playlistManager_ = nullptr;
+    HttpFileDownloader *songlengthsDownloader_ = nullptr;
     SonglengthsDatabase *songlengthsDatabase_ = nullptr;
+    HttpFileDownloader *stilDownloader_ = nullptr;
+    HttpFileDownloader *buglistDownloader_ = nullptr;
     HVSCMetadataService *hvscMetadataService_ = nullptr;
+    HttpFileDownloader *gameBase64Downloader_ = nullptr;
     GameBase64Service *gameBase64Service_ = nullptr;
 
     // Central widget

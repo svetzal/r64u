@@ -1,3 +1,4 @@
+#include "mocks/mockfiledownloader.h"
 #include "services/hvscmetadataservice.h"
 
 #include <QtTest>
@@ -66,6 +67,7 @@ BUG: Requires specific VIC timing that emulators may not
 private slots:
     void initTestCase()
     {
+        QStandardPaths::setTestModeEnabled(true);
         // Called before all test functions
     }
 
@@ -77,7 +79,9 @@ private slots:
     // STIL parsing tests
     void testParseStilEntry_simpleComment()
     {
-        HVSCMetadataService service;
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
 
         // Create sample data and write to a temp file
         QString content = createSampleStilContent();
@@ -94,7 +98,9 @@ private slots:
     void testStilLookup_existingPath()
     {
         // Test that lookupStil returns correct data for known paths
-        HVSCMetadataService service;
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
 
         // Without loading data, should return not found
         HVSCMetadataService::StilInfo info =
@@ -104,7 +110,9 @@ private slots:
 
     void testStilLookup_nonExistingPath()
     {
-        HVSCMetadataService service;
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
 
         HVSCMetadataService::StilInfo info = service.lookupStil("/NON/EXISTENT/path.sid");
         QVERIFY(!info.found);
@@ -113,7 +121,9 @@ private slots:
 
     void testStilLookup_pathNormalization()
     {
-        HVSCMetadataService service;
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
 
         // Test that paths are normalized (backslashes converted, leading slash added)
         HVSCMetadataService::StilInfo info1 = service.lookupStil("/path/to/file.sid");
@@ -130,7 +140,9 @@ private slots:
     // BUGlist parsing tests
     void testBuglistLookup_nonExistingPath()
     {
-        HVSCMetadataService service;
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
 
         HVSCMetadataService::BugInfo info = service.lookupBuglist("/NON/EXISTENT/path.sid");
         QVERIFY(!info.found);
@@ -140,7 +152,9 @@ private slots:
     // State tests
     void testInitialState_notLoaded()
     {
-        HVSCMetadataService service;
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
 
         QVERIFY(!service.isStilLoaded());
         QVERIFY(!service.isBuglistLoaded());
@@ -150,7 +164,9 @@ private slots:
 
     void testCacheFilePaths_notEmpty()
     {
-        HVSCMetadataService service;
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
 
         QString stilPath = service.stilCacheFilePath();
         QString buglistPath = service.buglistCacheFilePath();
@@ -163,7 +179,9 @@ private slots:
 
     void testHasCachedFiles_withoutCache()
     {
-        HVSCMetadataService service;
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
 
         // These may or may not exist depending on whether the user has downloaded them
         // Just verify they return booleans without crashing
@@ -234,7 +252,9 @@ private slots:
     // Signal existence tests
     void testSignals_exist()
     {
-        HVSCMetadataService service;
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
 
         // Verify signals can be connected to
         QSignalSpy stilProgressSpy(&service, &HVSCMetadataService::stilDownloadProgress);
@@ -255,6 +275,121 @@ private slots:
         QVERIFY(buglistFinishedSpy.isValid());
         QVERIFY(buglistFailedSpy.isValid());
         QVERIFY(buglistLoadedSpy.isValid());
+    }
+
+    // --- Orchestration tests ---
+
+    void testDownloadStil_callsDownloaderWithCorrectUrl()
+    {
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
+
+        service.downloadStil();
+
+        QCOMPARE(stilMock.mockDownloadCallCount(), 1);
+        QCOMPARE(stilMock.mockLastUrl(), QUrl(QString::fromLatin1(HVSCMetadataService::StilUrl)));
+        QCOMPARE(buglistMock.mockDownloadCallCount(), 0);
+    }
+
+    void testDownloadBuglist_callsDownloaderWithCorrectUrl()
+    {
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
+
+        service.downloadBuglist();
+
+        QCOMPARE(buglistMock.mockDownloadCallCount(), 1);
+        QCOMPARE(buglistMock.mockLastUrl(),
+                 QUrl(QString::fromLatin1(HVSCMetadataService::BuglistUrl)));
+        QCOMPARE(stilMock.mockDownloadCallCount(), 0);
+    }
+
+    void testDownloadStil_ignoresWhenAlreadyDownloading()
+    {
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
+
+        service.downloadStil();
+        service.downloadStil();  // second call should be ignored
+
+        QCOMPARE(stilMock.mockDownloadCallCount(), 1);
+    }
+
+    void testDownloadBuglist_ignoresWhenAlreadyDownloading()
+    {
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
+
+        service.downloadBuglist();
+        service.downloadBuglist();  // second call should be ignored
+
+        QCOMPARE(buglistMock.mockDownloadCallCount(), 1);
+    }
+
+    void testStilDownloadProgress_forwardsSignal()
+    {
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
+
+        QSignalSpy spy(&service, &HVSCMetadataService::stilDownloadProgress);
+
+        service.downloadStil();
+        stilMock.mockEmitProgress(500, 1000);
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toLongLong(), 500LL);
+        QCOMPARE(spy.at(0).at(1).toLongLong(), 1000LL);
+    }
+
+    void testBuglistDownloadProgress_forwardsSignal()
+    {
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
+
+        QSignalSpy spy(&service, &HVSCMetadataService::buglistDownloadProgress);
+
+        service.downloadBuglist();
+        buglistMock.mockEmitProgress(200, 800);
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toLongLong(), 200LL);
+        QCOMPARE(spy.at(0).at(1).toLongLong(), 800LL);
+    }
+
+    void testStilDownloadFailed_forwardsError()
+    {
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
+
+        QSignalSpy spy(&service, &HVSCMetadataService::stilDownloadFailed);
+
+        service.downloadStil();
+        stilMock.mockEmitFailed(QStringLiteral("Network error"));
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QStringLiteral("Network error"));
+    }
+
+    void testBuglistDownloadFailed_forwardsError()
+    {
+        MockFileDownloader stilMock;
+        MockFileDownloader buglistMock;
+        HVSCMetadataService service(&stilMock, &buglistMock);
+
+        QSignalSpy spy(&service, &HVSCMetadataService::buglistDownloadFailed);
+
+        service.downloadBuglist();
+        buglistMock.mockEmitFailed(QStringLiteral("Connection refused"));
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QStringLiteral("Connection refused"));
     }
 };
 

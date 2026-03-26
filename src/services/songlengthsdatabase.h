@@ -9,10 +9,10 @@
 #ifndef SONGLENGTHSDATABASE_H
 #define SONGLENGTHSDATABASE_H
 
+#include "ifiledownloader.h"
 #include "songlengthsparser.h"
 
 #include <QList>
-#include <QNetworkAccessManager>
 #include <QObject>
 #include <QString>
 
@@ -49,7 +49,7 @@ public:
         QList<QString> formattedTimes;  ///< Formatted times (e.g., "3:57") for each subsong
     };
 
-    explicit SonglengthsDatabase(QObject *parent = nullptr);
+    explicit SonglengthsDatabase(IFileDownloader *downloader, QObject *parent = nullptr);
     ~SonglengthsDatabase() override = default;
 
     /**
@@ -150,15 +150,15 @@ signals:
     void databaseLoaded();
 
 private slots:
-    void onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void onDownloadFinished();
+    void onDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void onDownloaderFinished(const QByteArray &data);
+    void onDownloaderFailed(const QString &error);
 
 private:
     bool parseDatabase(const QByteArray &data);
     bool parseDatabaseFile(const QString &filePath);
 
-    QNetworkAccessManager *networkManager_ = nullptr;
-    QNetworkReply *currentDownload_ = nullptr;
+    IFileDownloader *downloader_ = nullptr;
 
     songlengths::ParsedDatabase parsedDb_;
 };

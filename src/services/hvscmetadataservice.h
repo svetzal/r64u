@@ -10,10 +10,10 @@
 #define HVSCMETADATASERVICE_H
 
 #include "hvscparser.h"
+#include "ifiledownloader.h"
 
 #include <QHash>
 #include <QList>
-#include <QNetworkAccessManager>
 #include <QObject>
 #include <QString>
 
@@ -46,7 +46,8 @@ public:
     using BugEntry = hvsc::BugEntry;
     using BugInfo = hvsc::BugInfo;
 
-    explicit HVSCMetadataService(QObject *parent = nullptr);
+    explicit HVSCMetadataService(IFileDownloader *stilDownloader,
+                                 IFileDownloader *buglistDownloader, QObject *parent = nullptr);
     ~HVSCMetadataService() override = default;
 
     /**
@@ -146,10 +147,13 @@ signals:
     void buglistLoaded();
 
 private slots:
-    void onStilDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void onStilDownloadFinished();
-    void onBuglistDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void onBuglistDownloadFinished();
+    void onStilDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void onStilDownloaderFinished(const QByteArray &data);
+    void onStilDownloaderFailed(const QString &error);
+
+    void onBuglistDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void onBuglistDownloaderFinished(const QByteArray &data);
+    void onBuglistDownloaderFailed(const QString &error);
 
 private:
     bool parseStil(const QByteArray &data);
@@ -157,9 +161,8 @@ private:
     bool parseBuglist(const QByteArray &data);
     bool parseBuglistFile(const QString &filePath);
 
-    QNetworkAccessManager *networkManager_ = nullptr;
-    QNetworkReply *stilDownload_ = nullptr;
-    QNetworkReply *buglistDownload_ = nullptr;
+    IFileDownloader *stilDownloader_ = nullptr;
+    IFileDownloader *buglistDownloader_ = nullptr;
 
     // STIL database: HVSC path -> entries
     QHash<QString, QList<hvsc::SubtuneEntry>> stilDatabase_;

@@ -12,6 +12,15 @@ set(MOCK_FTP_HEADERS
     mocks/mockftpclient.h
 )
 
+# Mock file downloader - implements IFileDownloader for runtime injection
+set(MOCK_FILE_DOWNLOADER_SOURCES
+    mocks/mockfiledownloader.cpp
+)
+
+set(MOCK_FILE_DOWNLOADER_HEADERS
+    mocks/mockfiledownloader.h
+)
+
 # Streaming interface mock sources (Q_OBJECT mocks need .cpp for MOC)
 set(MOCK_STREAMING_SOURCES
     mocks/mockstreamcontrolclient.cpp
@@ -611,11 +620,15 @@ endif()
 # HVSCMetadataService tests
 add_executable(test_hvscmetadataservice
     test_hvscmetadataservice.cpp
+    ${MOCK_FILE_DOWNLOADER_SOURCES}
+    ${MOCK_FILE_DOWNLOADER_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
 )
 
 target_include_directories(test_hvscmetadataservice PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/
     ${CMAKE_SOURCE_DIR}/src
 )
 
@@ -771,10 +784,14 @@ endif()
 # GameBase64Service tests
 add_executable(test_gamebase64service
     test_gamebase64service.cpp
+    ${MOCK_FILE_DOWNLOADER_SOURCES}
+    ${MOCK_FILE_DOWNLOADER_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
 )
 
 target_include_directories(test_gamebase64service PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/
     ${CMAKE_SOURCE_DIR}/src
 )
 
@@ -793,4 +810,34 @@ add_test(NAME GameBase64ServiceTest COMMAND test_gamebase64service)
 if(BUILD_COVERAGE)
     add_coverage_target(gamebase64service test_gamebase64service)
     add_dependencies(coverage coverage_gamebase64service)
+endif()
+
+# SonglengthsDatabase tests
+add_executable(test_songlengthsdatabase
+    test_songlengthsdatabase.cpp
+    ${MOCK_FILE_DOWNLOADER_SOURCES}
+    ${MOCK_FILE_DOWNLOADER_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
+)
+
+target_include_directories(test_songlengthsdatabase PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_songlengthsdatabase PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+# Register test with CTest
+add_test(NAME SonglengthsDatabaseTest COMMAND test_songlengthsdatabase)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(songlengthsdatabase test_songlengthsdatabase)
+    add_dependencies(coverage coverage_songlengthsdatabase)
 endif()

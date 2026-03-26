@@ -10,12 +10,18 @@
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
-#include <QNetworkReply>
 #include <QStandardPaths>
 
-SonglengthsDatabase::SonglengthsDatabase(QObject *parent)
-    : QObject(parent), networkManager_(new QNetworkAccessManager(this))
+SonglengthsDatabase::SonglengthsDatabase(IFileDownloader *downloader, QObject *parent)
+    : QObject(parent), downloader_(downloader)
 {
+    connect(downloader_, &IFileDownloader::downloadProgress, this,
+            &SonglengthsDatabase::onDownloaderProgress);
+    connect(downloader_, &IFileDownloader::downloadFinished, this,
+            &SonglengthsDatabase::onDownloaderFinished);
+    connect(downloader_, &IFileDownloader::downloadFailed, this,
+            &SonglengthsDatabase::onDownloaderFailed);
+
     // Try to load from cache on startup
     if (hasCachedDatabase()) {
         loadFromCache();
@@ -93,51 +99,20 @@ int SonglengthsDatabase::getDurationByData(const QByteArray &sidData, int subson
 
 void SonglengthsDatabase::downloadDatabase()
 {
-    if (currentDownload_) {
-        // Already downloading
+    if (downloader_->isDownloading()) {
         return;
     }
 
-    QUrl url(DatabaseUrl);
-    QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::UserAgentHeader, "r64u/1.0");
-
-    currentDownload_ = networkManager_->get(request);
-
-    connect(currentDownload_, &QNetworkReply::downloadProgress, this,
-            &SonglengthsDatabase::onDownloadProgress);
-    connect(currentDownload_, &QNetworkReply::finished, this,
-            &SonglengthsDatabase::onDownloadFinished);
+    downloader_->download(QUrl(QString::fromLatin1(DatabaseUrl)));
 }
 
-void SonglengthsDatabase::onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
+void SonglengthsDatabase::onDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal)
 {
     emit downloadProgress(bytesReceived, bytesTotal);
 }
 
-void SonglengthsDatabase::onDownloadFinished()
+void SonglengthsDatabase::onDownloaderFinished(const QByteArray &data)
 {
-    if (!currentDownload_) {
-        return;
-    }
-
-    QNetworkReply *reply = currentDownload_;
-    currentDownload_ = nullptr;
-
-    if (reply->error() != QNetworkReply::NoError) {
-        emit downloadFailed(reply->errorString());
-        reply->deleteLater();
-        return;
-    }
-
-    QByteArray data = reply->readAll();
-    reply->deleteLater();
-
-    if (data.isEmpty()) {
-        emit downloadFailed(tr("Downloaded file is empty"));
-        return;
-    }
-
     // Save to cache
     QFile cacheFile(cacheFilePath());
     if (cacheFile.open(QIODevice::WriteOnly)) {
@@ -152,6 +127,11 @@ void SonglengthsDatabase::onDownloadFinished()
     } else {
         emit downloadFailed(tr("Failed to parse database"));
     }
+}
+
+void SonglengthsDatabase::onDownloaderFailed(const QString &error)
+{
+    emit downloadFailed(error);
 }
 
 bool SonglengthsDatabase::parseDatabase(const QByteArray &data)

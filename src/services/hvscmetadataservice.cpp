@@ -9,12 +9,26 @@
 
 #include <QDir>
 #include <QFile>
-#include <QNetworkReply>
 #include <QStandardPaths>
 
-HVSCMetadataService::HVSCMetadataService(QObject *parent)
-    : QObject(parent), networkManager_(new QNetworkAccessManager(this))
+HVSCMetadataService::HVSCMetadataService(IFileDownloader *stilDownloader,
+                                         IFileDownloader *buglistDownloader, QObject *parent)
+    : QObject(parent), stilDownloader_(stilDownloader), buglistDownloader_(buglistDownloader)
 {
+    connect(stilDownloader_, &IFileDownloader::downloadProgress, this,
+            &HVSCMetadataService::onStilDownloaderProgress);
+    connect(stilDownloader_, &IFileDownloader::downloadFinished, this,
+            &HVSCMetadataService::onStilDownloaderFinished);
+    connect(stilDownloader_, &IFileDownloader::downloadFailed, this,
+            &HVSCMetadataService::onStilDownloaderFailed);
+
+    connect(buglistDownloader_, &IFileDownloader::downloadProgress, this,
+            &HVSCMetadataService::onBuglistDownloaderProgress);
+    connect(buglistDownloader_, &IFileDownloader::downloadFinished, this,
+            &HVSCMetadataService::onBuglistDownloaderFinished);
+    connect(buglistDownloader_, &IFileDownloader::downloadFailed, this,
+            &HVSCMetadataService::onBuglistDownloaderFailed);
+
     // Try to load from cache on startup
     if (hasCachedStil()) {
         loadStilFromCache();
@@ -88,70 +102,29 @@ HVSCMetadataService::BugInfo HVSCMetadataService::lookupBuglist(const QString &h
 
 void HVSCMetadataService::downloadStil()
 {
-    if (stilDownload_) {
-        // Already downloading
+    if (stilDownloader_->isDownloading()) {
         return;
     }
 
-    QUrl url(StilUrl);
-    QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::UserAgentHeader, "r64u/1.0");
-
-    stilDownload_ = networkManager_->get(request);
-
-    connect(stilDownload_, &QNetworkReply::downloadProgress, this,
-            &HVSCMetadataService::onStilDownloadProgress);
-    connect(stilDownload_, &QNetworkReply::finished, this,
-            &HVSCMetadataService::onStilDownloadFinished);
+    stilDownloader_->download(QUrl(QString::fromLatin1(StilUrl)));
 }
 
 void HVSCMetadataService::downloadBuglist()
 {
-    if (buglistDownload_) {
-        // Already downloading
+    if (buglistDownloader_->isDownloading()) {
         return;
     }
 
-    QUrl url(BuglistUrl);
-    QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::UserAgentHeader, "r64u/1.0");
-
-    buglistDownload_ = networkManager_->get(request);
-
-    connect(buglistDownload_, &QNetworkReply::downloadProgress, this,
-            &HVSCMetadataService::onBuglistDownloadProgress);
-    connect(buglistDownload_, &QNetworkReply::finished, this,
-            &HVSCMetadataService::onBuglistDownloadFinished);
+    buglistDownloader_->download(QUrl(QString::fromLatin1(BuglistUrl)));
 }
 
-void HVSCMetadataService::onStilDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
+void HVSCMetadataService::onStilDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal)
 {
     emit stilDownloadProgress(bytesReceived, bytesTotal);
 }
 
-void HVSCMetadataService::onStilDownloadFinished()
+void HVSCMetadataService::onStilDownloaderFinished(const QByteArray &data)
 {
-    if (!stilDownload_) {
-        return;
-    }
-
-    QNetworkReply *reply = stilDownload_;
-    stilDownload_ = nullptr;
-
-    if (reply->error() != QNetworkReply::NoError) {
-        emit stilDownloadFailed(reply->errorString());
-        reply->deleteLater();
-        return;
-    }
-
-    QByteArray data = reply->readAll();
-    reply->deleteLater();
-
-    if (data.isEmpty()) {
-        emit stilDownloadFailed(tr("Downloaded file is empty"));
-        return;
-    }
-
     // Save to cache
     QFile cacheFile(stilCacheFilePath());
     if (cacheFile.open(QIODevice::WriteOnly)) {
@@ -168,34 +141,18 @@ void HVSCMetadataService::onStilDownloadFinished()
     }
 }
 
-void HVSCMetadataService::onBuglistDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
+void HVSCMetadataService::onStilDownloaderFailed(const QString &error)
+{
+    emit stilDownloadFailed(error);
+}
+
+void HVSCMetadataService::onBuglistDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal)
 {
     emit buglistDownloadProgress(bytesReceived, bytesTotal);
 }
 
-void HVSCMetadataService::onBuglistDownloadFinished()
+void HVSCMetadataService::onBuglistDownloaderFinished(const QByteArray &data)
 {
-    if (!buglistDownload_) {
-        return;
-    }
-
-    QNetworkReply *reply = buglistDownload_;
-    buglistDownload_ = nullptr;
-
-    if (reply->error() != QNetworkReply::NoError) {
-        emit buglistDownloadFailed(reply->errorString());
-        reply->deleteLater();
-        return;
-    }
-
-    QByteArray data = reply->readAll();
-    reply->deleteLater();
-
-    if (data.isEmpty()) {
-        emit buglistDownloadFailed(tr("Downloaded file is empty"));
-        return;
-    }
-
     // Save to cache
     QFile cacheFile(buglistCacheFilePath());
     if (cacheFile.open(QIODevice::WriteOnly)) {
@@ -210,6 +167,11 @@ void HVSCMetadataService::onBuglistDownloadFinished()
     } else {
         emit buglistDownloadFailed(tr("Failed to parse BUGlist database"));
     }
+}
+
+void HVSCMetadataService::onBuglistDownloaderFailed(const QString &error)
+{
+    emit buglistDownloadFailed(error);
 }
 
 bool HVSCMetadataService::parseStil(const QByteArray &data)

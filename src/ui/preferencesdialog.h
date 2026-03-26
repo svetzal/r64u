@@ -3,7 +3,7 @@
 
 #include "videodisplaywidget.h"
 
-#include "../services/c64urestclient.h"
+#include "../services/irestclient.h"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -77,7 +77,7 @@ private:
     QComboBox *scalingModeCombo_ = nullptr;
 
     // Test connection
-    C64URestClient *testClient_ = nullptr;
+    IRestClient *testClient_ = nullptr;
 
     // Songlengths Database UI
     SonglengthsDatabase *songlengthsDatabase_ = nullptr;

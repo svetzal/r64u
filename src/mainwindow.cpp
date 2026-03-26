@@ -9,6 +9,7 @@
 #include "services/favoritesmanager.h"
 #include "services/filepreviewservice.h"
 #include "services/gamebase64service.h"
+#include "services/httpfiledownloader.h"
 #include "services/hvscmetadataservice.h"
 #include "services/irestclient.h"
 #include "services/playlistmanager.h"
@@ -61,13 +62,17 @@ MainWindow::MainWindow(QWidget *parent)
     playlistManager_ = new PlaylistManager(deviceConnection_, this);
 
     // Create the songlengths database for SID duration lookup
-    songlengthsDatabase_ = new SonglengthsDatabase(this);
+    songlengthsDownloader_ = new HttpFileDownloader(this);
+    songlengthsDatabase_ = new SonglengthsDatabase(songlengthsDownloader_, this);
 
     // Create the HVSC metadata service for STIL/BUGlist lookup
-    hvscMetadataService_ = new HVSCMetadataService(this);
+    stilDownloader_ = new HttpFileDownloader(this);
+    buglistDownloader_ = new HttpFileDownloader(this);
+    hvscMetadataService_ = new HVSCMetadataService(stilDownloader_, buglistDownloader_, this);
 
     // Create the GameBase64 service for game metadata lookup
-    gameBase64Service_ = new GameBase64Service(this);
+    gameBase64Downloader_ = new HttpFileDownloader(this);
+    gameBase64Service_ = new GameBase64Service(gameBase64Downloader_, this);
 
     // Wire up the songlengths database to the playlist manager
     playlistManager_->setSonglengthsDatabase(songlengthsDatabase_);
