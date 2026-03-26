@@ -10,6 +10,7 @@
 #define STREAMCONTROLCLIENT_H
 
 #include "istreamcontrolclient.h"
+#include "streamprotocolcore.h"
 
 #include <QHostAddress>
 #include <QObject>
@@ -143,13 +144,8 @@ private slots:
     void onSocketError(QAbstractSocket::SocketError error);
 
 private:
-    /// Command types for the control protocol
-    enum class CommandType : quint8 {
-        StartVideo = 0x20,
-        StartAudio = 0x21,
-        StopVideo = 0x30,
-        StopAudio = 0x31
-    };
+    /// Convenience alias for protocol command types.
+    using CommandType = streamprotocol::CommandType;
 
     /// Pending command structure
     struct PendingCommand
@@ -161,10 +157,6 @@ private:
 
     void sendCommand(const PendingCommand &command);
     void connectAndSend();
-    [[nodiscard]] QByteArray buildStartCommand(CommandType type, const QString &targetHost,
-                                               quint16 targetPort, quint16 durationTicks) const;
-    [[nodiscard]] QByteArray buildStopCommand(CommandType type) const;
-    [[nodiscard]] QString commandTypeToString(CommandType type) const;
 
     // Network
     QTcpSocket *socket_ = nullptr;
