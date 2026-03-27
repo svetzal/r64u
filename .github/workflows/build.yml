@@ -18,7 +18,7 @@ jobs:
       matrix:
         include:
           # Linux x64 build
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             name: Linux-x64
             artifact: r64u-linux-x86_64
             qt_arch: linux_gcc_64
@@ -68,9 +68,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libgl1-mesa-dev libxkbcommon-dev libxkbcommon-x11-0 \
-            libfuse2 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+            libfuse2t64 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
             libxcb-keysyms1 libxcb-render-util0 libxcb-shape0 \
-            libasound2 libpulse0 \
+            libasound2t64 libpulse0 \
             dpkg-dev fakeroot imagemagick
 
       - name: Install Windows dependencies (zlib)
