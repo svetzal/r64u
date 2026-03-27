@@ -1,10 +1,21 @@
 /**
  * @file transfercore.h
- * @brief Pure data structures for the transfer subsystem.
+ * @brief Pure core functions for transfer queue management logic.
  *
- * All types in this namespace are plain data structures with no I/O
- * dependencies. They form the foundation for extracting pure business logic
- * from TransferQueue into a testable, side-effect-free core.
+ * All functions in this namespace are pure: they take immutable input and return
+ * new output with no side effects. This enables comprehensive unit testing and
+ * clean separation from I/O concerns (FTP operations, Qt model signals, timers).
+ *
+ * The central type is \c transfer::State, which captures the complete mutable
+ * state of the transfer queue. TransferQueue stores a single \c state_ member
+ * of this type and delegates all business logic to functions in this namespace.
+ *
+ * ## Architecture
+ *
+ * - **Pure core** (this file): State transitions, item management, batch lifecycle,
+ *   confirmation handling, directory scanning, error handling
+ * - **Imperative shell** (TransferQueue): FTP calls, Qt model signals, timers,
+ *   debounce, I/O operations
  */
 
 #ifndef TRANSFERCORE_H
@@ -20,6 +31,8 @@
 #include <QString>
 #include <QStringList>
 #include <QVariant>
+
+#include <functional>
 
 namespace transfer {
 
@@ -580,6 +593,74 @@ struct UploadFileCheckResult
 /// @brief Check if the current upload item's remote target file exists in a directory listing.
 [[nodiscard]] UploadFileCheckResult checkUploadFileExists(const State &state,
                                                           const QList<FtpEntry> &entries);
+
+// ---------------------------------------------------------------------------
+// Phase 7: processNext decision logic
+// ---------------------------------------------------------------------------
+
+/// @brief Describes what action TransferQueue::processNext() should take.
+enum class ProcessNextAction {
+    Blocked,                      ///< State machine disallows processing
+    NoFtpClient,                  ///< FTP client not connected
+    StartFolderOp,                ///< Dequeue and start a pending folder op
+    NeedOverwriteCheck_Download,  ///< Local file exists, ask user
+    NeedOverwriteCheck_Upload,    ///< Check remote file existence first
+    StartTransfer,                ///< Start the next pending transfer
+    NoPending                     ///< No pending items remain
+};
+
+/// @brief Decision produced by decideNextAction().
+struct ProcessNextDecision
+{
+    ProcessNextAction action = ProcessNextAction::Blocked;
+    int itemIndex = -1;               ///< For StartTransfer/NeedOverwriteCheck
+    PendingFolderOp folderOpToStart;  ///< For StartFolderOp
+    QString uploadCheckDir;           ///< Remote dir to LIST for NeedOverwriteCheck_Upload
+    QString fileNameForSignal;        ///< File name for operationStarted signal
+};
+
+/// @brief Decide what processNext() should do next, given current state.
+/// @param state Current transfer queue state.
+/// @param ftpConnected Whether the FTP client is connected and ready.
+/// @param localFileExists Predicate to check if a local file exists (injected to keep pure).
+[[nodiscard]] ProcessNextDecision
+decideNextAction(const State &state, bool ftpConnected,
+                 const std::function<bool(const QString &)> &localFileExists);
+
+// ---------------------------------------------------------------------------
+// Phase 7: FTP error result
+// ---------------------------------------------------------------------------
+
+/// @brief Result of handling an FTP error.
+struct FtpErrorResult
+{
+    State newState;
+    bool isDeleteError = false;            ///< Error during recursive delete
+    bool shouldProcessNextDelete = false;  ///< True when delete error should continue to next item
+    QString deleteFileName;                ///< For operationFailed signal (delete)
+    bool hasCurrentItem = false;           ///< Error during file transfer
+    QString transferFileName;              ///< For operationFailed signal (transfer)
+    int failedBatchId = -1;
+    bool batchIsComplete = false;
+    bool shouldScheduleProcessNext = false;
+    bool isFolderCreationError = false;  ///< Error during directory creation
+    QString folderName;                  ///< For operationFailed signal (folder)
+    int folderBatchId = -1;
+};
+
+/// @brief Handle an FTP error, returning the new state and metadata for signal emission.
+/// @param state Current transfer queue state.
+/// @param message Error message from the FTP client.
+[[nodiscard]] FtpErrorResult handleFtpError(const State &state, const QString &message);
+
+// ---------------------------------------------------------------------------
+// Phase 7: Operation timeout
+// ---------------------------------------------------------------------------
+
+/// @brief Handle an operation timeout — mark any InProgress item as Failed.
+/// @param state Current transfer queue state.
+/// @return Updated state with the timed-out item marked Failed and queue transitioned to Idle.
+[[nodiscard]] State handleOperationTimeout(const State &state);
 
 }  // namespace transfer
 

@@ -71,16 +71,22 @@ public:
     [[nodiscard]] int pendingCount() const;
     [[nodiscard]] int activeCount() const;
     [[nodiscard]] int activeAndPendingCount() const;
-    [[nodiscard]] bool isProcessing() const { return state_ == QueueState::Transferring; }
-    [[nodiscard]] bool isProcessingDelete() const { return state_ == QueueState::Deleting; }
-    [[nodiscard]] bool isScanning() const { return state_ == QueueState::Scanning; }
+    [[nodiscard]] bool isProcessing() const
+    {
+        return state_.queueState == QueueState::Transferring;
+    }
+    [[nodiscard]] bool isProcessingDelete() const
+    {
+        return state_.queueState == QueueState::Deleting;
+    }
+    [[nodiscard]] bool isScanning() const { return state_.queueState == QueueState::Scanning; }
     [[nodiscard]] bool isScanningForDelete() const;
     [[nodiscard]] bool isCreatingDirectories() const
     {
-        return state_ == QueueState::CreatingDirectories;
+        return state_.queueState == QueueState::CreatingDirectories;
     }
-    [[nodiscard]] int deleteProgress() const { return deletedCount_; }
-    [[nodiscard]] int deleteTotalCount() const { return deleteQueue_.size(); }
+    [[nodiscard]] int deleteProgress() const { return state_.deletedCount; }
+    [[nodiscard]] int deleteTotalCount() const { return state_.deleteQueue.size(); }
 
     // Batch operations
     [[nodiscard]] BatchProgress activeBatchProgress() const;
@@ -100,10 +106,10 @@ public:
 
     // Confirmation handling
     void respondToOverwrite(OverwriteResponse response);
-    void setAutoOverwrite(bool autoOverwrite) { overwriteAll_ = autoOverwrite; }
+    void setAutoOverwrite(bool autoOverwrite) { state_.overwriteAll = autoOverwrite; }
 
     void respondToFolderExists(FolderExistsResponse response);
-    void setAutoMerge(bool autoMerge) { autoMerge_ = autoMerge; }
+    void setAutoMerge(bool autoMerge) { state_.autoMerge = autoMerge; }
 
     // For testing
     void flushEventQueue();
@@ -144,19 +150,12 @@ private slots:
     void onDebounceTimeout();
 
 private:
-    // Temporary scaffold: build transfer::State from member variables for delegation
-    [[nodiscard]] transfer::State toState() const;
-
-    // Temporary scaffold: sync member variables from a transfer::State
-    void applyState(const transfer::State &s);
-
     // Core processing - single entry point
     void processNext();
     void scheduleProcessNext();
     void processEventQueue();
 
     // State machine
-    QueueState state_ = QueueState::Idle;
     void transitionTo(QueueState newState);
 
     // Folder operations (unified for upload/download)
@@ -201,62 +200,20 @@ private:
     void stopOperationTimeout();
     void onOperationTimeout();
 
-    // Core data
+    // I/O boundary members (not part of pure state)
     QPointer<IFtpClient> ftpClient_;
-    QList<TransferItem> items_;
-    int currentIndex_ = -1;
-
-    // Batch management
-    QList<TransferBatch> batches_;
-    int nextBatchId_ = 1;
-    int activeBatchIndex_ = -1;
 
     // Debounce timer for collecting items
     QTimer *debounceTimer_ = nullptr;
     static constexpr int DebounceMs = 50;
-
-    // Pending folder operations (collected during debounce)
-    QQueue<PendingFolderOp> pendingFolderOps_;
-    PendingFolderOp currentFolderOp_;
-
-    // Scanning state
-    QQueue<PendingScan> pendingScans_;
-    QSet<QString> requestedListings_;
-    QString scanningFolderName_;
-    int directoriesScanned_ = 0;
-    int filesDiscovered_ = 0;
-
-    // Directory creation state
-    QQueue<PendingMkdir> pendingMkdirs_;
-    int directoriesCreated_ = 0;
-    int totalDirectoriesToCreate_ = 0;
-
-    // Delete operation state
-    QList<DeleteItem> deleteQueue_;
-    QQueue<PendingScan> pendingDeleteScans_;
-    QSet<QString> requestedDeleteListings_;
-    QString recursiveDeleteBase_;
-    int deletedCount_ = 0;
-
-    // Confirmation state
-    ConfirmationContext pendingConfirmation_;
-
-    // User preferences (preserved across batches)
-    bool overwriteAll_ = false;
-    bool autoMerge_ = false;
-    bool replaceExisting_ = false;
-
-    // Compound operation state (delete + upload for Replace)
-    bool pendingUploadAfterDelete_ = false;
 
     // Event queue for deferred processing
     QQueue<std::function<void()>> eventQueue_;
     bool processingEvents_ = false;
     bool eventProcessingScheduled_ = false;
 
-    // Upload file existence checking
-    QSet<QString> requestedUploadFileCheckListings_;
-    QSet<QString> requestedFolderCheckListings_;
+    // All mutable queue state (pure-function compatible)
+    transfer::State state_;
 };
 
 #endif  // TRANSFERQUEUE_H

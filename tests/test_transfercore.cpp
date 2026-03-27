@@ -212,6 +212,27 @@ private slots:
     void testCheckUploadFileExists_fileExists();
     void testCheckUploadFileExists_fileDoesNotExist();
     void testCheckUploadFileExists_invalidCurrentIndex();
+
+    // decideNextAction tests
+    void testDecideNext_blocked_whenNotIdle();
+    void testDecideNext_noFtpClient();
+    void testDecideNext_startFolderOp_whenPending();
+    void testDecideNext_overwriteCheck_download_fileExists();
+    void testDecideNext_startTransfer_download();
+    void testDecideNext_startTransfer_upload_confirmed();
+    void testDecideNext_overwriteCheck_upload_notConfirmed();
+    void testDecideNext_noPending();
+
+    // handleFtpError tests
+    void testHandleFtpError_duringDelete_skipsAndContinues();
+    void testHandleFtpError_duringDirCreation();
+    void testHandleFtpError_duringTransfer_marksItemFailed();
+    void testHandleFtpError_clearsAllPendingRequests();
+
+    // handleOperationTimeout tests
+    void testHandleOperationTimeout_marksInProgressAsFailed();
+    void testHandleOperationTimeout_resetsCurrentIndex();
+    void testHandleOperationTimeout_transitionsToIdle();
 };
 
 void TestTransferCore::testQueueStateToString_idle()
@@ -1696,6 +1717,229 @@ void TestTransferCore::testCheckUploadFileExists_invalidCurrentIndex()
     auto result = transfer::checkUploadFileExists(state, {});
     QVERIFY(!result.fileExists);
     QCOMPARE(result.newState.currentIndex, -1);
+}
+
+// =============================================================================
+// decideNextAction tests
+// =============================================================================
+
+void TestTransferCore::testDecideNext_blocked_whenNotIdle()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Transferring;
+    auto d = transfer::decideNextAction(state, true, [](const QString &) { return false; });
+    QCOMPARE(d.action, transfer::ProcessNextAction::Blocked);
+}
+
+void TestTransferCore::testDecideNext_noFtpClient()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Idle;
+    auto d = transfer::decideNextAction(state, false, [](const QString &) { return false; });
+    QCOMPARE(d.action, transfer::ProcessNextAction::NoFtpClient);
+}
+
+void TestTransferCore::testDecideNext_startFolderOp_whenPending()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Idle;
+    transfer::PendingFolderOp op;
+    op.sourcePath = "/local/folder";
+    state.pendingFolderOps.enqueue(op);
+    // currentFolderOp.batchId defaults to -1, so folder op is ready to start
+
+    auto d = transfer::decideNextAction(state, true, [](const QString &) { return false; });
+    QCOMPARE(d.action, transfer::ProcessNextAction::StartFolderOp);
+    QCOMPARE(d.folderOpToStart.sourcePath, QString("/local/folder"));
+}
+
+void TestTransferCore::testDecideNext_overwriteCheck_download_fileExists()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Idle;
+    transfer::TransferItem item;
+    item.status = transfer::TransferItem::Status::Pending;
+    item.operationType = transfer::OperationType::Download;
+    item.localPath = "/home/user/file.prg";
+    item.confirmed = false;
+    state.items.append(item);
+    state.overwriteAll = false;
+
+    // Local file "exists"
+    auto d = transfer::decideNextAction(state, true, [](const QString &) { return true; });
+    QCOMPARE(d.action, transfer::ProcessNextAction::NeedOverwriteCheck_Download);
+    QCOMPARE(d.itemIndex, 0);
+}
+
+void TestTransferCore::testDecideNext_startTransfer_download()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Idle;
+    transfer::TransferItem item;
+    item.status = transfer::TransferItem::Status::Pending;
+    item.operationType = transfer::OperationType::Download;
+    item.localPath = "/home/user/file.prg";
+    item.remotePath = "/SD/file.prg";
+    item.confirmed = false;
+    state.overwriteAll = true;  // Skip overwrite check
+    state.items.append(item);
+
+    auto d = transfer::decideNextAction(state, true, [](const QString &) { return false; });
+    QCOMPARE(d.action, transfer::ProcessNextAction::StartTransfer);
+    QCOMPARE(d.itemIndex, 0);
+    QCOMPARE(d.fileNameForSignal, QString("file.prg"));
+}
+
+void TestTransferCore::testDecideNext_startTransfer_upload_confirmed()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Idle;
+    transfer::TransferItem item;
+    item.status = transfer::TransferItem::Status::Pending;
+    item.operationType = transfer::OperationType::Upload;
+    item.localPath = "/home/user/game.prg";
+    item.remotePath = "/SD/game.prg";
+    item.confirmed = true;  // Already confirmed
+    state.items.append(item);
+
+    auto d = transfer::decideNextAction(state, true, [](const QString &) { return false; });
+    QCOMPARE(d.action, transfer::ProcessNextAction::StartTransfer);
+}
+
+void TestTransferCore::testDecideNext_overwriteCheck_upload_notConfirmed()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Idle;
+    transfer::TransferItem item;
+    item.status = transfer::TransferItem::Status::Pending;
+    item.operationType = transfer::OperationType::Upload;
+    item.localPath = "/home/user/game.prg";
+    item.remotePath = "/SD/games/game.prg";
+    item.confirmed = false;
+    state.overwriteAll = false;
+    state.items.append(item);
+
+    auto d = transfer::decideNextAction(state, true, [](const QString &) { return false; });
+    QCOMPARE(d.action, transfer::ProcessNextAction::NeedOverwriteCheck_Upload);
+    QCOMPARE(d.uploadCheckDir, QString("/SD/games"));
+}
+
+void TestTransferCore::testDecideNext_noPending()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Idle;
+    // No items
+    auto d = transfer::decideNextAction(state, true, [](const QString &) { return false; });
+    QCOMPARE(d.action, transfer::ProcessNextAction::NoPending);
+}
+
+// =============================================================================
+// handleFtpError tests
+// =============================================================================
+
+void TestTransferCore::testHandleFtpError_duringDelete_skipsAndContinues()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Deleting;
+    transfer::DeleteItem item;
+    item.path = "/SD/Games/Turrican.prg";
+    item.isDirectory = false;
+    state.deleteQueue.append(item);
+    state.deletedCount = 0;
+
+    auto result = transfer::handleFtpError(state, "Connection lost");
+    QVERIFY(result.isDeleteError);
+    QCOMPARE(result.deleteFileName, QString("Turrican.prg"));
+    QCOMPARE(result.newState.deletedCount, 1);
+    QVERIFY(result.shouldProcessNextDelete);
+}
+
+void TestTransferCore::testHandleFtpError_duringDirCreation()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::CreatingDirectories;
+    state.currentFolderOp.batchId = 3;
+    state.currentFolderOp.sourcePath = "/local/MyProject";
+
+    auto result = transfer::handleFtpError(state, "Permission denied");
+    QVERIFY(result.isFolderCreationError);
+    QCOMPARE(result.folderName, QString("MyProject"));
+    QCOMPARE(result.folderBatchId, 3);
+}
+
+void TestTransferCore::testHandleFtpError_duringTransfer_marksItemFailed()
+{
+    transfer::State state;
+    transfer::TransferItem item;
+    item.status = transfer::TransferItem::Status::InProgress;
+    item.localPath = "/home/user/game.prg";
+    item.remotePath = "/SD/game.prg";
+    item.operationType = transfer::OperationType::Upload;
+    item.batchId = 1;
+    state.items.append(item);
+    state.currentIndex = 0;
+
+    transfer::TransferBatch batch;
+    batch.batchId = 1;
+    batch.scanned = true;
+    batch.folderConfirmed = true;
+    batch.items.append(item);
+    state.batches.append(batch);
+
+    auto result = transfer::handleFtpError(state, "Timeout");
+    QVERIFY(result.hasCurrentItem);
+    QCOMPARE(result.transferFileName, QString("game.prg"));
+    QCOMPARE(result.newState.items[0].status, transfer::TransferItem::Status::Failed);
+    QCOMPARE(result.newState.currentIndex, -1);
+}
+
+void TestTransferCore::testHandleFtpError_clearsAllPendingRequests()
+{
+    transfer::State state;
+    state.requestedListings.insert("/SD/Games");
+    state.requestedDeleteListings.insert("/SD/Old");
+    transfer::PendingScan scan;
+    scan.remotePath = "/SD/test";
+    state.pendingScans.enqueue(scan);
+
+    auto result = transfer::handleFtpError(state, "Error");
+    QVERIFY(result.newState.requestedListings.isEmpty());
+    QVERIFY(result.newState.requestedDeleteListings.isEmpty());
+    QVERIFY(result.newState.pendingScans.isEmpty());
+}
+
+// =============================================================================
+// handleOperationTimeout tests
+// =============================================================================
+
+void TestTransferCore::testHandleOperationTimeout_marksInProgressAsFailed()
+{
+    transfer::State state;
+    transfer::TransferItem item;
+    item.status = transfer::TransferItem::Status::InProgress;
+    item.localPath = "/home/user/game.prg";
+    state.items.append(item);
+    state.currentIndex = 0;
+
+    transfer::State result = transfer::handleOperationTimeout(state);
+    QCOMPARE(result.items[0].status, transfer::TransferItem::Status::Failed);
+    QVERIFY(!result.items[0].errorMessage.isEmpty());
+}
+
+void TestTransferCore::testHandleOperationTimeout_resetsCurrentIndex()
+{
+    transfer::State state;
+    state.currentIndex = 5;
+    transfer::State result = transfer::handleOperationTimeout(state);
+    QCOMPARE(result.currentIndex, -1);
+}
+
+void TestTransferCore::testHandleOperationTimeout_transitionsToIdle()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Transferring;
+    transfer::State result = transfer::handleOperationTimeout(state);
+    QCOMPARE(result.queueState, transfer::QueueState::Idle);
 }
 
 QTEST_MAIN(TestTransferCore)
