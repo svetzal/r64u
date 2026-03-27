@@ -1,6 +1,8 @@
 #ifndef LOCALFILEPROXYMODEL_H
 #define LOCALFILEPROXYMODEL_H
 
+#include "services/filetypecore.h"
+
 #include <QFileSystemModel>
 #include <QSortFilterProxyModel>
 
@@ -15,6 +17,7 @@ class LocalFileProxyModel : public QSortFilterProxyModel
     Q_OBJECT
 
 public:
+    // Mirrors filetype::FileType — see filetypecore.h for the canonical definition
     /// File types recognized by the local file browser (matches RemoteFileModel)
     enum class FileType {
         Unknown,

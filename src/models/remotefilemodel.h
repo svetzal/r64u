@@ -1,6 +1,7 @@
 #ifndef REMOTEFILEMODEL_H
 #define REMOTEFILEMODEL_H
 
+#include "services/filetypecore.h"
 #include "services/iftpclient.h"
 
 #include <QAbstractItemModel>
@@ -16,6 +17,7 @@ class RemoteFileModel : public QAbstractItemModel
 public:
     enum Roles { FilePathRole = Qt::UserRole + 1, IsDirectoryRole, FileSizeRole, FileTypeRole };
 
+    // Mirrors filetype::FileType — see filetypecore.h for the canonical definition
     enum class FileType {
         Unknown,
         Directory,

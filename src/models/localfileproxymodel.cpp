@@ -1,5 +1,7 @@
 #include "localfileproxymodel.h"
 
+#include "services/filetypecore.h"
+
 LocalFileProxyModel::LocalFileProxyModel(QObject *parent) : QSortFilterProxyModel(parent) {}
 
 QVariant LocalFileProxyModel::data(const QModelIndex &index, int role) const
@@ -79,58 +81,10 @@ QFileSystemModel *LocalFileProxyModel::sourceFileModel() const
 
 LocalFileProxyModel::FileType LocalFileProxyModel::detectFileType(const QString &filename)
 {
-    QString ext = filename.section('.', -1).toLower();
-
-    if (ext == "sid" || ext == "psid" || ext == "rsid") {
-        return FileType::SidMusic;
-    }
-    if (ext == "mod" || ext == "xm" || ext == "s3m" || ext == "it") {
-        return FileType::ModMusic;
-    }
-    if (ext == "prg" || ext == "p00") {
-        return FileType::Program;
-    }
-    if (ext == "crt") {
-        return FileType::Cartridge;
-    }
-    if (ext == "d64" || ext == "d71" || ext == "d81" || ext == "g64" || ext == "g71") {
-        return FileType::DiskImage;
-    }
-    if (ext == "tap" || ext == "t64") {
-        return FileType::TapeImage;
-    }
-    if (ext == "rom" || ext == "bin") {
-        return FileType::Rom;
-    }
-    if (ext == "cfg") {
-        return FileType::Config;
-    }
-
-    return FileType::Unknown;
+    return static_cast<FileType>(filetype::detectFromFilename(filename));
 }
 
 QString LocalFileProxyModel::fileTypeString(FileType type)
 {
-    switch (type) {
-    case FileType::Directory:
-        return tr("Folder");
-    case FileType::SidMusic:
-        return tr("SID Music");
-    case FileType::ModMusic:
-        return tr("MOD Music");
-    case FileType::Program:
-        return tr("Program");
-    case FileType::Cartridge:
-        return tr("Cartridge");
-    case FileType::DiskImage:
-        return tr("Disk Image");
-    case FileType::TapeImage:
-        return tr("Tape Image");
-    case FileType::Rom:
-        return tr("ROM");
-    case FileType::Config:
-        return tr("Configuration");
-    default:
-        return tr("File");
-    }
+    return filetype::displayName(static_cast<filetype::FileType>(type));
 }

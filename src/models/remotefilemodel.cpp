@@ -1,5 +1,7 @@
 #include "remotefilemodel.h"
 
+#include "services/filetypecore.h"
+
 #include <QApplication>
 #include <QDebug>
 #include <QStyle>
@@ -403,27 +405,7 @@ void RemoteFileModel::refreshIfStale()
 
 RemoteFileModel::FileType RemoteFileModel::detectFileType(const QString &filename)
 {
-    QString ext = filename.section('.', -1).toLower();
-
-    if (ext == "sid" || ext == "psid" || ext == "rsid") {
-        return FileType::SidMusic;
-    } else if (ext == "mod" || ext == "xm" || ext == "s3m" || ext == "it") {
-        return FileType::ModMusic;
-    } else if (ext == "prg" || ext == "p00") {
-        return FileType::Program;
-    } else if (ext == "crt") {
-        return FileType::Cartridge;
-    } else if (ext == "d64" || ext == "d71" || ext == "d81" || ext == "g64" || ext == "g71") {
-        return FileType::DiskImage;
-    } else if (ext == "tap" || ext == "t64") {
-        return FileType::TapeImage;
-    } else if (ext == "rom" || ext == "bin") {
-        return FileType::Rom;
-    } else if (ext == "cfg") {
-        return FileType::Config;
-    }
-
-    return FileType::Unknown;
+    return static_cast<FileType>(filetype::detectFromFilename(filename));
 }
 
 QIcon RemoteFileModel::iconForFileType(FileType type)
@@ -456,28 +438,7 @@ QIcon RemoteFileModel::iconForFileType(FileType type)
 
 QString RemoteFileModel::fileTypeString(FileType type)
 {
-    switch (type) {
-    case FileType::Directory:
-        return tr("Folder");
-    case FileType::SidMusic:
-        return tr("SID Music");
-    case FileType::ModMusic:
-        return tr("MOD Music");
-    case FileType::Program:
-        return tr("Program");
-    case FileType::Cartridge:
-        return tr("Cartridge");
-    case FileType::DiskImage:
-        return tr("Disk Image");
-    case FileType::TapeImage:
-        return tr("Tape Image");
-    case FileType::Rom:
-        return tr("ROM");
-    case FileType::Config:
-        return tr("Configuration");
-    default:
-        return tr("File");
-    }
+    return filetype::displayName(static_cast<filetype::FileType>(type));
 }
 
 void RemoteFileModel::onDirectoryListed(const QString &path, const QList<FtpEntry> &entries)
