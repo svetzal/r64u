@@ -88,6 +88,7 @@ set(SOURCES
     src/services/sidfileparser.cpp
     src/services/favoritesmanager.cpp
     src/services/favoritescore.cpp
+    src/services/filetypecore.cpp
     src/services/ftpcore.cpp
     src/services/streamprotocolcore.cpp
     src/services/restresponsecore.cpp
@@ -167,6 +168,7 @@ set(HEADERS
     src/services/sidfileparser.h
     src/services/favoritesmanager.h
     src/services/favoritescore.h
+    src/services/filetypecore.h
     src/services/ftpcore.h
     src/services/streamprotocolcore.h
     src/services/restresponsecore.h

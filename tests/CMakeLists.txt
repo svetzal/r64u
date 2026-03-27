@@ -104,6 +104,7 @@ add_executable(test_remotefilemodel
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
 )
 
@@ -287,6 +288,7 @@ endif()
 # LocalFileProxyModel tests
 add_executable(test_localfileproxymodel
     test_localfileproxymodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/localfileproxymodel.cpp
 )
 
@@ -543,6 +545,7 @@ add_executable(test_filebrowsersync
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
 )
@@ -902,6 +905,28 @@ add_test(NAME FavoritesCoreTest COMMAND test_favoritescore)
 if(BUILD_COVERAGE)
     add_coverage_target(favoritescore test_favoritescore)
     add_dependencies(coverage coverage_favoritescore)
+endif()
+
+# FileTypeCore tests - pure file type detection and capabilities, no I/O dependencies
+add_executable(test_filetypecore
+    test_filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+)
+
+target_include_directories(test_filetypecore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_filetypecore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME FileTypeCoreTest COMMAND test_filetypecore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(filetypecore test_filetypecore)
+    add_dependencies(coverage coverage_filetypecore)
 endif()
 
 # PlaylistCore tests - pure playlist logic, no I/O dependencies
