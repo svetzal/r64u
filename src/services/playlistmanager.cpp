@@ -129,10 +129,7 @@ void PlaylistManager::play(int index)
 
     playing_ = true;
 
-    // Start streaming if available and not already streaming
-    if (streamingManager_ != nullptr && !streamingManager_->isStreaming()) {
-        streamingManager_->startStreaming();
-    }
+    ensureStreamingStarted();
 
     playCurrentItem();
 
@@ -361,6 +358,13 @@ void PlaylistManager::onAdvanceTimer()
     playCurrentItem();
     emit currentIndexChanged(state_.currentIndex);
     emit trackAdvanced(state_.currentIndex);
+}
+
+void PlaylistManager::ensureStreamingStarted()
+{
+    if (streamingManager_ != nullptr && !streamingManager_->isStreaming()) {
+        streamingManager_->startStreaming();
+    }
 }
 
 void PlaylistManager::startTimer()

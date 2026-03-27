@@ -290,6 +290,7 @@ private:
     void startTimer();
     void stopTimer();
     void playCurrentItem();
+    void ensureStreamingStarted();
 
     DeviceConnection *deviceConnection_ = nullptr;
     SonglengthsDatabase *songlengthsDatabase_ = nullptr;

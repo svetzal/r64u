@@ -290,6 +290,10 @@ void MainWindow::setupPanels()
     modeTabWidget_->addTab(viewPanel_, tr("View"));
     modeTabWidget_->addTab(configPanel_, tr("Config"));
 
+    // Connect ExplorePanel drive eject signals to MainWindow slots
+    connect(explorePanel_, &ExplorePanel::ejectDriveARequested, this, &MainWindow::onEjectDriveA);
+    connect(explorePanel_, &ExplorePanel::ejectDriveBRequested, this, &MainWindow::onEjectDriveB);
+
     // Connect panel status messages through the coordinator service
     connect(
         explorePanel_, &ExplorePanel::statusMessage, this,
