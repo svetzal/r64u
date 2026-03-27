@@ -46,12 +46,35 @@ set(LEGACY_MOCK_HEADERS
     services/c64uftpclient.h
 )
 
+# TransferCore tests - pure transfer logic, no I/O dependencies
+add_executable(test_transfercore
+    test_transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+)
+
+target_include_directories(test_transfercore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_transfercore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME TransferCoreTest COMMAND test_transfercore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(transfercore test_transfercore)
+    add_dependencies(coverage coverage_transfercore)
+endif()
+
 # TransferQueue tests - uses new MockFtpClient via interface injection
 add_executable(test_transferqueue
     test_transferqueue.cpp
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
 )
 
@@ -353,6 +376,7 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
 )
@@ -494,6 +518,7 @@ if(BUILD_INTEGRATION_TESTS)
         integration/test_realdevice_download.cpp
         ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
         ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     )
 

@@ -3,6 +3,7 @@
 
 #include "services/ftpentry.h"
 #include "services/iftpclient.h"
+#include "services/transfercore.h"
 
 #include <QAbstractListModel>
 #include <QPointer>
@@ -13,151 +14,19 @@
 
 #include <functional>
 
-enum class OperationType { Upload, Download, Delete };
-
-enum class OverwriteResponse { Overwrite, OverwriteAll, Skip, Cancel };
-
-enum class FolderExistsResponse { Merge, Replace, Cancel };
-
-/**
- * @brief State machine states for TransferQueue.
- *
- * This enum is the SINGLE source of truth for queue state.
- * No parallel boolean flags - the state machine controls everything.
- */
-enum class QueueState {
-    Idle,                   ///< No operations - ready for new work
-    CollectingItems,        ///< Debouncing user selections (50ms)
-    AwaitingFolderConfirm,  ///< Waiting for Merge/Replace dialog
-    Scanning,               ///< Scanning directories for recursive ops
-    AwaitingFileConfirm,    ///< Waiting for Overwrite/Skip dialog
-    CreatingDirectories,    ///< Creating remote dirs (upload only)
-    Transferring,           ///< Active file transfer in progress
-    Deleting,               ///< Active delete operation in progress
-    BatchComplete           ///< Batch finished, transitioning to next
-};
-
-/// @brief Convert QueueState to string for debugging
-[[nodiscard]] inline const char *queueStateToString(QueueState state)
-{
-    switch (state) {
-    case QueueState::Idle:
-        return "Idle";
-    case QueueState::CollectingItems:
-        return "CollectingItems";
-    case QueueState::AwaitingFolderConfirm:
-        return "AwaitingFolderConfirm";
-    case QueueState::Scanning:
-        return "Scanning";
-    case QueueState::AwaitingFileConfirm:
-        return "AwaitingFileConfirm";
-    case QueueState::CreatingDirectories:
-        return "CreatingDirectories";
-    case QueueState::Transferring:
-        return "Transferring";
-    case QueueState::Deleting:
-        return "Deleting";
-    case QueueState::BatchComplete:
-        return "BatchComplete";
-    }
-    return "Unknown";
-}
-
-struct TransferItem
-{
-    enum class Status { Pending, InProgress, Completed, Failed, Skipped };
-
-    QString localPath;  // Empty for delete operations
-    QString remotePath;
-    OperationType operationType;
-    Status status = Status::Pending;
-    qint64 bytesTransferred = 0;
-    qint64 totalBytes = 0;
-    QString errorMessage;
-    bool isDirectory = false;        // For delete operations
-    bool needsConfirmation = false;  // True if destination exists
-    bool confirmed = false;          // User said yes to overwrite
-    int batchId = -1;                // Links item to its parent batch
-};
-
-/**
- * @brief A batch groups related transfer items from a single user action.
- *
- * When the user clicks "Download" with 5 files selected, those 5 files
- * form one batch. When the batch completes, it's purged from the queue.
- */
-struct TransferBatch
-{
-    int batchId = 0;
-    QString description;
-    QString folderName;  // Top-level folder name for progress display
-    OperationType operationType = OperationType::Download;
-    QString sourcePath;  // Root path being operated on (for duplicate detection)
-    QList<TransferItem> items;
-
-    // Progress tracking
-    int completedCount = 0;
-    int failedCount = 0;
-
-    // Batch lifecycle
-    bool scanned = false;          // True when all items discovered
-    bool folderConfirmed = false;  // True when user confirmed folder action (or not needed)
-
-    // Computed properties
-    [[nodiscard]] int totalCount() const { return items.size(); }
-    [[nodiscard]] int pendingCount() const { return totalCount() - completedCount - failedCount; }
-    [[nodiscard]] bool isComplete() const
-    {
-        return scanned && folderConfirmed && pendingCount() == 0;
-    }
-};
-
-/**
- * @brief Progress information for the active batch.
- */
-struct BatchProgress
-{
-    int batchId = -1;
-    QString description;
-    QString folderName;  // Top-level folder name for progress display
-    OperationType operationType = OperationType::Download;
-    int totalItems = 0;
-    int completedItems = 0;
-    int failedItems = 0;
-    bool isScanning = false;
-    bool isCreatingDirectories = false;
-    bool isProcessingDelete = false;
-    int deleteProgress = 0;
-    int deleteTotalCount = 0;
-
-    // Scanning progress details
-    QString scanningFolder;        ///< Name of folder being scanned
-    int directoriesScanned = 0;    ///< Number of directories scanned so far
-    int directoriesRemaining = 0;  ///< Number of directories left to scan
-    int filesDiscovered = 0;       ///< Number of files found during scanning
-
-    // Directory creation progress (for uploads)
-    int directoriesCreated = 0;   ///< Number of directories created so far
-    int directoriesToCreate = 0;  ///< Total directories to create
-
-    [[nodiscard]] bool isValid() const { return batchId >= 0; }
-    [[nodiscard]] int pendingItems() const { return totalItems - completedItems - failedItems; }
-};
-
-/**
- * @brief Pending folder operation awaiting confirmation or processing.
- *
- * Unified structure for both uploads and downloads to simplify code paths.
- */
-struct PendingFolderOp
-{
-    OperationType operationType;
-    QString sourcePath;       // Local for upload, remote for download
-    QString destPath;         // Remote for upload, local for download
-    QString targetPath;       // Full destination path (destPath + folderName)
-    bool destExists = false;  // True if destination folder exists
-    int batchId = -1;
-};
+using transfer::BatchProgress;
+using transfer::ConfirmationContext;
+using transfer::DeleteItem;
+using transfer::FolderExistsResponse;
+using transfer::OperationType;
+using transfer::OverwriteResponse;
+using transfer::PendingFolderOp;
+using transfer::PendingMkdir;
+using transfer::PendingScan;
+using transfer::QueueState;
+using transfer::queueStateToString;
+using transfer::TransferBatch;
+using transfer::TransferItem;
 
 class TransferQueue : public QAbstractListModel
 {
@@ -165,15 +34,15 @@ class TransferQueue : public QAbstractListModel
 
 public:
     enum Roles {
-        LocalPathRole = Qt::UserRole + 1,
-        RemotePathRole,
-        OperationTypeRole,
-        StatusRole,
-        ProgressRole,
-        BytesTransferredRole,
-        TotalBytesRole,
-        ErrorMessageRole,
-        FileNameRole
+        LocalPathRole = static_cast<int>(transfer::ItemRole::LocalPath),
+        RemotePathRole = static_cast<int>(transfer::ItemRole::RemotePath),
+        OperationTypeRole = static_cast<int>(transfer::ItemRole::OperationType),
+        StatusRole = static_cast<int>(transfer::ItemRole::Status),
+        ProgressRole = static_cast<int>(transfer::ItemRole::Progress),
+        BytesTransferredRole = static_cast<int>(transfer::ItemRole::BytesTransferred),
+        TotalBytesRole = static_cast<int>(transfer::ItemRole::TotalBytes),
+        ErrorMessageRole = static_cast<int>(transfer::ItemRole::ErrorMessage),
+        FileNameRole = static_cast<int>(transfer::ItemRole::FileName)
     };
 
     explicit TransferQueue(QObject *parent = nullptr);
@@ -275,6 +144,12 @@ private slots:
     void onDebounceTimeout();
 
 private:
+    // Temporary scaffold: build transfer::State from member variables for delegation
+    [[nodiscard]] transfer::State toState() const;
+
+    // Temporary scaffold: sync member variables from a transfer::State
+    void applyState(const transfer::State &s);
+
     // Core processing - single entry point
     void processNext();
     void scheduleProcessNext();
@@ -345,13 +220,6 @@ private:
     PendingFolderOp currentFolderOp_;
 
     // Scanning state
-    struct PendingScan
-    {
-        QString remotePath;
-        QString localBasePath;
-        QString remoteBasePath;
-        int batchId = -1;
-    };
     QQueue<PendingScan> pendingScans_;
     QSet<QString> requestedListings_;
     QString scanningFolderName_;
@@ -359,22 +227,11 @@ private:
     int filesDiscovered_ = 0;
 
     // Directory creation state
-    struct PendingMkdir
-    {
-        QString remotePath;
-        QString localDir;
-        QString remoteBase;
-    };
     QQueue<PendingMkdir> pendingMkdirs_;
     int directoriesCreated_ = 0;
     int totalDirectoriesToCreate_ = 0;
 
     // Delete operation state
-    struct DeleteItem
-    {
-        QString path;
-        bool isDirectory;
-    };
     QList<DeleteItem> deleteQueue_;
     QQueue<PendingScan> pendingDeleteScans_;
     QSet<QString> requestedDeleteListings_;
@@ -382,19 +239,6 @@ private:
     int deletedCount_ = 0;
 
     // Confirmation state
-    struct ConfirmationContext
-    {
-        int itemIndex = -1;       // For file overwrites
-        QStringList folderNames;  // For folder exists dialog
-        OperationType opType = OperationType::Download;
-
-        void clear()
-        {
-            itemIndex = -1;
-            folderNames.clear();
-            opType = OperationType::Download;
-        }
-    };
     ConfirmationContext pendingConfirmation_;
 
     // User preferences (preserved across batches)
