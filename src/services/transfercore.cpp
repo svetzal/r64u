@@ -921,12 +921,12 @@ State handleOperationTimeout(const State &state)
 {
     State result = state;
 
-    for (int i = 0; i < result.items.size(); ++i) {
-        if (result.items[i].status == TransferItem::Status::InProgress) {
-            result.items[i].status = TransferItem::Status::Failed;
-            result.items[i].errorMessage = QStringLiteral("Operation timed out");
-            break;
-        }
+    auto it = std::find_if(result.items.begin(), result.items.end(), [](const TransferItem &item) {
+        return item.status == TransferItem::Status::InProgress;
+    });
+    if (it != result.items.end()) {
+        it->status = TransferItem::Status::Failed;
+        it->errorMessage = QStringLiteral("Operation timed out");
     }
 
     result.currentIndex = -1;
