@@ -222,20 +222,12 @@ void ExplorePanel::setupConnections()
 
     // Connect drive status eject buttons
     if (drive8Status_) {
-        connect(drive8Status_, &DriveStatusWidget::ejectClicked, this, [this]() {
-            if (deviceConnection_ && deviceConnection_->restClient()) {
-                deviceConnection_->restClient()->unmountImage("a");
-                emit statusMessage(tr("Ejecting Drive A"), 3000);
-            }
-        });
+        connect(drive8Status_, &DriveStatusWidget::ejectClicked, this,
+                &ExplorePanel::ejectDriveARequested);
     }
     if (drive9Status_) {
-        connect(drive9Status_, &DriveStatusWidget::ejectClicked, this, [this]() {
-            if (deviceConnection_ && deviceConnection_->restClient()) {
-                deviceConnection_->restClient()->unmountImage("b");
-                emit statusMessage(tr("Ejecting Drive B"), 3000);
-            }
-        });
+        connect(drive9Status_, &DriveStatusWidget::ejectClicked, this,
+                &ExplorePanel::ejectDriveBRequested);
     }
 
     // Connect to favorites manager
@@ -447,22 +439,7 @@ void ExplorePanel::onSelectionChanged()
         fileType = remoteFileModel_->fileType(index);
     }
 
-    bool canPlay = hasSelection && (fileType == RemoteFileModel::FileType::SidMusic ||
-                                    fileType == RemoteFileModel::FileType::ModMusic);
-    bool canRun = hasSelection && (fileType == RemoteFileModel::FileType::Program ||
-                                   fileType == RemoteFileModel::FileType::Cartridge ||
-                                   fileType == RemoteFileModel::FileType::DiskImage);
-    bool canMount = hasSelection && fileType == RemoteFileModel::FileType::DiskImage;
-
-    if (playAction_) {
-        playAction_->setEnabled(canOperate && canPlay);
-    }
-    if (runAction_) {
-        runAction_->setEnabled(canOperate && canRun);
-    }
-    if (mountAction_) {
-        mountAction_->setEnabled(canOperate && canMount);
-    }
+    updateActionStates(static_cast<filetype::FileType>(fileType), canOperate && hasSelection);
 
     // Update favorites toggle button - use selected item or current directory
     if (toggleFavoriteAction_ && favoritesManager_) {
@@ -509,23 +486,22 @@ void ExplorePanel::onDoubleClicked(const QModelIndex &index)
     } else {
         // Execute default action based on file type
         RemoteFileModel::FileType type = remoteFileModel_->fileType(index);
+        auto action = filetype::defaultAction(static_cast<filetype::FileType>(type));
 
-        switch (type) {
-        case RemoteFileModel::FileType::SidMusic:
-        case RemoteFileModel::FileType::ModMusic:
+        switch (action) {
+        case filetype::DefaultAction::Play:
             onPlay();
             break;
-        case RemoteFileModel::FileType::Program:
-        case RemoteFileModel::FileType::Cartridge:
+        case filetype::DefaultAction::Run:
             onRun();
             break;
-        case RemoteFileModel::FileType::DiskImage:
+        case filetype::DefaultAction::Mount:
             onMount();
             break;
-        case RemoteFileModel::FileType::Config:
+        case filetype::DefaultAction::LoadConfig:
             onLoadConfig();
             break;
-        default:
+        case filetype::DefaultAction::None:
             break;
         }
     }
@@ -543,13 +519,7 @@ void ExplorePanel::onContextMenu(const QPoint &pos)
         RemoteFileModel::FileType fileType = remoteFileModel_->fileType(index);
         bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
 
-        bool canPlay = fileType == RemoteFileModel::FileType::SidMusic ||
-                       fileType == RemoteFileModel::FileType::ModMusic;
-        bool canRun = fileType == RemoteFileModel::FileType::Program ||
-                      fileType == RemoteFileModel::FileType::Cartridge ||
-                      fileType == RemoteFileModel::FileType::DiskImage;
-        bool canMount = fileType == RemoteFileModel::FileType::DiskImage;
-        bool canLoadConfig = fileType == RemoteFileModel::FileType::Config;
+        auto caps = filetype::capabilities(static_cast<filetype::FileType>(fileType));
 
         // Check if any selected item is a SID file (for multi-selection support)
         bool canAddToPlaylist = false;
@@ -561,12 +531,12 @@ void ExplorePanel::onContextMenu(const QPoint &pos)
             }
         }
 
-        contextPlayAction_->setEnabled(canOperate && canPlay);
+        contextPlayAction_->setEnabled(canOperate && caps.canPlay);
         contextAddToPlaylistAction_->setEnabled(canAddToPlaylist);
-        contextRunAction_->setEnabled(canOperate && canRun);
-        contextLoadConfigAction_->setEnabled(canOperate && canLoadConfig);
-        contextMountAAction_->setEnabled(canOperate && canMount);
-        contextMountBAction_->setEnabled(canOperate && canMount);
+        contextRunAction_->setEnabled(canOperate && caps.canRun);
+        contextLoadConfigAction_->setEnabled(canOperate && caps.canLoadConfig);
+        contextMountAAction_->setEnabled(canOperate && caps.canMount);
+        contextMountBAction_->setEnabled(canOperate && caps.canMount);
         contextDownloadAction_->setEnabled(canOperate);
 
         // Update favorites context action text
@@ -610,10 +580,7 @@ void ExplorePanel::onPlay()
         return;
     }
 
-    // Start streaming if available
-    if (streamingManager_ != nullptr && !streamingManager_->isStreaming()) {
-        streamingManager_->startStreaming();
-    }
+    ensureStreamingStarted();
 
     RemoteFileModel::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
 
@@ -637,10 +604,7 @@ void ExplorePanel::onRun()
         return;
     }
 
-    // Start streaming if available
-    if (streamingManager_ != nullptr && !streamingManager_->isStreaming()) {
-        streamingManager_->startStreaming();
-    }
+    ensureStreamingStarted();
 
     RemoteFileModel::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
 
@@ -935,6 +899,28 @@ void ExplorePanel::onFavoritesChanged()
         QAction *action = favoritesMenu_->addAction(displayName);
         action->setData(path);
         action->setToolTip(path);
+    }
+}
+
+void ExplorePanel::updateActionStates(filetype::FileType type, bool canOperate)
+{
+    auto caps = filetype::capabilities(type);
+
+    if (playAction_) {
+        playAction_->setEnabled(canOperate && caps.canPlay);
+    }
+    if (runAction_) {
+        runAction_->setEnabled(canOperate && caps.canRun);
+    }
+    if (mountAction_) {
+        mountAction_->setEnabled(canOperate && caps.canMount);
+    }
+}
+
+void ExplorePanel::ensureStreamingStarted()
+{
+    if (streamingManager_ != nullptr && !streamingManager_->isStreaming()) {
+        streamingManager_->startStreaming();
     }
 }
 

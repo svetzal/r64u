@@ -1,6 +1,8 @@
 #ifndef EXPLOREPANEL_H
 #define EXPLOREPANEL_H
 
+#include "services/filetypecore.h"
+
 #include <QMenu>
 #include <QSplitter>
 #include <QToolBar>
@@ -58,6 +60,8 @@ public:
 signals:
     void statusMessage(const QString &message, int timeout = 0);
     void selectionChanged();
+    void ejectDriveARequested();
+    void ejectDriveBRequested();
 
 private slots:
     void onConnectionStateChanged();
@@ -101,6 +105,8 @@ private:
     void setupContextMenu();
     void setupConnections();
     void runDiskImage(const QString &path);
+    void updateActionStates(filetype::FileType type, bool canOperate);
+    void ensureStreamingStarted();
 
     // Dependencies (not owned)
     DeviceConnection *deviceConnection_ = nullptr;
