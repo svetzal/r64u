@@ -1,9 +1,6 @@
 #ifndef FILEDETAILSPANEL_H
 #define FILEDETAILSPANEL_H
 
-#include "services/diskimagereader.h"
-#include "services/sidfileparser.h"
-
 #include <QLabel>
 #include <QStackedWidget>
 #include <QStyleHints>
@@ -44,6 +41,7 @@ public:
     void showError(const QString &message);
     void clear();
 
+    // File type detection — delegates to fileaction::detectPreviewType()
     bool isTextFile(const QString &path) const;
     bool isHtmlFile(const QString &path) const;
     bool isDiskImageFile(const QString &path) const;

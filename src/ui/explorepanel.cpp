@@ -8,7 +8,9 @@
 #include "models/remotefilemodel.h"
 #include "services/configfileloader.h"
 #include "services/deviceconnection.h"
+#include "services/diskbootsequenceservice.h"
 #include "services/favoritesmanager.h"
+#include "services/fileactioncore.h"
 #include "services/filepreviewservice.h"
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
@@ -22,7 +24,6 @@
 #include <QMessageBox>
 #include <QSettings>
 #include <QShowEvent>
-#include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -41,6 +42,10 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
     Q_ASSERT(previewService_ && "FilePreviewService is required");
     Q_ASSERT(favoritesManager_ && "FavoritesManager is required");
     Q_ASSERT(playlistManager_ && "PlaylistManager is required");
+
+    // Create the disk boot sequence service (owned, wired to this connection's REST client)
+    bootService_ = new DiskBootSequenceService(this);
+    bootService_->setRestClient(deviceConnection_->restClient());
 
     setupUi();
     setupContextMenu();
@@ -237,6 +242,10 @@ void ExplorePanel::setupConnections()
         // Initialize the favorites menu
         onFavoritesChanged();
     }
+
+    // Forward disk boot sequence status messages to our statusMessage signal
+    connect(bootService_, &DiskBootSequenceService::statusMessage, this,
+            &ExplorePanel::statusMessage);
 }
 
 void ExplorePanel::setCurrentDirectory(const QString &path)
@@ -621,60 +630,9 @@ void ExplorePanel::onRun()
 
 void ExplorePanel::runDiskImage(const QString &path)
 {
-    // Multi-step async process to run a disk image:
-    // 1. Mount the disk to Drive A
-    // 2. Reset the machine
-    // 3. Wait for C64 to boot (3 seconds)
-    // 4. Type LOAD"*",8,1 (exactly 10 chars, fits in buffer)
-    // 5. Wait for buffer to be consumed, then send RETURN
-    // 6. Wait for load (5 seconds)
-    // 7. Type RUN + RETURN
-
-    if (!deviceConnection_ || !deviceConnection_->restClient()) {
-        return;
-    }
-
-    emit statusMessage(tr("Mounting and running: %1").arg(path));
-
-    // Step 1: Mount the disk
-    deviceConnection_->restClient()->mountImage("a", path);
-
-    // Step 2: Reset after a brief delay to ensure mount completes
-    QTimer::singleShot(500, this, [this]() {
-        if (!deviceConnection_ || !deviceConnection_->restClient()) {
-            return;
-        }
-        deviceConnection_->restClient()->resetMachine();
-
-        // Step 3: Wait for C64 to boot
-        QTimer::singleShot(3000, this, [this]() {
-            if (!deviceConnection_ || !deviceConnection_->restClient()) {
-                return;
-            }
-            emit statusMessage(tr("Loading..."));
-
-            // Step 4: Type LOAD"*",8,1 (10 chars exactly, no newline)
-            deviceConnection_->restClient()->typeText("LOAD\"*\",8,1");
-
-            // Step 5: Wait 500ms for buffer to be consumed, then send RETURN
-            QTimer::singleShot(500, this, [this]() {
-                if (!deviceConnection_ || !deviceConnection_->restClient()) {
-                    return;
-                }
-                deviceConnection_->restClient()->typeText("\n");
-
-                // Step 6: Wait for load to complete (5 seconds)
-                QTimer::singleShot(5000, this, [this]() {
-                    if (!deviceConnection_ || !deviceConnection_->restClient()) {
-                        return;
-                    }
-                    // Step 7: Type RUN + RETURN
-                    deviceConnection_->restClient()->typeText("RUN\n");
-                    emit statusMessage(tr("Running disk image"), 3000);
-                });
-            });
-        });
-    });
+    // Delegate to the DiskBootSequenceService which drives the pure state machine.
+    // Status messages are forwarded to ExplorePanel::statusMessage via setupConnections().
+    bootService_->startBootSequence(path);
 }
 
 void ExplorePanel::onMount()
@@ -772,21 +730,26 @@ void ExplorePanel::onPreviewReady(const QString &remotePath, const QByteArray &d
         return;
     }
 
-    // Check if this is a disk image file
-    if (fileDetailsPanel_->isDiskImageFile(remotePath)) {
-        fileDetailsPanel_->showDiskDirectory(data, remotePath);
-    } else if (fileDetailsPanel_->isSidFile(remotePath)) {
-        fileDetailsPanel_->showSidDetails(data, remotePath);
+    // Delegate routing decision to the pure core; dispatch results here (imperative shell)
+    fileaction::PreviewAction action =
+        fileaction::routePreviewData(remotePath, data, playlistManager_ != nullptr);
 
-        // Update playlist durations if this SID is in the playlist
-        if (playlistManager_ != nullptr) {
-            playlistManager_->updateDurationFromData(remotePath, data);
-        }
-    } else {
-        // Display the content in the file details panel as text
-        QString content = QString::fromUtf8(data);
-        fileDetailsPanel_->showTextContent(content);
-    }
+    std::visit(
+        [this](auto &&act) {
+            using T = std::decay_t<decltype(act)>;
+
+            if constexpr (std::is_same_v<T, fileaction::ShowDiskDirectory>) {
+                fileDetailsPanel_->showDiskDirectory(act.data, act.path);
+            } else if constexpr (std::is_same_v<T, fileaction::ShowSidDetails>) {
+                fileDetailsPanel_->showSidDetails(act.data, act.path);
+                if (act.updatePlaylist && playlistManager_ != nullptr) {
+                    playlistManager_->updateDurationFromData(act.path, act.data);
+                }
+            } else if constexpr (std::is_same_v<T, fileaction::ShowTextContent>) {
+                fileDetailsPanel_->showTextContent(act.content);
+            }
+        },
+        action);
 }
 
 void ExplorePanel::onPreviewFailed(const QString &remotePath, const QString &error)

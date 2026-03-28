@@ -10,6 +10,7 @@
 #include <QWidget>
 
 class DeviceConnection;
+class DiskBootSequenceService;
 class RemoteFileModel;
 class ConfigFileLoader;
 class FilePreviewService;
@@ -116,6 +117,9 @@ private:
     FavoritesManager *favoritesManager_ = nullptr;
     PlaylistManager *playlistManager_ = nullptr;
     StreamingManager *streamingManager_ = nullptr;
+
+    // Owned services
+    DiskBootSequenceService *bootService_ = nullptr;
 
     // State
     QString currentDirectory_;

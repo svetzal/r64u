@@ -907,6 +907,85 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_favoritescore)
 endif()
 
+# FileActionCore tests - pure preview type detection and routing, no I/O dependencies
+add_executable(test_fileactioncore
+    test_fileactioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
+)
+
+target_include_directories(test_fileactioncore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_fileactioncore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME FileActionCoreTest COMMAND test_fileactioncore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(fileactioncore test_fileactioncore)
+    add_dependencies(coverage coverage_fileactioncore)
+endif()
+
+# DiskBootSequenceCore tests - pure C64 boot sequence state machine, no I/O dependencies
+add_executable(test_diskbootsequencecore
+    test_diskbootsequencecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/diskbootsequencecore.cpp
+)
+
+target_include_directories(test_diskbootsequencecore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_diskbootsequencecore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME DiskBootSequenceCoreTest COMMAND test_diskbootsequencecore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(diskbootsequencecore test_diskbootsequencecore)
+    add_dependencies(coverage coverage_diskbootsequencecore)
+endif()
+
+# FileMetadataCore tests - pure SID/disk metadata formatting, no I/O dependencies
+add_executable(test_filemetadatacore
+    test_filemetadatacore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filemetadatacore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/sidfileparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${MOCK_FILE_DOWNLOADER_SOURCES}
+    ${MOCK_FILE_DOWNLOADER_HEADERS}
+)
+
+target_include_directories(test_filemetadatacore PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_filemetadatacore PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+    Qt6::Sql
+    ZLIB::ZLIB
+)
+
+add_test(NAME FileMetadataCoreTest COMMAND test_filemetadatacore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(filemetadatacore test_filemetadatacore)
+    add_dependencies(coverage coverage_filemetadatacore)
+endif()
+
 # FileTypeCore tests - pure file type detection and capabilities, no I/O dependencies
 add_executable(test_filetypecore
     test_filetypecore.cpp

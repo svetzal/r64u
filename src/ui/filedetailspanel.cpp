@@ -1,5 +1,8 @@
 #include "filedetailspanel.h"
 
+#include "services/diskimagereader.h"
+#include "services/fileactioncore.h"
+#include "services/filemetadatacore.h"
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
 #include "services/songlengthsdatabase.h"
@@ -125,31 +128,33 @@ void FileDetailsPanel::showFileDetails(const QString &path, qint64 size, const Q
     QFileInfo fi(path);
     QString fileName = fi.fileName();
 
-    if (isHtmlFile(path)) {
+    fileaction::PreviewContentType previewType = fileaction::detectPreviewType(path);
+
+    if (previewType == fileaction::PreviewContentType::Html) {
         // Show HTML page with loading state
         htmlBrowser_->setHtml(tr("<p style='color:gray'>Loading...</p>"));
         stack_->setCurrentWidget(htmlPage_);
         emit contentRequested(path);
-    } else if (isDiskImageFile(path)) {
+    } else if (previewType == fileaction::PreviewContentType::DiskImage) {
         // Show text page with loading state for disk directory
         textFileNameLabel_->setText(fileName);
         textBrowser_->setPlainText(tr("Loading disk directory..."));
         stack_->setCurrentWidget(textPage_);
         emit contentRequested(path);
-    } else if (isSidFile(path)) {
+    } else if (previewType == fileaction::PreviewContentType::SidMusic) {
         // Show text page with loading state for SID details
         textFileNameLabel_->setText(fileName);
         textBrowser_->setPlainText(tr("Loading SID info..."));
         stack_->setCurrentWidget(textPage_);
         emit contentRequested(path);
-    } else if (isTextFile(path)) {
+    } else if (previewType == fileaction::PreviewContentType::Text) {
         // Show text page with loading state
         textFileNameLabel_->setText(fileName);
         textBrowser_->setPlainText(tr("Loading..."));
         stack_->setCurrentWidget(textPage_);
         emit contentRequested(path);
     } else {
-        // Show info page
+        // Show info page — no content fetch needed
         fileNameLabel_->setText(fileName);
 
         QString sizeStr;
@@ -214,26 +219,22 @@ void FileDetailsPanel::clear()
 
 bool FileDetailsPanel::isTextFile(const QString &path) const
 {
-    QString lower = path.toLower();
-    return lower.endsWith(".cfg") || lower.endsWith(".txt") || lower.endsWith(".log") ||
-           lower.endsWith(".ini") || lower.endsWith(".md") || lower.endsWith(".json") ||
-           lower.endsWith(".xml");
+    return fileaction::detectPreviewType(path) == fileaction::PreviewContentType::Text;
 }
 
 bool FileDetailsPanel::isHtmlFile(const QString &path) const
 {
-    QString lower = path.toLower();
-    return lower.endsWith(".html") || lower.endsWith(".htm");
+    return fileaction::detectPreviewType(path) == fileaction::PreviewContentType::Html;
 }
 
 bool FileDetailsPanel::isDiskImageFile(const QString &path) const
 {
-    return DiskImageReader::isDiskImage(path);
+    return fileaction::detectPreviewType(path) == fileaction::PreviewContentType::DiskImage;
 }
 
 bool FileDetailsPanel::isSidFile(const QString &path) const
 {
-    return SidFileParser::isSidFile(path);
+    return fileaction::detectPreviewType(path) == fileaction::PreviewContentType::SidMusic;
 }
 
 void FileDetailsPanel::showDiskDirectory(const QByteArray &diskImageData, const QString &filename)
@@ -245,65 +246,23 @@ void FileDetailsPanel::showDiskDirectory(const QByteArray &diskImageData, const 
         return;
     }
 
-    QString listing = DiskImageReader::formatDirectoryListing(dir);
-
-    // Look up game info from GameBase64
-    if (gameBase64Service_ != nullptr && gameBase64Service_->isLoaded()) {
-        GameBase64Service::GameInfo gameInfo = gameBase64Service_->lookupByFilename(filename);
-        if (gameInfo.found) {
-            listing += "\n\n";
-            listing += tr("════════════════════════════════════════\n");
-            listing += tr("GAMEBASE64 INFO:\n");
-            listing += tr("────────────────────────────────────────\n");
-            listing += tr("  Game: %1\n").arg(gameInfo.name);
-            if (gameInfo.year > 0) {
-                listing += tr("  Year: %1\n").arg(gameInfo.year);
-            }
-            if (!gameInfo.publisher.isEmpty()) {
-                listing += tr("  Publisher: %1\n").arg(gameInfo.publisher);
-            }
-            if (!gameInfo.genre.isEmpty()) {
-                QString genre = gameInfo.genre;
-                if (!gameInfo.parentGenre.isEmpty() && gameInfo.parentGenre != gameInfo.genre) {
-                    genre = gameInfo.parentGenre + " / " + gameInfo.genre;
-                }
-                listing += tr("  Genre: %1\n").arg(genre);
-            }
-            if (!gameInfo.musician.isEmpty()) {
-                QString musician = gameInfo.musician;
-                if (!gameInfo.musicianGroup.isEmpty()) {
-                    musician += " (" + gameInfo.musicianGroup + ")";
-                }
-                listing += tr("  Musician: %1\n").arg(musician);
-            }
-            if (gameInfo.rating > 0) {
-                listing += tr("  Rating: %1/10\n").arg(gameInfo.rating);
-            }
-            if (gameInfo.playersFrom > 0) {
-                if (gameInfo.playersTo > gameInfo.playersFrom) {
-                    listing +=
-                        tr("  Players: %1-%2\n").arg(gameInfo.playersFrom).arg(gameInfo.playersTo);
-                } else {
-                    listing += tr("  Players: %1\n").arg(gameInfo.playersFrom);
-                }
-            }
-            if (!gameInfo.memo.isEmpty()) {
-                listing += tr("\n  %1\n").arg(gameInfo.memo);
-            }
-        }
-    } else if (gameBase64Service_ == nullptr) {
-        // Service not wired up - this is a bug
-        listing += tr("\n\n(GameBase64 service not available)\n");
-    } else if (!gameBase64Service_->isLoaded()) {
-        // Database not downloaded yet
-        listing += tr("\n\n(Download GameBase64 in Preferences for game info)\n");
+    // Build display context for the pure formatter
+    filemetadata::DiskDisplayContext ctx;
+    ctx.directoryListing = DiskImageReader::formatDirectoryListing(dir);
+    ctx.gameBase64ServicePresent = (gameBase64Service_ != nullptr);
+    ctx.gameBase64DatabaseLoaded =
+        (gameBase64Service_ != nullptr) && gameBase64Service_->isLoaded();
+    if (ctx.gameBase64DatabaseLoaded) {
+        ctx.gameInfo = gameBase64Service_->lookupByFilename(filename);
     }
+
+    QString listing = filemetadata::formatDiskDetails(ctx);
 
     QFileInfo fi(filename);
     textFileNameLabel_->setText(fi.fileName());
     textBrowser_->setPlainText(listing);
 
-    // Note: No extra line height for disk directories - PETSCII graphics
+    // Note: No extra line height for disk directories — PETSCII graphics
     // require characters to touch vertically with no gaps
 
     stack_->setCurrentWidget(textPage_);
@@ -318,130 +277,40 @@ void FileDetailsPanel::showSidDetails(const QByteArray &sidData, const QString &
         return;
     }
 
-    QString details = SidFileParser::formatForDisplay(info);
-    QString hvscPath;
+    // Build display context for the pure formatter
+    filemetadata::SidDisplayContext ctx;
+    ctx.sidInfo = info;
 
-    // Look up song lengths from database
-    if (songlengthsDatabase_ != nullptr && songlengthsDatabase_->isLoaded()) {
-        SonglengthsDatabase::SongLengths lengths = songlengthsDatabase_->lookupByData(sidData);
-
-        details += "\n";
-        if (lengths.found) {
-            hvscPath = lengths.hvscPath;
-            details += tr("─────────────────────────────────\n");
-            details += tr("HVSC Database: Found\n");
-            details += tr("Song Lengths:\n");
-
-            for (int i = 0; i < lengths.formattedTimes.size(); ++i) {
-                details += tr("  Song %1: %2\n").arg(i + 1).arg(lengths.formattedTimes.at(i));
-            }
-        } else {
-            details += tr("─────────────────────────────────\n");
-            details += tr("HVSC Database: Not found\n");
-            details += tr("(Using default 3:00 duration)\n");
-        }
-    } else if (songlengthsDatabase_ != nullptr && !songlengthsDatabase_->isLoaded()) {
-        details += "\n";
-        details += tr("─────────────────────────────────\n");
-        details += tr("HVSC Database: Not loaded\n");
+    // Songlengths
+    ctx.songlengthsServicePresent = (songlengthsDatabase_ != nullptr);
+    ctx.songlengthsDatabaseLoaded =
+        (songlengthsDatabase_ != nullptr) && songlengthsDatabase_->isLoaded();
+    if (ctx.songlengthsDatabaseLoaded) {
+        ctx.songLengths = songlengthsDatabase_->lookupByData(sidData);
     }
 
-    // Look up STIL and BUGlist metadata if we have the HVSC path
-    if (hvscMetadataService_ != nullptr && !hvscPath.isEmpty()) {
-        // Check for bug reports first (important warnings)
-        if (hvscMetadataService_->isBuglistLoaded()) {
-            HVSCMetadataService::BugInfo bugInfo = hvscMetadataService_->lookupBuglist(hvscPath);
-            if (bugInfo.found && !bugInfo.entries.isEmpty()) {
-                details += tr("\n─────────────────────────────────\n");
-                details += tr("⚠ KNOWN ISSUES:\n");
-                for (const HVSCMetadataService::BugEntry &bug : bugInfo.entries) {
-                    if (bug.subtune > 0) {
-                        details += tr("  Song #%1: %2\n").arg(bug.subtune).arg(bug.description);
-                    } else {
-                        details += tr("  %1\n").arg(bug.description);
-                    }
-                }
-            }
+    // HVSC metadata (STIL + BUGlist) — only accessible if we have an HVSC path
+    if (hvscMetadataService_ != nullptr && ctx.songLengths.found) {
+        const QString &hvscPath = ctx.songLengths.hvscPath;
+        ctx.stilLoaded = hvscMetadataService_->isStilLoaded();
+        ctx.buglistLoaded = hvscMetadataService_->isBuglistLoaded();
+        if (ctx.buglistLoaded) {
+            ctx.bugInfo = hvscMetadataService_->lookupBuglist(hvscPath);
         }
-
-        // Show STIL commentary and cover info
-        if (hvscMetadataService_->isStilLoaded()) {
-            HVSCMetadataService::StilInfo stilInfo = hvscMetadataService_->lookupStil(hvscPath);
-            if (stilInfo.found && !stilInfo.entries.isEmpty()) {
-                details += tr("\n─────────────────────────────────\n");
-                details += tr("STIL INFORMATION:\n");
-
-                for (const HVSCMetadataService::SubtuneEntry &entry : stilInfo.entries) {
-                    // Show subtune header if specific to a song
-                    if (entry.subtune > 0) {
-                        details += tr("\n  Song #%1:\n").arg(entry.subtune);
-                    }
-
-                    // Show tune name if different from header
-                    if (!entry.name.isEmpty()) {
-                        details += tr("  Name: %1\n").arg(entry.name);
-                    }
-
-                    // Show author if different from header
-                    if (!entry.author.isEmpty()) {
-                        details += tr("  Author: %1\n").arg(entry.author);
-                    }
-
-                    // Show cover information
-                    for (const HVSCMetadataService::CoverInfo &cover : entry.covers) {
-                        QString coverLine = tr("  Cover: %1").arg(cover.title);
-                        if (!cover.artist.isEmpty()) {
-                            coverLine += tr(" by %1").arg(cover.artist);
-                        }
-                        if (!cover.timestamp.isEmpty()) {
-                            coverLine += tr(" (%1)").arg(cover.timestamp);
-                        }
-                        details += coverLine + "\n";
-                    }
-
-                    // Show commentary
-                    if (!entry.comment.isEmpty()) {
-                        // Word-wrap long comments
-                        QString comment = entry.comment;
-                        if (entry.subtune > 0 || !entry.name.isEmpty()) {
-                            details += tr("  Comment: %1\n").arg(comment);
-                        } else {
-                            details += tr("  %1\n").arg(comment);
-                        }
-                    }
-                }
-            }
+        if (ctx.stilLoaded) {
+            ctx.stilInfo = hvscMetadataService_->lookupStil(hvscPath);
         }
     }
 
-    // Look up game info from GameBase64 by SID filename
-    if (gameBase64Service_ != nullptr && gameBase64Service_->isLoaded()) {
-        GameBase64Service::GameInfo gameInfo = gameBase64Service_->lookupBySidFilename(filename);
-        if (gameInfo.found) {
-            details += tr("\n─────────────────────────────────\n");
-            details += tr("GAME INFO (GameBase64):\n");
-            details += tr("  Game: %1\n").arg(gameInfo.name);
-            if (gameInfo.year > 0) {
-                details += tr("  Year: %1\n").arg(gameInfo.year);
-            }
-            if (!gameInfo.publisher.isEmpty()) {
-                details += tr("  Publisher: %1\n").arg(gameInfo.publisher);
-            }
-            if (!gameInfo.genre.isEmpty()) {
-                QString genre = gameInfo.genre;
-                if (!gameInfo.parentGenre.isEmpty() && gameInfo.parentGenre != gameInfo.genre) {
-                    genre = gameInfo.parentGenre + " / " + gameInfo.genre;
-                }
-                details += tr("  Genre: %1\n").arg(genre);
-            }
-        }
-    } else if (gameBase64Service_ == nullptr) {
-        // Service not wired up - diagnostics only
-        details += tr("\n\n(GameBase64 service not available)\n");
-    } else if (!gameBase64Service_->isLoaded()) {
-        // Database not downloaded yet
-        details += tr("\n\n(Download GameBase64 in Preferences for game info)\n");
+    // GameBase64
+    ctx.gameBase64ServicePresent = (gameBase64Service_ != nullptr);
+    ctx.gameBase64DatabaseLoaded =
+        (gameBase64Service_ != nullptr) && gameBase64Service_->isLoaded();
+    if (ctx.gameBase64DatabaseLoaded) {
+        ctx.gameInfo = gameBase64Service_->lookupBySidFilename(filename);
     }
+
+    QString details = filemetadata::formatSidDetails(ctx);
 
     QFileInfo fi(filename);
     textFileNameLabel_->setText(fi.fileName());

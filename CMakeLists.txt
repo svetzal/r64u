@@ -88,7 +88,11 @@ set(SOURCES
     src/services/sidfileparser.cpp
     src/services/favoritesmanager.cpp
     src/services/favoritescore.cpp
+    src/services/fileactioncore.cpp
     src/services/filetypecore.cpp
+    src/services/diskbootsequencecore.cpp
+    src/services/diskbootsequenceservice.cpp
+    src/services/filemetadatacore.cpp
     src/services/ftpcore.cpp
     src/services/streamprotocolcore.cpp
     src/services/restresponsecore.cpp
@@ -168,7 +172,11 @@ set(HEADERS
     src/services/sidfileparser.h
     src/services/favoritesmanager.h
     src/services/favoritescore.h
+    src/services/fileactioncore.h
     src/services/filetypecore.h
+    src/services/diskbootsequencecore.h
+    src/services/diskbootsequenceservice.h
+    src/services/filemetadatacore.h
     src/services/ftpcore.h
     src/services/streamprotocolcore.h
     src/services/restresponsecore.h
