@@ -1,5 +1,6 @@
 #include "configfileloader.h"
 
+#include "ftpclientmixin.h"
 #include "iftpclient.h"
 #include "irestclient.h"
 
@@ -14,9 +15,7 @@ ConfigFileLoader::~ConfigFileLoader()
 {
     // Disconnect from clients BEFORE this object is destroyed to prevent
     // signals from being delivered to slots after member variables are destroyed.
-    if (ftpClient_) {
-        disconnect(ftpClient_, nullptr, this, nullptr);
-    }
+    disconnectFtpClient(ftpClient_, this);
     if (restClient_) {
         disconnect(restClient_, nullptr, this, nullptr);
     }
@@ -24,9 +23,7 @@ ConfigFileLoader::~ConfigFileLoader()
 
 void ConfigFileLoader::setFtpClient(IFtpClient *client)
 {
-    if (ftpClient_) {
-        disconnect(ftpClient_, nullptr, this, nullptr);
-    }
+    disconnectFtpClient(ftpClient_, this);
 
     ftpClient_ = client;
 

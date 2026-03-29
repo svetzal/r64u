@@ -193,6 +193,14 @@ private:
     [[nodiscard]] TransferBatch *activeBatch();
     [[nodiscard]] int findItemIndex(const QString &localPath, const QString &remotePath) const;
 
+    // Batch progress helper
+    void emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
+                                      bool includeFailed = false);
+
+    // Recursive operation shared logic
+    void enqueueRecursiveOperation(OperationType type, const QString &sourcePath,
+                                   const QString &destPath);
+
     // Timeout handling
     QTimer *operationTimeoutTimer_ = nullptr;
     static constexpr int OperationTimeoutMs = 300000;  // 5 minutes

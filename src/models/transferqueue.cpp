@@ -1,5 +1,6 @@
 #include "transferqueue.h"
 
+#include "../services/ftpclientmixin.h"
 #include "../services/iftpclient.h"
 
 #include <QDebug>
@@ -20,9 +21,7 @@ TransferQueue::TransferQueue(QObject *parent)
 
 TransferQueue::~TransferQueue()
 {
-    if (ftpClient_) {
-        disconnect(ftpClient_, nullptr, this, nullptr);
-    }
+    disconnectFtpClient(ftpClient_, this);
 }
 
 void TransferQueue::scheduleProcessNext()
@@ -86,9 +85,7 @@ void TransferQueue::transitionTo(QueueState newState)
 
 void TransferQueue::setFtpClient(IFtpClient *client)
 {
-    if (ftpClient_) {
-        disconnect(ftpClient_, nullptr, this, nullptr);
-    }
+    disconnectFtpClient(ftpClient_, this);
 
     ftpClient_ = client;
 
@@ -248,51 +245,10 @@ void TransferQueue::enqueueRecursiveUpload(const QString &localDir, const QStrin
     if (!ftpClient_ || !ftpClient_->isConnected())
         return;
 
-    QDir baseDir(localDir);
-    if (!baseDir.exists())
+    if (!QDir(localDir).exists())
         return;
 
-    if (isPathBeingTransferred(localDir, OperationType::Upload)) {
-        qDebug() << "TransferQueue: Ignoring duplicate upload request for" << localDir;
-        emit statusMessage(tr("'%1' is already being uploaded").arg(QFileInfo(localDir).fileName()),
-                           3000);
-        return;
-    }
-
-    QString baseName = QFileInfo(localDir).fileName();
-    QString targetDir = remoteDir;
-    if (!targetDir.endsWith('/'))
-        targetDir += '/';
-    targetDir += baseName;
-
-    PendingFolderOp op;
-    op.operationType = OperationType::Upload;
-    op.sourcePath = localDir;
-    op.destPath = remoteDir;
-    op.targetPath = targetDir;
-    op.destExists = false;
-
-    if (state_.autoMerge) {
-        // Skip confirmation, go straight to processing
-        if (state_.queueState == QueueState::Idle) {
-            // New user operation starting - reset overwrite preference
-            state_.overwriteAll = false;
-            startFolderOperation(op);
-        } else {
-            state_.pendingFolderOps.enqueue(op);
-        }
-        return;
-    }
-
-    // Queue for debounce and folder existence check
-    state_.pendingFolderOps.enqueue(op);
-
-    if (state_.queueState == QueueState::Idle) {
-        // New user operation starting - reset overwrite preference
-        state_.overwriteAll = false;
-        transitionTo(QueueState::CollectingItems);
-        debounceTimer_->start(DebounceMs);
-    }
+    enqueueRecursiveOperation(OperationType::Upload, localDir, remoteDir);
 }
 
 void TransferQueue::enqueueRecursiveDownload(const QString &remoteDir, const QString &localDir)
@@ -305,29 +261,39 @@ void TransferQueue::enqueueRecursiveDownload(const QString &remoteDir, const QSt
         normalizedRemote.chop(1);
     }
 
-    if (isPathBeingTransferred(normalizedRemote, OperationType::Download)) {
-        qDebug() << "TransferQueue: Ignoring duplicate download request for" << normalizedRemote;
+    enqueueRecursiveOperation(OperationType::Download, normalizedRemote, localDir);
+}
+
+void TransferQueue::enqueueRecursiveOperation(OperationType type, const QString &sourcePath,
+                                              const QString &destPath)
+{
+    const bool isUpload = (type == OperationType::Upload);
+    const QString verb = isUpload ? tr("uploaded") : tr("downloaded");
+
+    if (isPathBeingTransferred(sourcePath, type)) {
+        qDebug() << "TransferQueue: Ignoring duplicate" << (isUpload ? "upload" : "download")
+                 << "request for" << sourcePath;
         emit statusMessage(
-            tr("'%1' is already being downloaded").arg(QFileInfo(normalizedRemote).fileName()),
-            3000);
+            tr("'%1' is already being %2").arg(QFileInfo(sourcePath).fileName(), verb), 3000);
         return;
     }
 
-    QString folderName = QFileInfo(normalizedRemote).fileName();
-    QString targetDir = localDir;
+    QString folderName = QFileInfo(sourcePath).fileName();
+    QString targetDir = destPath;
     if (!targetDir.endsWith('/'))
         targetDir += '/';
     targetDir += folderName;
 
     PendingFolderOp op;
-    op.operationType = OperationType::Download;
-    op.sourcePath = normalizedRemote;
-    op.destPath = localDir;
+    op.operationType = type;
+    op.sourcePath = sourcePath;
+    op.destPath = destPath;
     op.targetPath = targetDir;
-    op.destExists = QDir(targetDir).exists();
+    op.destExists = isUpload ? false : QDir(targetDir).exists();
 
-    if (state_.autoMerge || !op.destExists) {
-        // Skip confirmation, go straight to processing
+    // Skip confirmation when: autoMerge is set, or (download and dest doesn't exist yet)
+    const bool skipConfirmation = state_.autoMerge || (!isUpload && !op.destExists);
+    if (skipConfirmation) {
         if (state_.queueState == QueueState::Idle) {
             // New user operation starting - reset overwrite preference
             state_.overwriteAll = false;
@@ -338,7 +304,7 @@ void TransferQueue::enqueueRecursiveDownload(const QString &remoteDir, const QSt
         return;
     }
 
-    // Queue for debounce and confirmation
+    // Queue for debounce and folder existence check / confirmation
     state_.pendingFolderOps.enqueue(op);
 
     if (state_.queueState == QueueState::Idle) {
@@ -1046,13 +1012,9 @@ void TransferQueue::onFtpError(const QString &message)
         emit operationFailed(result.transferFileName, message);
 
         if (result.failedBatchId >= 0) {
-            if (TransferBatch *batch = findBatch(result.failedBatchId)) {
-                emit batchProgressUpdate(result.failedBatchId,
-                                         batch->completedCount + batch->failedCount,
-                                         batch->totalCount());
-            }
+            emitBatchProgressAndComplete(result.failedBatchId, result.batchIsComplete,
+                                         /*includeFailed=*/true);
             if (result.batchIsComplete) {
-                completeBatch(result.failedBatchId);
                 return;
             }
         }
@@ -1206,12 +1168,13 @@ void TransferQueue::respondToOverwrite(OverwriteResponse response)
 
     // Check batch completion for Skip case
     if (response == OverwriteResponse::Skip && affectedBatchId >= 0) {
-        if (TransferBatch *batch = findBatch(affectedBatchId)) {
-            emit batchProgressUpdate(affectedBatchId, batch->completedCount, batch->totalCount());
-            if (batch->isComplete()) {
-                completeBatch(affectedBatchId);
-                return;
-            }
+        bool batchIsComplete = false;
+        if (const TransferBatch *batch = findBatch(affectedBatchId)) {
+            batchIsComplete = batch->isComplete();
+        }
+        emitBatchProgressAndComplete(affectedBatchId, batchIsComplete);
+        if (batchIsComplete) {
+            return;
         }
     }
 
@@ -1343,6 +1306,19 @@ void TransferQueue::purgeBatch(int batchId)
     }
 }
 
+void TransferQueue::emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
+                                                 bool includeFailed)
+{
+    if (TransferBatch *batch = findBatch(batchId)) {
+        int completed =
+            includeFailed ? batch->completedCount + batch->failedCount : batch->completedCount;
+        emit batchProgressUpdate(batchId, completed, batch->totalCount());
+    }
+    if (batchIsComplete) {
+        completeBatch(batchId);
+    }
+}
+
 void TransferQueue::markCurrentComplete(TransferItem::Status status)
 {
     if (state_.currentIndex < 0 || state_.currentIndex >= state_.items.size()) {
@@ -1356,12 +1332,7 @@ void TransferQueue::markCurrentComplete(TransferItem::Status status)
     emit dataChanged(index(completedIndex), index(completedIndex));
 
     if (result.batchId >= 0) {
-        if (TransferBatch *batch = findBatch(result.batchId)) {
-            emit batchProgressUpdate(result.batchId, batch->completedCount, batch->totalCount());
-        }
-        if (result.batchIsComplete) {
-            completeBatch(result.batchId);
-        }
+        emitBatchProgressAndComplete(result.batchId, result.batchIsComplete);
     }
 }
 

@@ -1,6 +1,7 @@
 #include "remotefilemodel.h"
 
 #include "services/filetypecore.h"
+#include "services/ftpclientmixin.h"
 
 #include <QApplication>
 #include <QDebug>
@@ -24,18 +25,14 @@ RemoteFileModel::~RemoteFileModel()
     // signals from being delivered to slots that access deleted memory.
     // Qt's automatic disconnection happens in QObject::~QObject() which
     // runs AFTER this destructor body.
-    if (ftpClient_) {
-        disconnect(ftpClient_, nullptr, this, nullptr);
-    }
+    disconnectFtpClient(ftpClient_, this);
 
     delete rootNode_;
 }
 
 void RemoteFileModel::setFtpClient(IFtpClient *client)
 {
-    if (ftpClient_) {
-        disconnect(ftpClient_, nullptr, this, nullptr);
-    }
+    disconnectFtpClient(ftpClient_, this);
 
     ftpClient_ = client;
 
