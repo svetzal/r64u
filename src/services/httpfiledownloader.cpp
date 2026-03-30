@@ -31,9 +31,13 @@ void HttpFileDownloader::cancel()
     if (currentReply_ == nullptr) {
         return;
     }
-    currentReply_->abort();
-    currentReply_->deleteLater();
+    // Capture pointer before abort(): abort() can emit finished() synchronously,
+    // which calls onReplyFinished() and nulls currentReply_.  If we called
+    // currentReply_->deleteLater() after abort() we would dereference a null pointer.
+    QNetworkReply *reply = currentReply_;
     currentReply_ = nullptr;
+    reply->abort();
+    reply->deleteLater();
 }
 
 bool HttpFileDownloader::isDownloading() const

@@ -1090,3 +1090,175 @@ if(BUILD_COVERAGE)
     add_coverage_target(songlengthsdatabase test_songlengthsdatabase)
     add_dependencies(coverage coverage_songlengthsdatabase)
 endif()
+
+# FavoritesManager tests - imperative shell around favorites:: core, QSettings I/O
+add_executable(test_favoritesmanager
+    test_favoritesmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/favoritesmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/favoritescore.cpp
+)
+
+target_include_directories(test_favoritesmanager PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_favoritesmanager PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME FavoritesManagerTest COMMAND test_favoritesmanager)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(favoritesmanager test_favoritesmanager)
+    add_dependencies(coverage coverage_favoritesmanager)
+endif()
+
+# DiskBootSequenceService tests - imperative shell around diskboot:: state machine
+add_executable(test_diskbootsequenceservice
+    test_diskbootsequenceservice.cpp
+    mocks/mockrestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/diskbootsequenceservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/diskbootsequencecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+)
+
+target_include_directories(test_diskbootsequenceservice PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_diskbootsequenceservice PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME DiskBootSequenceServiceTest COMMAND test_diskbootsequenceservice)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(diskbootsequenceservice test_diskbootsequenceservice)
+    add_dependencies(coverage coverage_diskbootsequenceservice)
+endif()
+
+# HttpFileDownloader tests - thin HTTP downloader shell, uses local QTcpServer
+add_executable(test_httpfiledownloader
+    test_httpfiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/httpfiledownloader.cpp
+)
+
+target_include_directories(test_httpfiledownloader PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_httpfiledownloader PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME HttpFileDownloaderTest COMMAND test_httpfiledownloader)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(httpfiledownloader test_httpfiledownloader)
+    add_dependencies(coverage coverage_httpfiledownloader)
+endif()
+
+# StreamControlClient tests - TCP stream control client
+add_executable(test_streamcontrolclient
+    test_streamcontrolclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/istreamcontrolclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/streamcontrolclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/streamprotocolcore.cpp
+)
+
+target_include_directories(test_streamcontrolclient PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_streamcontrolclient PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME StreamControlClientTest COMMAND test_streamcontrolclient)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(streamcontrolclient test_streamcontrolclient)
+    add_dependencies(coverage coverage_streamcontrolclient)
+endif()
+
+# AudioStreamReceiver tests - UDP audio receiver with jitter buffer
+add_executable(test_audiostreamreceiver
+    test_audiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
+)
+
+target_include_directories(test_audiostreamreceiver PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_audiostreamreceiver PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME AudioStreamReceiverTest COMMAND test_audiostreamreceiver)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(audiostreamreceiver test_audiostreamreceiver)
+    add_dependencies(coverage coverage_audiostreamreceiver)
+endif()
+
+# AudioPlaybackService tests - Qt Multimedia audio playback service
+add_executable(test_audioplaybackservice
+    test_audioplaybackservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudioplaybackservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/audioplaybackservice.cpp
+)
+
+target_include_directories(test_audioplaybackservice PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_audioplaybackservice PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Multimedia
+)
+
+add_test(NAME AudioPlaybackServiceTest COMMAND test_audioplaybackservice)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(audioplaybackservice test_audioplaybackservice)
+    add_dependencies(coverage coverage_audioplaybackservice)
+endif()
+
+# VideoRecordingService tests - AVI video recording service
+add_executable(test_videorecordingservice
+    test_videorecordingservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/avicore.cpp
+)
+
+target_include_directories(test_videorecordingservice PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_videorecordingservice PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+)
+
+add_test(NAME VideoRecordingServiceTest COMMAND test_videorecordingservice)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(videorecordingservice test_videorecordingservice)
+    add_dependencies(coverage coverage_videorecordingservice)
+endif()
