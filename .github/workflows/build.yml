@@ -319,11 +319,11 @@ jobs:
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-qt-${ARCH}.AppImage
           chmod +x linuxdeploy*.AppImage
 
-          # Remove Qt's Mimer SQL plugin — it depends on libmimerapi.so which
-          # is not available on Ubuntu runners, and linuxdeploy-plugin-qt fails
-          # trying to resolve its dependencies. --exclude-library only prevents
-          # bundling the lib, not deploying the plugin that requires it.
-          find "$QT_ROOT_DIR" -name "libqsqlmimer.so" -delete 2>/dev/null || true
+          # Remove Qt SQL plugins that depend on libraries not available on
+          # Ubuntu runners (Mimer, Oracle, etc.). This app doesn't use SQL.
+          # Keep only SQLite (bundled) and PostgreSQL/MySQL (available on runners).
+          rm -f "$QT_ROOT_DIR"/plugins/sqldrivers/libqsqlmimer.so \
+                "$QT_ROOT_DIR"/plugins/sqldrivers/libqsqloci.so
 
           # Build AppImage
           export QMAKE="$QT_ROOT_DIR/bin/qmake"
