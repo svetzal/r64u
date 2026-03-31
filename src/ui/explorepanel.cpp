@@ -442,13 +442,13 @@ void ExplorePanel::onSelectionChanged()
     bool hasSelection = !selected.isEmpty();
     bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
 
-    RemoteFileModel::FileType fileType = RemoteFileModel::FileType::Unknown;
+    filetype::FileType fileType = filetype::FileType::Unknown;
     if (hasSelection && treeView_ && remoteFileModel_) {
         QModelIndex index = treeView_->currentIndex();
         fileType = remoteFileModel_->fileType(index);
     }
 
-    updateActionStates(static_cast<filetype::FileType>(fileType), canOperate && hasSelection);
+    updateActionStates(fileType, canOperate && hasSelection);
 
     // Update favorites toggle button - use selected item or current directory
     if (toggleFavoriteAction_ && favoritesManager_) {
@@ -494,8 +494,8 @@ void ExplorePanel::onDoubleClicked(const QModelIndex &index)
         setCurrentDirectory(path);
     } else {
         // Execute default action based on file type
-        RemoteFileModel::FileType type = remoteFileModel_->fileType(index);
-        auto action = filetype::defaultAction(static_cast<filetype::FileType>(type));
+        filetype::FileType type = remoteFileModel_->fileType(index);
+        auto action = filetype::defaultAction(type);
 
         switch (action) {
         case filetype::DefaultAction::Play:
@@ -525,16 +525,16 @@ void ExplorePanel::onContextMenu(const QPoint &pos)
     QModelIndex index = treeView_->indexAt(pos);
     if (index.isValid()) {
         // Get file type and enable/disable context menu actions accordingly
-        RemoteFileModel::FileType fileType = remoteFileModel_->fileType(index);
+        filetype::FileType fileType = remoteFileModel_->fileType(index);
         bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
 
-        auto caps = filetype::capabilities(static_cast<filetype::FileType>(fileType));
+        auto caps = filetype::capabilities(fileType);
 
         // Check if any selected item is a SID file (for multi-selection support)
         bool canAddToPlaylist = false;
         QModelIndexList selectedIndices = treeView_->selectionModel()->selectedRows();
         for (const QModelIndex &selIndex : selectedIndices) {
-            if (remoteFileModel_->fileType(selIndex) == RemoteFileModel::FileType::SidMusic) {
+            if (remoteFileModel_->fileType(selIndex) == filetype::FileType::SidMusic) {
                 canAddToPlaylist = true;
                 break;
             }
@@ -591,12 +591,12 @@ void ExplorePanel::onPlay()
 
     ensureStreamingStarted();
 
-    RemoteFileModel::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
+    filetype::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
 
-    if (type == RemoteFileModel::FileType::SidMusic) {
+    if (type == filetype::FileType::SidMusic) {
         deviceConnection_->restClient()->playSid(path);
         emit statusMessage(tr("Playing SID: %1").arg(path), 3000);
-    } else if (type == RemoteFileModel::FileType::ModMusic) {
+    } else if (type == filetype::FileType::ModMusic) {
         deviceConnection_->restClient()->playMod(path);
         emit statusMessage(tr("Playing MOD: %1").arg(path), 3000);
     }
@@ -615,15 +615,15 @@ void ExplorePanel::onRun()
 
     ensureStreamingStarted();
 
-    RemoteFileModel::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
+    filetype::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
 
-    if (type == RemoteFileModel::FileType::Program) {
+    if (type == filetype::FileType::Program) {
         deviceConnection_->restClient()->runPrg(path);
         emit statusMessage(tr("Running PRG: %1").arg(path), 3000);
-    } else if (type == RemoteFileModel::FileType::Cartridge) {
+    } else if (type == filetype::FileType::Cartridge) {
         deviceConnection_->restClient()->runCrt(path);
         emit statusMessage(tr("Running CRT: %1").arg(path), 3000);
-    } else if (type == RemoteFileModel::FileType::DiskImage) {
+    } else if (type == filetype::FileType::DiskImage) {
         runDiskImage(path);
     }
 }
@@ -681,8 +681,8 @@ void ExplorePanel::onLoadConfig()
         return;
     }
 
-    RemoteFileModel::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
-    if (type != RemoteFileModel::FileType::Config) {
+    filetype::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
+    if (type != filetype::FileType::Config) {
         emit statusMessage(tr("Selected file is not a configuration file"), 3000);
         return;
     }
@@ -902,8 +902,8 @@ void ExplorePanel::onAddToPlaylist()
     // Filter to only SID files and add them
     int addedCount = 0;
     for (const QModelIndex &index : selectedIndices) {
-        RemoteFileModel::FileType type = remoteFileModel_->fileType(index);
-        if (type == RemoteFileModel::FileType::SidMusic) {
+        filetype::FileType type = remoteFileModel_->fileType(index);
+        if (type == filetype::FileType::SidMusic) {
             QString path = remoteFileModel_->filePath(index);
             playlistManager_->addItem(path);
             addedCount++;

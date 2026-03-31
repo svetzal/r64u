@@ -299,7 +299,7 @@ private slots:
 
         QModelIndex idx = model->index(0, 0);
         QCOMPARE(model->data(idx, RemoteFileModel::FileTypeRole).toInt(),
-                 static_cast<int>(RemoteFileModel::FileType::Cartridge));
+                 static_cast<int>(filetype::FileType::Cartridge));
     }
 
     // === Custom Accessor Methods ===
@@ -355,10 +355,10 @@ private slots:
         mockFtp->mockProcessAllOperations();
 
         QModelIndex idx = model->index(0, 0);
-        QCOMPARE(model->fileType(idx), RemoteFileModel::FileType::DiskImage);
+        QCOMPARE(model->fileType(idx), filetype::FileType::DiskImage);
 
         // Invalid index returns root node, which has type Directory
-        QCOMPARE(model->fileType(QModelIndex()), RemoteFileModel::FileType::Directory);
+        QCOMPARE(model->fileType(QModelIndex()), filetype::FileType::Directory);
     }
 
     void testFileSize()
@@ -385,62 +385,57 @@ private slots:
 
     void testDetectFileType()
     {
-        QCOMPARE(RemoteFileModel::detectFileType("music.sid"), RemoteFileModel::FileType::SidMusic);
-        QCOMPARE(RemoteFileModel::detectFileType("music.SID"), RemoteFileModel::FileType::SidMusic);
-        QCOMPARE(RemoteFileModel::detectFileType("game.psid"), RemoteFileModel::FileType::SidMusic);
-        QCOMPARE(RemoteFileModel::detectFileType("game.rsid"), RemoteFileModel::FileType::SidMusic);
+        QCOMPARE(RemoteFileModel::detectFileType("music.sid"), filetype::FileType::SidMusic);
+        QCOMPARE(RemoteFileModel::detectFileType("music.SID"), filetype::FileType::SidMusic);
+        QCOMPARE(RemoteFileModel::detectFileType("game.psid"), filetype::FileType::SidMusic);
+        QCOMPARE(RemoteFileModel::detectFileType("game.rsid"), filetype::FileType::SidMusic);
 
-        QCOMPARE(RemoteFileModel::detectFileType("tune.mod"), RemoteFileModel::FileType::ModMusic);
-        QCOMPARE(RemoteFileModel::detectFileType("tune.xm"), RemoteFileModel::FileType::ModMusic);
-        QCOMPARE(RemoteFileModel::detectFileType("tune.s3m"), RemoteFileModel::FileType::ModMusic);
-        QCOMPARE(RemoteFileModel::detectFileType("tune.it"), RemoteFileModel::FileType::ModMusic);
+        QCOMPARE(RemoteFileModel::detectFileType("tune.mod"), filetype::FileType::ModMusic);
+        QCOMPARE(RemoteFileModel::detectFileType("tune.xm"), filetype::FileType::ModMusic);
+        QCOMPARE(RemoteFileModel::detectFileType("tune.s3m"), filetype::FileType::ModMusic);
+        QCOMPARE(RemoteFileModel::detectFileType("tune.it"), filetype::FileType::ModMusic);
 
-        QCOMPARE(RemoteFileModel::detectFileType("game.prg"), RemoteFileModel::FileType::Program);
-        QCOMPARE(RemoteFileModel::detectFileType("game.p00"), RemoteFileModel::FileType::Program);
+        QCOMPARE(RemoteFileModel::detectFileType("game.prg"), filetype::FileType::Program);
+        QCOMPARE(RemoteFileModel::detectFileType("game.p00"), filetype::FileType::Program);
 
-        QCOMPARE(RemoteFileModel::detectFileType("cart.crt"), RemoteFileModel::FileType::Cartridge);
+        QCOMPARE(RemoteFileModel::detectFileType("cart.crt"), filetype::FileType::Cartridge);
 
-        QCOMPARE(RemoteFileModel::detectFileType("disk.d64"), RemoteFileModel::FileType::DiskImage);
-        QCOMPARE(RemoteFileModel::detectFileType("disk.d71"), RemoteFileModel::FileType::DiskImage);
-        QCOMPARE(RemoteFileModel::detectFileType("disk.d81"), RemoteFileModel::FileType::DiskImage);
-        QCOMPARE(RemoteFileModel::detectFileType("disk.g64"), RemoteFileModel::FileType::DiskImage);
-        QCOMPARE(RemoteFileModel::detectFileType("disk.g71"), RemoteFileModel::FileType::DiskImage);
+        QCOMPARE(RemoteFileModel::detectFileType("disk.d64"), filetype::FileType::DiskImage);
+        QCOMPARE(RemoteFileModel::detectFileType("disk.d71"), filetype::FileType::DiskImage);
+        QCOMPARE(RemoteFileModel::detectFileType("disk.d81"), filetype::FileType::DiskImage);
+        QCOMPARE(RemoteFileModel::detectFileType("disk.g64"), filetype::FileType::DiskImage);
+        QCOMPARE(RemoteFileModel::detectFileType("disk.g71"), filetype::FileType::DiskImage);
 
-        QCOMPARE(RemoteFileModel::detectFileType("tape.tap"), RemoteFileModel::FileType::TapeImage);
-        QCOMPARE(RemoteFileModel::detectFileType("tape.t64"), RemoteFileModel::FileType::TapeImage);
+        QCOMPARE(RemoteFileModel::detectFileType("tape.tap"), filetype::FileType::TapeImage);
+        QCOMPARE(RemoteFileModel::detectFileType("tape.t64"), filetype::FileType::TapeImage);
 
-        QCOMPARE(RemoteFileModel::detectFileType("kernal.rom"), RemoteFileModel::FileType::Rom);
-        QCOMPARE(RemoteFileModel::detectFileType("kernal.bin"), RemoteFileModel::FileType::Rom);
+        QCOMPARE(RemoteFileModel::detectFileType("kernal.rom"), filetype::FileType::Rom);
+        QCOMPARE(RemoteFileModel::detectFileType("kernal.bin"), filetype::FileType::Rom);
 
-        QCOMPARE(RemoteFileModel::detectFileType("settings.cfg"),
-                 RemoteFileModel::FileType::Config);
+        QCOMPARE(RemoteFileModel::detectFileType("settings.cfg"), filetype::FileType::Config);
 
-        QCOMPARE(RemoteFileModel::detectFileType("readme.txt"), RemoteFileModel::FileType::Unknown);
-        QCOMPARE(RemoteFileModel::detectFileType("noextension"),
-                 RemoteFileModel::FileType::Unknown);
+        QCOMPARE(RemoteFileModel::detectFileType("readme.txt"), filetype::FileType::Unknown);
+        QCOMPARE(RemoteFileModel::detectFileType("noextension"), filetype::FileType::Unknown);
     }
 
     void testFileTypeString()
     {
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Directory),
-                 QString("Folder"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::SidMusic),
+        QCOMPARE(RemoteFileModel::fileTypeString(filetype::FileType::Directory), QString("Folder"));
+        QCOMPARE(RemoteFileModel::fileTypeString(filetype::FileType::SidMusic),
                  QString("SID Music"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::ModMusic),
+        QCOMPARE(RemoteFileModel::fileTypeString(filetype::FileType::ModMusic),
                  QString("MOD Music"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Program),
-                 QString("Program"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Cartridge),
+        QCOMPARE(RemoteFileModel::fileTypeString(filetype::FileType::Program), QString("Program"));
+        QCOMPARE(RemoteFileModel::fileTypeString(filetype::FileType::Cartridge),
                  QString("Cartridge"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::DiskImage),
+        QCOMPARE(RemoteFileModel::fileTypeString(filetype::FileType::DiskImage),
                  QString("Disk Image"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::TapeImage),
+        QCOMPARE(RemoteFileModel::fileTypeString(filetype::FileType::TapeImage),
                  QString("Tape Image"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Rom), QString("ROM"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Config),
+        QCOMPARE(RemoteFileModel::fileTypeString(filetype::FileType::Rom), QString("ROM"));
+        QCOMPARE(RemoteFileModel::fileTypeString(filetype::FileType::Config),
                  QString("Configuration"));
-        QCOMPARE(RemoteFileModel::fileTypeString(RemoteFileModel::FileType::Unknown),
-                 QString("File"));
+        QCOMPARE(RemoteFileModel::fileTypeString(filetype::FileType::Unknown), QString("File"));
     }
 
     // === Model Reset and Refresh Tests ===

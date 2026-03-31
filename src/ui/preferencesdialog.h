@@ -59,9 +59,24 @@ private slots:
     void onGameBase64DownloadFailed(const QString &error);
 
 private:
+    struct DownloadWidgetGroup
+    {
+        QPushButton *button = nullptr;
+        QProgressBar *progressBar = nullptr;
+        QLabel *statusLabel = nullptr;
+        QString itemName;  ///< e.g., "HVSC Songlengths database"
+        QString unitName;  ///< e.g., "entries"
+    };
+
     void setupUi();
     void loadSettings();
     void saveSettings();
+
+    void startDownload(DownloadWidgetGroup &group);
+    void handleDownloadProgress(DownloadWidgetGroup &group, qint64 bytesReceived,
+                                qint64 bytesTotal);
+    void handleDownloadFinished(DownloadWidgetGroup &group, int count);
+    void handleDownloadFailed(DownloadWidgetGroup &group, const QString &error);
 
     // Device settings
     QLineEdit *hostEdit_ = nullptr;
@@ -79,26 +94,16 @@ private:
     // Test connection
     IRestClient *testClient_ = nullptr;
 
-    // Songlengths Database UI
+    // Download widget groups
     SonglengthsDatabase *songlengthsDatabase_ = nullptr;
-    QLabel *databaseStatusLabel_ = nullptr;
-    QPushButton *downloadDatabaseButton_ = nullptr;
-    QProgressBar *databaseProgressBar_ = nullptr;
+    DownloadWidgetGroup dbWidgets_;
 
-    // HVSC Metadata Service UI
     HVSCMetadataService *hvscMetadataService_ = nullptr;
-    QLabel *stilStatusLabel_ = nullptr;
-    QPushButton *downloadStilButton_ = nullptr;
-    QProgressBar *stilProgressBar_ = nullptr;
-    QLabel *buglistStatusLabel_ = nullptr;
-    QPushButton *downloadBuglistButton_ = nullptr;
-    QProgressBar *buglistProgressBar_ = nullptr;
+    DownloadWidgetGroup stilWidgets_;
+    DownloadWidgetGroup buglistWidgets_;
 
-    // GameBase64 Service UI
     GameBase64Service *gameBase64Service_ = nullptr;
-    QLabel *gameBase64StatusLabel_ = nullptr;
-    QPushButton *downloadGameBase64Button_ = nullptr;
-    QProgressBar *gameBase64ProgressBar_ = nullptr;
+    DownloadWidgetGroup gameBase64Widgets_;
 };
 
 #endif  // PREFERENCESDIALOG_H

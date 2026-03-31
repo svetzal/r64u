@@ -30,7 +30,7 @@ QVariant LocalFileProxyModel::data(const QModelIndex &index, int role) const
             return tr("Folder");
         }
         QString fileName = fsModel->fileName(nameIdx);
-        FileType type = detectFileType(fileName);
+        filetype::FileType type = detectFileType(fileName);
         return fileTypeString(type);
     }
 
@@ -79,12 +79,12 @@ QFileSystemModel *LocalFileProxyModel::sourceFileModel() const
     return qobject_cast<QFileSystemModel *>(sourceModel());
 }
 
-LocalFileProxyModel::FileType LocalFileProxyModel::detectFileType(const QString &filename)
+filetype::FileType LocalFileProxyModel::detectFileType(const QString &filename)
 {
-    return static_cast<FileType>(filetype::detectFromFilename(filename));
+    return filetype::detectFromFilename(filename);
 }
 
-QString LocalFileProxyModel::fileTypeString(FileType type)
+QString LocalFileProxyModel::fileTypeString(filetype::FileType type)
 {
-    return filetype::displayName(static_cast<filetype::FileType>(type));
+    return filetype::displayName(type);
 }

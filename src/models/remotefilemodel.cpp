@@ -16,7 +16,7 @@ RemoteFileModel::RemoteFileModel(QObject *parent)
     rootNode_->name = "/";
     rootNode_->fullPath = "/";
     rootNode_->isDirectory = true;
-    rootNode_->fileType = FileType::Directory;
+    rootNode_->fileType = filetype::FileType::Directory;
 }
 
 RemoteFileModel::~RemoteFileModel()
@@ -58,7 +58,7 @@ void RemoteFileModel::setRootPath(const QString &path)
     rootNode_->name = path;
     rootNode_->fullPath = path;
     rootNode_->isDirectory = true;
-    rootNode_->fileType = FileType::Directory;
+    rootNode_->fileType = filetype::FileType::Directory;
 
     endResetModel();
 }
@@ -267,10 +267,10 @@ bool RemoteFileModel::isDirectory(const QModelIndex &index) const
     return node ? node->isDirectory : false;
 }
 
-RemoteFileModel::FileType RemoteFileModel::fileType(const QModelIndex &index) const
+filetype::FileType RemoteFileModel::fileType(const QModelIndex &index) const
 {
     TreeNode *node = nodeFromIndex(index);
-    return node ? node->fileType : FileType::Unknown;
+    return node ? node->fileType : filetype::FileType::Unknown;
 }
 
 qint64 RemoteFileModel::fileSize(const QModelIndex &index) const
@@ -400,42 +400,42 @@ void RemoteFileModel::refreshIfStale()
     }
 }
 
-RemoteFileModel::FileType RemoteFileModel::detectFileType(const QString &filename)
+filetype::FileType RemoteFileModel::detectFileType(const QString &filename)
 {
-    return static_cast<FileType>(filetype::detectFromFilename(filename));
+    return filetype::detectFromFilename(filename);
 }
 
-QIcon RemoteFileModel::iconForFileType(FileType type)
+QIcon RemoteFileModel::iconForFileType(filetype::FileType type)
 {
     // Use standard icons as placeholders - can be replaced with custom icons
     QStyle *style = QApplication::style();
 
     switch (type) {
-    case FileType::Directory:
+    case filetype::FileType::Directory:
         return style->standardIcon(QStyle::SP_DirIcon);
-    case FileType::SidMusic:
-    case FileType::ModMusic:
+    case filetype::FileType::SidMusic:
+    case filetype::FileType::ModMusic:
         return style->standardIcon(QStyle::SP_MediaVolume);
-    case FileType::Program:
+    case filetype::FileType::Program:
         return style->standardIcon(QStyle::SP_FileIcon);
-    case FileType::Cartridge:
+    case filetype::FileType::Cartridge:
         return style->standardIcon(QStyle::SP_DriveHDIcon);
-    case FileType::DiskImage:
+    case filetype::FileType::DiskImage:
         return style->standardIcon(QStyle::SP_DriveFDIcon);
-    case FileType::TapeImage:
+    case filetype::FileType::TapeImage:
         return style->standardIcon(QStyle::SP_DriveCDIcon);
-    case FileType::Rom:
+    case filetype::FileType::Rom:
         return style->standardIcon(QStyle::SP_FileDialogDetailedView);
-    case FileType::Config:
+    case filetype::FileType::Config:
         return style->standardIcon(QStyle::SP_FileDialogInfoView);
     default:
         return style->standardIcon(QStyle::SP_FileIcon);
     }
 }
 
-QString RemoteFileModel::fileTypeString(FileType type)
+QString RemoteFileModel::fileTypeString(filetype::FileType type)
 {
-    return filetype::displayName(static_cast<filetype::FileType>(type));
+    return filetype::displayName(type);
 }
 
 void RemoteFileModel::onDirectoryListed(const QString &path, const QList<FtpEntry> &entries)
@@ -595,7 +595,7 @@ void RemoteFileModel::populateNode(TreeNode *node, const QList<FtpEntry> &entrie
 
             // Detect file type
             if (entry.isDirectory) {
-                child->fileType = FileType::Directory;
+                child->fileType = filetype::FileType::Directory;
             } else {
                 child->fileType = detectFileType(entry.name);
             }

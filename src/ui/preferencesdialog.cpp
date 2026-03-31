@@ -129,20 +129,21 @@ void PreferencesDialog::setupUi()
     auto *songlengthsLabel = new QLabel(tr("<b>Songlengths</b> - Accurate song durations"));
     databaseLayout->addWidget(songlengthsLabel);
 
-    databaseStatusLabel_ = new QLabel(tr("Not loaded"));
-    databaseLayout->addWidget(databaseStatusLabel_);
+    dbWidgets_.statusLabel = new QLabel(tr("Not loaded"));
+    dbWidgets_.itemName = tr("HVSC Songlengths database");
+    dbWidgets_.unitName = tr("entries");
+    databaseLayout->addWidget(dbWidgets_.statusLabel);
 
-    databaseProgressBar_ = new QProgressBar();
-    databaseProgressBar_->setVisible(false);
-    databaseLayout->addWidget(databaseProgressBar_);
+    dbWidgets_.progressBar = new QProgressBar();
+    dbWidgets_.progressBar->setVisible(false);
+    databaseLayout->addWidget(dbWidgets_.progressBar);
 
     auto *songlengthsButtonLayout = new QHBoxLayout();
-    downloadDatabaseButton_ = new QPushButton(tr("Download/Update"));
-    downloadDatabaseButton_->setToolTip(
+    dbWidgets_.button = new QPushButton(tr("Download/Update"));
+    dbWidgets_.button->setToolTip(
         tr("Download the HVSC Songlengths database for accurate SID song durations"));
-    connect(downloadDatabaseButton_, &QPushButton::clicked, this,
-            &PreferencesDialog::onDownloadDatabase);
-    songlengthsButtonLayout->addWidget(downloadDatabaseButton_);
+    connect(dbWidgets_.button, &QPushButton::clicked, this, &PreferencesDialog::onDownloadDatabase);
+    songlengthsButtonLayout->addWidget(dbWidgets_.button);
     songlengthsButtonLayout->addStretch();
     databaseLayout->addLayout(songlengthsButtonLayout);
 
@@ -152,19 +153,21 @@ void PreferencesDialog::setupUi()
     auto *stilLabel = new QLabel(tr("<b>STIL</b> - Tune commentary and cover info"));
     databaseLayout->addWidget(stilLabel);
 
-    stilStatusLabel_ = new QLabel(tr("Not loaded"));
-    databaseLayout->addWidget(stilStatusLabel_);
+    stilWidgets_.statusLabel = new QLabel(tr("Not loaded"));
+    stilWidgets_.itemName = tr("STIL database");
+    stilWidgets_.unitName = tr("entries");
+    databaseLayout->addWidget(stilWidgets_.statusLabel);
 
-    stilProgressBar_ = new QProgressBar();
-    stilProgressBar_->setVisible(false);
-    databaseLayout->addWidget(stilProgressBar_);
+    stilWidgets_.progressBar = new QProgressBar();
+    stilWidgets_.progressBar->setVisible(false);
+    databaseLayout->addWidget(stilWidgets_.progressBar);
 
     auto *stilButtonLayout = new QHBoxLayout();
-    downloadStilButton_ = new QPushButton(tr("Download/Update"));
-    downloadStilButton_->setToolTip(
+    stilWidgets_.button = new QPushButton(tr("Download/Update"));
+    stilWidgets_.button->setToolTip(
         tr("Download STIL.txt for tune commentary, history, and cover information"));
-    connect(downloadStilButton_, &QPushButton::clicked, this, &PreferencesDialog::onDownloadStil);
-    stilButtonLayout->addWidget(downloadStilButton_);
+    connect(stilWidgets_.button, &QPushButton::clicked, this, &PreferencesDialog::onDownloadStil);
+    stilButtonLayout->addWidget(stilWidgets_.button);
     stilButtonLayout->addStretch();
     databaseLayout->addLayout(stilButtonLayout);
 
@@ -174,19 +177,21 @@ void PreferencesDialog::setupUi()
     auto *buglistLabel = new QLabel(tr("<b>BUGlist</b> - Known playback issues"));
     databaseLayout->addWidget(buglistLabel);
 
-    buglistStatusLabel_ = new QLabel(tr("Not loaded"));
-    databaseLayout->addWidget(buglistStatusLabel_);
+    buglistWidgets_.statusLabel = new QLabel(tr("Not loaded"));
+    buglistWidgets_.itemName = tr("BUGlist database");
+    buglistWidgets_.unitName = tr("entries");
+    databaseLayout->addWidget(buglistWidgets_.statusLabel);
 
-    buglistProgressBar_ = new QProgressBar();
-    buglistProgressBar_->setVisible(false);
-    databaseLayout->addWidget(buglistProgressBar_);
+    buglistWidgets_.progressBar = new QProgressBar();
+    buglistWidgets_.progressBar->setVisible(false);
+    databaseLayout->addWidget(buglistWidgets_.progressBar);
 
     auto *buglistButtonLayout = new QHBoxLayout();
-    downloadBuglistButton_ = new QPushButton(tr("Download/Update"));
-    downloadBuglistButton_->setToolTip(tr("Download BUGlist.txt for known SID playback issues"));
-    connect(downloadBuglistButton_, &QPushButton::clicked, this,
+    buglistWidgets_.button = new QPushButton(tr("Download/Update"));
+    buglistWidgets_.button->setToolTip(tr("Download BUGlist.txt for known SID playback issues"));
+    connect(buglistWidgets_.button, &QPushButton::clicked, this,
             &PreferencesDialog::onDownloadBuglist);
-    buglistButtonLayout->addWidget(downloadBuglistButton_);
+    buglistButtonLayout->addWidget(buglistWidgets_.button);
     buglistButtonLayout->addStretch();
     databaseLayout->addLayout(buglistButtonLayout);
 
@@ -199,20 +204,22 @@ void PreferencesDialog::setupUi()
     auto *gamebaseLabel = new QLabel(tr("<b>Game Database</b> - ~29,000 C64 games"));
     gamebaseLayout->addWidget(gamebaseLabel);
 
-    gameBase64StatusLabel_ = new QLabel(tr("Not loaded"));
-    gamebaseLayout->addWidget(gameBase64StatusLabel_);
+    gameBase64Widgets_.statusLabel = new QLabel(tr("Not loaded"));
+    gameBase64Widgets_.itemName = tr("GameBase64 database");
+    gameBase64Widgets_.unitName = tr("games");
+    gamebaseLayout->addWidget(gameBase64Widgets_.statusLabel);
 
-    gameBase64ProgressBar_ = new QProgressBar();
-    gameBase64ProgressBar_->setVisible(false);
-    gamebaseLayout->addWidget(gameBase64ProgressBar_);
+    gameBase64Widgets_.progressBar = new QProgressBar();
+    gameBase64Widgets_.progressBar->setVisible(false);
+    gamebaseLayout->addWidget(gameBase64Widgets_.progressBar);
 
     auto *gamebaseButtonLayout = new QHBoxLayout();
-    downloadGameBase64Button_ = new QPushButton(tr("Download/Update"));
-    downloadGameBase64Button_->setToolTip(
+    gameBase64Widgets_.button = new QPushButton(tr("Download/Update"));
+    gameBase64Widgets_.button->setToolTip(
         tr("Download GameBase64 database for game information (publisher, year, genre, etc.)"));
-    connect(downloadGameBase64Button_, &QPushButton::clicked, this,
+    connect(gameBase64Widgets_.button, &QPushButton::clicked, this,
             &PreferencesDialog::onDownloadGameBase64);
-    gamebaseButtonLayout->addWidget(downloadGameBase64Button_);
+    gamebaseButtonLayout->addWidget(gameBase64Widgets_.button);
     gamebaseButtonLayout->addStretch();
     gamebaseLayout->addLayout(gamebaseButtonLayout);
 
@@ -361,6 +368,56 @@ void PreferencesDialog::onTestConnectionError(const QString &error)
     }
 }
 
+// ============================================================
+// Shared download helpers
+// ============================================================
+
+void PreferencesDialog::startDownload(DownloadWidgetGroup &group)
+{
+    group.button->setEnabled(false);
+    group.progressBar->setVisible(true);
+    group.progressBar->setValue(0);
+    group.statusLabel->setText(tr("Downloading..."));
+}
+
+void PreferencesDialog::handleDownloadProgress(DownloadWidgetGroup &group, qint64 bytesReceived,
+                                               qint64 bytesTotal)
+{
+    if (bytesTotal > 0) {
+        group.progressBar->setMaximum(static_cast<int>(bytesTotal));
+        group.progressBar->setValue(static_cast<int>(bytesReceived));
+    } else {
+        group.progressBar->setMaximum(0);  // Indeterminate
+    }
+}
+
+void PreferencesDialog::handleDownloadFinished(DownloadWidgetGroup &group, int count)
+{
+    group.button->setEnabled(true);
+    group.progressBar->setVisible(false);
+    group.statusLabel->setText(tr("%1 %2 loaded").arg(count).arg(group.unitName));
+
+    QMessageBox::information(this, tr("Download Complete"),
+                             tr("Successfully downloaded %1.\n%2 %3 loaded.")
+                                 .arg(group.itemName)
+                                 .arg(count)
+                                 .arg(group.unitName));
+}
+
+void PreferencesDialog::handleDownloadFailed(DownloadWidgetGroup &group, const QString &error)
+{
+    group.button->setEnabled(true);
+    group.progressBar->setVisible(false);
+    group.statusLabel->setText(tr("Download failed"));
+
+    QMessageBox::warning(this, tr("Download Failed"),
+                         tr("Failed to download %1:\n%2").arg(group.itemName).arg(error));
+}
+
+// ============================================================
+// SonglengthsDatabase
+// ============================================================
+
 void PreferencesDialog::setSonglengthsDatabase(SonglengthsDatabase *database)
 {
     // Disconnect from any previous database
@@ -381,12 +438,12 @@ void PreferencesDialog::setSonglengthsDatabase(SonglengthsDatabase *database)
 
         // Update status label
         if (songlengthsDatabase_->isLoaded()) {
-            databaseStatusLabel_->setText(
+            dbWidgets_.statusLabel->setText(
                 tr("Database: %1 entries loaded").arg(songlengthsDatabase_->entryCount()));
         } else if (songlengthsDatabase_->hasCachedDatabase()) {
-            databaseStatusLabel_->setText(tr("Database: Cached (not loaded)"));
+            dbWidgets_.statusLabel->setText(tr("Database: Cached (not loaded)"));
         } else {
-            databaseStatusLabel_->setText(tr("Database: Not downloaded"));
+            dbWidgets_.statusLabel->setText(tr("Database: Not downloaded"));
         }
     }
 }
@@ -398,45 +455,28 @@ void PreferencesDialog::onDownloadDatabase()
         return;
     }
 
-    downloadDatabaseButton_->setEnabled(false);
-    databaseProgressBar_->setVisible(true);
-    databaseProgressBar_->setValue(0);
-    databaseStatusLabel_->setText(tr("Downloading..."));
-
+    startDownload(dbWidgets_);
     songlengthsDatabase_->downloadDatabase();
 }
 
 void PreferencesDialog::onDatabaseDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
 {
-    if (bytesTotal > 0) {
-        databaseProgressBar_->setMaximum(static_cast<int>(bytesTotal));
-        databaseProgressBar_->setValue(static_cast<int>(bytesReceived));
-    } else {
-        databaseProgressBar_->setMaximum(0);  // Indeterminate
-    }
+    handleDownloadProgress(dbWidgets_, bytesReceived, bytesTotal);
 }
 
 void PreferencesDialog::onDatabaseDownloadFinished(int entryCount)
 {
-    downloadDatabaseButton_->setEnabled(true);
-    databaseProgressBar_->setVisible(false);
-    databaseStatusLabel_->setText(tr("Database: %1 entries loaded").arg(entryCount));
-
-    QMessageBox::information(
-        this, tr("Download Complete"),
-        tr("Successfully downloaded HVSC Songlengths database.\n%1 entries loaded.")
-            .arg(entryCount));
+    handleDownloadFinished(dbWidgets_, entryCount);
 }
 
 void PreferencesDialog::onDatabaseDownloadFailed(const QString &error)
 {
-    downloadDatabaseButton_->setEnabled(true);
-    databaseProgressBar_->setVisible(false);
-    databaseStatusLabel_->setText(tr("Database: Download failed"));
-
-    QMessageBox::warning(this, tr("Download Failed"),
-                         tr("Failed to download database:\n%1").arg(error));
+    handleDownloadFailed(dbWidgets_, error);
 }
+
+// ============================================================
+// HVSCMetadataService (STIL + BUGlist)
+// ============================================================
 
 void PreferencesDialog::setHVSCMetadataService(HVSCMetadataService *service)
 {
@@ -466,22 +506,22 @@ void PreferencesDialog::setHVSCMetadataService(HVSCMetadataService *service)
 
         // Update STIL status label
         if (hvscMetadataService_->isStilLoaded()) {
-            stilStatusLabel_->setText(
+            stilWidgets_.statusLabel->setText(
                 tr("%1 entries loaded").arg(hvscMetadataService_->stilEntryCount()));
         } else if (hvscMetadataService_->hasCachedStil()) {
-            stilStatusLabel_->setText(tr("Cached (not loaded)"));
+            stilWidgets_.statusLabel->setText(tr("Cached (not loaded)"));
         } else {
-            stilStatusLabel_->setText(tr("Not downloaded"));
+            stilWidgets_.statusLabel->setText(tr("Not downloaded"));
         }
 
         // Update BUGlist status label
         if (hvscMetadataService_->isBuglistLoaded()) {
-            buglistStatusLabel_->setText(
+            buglistWidgets_.statusLabel->setText(
                 tr("%1 entries loaded").arg(hvscMetadataService_->buglistEntryCount()));
         } else if (hvscMetadataService_->hasCachedBuglist()) {
-            buglistStatusLabel_->setText(tr("Cached (not loaded)"));
+            buglistWidgets_.statusLabel->setText(tr("Cached (not loaded)"));
         } else {
-            buglistStatusLabel_->setText(tr("Not downloaded"));
+            buglistWidgets_.statusLabel->setText(tr("Not downloaded"));
         }
     }
 }
@@ -493,43 +533,23 @@ void PreferencesDialog::onDownloadStil()
         return;
     }
 
-    downloadStilButton_->setEnabled(false);
-    stilProgressBar_->setVisible(true);
-    stilProgressBar_->setValue(0);
-    stilStatusLabel_->setText(tr("Downloading..."));
-
+    startDownload(stilWidgets_);
     hvscMetadataService_->downloadStil();
 }
 
 void PreferencesDialog::onStilDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
 {
-    if (bytesTotal > 0) {
-        stilProgressBar_->setMaximum(static_cast<int>(bytesTotal));
-        stilProgressBar_->setValue(static_cast<int>(bytesReceived));
-    } else {
-        stilProgressBar_->setMaximum(0);  // Indeterminate
-    }
+    handleDownloadProgress(stilWidgets_, bytesReceived, bytesTotal);
 }
 
 void PreferencesDialog::onStilDownloadFinished(int entryCount)
 {
-    downloadStilButton_->setEnabled(true);
-    stilProgressBar_->setVisible(false);
-    stilStatusLabel_->setText(tr("%1 entries loaded").arg(entryCount));
-
-    QMessageBox::information(
-        this, tr("Download Complete"),
-        tr("Successfully downloaded STIL database.\n%1 entries loaded.").arg(entryCount));
+    handleDownloadFinished(stilWidgets_, entryCount);
 }
 
 void PreferencesDialog::onStilDownloadFailed(const QString &error)
 {
-    downloadStilButton_->setEnabled(true);
-    stilProgressBar_->setVisible(false);
-    stilStatusLabel_->setText(tr("Download failed"));
-
-    QMessageBox::warning(this, tr("Download Failed"),
-                         tr("Failed to download STIL database:\n%1").arg(error));
+    handleDownloadFailed(stilWidgets_, error);
 }
 
 void PreferencesDialog::onDownloadBuglist()
@@ -540,44 +560,28 @@ void PreferencesDialog::onDownloadBuglist()
         return;
     }
 
-    downloadBuglistButton_->setEnabled(false);
-    buglistProgressBar_->setVisible(true);
-    buglistProgressBar_->setValue(0);
-    buglistStatusLabel_->setText(tr("Downloading..."));
-
+    startDownload(buglistWidgets_);
     hvscMetadataService_->downloadBuglist();
 }
 
 void PreferencesDialog::onBuglistDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
 {
-    if (bytesTotal > 0) {
-        buglistProgressBar_->setMaximum(static_cast<int>(bytesTotal));
-        buglistProgressBar_->setValue(static_cast<int>(bytesReceived));
-    } else {
-        buglistProgressBar_->setMaximum(0);  // Indeterminate
-    }
+    handleDownloadProgress(buglistWidgets_, bytesReceived, bytesTotal);
 }
 
 void PreferencesDialog::onBuglistDownloadFinished(int entryCount)
 {
-    downloadBuglistButton_->setEnabled(true);
-    buglistProgressBar_->setVisible(false);
-    buglistStatusLabel_->setText(tr("%1 entries loaded").arg(entryCount));
-
-    QMessageBox::information(
-        this, tr("Download Complete"),
-        tr("Successfully downloaded BUGlist database.\n%1 entries loaded.").arg(entryCount));
+    handleDownloadFinished(buglistWidgets_, entryCount);
 }
 
 void PreferencesDialog::onBuglistDownloadFailed(const QString &error)
 {
-    downloadBuglistButton_->setEnabled(true);
-    buglistProgressBar_->setVisible(false);
-    buglistStatusLabel_->setText(tr("Download failed"));
-
-    QMessageBox::warning(this, tr("Download Failed"),
-                         tr("Failed to download BUGlist database:\n%1").arg(error));
+    handleDownloadFailed(buglistWidgets_, error);
 }
+
+// ============================================================
+// GameBase64Service
+// ============================================================
 
 void PreferencesDialog::setGameBase64Service(GameBase64Service *service)
 {
@@ -599,12 +603,12 @@ void PreferencesDialog::setGameBase64Service(GameBase64Service *service)
 
         // Update status label
         if (gameBase64Service_->isLoaded()) {
-            gameBase64StatusLabel_->setText(
+            gameBase64Widgets_.statusLabel->setText(
                 tr("%1 games loaded").arg(gameBase64Service_->gameCount()));
         } else if (gameBase64Service_->hasCachedDatabase()) {
-            gameBase64StatusLabel_->setText(tr("Cached (not loaded)"));
+            gameBase64Widgets_.statusLabel->setText(tr("Cached (not loaded)"));
         } else {
-            gameBase64StatusLabel_->setText(tr("Not downloaded"));
+            gameBase64Widgets_.statusLabel->setText(tr("Not downloaded"));
         }
     }
 }
@@ -617,41 +621,21 @@ void PreferencesDialog::onDownloadGameBase64()
         return;
     }
 
-    downloadGameBase64Button_->setEnabled(false);
-    gameBase64ProgressBar_->setVisible(true);
-    gameBase64ProgressBar_->setValue(0);
-    gameBase64StatusLabel_->setText(tr("Downloading..."));
-
+    startDownload(gameBase64Widgets_);
     gameBase64Service_->downloadDatabase();
 }
 
 void PreferencesDialog::onGameBase64DownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
 {
-    if (bytesTotal > 0) {
-        gameBase64ProgressBar_->setMaximum(static_cast<int>(bytesTotal));
-        gameBase64ProgressBar_->setValue(static_cast<int>(bytesReceived));
-    } else {
-        gameBase64ProgressBar_->setMaximum(0);  // Indeterminate
-    }
+    handleDownloadProgress(gameBase64Widgets_, bytesReceived, bytesTotal);
 }
 
 void PreferencesDialog::onGameBase64DownloadFinished(int gameCount)
 {
-    downloadGameBase64Button_->setEnabled(true);
-    gameBase64ProgressBar_->setVisible(false);
-    gameBase64StatusLabel_->setText(tr("%1 games loaded").arg(gameCount));
-
-    QMessageBox::information(
-        this, tr("Download Complete"),
-        tr("Successfully downloaded GameBase64 database.\n%1 games loaded.").arg(gameCount));
+    handleDownloadFinished(gameBase64Widgets_, gameCount);
 }
 
 void PreferencesDialog::onGameBase64DownloadFailed(const QString &error)
 {
-    downloadGameBase64Button_->setEnabled(true);
-    gameBase64ProgressBar_->setVisible(false);
-    gameBase64StatusLabel_->setText(tr("Download failed"));
-
-    QMessageBox::warning(this, tr("Download Failed"),
-                         tr("Failed to download GameBase64 database:\n%1").arg(error));
+    handleDownloadFailed(gameBase64Widgets_, error);
 }

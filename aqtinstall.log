@@ -1,0 +1,53 @@
+2026-03-30 21:02:15,324 - aqt.helper - DEBUG - helper 8351520960 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_6110/qt6_6110/Updates.xml.sha256
+2026-03-30 21:02:15,953 - aqt.helper - DEBUG - helper 8351520960 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_6110/qt6_6110/Updates.xml.sha256
+2026-03-30 21:02:16,569 - aqt.helper - DEBUG - helper 8351520960 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_6110/qt6_6110/Updates.xml.sha256
+2026-03-30 21:02:17,211 - aqt.helper - DEBUG - helper 8351520960 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_6110/qt6_6110/Updates.xml.sha256
+2026-03-30 21:02:17,854 - aqt.helper - DEBUG - helper 8351520960 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_6110/qt6_6110/Updates.xml.sha256
+2026-03-30 21:02:18,481 - aqt.main - ERROR - installer 8351520960 Failed to download checksum for the file 'Updates.xml' from mirrors '['https://download.qt.io']
+==============================Suggested follow-up:==============================
+* Check your internet connection
+* Consider modifying `requests.max_retries_to_retrieve_hash` in settings.ini
+* Consider modifying `mirrors.trusted_mirrors` in settings.ini (see https://aqtinstall.readthedocs.io/en/stable/configuration.html#configuration)
+* Please use 'aqt list-qt windows desktop' to show versions of Qt available.
+2026-03-30 21:02:22,007 - aqt.helper - DEBUG - helper 8351520960 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_6103/qt6_6103/Updates.xml.sha256
+2026-03-30 21:02:26,788 - aqt.helper - DEBUG - helper 8351520960 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/linux_x64/desktop/qt6_6110/qt6_6110/Updates.xml.sha256
+2026-03-30 21:02:28,301 - aqt.helper - DEBUG - helper 8351520960 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/mac_x64/desktop/qt6_6110/qt6_6110/Updates.xml.sha256
+2026-03-30 21:02:38,763 - aqt.helper - DEBUG - helper 8351520960 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_6103/qt6_6103/Updates.xml.sha256
+2026-03-30 21:03:01,590 - aqt.main - INFO - installer 8351520960 aqtinstall(aqt) v3.3.0 on Python 3.9.6 [CPython Clang 21.0.0 (clang-2100.0.123.102)]
+2026-03-30 21:03:02,217 - aqt.main - ERROR - installer 8351520960 'mac-arm64'
+Traceback (most recent call last):
+  File "/Users/svetzal/Library/Python/3.9/lib/python/site-packages/aqt/installer.py", line 203, in run
+    args.func(args)
+  File "/Users/svetzal/Library/Python/3.9/lib/python/site-packages/aqt/installer.py", line 1033, in run_list_qt_commercial
+    installer_filename = get_qt_installer_name()
+  File "/Users/svetzal/Library/Python/3.9/lib/python/site-packages/aqt/helper.py", line 150, in get_qt_installer_name
+    return installer_dict[get_os_arch()]
+KeyError: 'mac-arm64'
+2026-03-30 21:03:02,220 - aqt.main - ERROR - installer 8351520960 aqtinstall(aqt) v3.3.0 on Python 3.9.6 [CPython Clang 21.0.0 (clang-2100.0.123.102)]
+Working dir: `/Users/svetzal/Work/Projects/Personal/r64u`
+Arguments: `['/Users/svetzal/Library/Python/3.9/lib/python/site-packages/aqt/__main__.py', 'list-qt-official', 'windows', 'desktop']` Host: `uname_result(system='Darwin', node='Max-Headroom.local', release='25.4.0', version='Darwin Kernel Version 25.4.0: Thu Mar 19 19:33:25 PDT 2026; root:xnu-12377.101.15~1/RELEASE_ARM64_T6041', machine='arm64')`
+===========================PLEASE FILE A BUG REPORT===========================
+You have discovered a bug in aqt.
+Please file a bug report at https://github.com/miurahr/aqtinstall/issues
+Please remember to include a copy of this program's output in your report.
+2026-03-30 21:03:09,598 - aqt.main - INFO - installer 8351520960 aqtinstall(aqt) v3.3.0 on Python 3.9.6 [CPython Clang 21.0.0 (clang-2100.0.123.102)]
+2026-03-30 21:03:10,293 - aqt.main - ERROR - installer 8351520960 'mac-arm64'
+Traceback (most recent call last):
+  File "/Users/svetzal/Library/Python/3.9/lib/python/site-packages/aqt/installer.py", line 203, in run
+    args.func(args)
+  File "/Users/svetzal/Library/Python/3.9/lib/python/site-packages/aqt/installer.py", line 1033, in run_list_qt_commercial
+    installer_filename = get_qt_installer_name()
+  File "/Users/svetzal/Library/Python/3.9/lib/python/site-packages/aqt/helper.py", line 150, in get_qt_installer_name
+    return installer_dict[get_os_arch()]
+KeyError: 'mac-arm64'
+2026-03-30 21:03:10,296 - aqt.main - ERROR - installer 8351520960 aqtinstall(aqt) v3.3.0 on Python 3.9.6 [CPython Clang 21.0.0 (clang-2100.0.123.102)]
+Working dir: `/Users/svetzal/Work/Projects/Personal/r64u`
+Arguments: `['/Users/svetzal/Library/Python/3.9/lib/python/site-packages/aqt/__main__.py', 'list-qt-official', 'windows', 'desktop']` Host: `uname_result(system='Darwin', node='Max-Headroom.local', release='25.4.0', version='Darwin Kernel Version 25.4.0: Thu Mar 19 19:33:25 PDT 2026; root:xnu-12377.101.15~1/RELEASE_ARM64_T6041', machine='arm64')`
+===========================PLEASE FILE A BUG REPORT===========================
+You have discovered a bug in aqt.
+Please file a bug report at https://github.com/miurahr/aqtinstall/issues
+Please remember to include a copy of this program's output in your report.
+2026-03-30 21:04:36,089 - aqt.helper - DEBUG - helper 8351520960 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_6103/qt6_6103/Updates.xml.sha256
+2026-03-30 21:04:37,654 - aqt.helper - DEBUG - helper 8351520960 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_6103/qt6_6103/Updates.xml.sha256
+2026-03-30 21:04:38,975 - aqt.helper - DEBUG - helper 8351520960 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtpdf/6103/msvc2022_64/Updates.xml.sha256
+2026-03-30 21:04:40,138 - aqt.helper - DEBUG - helper 8351520960 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtwebengine/6103/msvc2022_64/Updates.xml.sha256

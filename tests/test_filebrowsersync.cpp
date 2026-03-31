@@ -349,9 +349,9 @@ private slots:
     void testModelFileTypeInvalidIndex()
     {
         QModelIndex invalid;
-        RemoteFileModel::FileType type = model->fileType(invalid);
+        filetype::FileType type = model->fileType(invalid);
         // Invalid index returns root node which is a directory
-        QCOMPARE(type, RemoteFileModel::FileType::Directory);
+        QCOMPARE(type, filetype::FileType::Directory);
     }
 
     // =========================================================================
@@ -361,37 +361,36 @@ private slots:
     // Test SID file detection
     void testFileTypeDetectionSid()
     {
-        QCOMPARE(RemoteFileModel::detectFileType("music.sid"), RemoteFileModel::FileType::SidMusic);
-        QCOMPARE(RemoteFileModel::detectFileType("MUSIC.SID"), RemoteFileModel::FileType::SidMusic);
+        QCOMPARE(RemoteFileModel::detectFileType("music.sid"), filetype::FileType::SidMusic);
+        QCOMPARE(RemoteFileModel::detectFileType("MUSIC.SID"), filetype::FileType::SidMusic);
     }
 
     // Test PRG file detection
     void testFileTypeDetectionPrg()
     {
-        QCOMPARE(RemoteFileModel::detectFileType("game.prg"), RemoteFileModel::FileType::Program);
-        QCOMPARE(RemoteFileModel::detectFileType("GAME.PRG"), RemoteFileModel::FileType::Program);
+        QCOMPARE(RemoteFileModel::detectFileType("game.prg"), filetype::FileType::Program);
+        QCOMPARE(RemoteFileModel::detectFileType("GAME.PRG"), filetype::FileType::Program);
     }
 
     // Test D64 file detection
     void testFileTypeDetectionD64()
     {
-        QCOMPARE(RemoteFileModel::detectFileType("disk.d64"), RemoteFileModel::FileType::DiskImage);
-        QCOMPARE(RemoteFileModel::detectFileType("DISK.D64"), RemoteFileModel::FileType::DiskImage);
+        QCOMPARE(RemoteFileModel::detectFileType("disk.d64"), filetype::FileType::DiskImage);
+        QCOMPARE(RemoteFileModel::detectFileType("DISK.D64"), filetype::FileType::DiskImage);
     }
 
     // Test CRT file detection
     void testFileTypeDetectionCrt()
     {
-        QCOMPARE(RemoteFileModel::detectFileType("cart.crt"), RemoteFileModel::FileType::Cartridge);
-        QCOMPARE(RemoteFileModel::detectFileType("CART.CRT"), RemoteFileModel::FileType::Cartridge);
+        QCOMPARE(RemoteFileModel::detectFileType("cart.crt"), filetype::FileType::Cartridge);
+        QCOMPARE(RemoteFileModel::detectFileType("CART.CRT"), filetype::FileType::Cartridge);
     }
 
     // Test unknown file type
     void testFileTypeDetectionUnknown()
     {
-        QCOMPARE(RemoteFileModel::detectFileType("file.xyz"), RemoteFileModel::FileType::Unknown);
-        QCOMPARE(RemoteFileModel::detectFileType("noextension"),
-                 RemoteFileModel::FileType::Unknown);
+        QCOMPARE(RemoteFileModel::detectFileType("file.xyz"), filetype::FileType::Unknown);
+        QCOMPARE(RemoteFileModel::detectFileType("noextension"), filetype::FileType::Unknown);
     }
 };
 

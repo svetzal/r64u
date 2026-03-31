@@ -10,15 +10,17 @@
 #ifndef FILETYPECORE_H
 #define FILETYPECORE_H
 
+#include <QMetaType>
 #include <QString>
 
 namespace filetype {
 
+Q_NAMESPACE
+
 /**
  * @brief C64 ecosystem file types recognized by the application.
  *
- * Mirrors the FileType enums in RemoteFileModel and LocalFileProxyModel.
- * This namespace is the canonical definition; those classes delegate to it.
+ * Canonical definition used throughout the application.
  */
 enum class FileType {
     Unknown,
@@ -32,6 +34,7 @@ enum class FileType {
     Rom,
     Config
 };
+Q_ENUM_NS(FileType)
 
 /**
  * @brief Capabilities that can be performed on a given file type.

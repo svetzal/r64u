@@ -17,21 +17,6 @@ class RemoteFileModel : public QAbstractItemModel
 public:
     enum Roles { FilePathRole = Qt::UserRole + 1, IsDirectoryRole, FileSizeRole, FileTypeRole };
 
-    // Mirrors filetype::FileType — see filetypecore.h for the canonical definition
-    enum class FileType {
-        Unknown,
-        Directory,
-        SidMusic,
-        ModMusic,
-        Program,
-        Cartridge,
-        DiskImage,
-        TapeImage,
-        Rom,
-        Config
-    };
-    Q_ENUM(FileType)
-
     explicit RemoteFileModel(QObject *parent = nullptr);
     ~RemoteFileModel() override;
 
@@ -57,7 +42,7 @@ public:
 
     QString filePath(const QModelIndex &index) const;
     bool isDirectory(const QModelIndex &index) const;
-    FileType fileType(const QModelIndex &index) const;
+    filetype::FileType fileType(const QModelIndex &index) const;
     qint64 fileSize(const QModelIndex &index) const;
 
     void refresh();
@@ -108,9 +93,9 @@ public:
      */
     void refreshIfStale();
 
-    static FileType detectFileType(const QString &filename);
-    static QIcon iconForFileType(FileType type);
-    static QString fileTypeString(FileType type);
+    static filetype::FileType detectFileType(const QString &filename);
+    static QIcon iconForFileType(filetype::FileType type);
+    static QString fileTypeString(filetype::FileType type);
 
 signals:
     void loadingStarted(const QString &path);
@@ -128,7 +113,7 @@ private:
         QString fullPath;
         bool isDirectory = false;
         qint64 size = 0;
-        FileType fileType = FileType::Unknown;
+        filetype::FileType fileType = filetype::FileType::Unknown;
 
         TreeNode *parent = nullptr;
         QList<TreeNode *> children;

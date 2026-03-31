@@ -17,21 +17,6 @@ class LocalFileProxyModel : public QSortFilterProxyModel
     Q_OBJECT
 
 public:
-    // Mirrors filetype::FileType — see filetypecore.h for the canonical definition
-    /// File types recognized by the local file browser (matches RemoteFileModel)
-    enum class FileType {
-        Unknown,
-        Directory,
-        SidMusic,
-        ModMusic,
-        Program,
-        Cartridge,
-        DiskImage,
-        TapeImage,
-        Rom,
-        Config
-    };
-
     explicit LocalFileProxyModel(QObject *parent = nullptr);
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
@@ -43,8 +28,8 @@ protected:
 
 private:
     QFileSystemModel *sourceFileModel() const;
-    static FileType detectFileType(const QString &filename);
-    static QString fileTypeString(FileType type);
+    static filetype::FileType detectFileType(const QString &filename);
+    static QString fileTypeString(filetype::FileType type);
 };
 
 #endif  // LOCALFILEPROXYMODEL_H
