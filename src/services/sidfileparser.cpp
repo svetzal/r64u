@@ -1,10 +1,10 @@
 #include "sidfileparser.h"
 
-#include <QFileInfo>
+#include "filetypecore.h"
 
 bool SidFileParser::isSidFile(const QString &path)
 {
-    return path.toLower().endsWith(".sid");
+    return filetype::detectFromFilename(path) == filetype::FileType::SidMusic;
 }
 
 SidFileParser::SidInfo SidFileParser::parse(const QByteArray &data)

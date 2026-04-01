@@ -5,29 +5,28 @@
 
 #include "fileactioncore.h"
 
+#include "filetypecore.h"
+
 namespace fileaction {
 
 PreviewContentType detectPreviewType(const QString &filename)
 {
-    QString lower = filename.toLower();
-
-    // Disk image formats
-    if (lower.endsWith(".d64") || lower.endsWith(".d71") || lower.endsWith(".d81") ||
-        lower.endsWith(".g64") || lower.endsWith(".g71")) {
+    // Delegate disk image and SID detection to the canonical authority
+    filetype::FileType type = filetype::detectFromFilename(filename);
+    if (type == filetype::FileType::DiskImage) {
         return PreviewContentType::DiskImage;
     }
-
-    // SID music formats
-    if (lower.endsWith(".sid") || lower.endsWith(".psid") || lower.endsWith(".rsid")) {
+    if (type == filetype::FileType::SidMusic) {
         return PreviewContentType::SidMusic;
     }
 
-    // HTML formats
+    // HTML and plain text are preview-specific types not in the filetype enum
+    QString lower = filename.toLower();
+
     if (lower.endsWith(".html") || lower.endsWith(".htm")) {
         return PreviewContentType::Html;
     }
 
-    // Plain text / config formats
     if (lower.endsWith(".cfg") || lower.endsWith(".txt") || lower.endsWith(".log") ||
         lower.endsWith(".ini") || lower.endsWith(".md") || lower.endsWith(".json") ||
         lower.endsWith(".xml")) {

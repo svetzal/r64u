@@ -28,15 +28,7 @@ C64UFtpClient::C64UFtpClient(QObject *parent)
 C64UFtpClient::~C64UFtpClient()
 {
     // Clean up any file handles in queued commands
-    // unique_ptr handles cleanup automatically when commandQueue_ is cleared
-    while (!commandQueue_.isEmpty()) {
-        PendingCommand cmd = std::move(commandQueue_.head());
-        commandQueue_.dequeue();
-        if (cmd.transferFile) {
-            cmd.transferFile->close();
-        }
-        // unique_ptr automatically deletes when cmd goes out of scope
-    }
+    drainCommandQueue();
 
     // Close files - shared_ptr handles deletion automatically
     if (transferFile_) {
@@ -276,29 +268,10 @@ void C64UFtpClient::onControlDisconnected()
     connectionTimer_->stop();
 
     // Clear command queue to prevent stale commands executing on reconnection
-    while (!commandQueue_.isEmpty()) {
-        PendingCommand cmd = std::move(commandQueue_.head());
-        commandQueue_.dequeue();
-        if (cmd.transferFile) {
-            cmd.transferFile->close();
-        }
-    }
+    drainCommandQueue();
 
     // Clear any pending transfer state
-    if (currentRetrFile_) {
-        currentRetrFile_->close();
-        currentRetrFile_.reset();
-    }
-    if (currentStorFile_) {
-        currentStorFile_->close();
-        currentStorFile_.reset();
-    }
-    currentRetrIsMemory_ = false;
-    pendingList_.reset();
-    if (pendingRetr_ && pendingRetr_->file) {
-        pendingRetr_->file->close();
-    }
-    pendingRetr_.reset();
+    resetTransferState();
 
     loggedIn_ = false;
     setState(State::Disconnected);
@@ -313,29 +286,10 @@ void C64UFtpClient::onControlError(QAbstractSocket::SocketError socketError)
     connectionTimer_->stop();
 
     // Clear command queue to prevent stale commands executing on reconnection
-    while (!commandQueue_.isEmpty()) {
-        PendingCommand cmd = std::move(commandQueue_.head());
-        commandQueue_.dequeue();
-        if (cmd.transferFile) {
-            cmd.transferFile->close();
-        }
-    }
+    drainCommandQueue();
 
     // Clear any pending transfer state
-    if (currentRetrFile_) {
-        currentRetrFile_->close();
-        currentRetrFile_.reset();
-    }
-    if (currentStorFile_) {
-        currentStorFile_->close();
-        currentStorFile_.reset();
-    }
-    currentRetrIsMemory_ = false;
-    pendingList_.reset();
-    if (pendingRetr_ && pendingRetr_->file) {
-        pendingRetr_->file->close();
-    }
-    pendingRetr_.reset();
+    resetTransferState();
 
     loggedIn_ = false;
     emit error(controlSocket_->errorString());
@@ -349,14 +303,8 @@ void C64UFtpClient::onConnectionTimeout()
     // Abort the connection attempt
     controlSocket_->abort();
 
-    // Clear any pending state
-    while (!commandQueue_.isEmpty()) {
-        PendingCommand cmd = std::move(commandQueue_.head());
-        commandQueue_.dequeue();
-        if (cmd.transferFile) {
-            cmd.transferFile->close();
-        }
-    }
+    // Clear command queue
+    drainCommandQueue();
 
     loggedIn_ = false;
     setState(State::Disconnected);
@@ -691,6 +639,35 @@ void C64UFtpClient::handleBusyResponse(int code, const QString &text)
     }
 }
 
+void C64UFtpClient::drainCommandQueue()
+{
+    while (!commandQueue_.isEmpty()) {
+        PendingCommand cmd = std::move(commandQueue_.head());
+        commandQueue_.dequeue();
+        if (cmd.transferFile) {
+            cmd.transferFile->close();
+        }
+    }
+}
+
+void C64UFtpClient::resetTransferState()
+{
+    if (currentRetrFile_) {
+        currentRetrFile_->close();
+        currentRetrFile_.reset();
+    }
+    if (currentStorFile_) {
+        currentStorFile_->close();
+        currentStorFile_.reset();
+    }
+    currentRetrIsMemory_ = false;
+    pendingList_.reset();
+    if (pendingRetr_ && pendingRetr_->file) {
+        pendingRetr_->file->close();
+    }
+    pendingRetr_.reset();
+}
+
 void C64UFtpClient::onDataConnected()
 {
     qDebug() << "FTP: Data socket connected to" << dataSocket_->peerAddress().toString() << ":"
@@ -911,15 +888,7 @@ void C64UFtpClient::rename(const QString &oldPath, const QString &newPath)
 void C64UFtpClient::abort()
 {
     // Clean up any file handles in queued commands
-    // shared_ptr handles cleanup automatically
-    while (!commandQueue_.isEmpty()) {
-        PendingCommand cmd = std::move(commandQueue_.head());
-        commandQueue_.dequeue();
-        if (cmd.transferFile) {
-            cmd.transferFile->close();
-        }
-        // shared_ptr automatically deletes when cmd goes out of scope
-    }
+    drainCommandQueue();
 
     if (dataSocket_->state() != QAbstractSocket::UnconnectedState) {
         dataSocket_->abort();
@@ -931,25 +900,8 @@ void C64UFtpClient::abort()
         transferFile_.reset();
     }
 
-    // Clean up current STOR state
-    if (currentStorFile_) {
-        currentStorFile_->close();
-        currentStorFile_.reset();
-    }
-
-    // Clean up current RETR state
-    if (currentRetrFile_) {
-        currentRetrFile_->close();
-        currentRetrFile_.reset();
-    }
-    currentRetrIsMemory_ = false;
-
-    // Clear pending state - RAII structs make this simple
-    pendingList_.reset();
-    if (pendingRetr_ && pendingRetr_->file) {
-        pendingRetr_->file->close();
-    }
-    pendingRetr_.reset();
+    // Clear current and pending transfer state
+    resetTransferState();
     listBuffer_.clear();
     retrBuffer_.clear();
 

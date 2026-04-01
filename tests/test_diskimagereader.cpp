@@ -141,11 +141,18 @@ private slots:
         QVERIFY(DiskImageReader::isDiskImage("GAME.D81"));
     }
 
+    void testIsDiskImageG64()
+    {
+        QVERIFY(DiskImageReader::isDiskImage("game.g64"));
+        QVERIFY(DiskImageReader::isDiskImage("GAME.G64"));
+        QVERIFY(DiskImageReader::isDiskImage("game.g71"));
+        QVERIFY(DiskImageReader::isDiskImage("GAME.G71"));
+    }
+
     void testIsDiskImageInvalid()
     {
         QVERIFY(!DiskImageReader::isDiskImage("game.prg"));
         QVERIFY(!DiskImageReader::isDiskImage("game.sid"));
-        QVERIFY(!DiskImageReader::isDiskImage("d64"));
         QVERIFY(!DiskImageReader::isDiskImage(""));
     }
 

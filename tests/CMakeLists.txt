@@ -212,6 +212,7 @@ endif()
 add_executable(test_sidfileparser
     test_sidfileparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/sidfileparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
 )
 
 target_include_directories(test_sidfileparser PRIVATE
@@ -265,6 +266,7 @@ add_executable(test_diskimagereader
     test_diskimagereader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/diskimagereader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/petsciiconverter.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
 )
 
 target_include_directories(test_diskimagereader PRIVATE
@@ -482,6 +484,7 @@ endif()
 # FilePreview strategy tests
 add_executable(test_filepreviewstrategies
     test_filepreviewstrategies.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/c64previewbase.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filepreview/filepreviewfactory.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filepreview/textfilepreview.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filepreview/diskimagepreview.cpp
@@ -490,6 +493,8 @@ add_executable(test_filepreviewstrategies
     ${CMAKE_SOURCE_DIR}/src/services/diskimagereader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/sidfileparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/petsciiconverter.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
 )
 
 target_include_directories(test_filepreviewstrategies BEFORE PRIVATE
@@ -911,6 +916,7 @@ endif()
 add_executable(test_fileactioncore
     test_fileactioncore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
 )
 
 target_include_directories(test_fileactioncore PRIVATE
@@ -956,6 +962,7 @@ add_executable(test_filemetadatacore
     test_filemetadatacore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filemetadatacore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/sidfileparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp

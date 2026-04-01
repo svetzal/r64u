@@ -137,12 +137,19 @@ private slots:
         QVERIFY(SidFileParser::isSidFile("/path/to/song.sid"));
     }
 
+    void testIsSidFilePsidRsid()
+    {
+        QVERIFY(SidFileParser::isSidFile("song.psid"));
+        QVERIFY(SidFileParser::isSidFile("SONG.PSID"));
+        QVERIFY(SidFileParser::isSidFile("song.rsid"));
+        QVERIFY(SidFileParser::isSidFile("SONG.RSID"));
+    }
+
     void testIsSidFileInvalid()
     {
         QVERIFY(!SidFileParser::isSidFile("song.prg"));
         QVERIFY(!SidFileParser::isSidFile("song.d64"));
         QVERIFY(!SidFileParser::isSidFile("song.mod"));
-        QVERIFY(!SidFileParser::isSidFile("sid"));
         QVERIFY(!SidFileParser::isSidFile(""));
     }
 

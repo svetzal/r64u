@@ -58,6 +58,7 @@ set(SOURCES
     src/ui/viewpanel.cpp
     src/ui/configpanel.cpp
     src/ui/playlistwidget.cpp
+    src/ui/filepreview/c64previewbase.cpp
     src/ui/filepreview/textfilepreview.cpp
     src/ui/filepreview/diskimagepreview.cpp
     src/ui/filepreview/sidfilepreview.cpp
@@ -139,6 +140,7 @@ set(HEADERS
     src/ui/configpanel.h
     src/ui/playlistwidget.h
     src/ui/filepreview/filepreviewstrategy.h
+    src/ui/filepreview/c64previewbase.h
     src/ui/filepreview/textfilepreview.h
     src/ui/filepreview/diskimagepreview.h
     src/ui/filepreview/sidfilepreview.h

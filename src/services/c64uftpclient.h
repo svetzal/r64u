@@ -319,6 +319,8 @@ private:
     void processNextCommand();
     void handleResponse(int code, const QString &text);
     void handleBusyResponse(int code, const QString &text);
+    void drainCommandQueue();
+    void resetTransferState();
 
 private:
     // Network connections

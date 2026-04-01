@@ -1,13 +1,13 @@
 #include "diskimagereader.h"
 
+#include "filetypecore.h"
 #include "petsciiconverter.h"
 
 DiskImageReader::DiskImageReader() = default;
 
 bool DiskImageReader::isDiskImage(const QString &filename)
 {
-    QString lower = filename.toLower();
-    return lower.endsWith(".d64") || lower.endsWith(".d71") || lower.endsWith(".d81");
+    return filetype::detectFromFilename(filename) == filetype::FileType::DiskImage;
 }
 
 DiskImageReader::DiskDirectory DiskImageReader::parse(const QByteArray &data,
