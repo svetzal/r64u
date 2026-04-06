@@ -26,6 +26,7 @@ class ExplorePanel;
 class TransferPanel;
 class ViewPanel;
 class ConfigPanel;
+class SystemCommandController;
 
 class MainWindow : public QMainWindow
 {
@@ -44,14 +45,7 @@ private slots:
     void onDisconnect();
 
     // System control slots
-    void onReset();
-    void onReboot();
-    void onPause();
-    void onResume();
-    void onMenuButton();
     void onPowerOff();
-    void onEjectDriveA();
-    void onEjectDriveB();
 
     // Connection slots
     void onConnectionStateChanged();
@@ -98,6 +92,8 @@ private:
     HVSCMetadataService *hvscMetadataService_ = nullptr;
     HttpFileDownloader *gameBase64Downloader_ = nullptr;
     GameBase64Service *gameBase64Service_ = nullptr;
+
+    SystemCommandController *systemCommandController_ = nullptr;
 
     // Central widget
     QTabWidget *modeTabWidget_ = nullptr;

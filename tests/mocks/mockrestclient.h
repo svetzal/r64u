@@ -43,18 +43,22 @@ public:
     void runPrg(const QString &) override {}
     void runCrt(const QString &) override {}
 
-    // IRestClient interface - drive control (no-op stubs)
+    // IRestClient interface - drive control
     void mountImage(const QString &, const QString &, const QString & = "readwrite") override {}
-    void unmountImage(const QString &) override {}
+    void unmountImage(const QString &drive) override
+    {
+        ++unmountImageCalls_;
+        lastUnmountDrive_ = drive;
+    }
     void resetDrive(const QString &) override {}
 
-    // IRestClient interface - machine control (no-op stubs)
-    void resetMachine() override {}
-    void rebootMachine() override {}
-    void pauseMachine() override {}
-    void resumeMachine() override {}
-    void powerOffMachine() override {}
-    void pressMenuButton() override {}
+    // IRestClient interface - machine control
+    void resetMachine() override { ++resetMachineCalls_; }
+    void rebootMachine() override { ++rebootMachineCalls_; }
+    void pauseMachine() override { ++pauseMachineCalls_; }
+    void resumeMachine() override { ++resumeMachineCalls_; }
+    void powerOffMachine() override { ++powerOffMachineCalls_; }
+    void pressMenuButton() override { ++pressMenuButtonCalls_; }
     void writeMem(const QString &address, const QByteArray &data) override;
     void typeText(const QString &text) override;
 
@@ -90,6 +94,14 @@ public:
     [[nodiscard]] QByteArray mockLastWriteMemData() const { return lastWriteMemData_; }
     [[nodiscard]] QString mockLastTypeTextArg() const { return lastTypeText_; }
     [[nodiscard]] QJsonObject mockLastUpdateConfigsBatchArg() const { return lastConfigsBatch_; }
+    [[nodiscard]] int mockResetMachineCallCount() const { return resetMachineCalls_; }
+    [[nodiscard]] int mockRebootMachineCallCount() const { return rebootMachineCalls_; }
+    [[nodiscard]] int mockPauseMachineCallCount() const { return pauseMachineCalls_; }
+    [[nodiscard]] int mockResumeMachineCallCount() const { return resumeMachineCalls_; }
+    [[nodiscard]] int mockPressMenuButtonCallCount() const { return pressMenuButtonCalls_; }
+    [[nodiscard]] int mockPowerOffMachineCallCount() const { return powerOffMachineCalls_; }
+    [[nodiscard]] int mockUnmountImageCallCount() const { return unmountImageCalls_; }
+    [[nodiscard]] QString mockLastUnmountDrive() const { return lastUnmountDrive_; }
     /// @}
 
 private:
@@ -99,10 +111,18 @@ private:
     int getDrivesCalls_ = 0;
     int writeMemCalls_ = 0;
     int typeTextCalls_ = 0;
+    int resetMachineCalls_ = 0;
+    int rebootMachineCalls_ = 0;
+    int pauseMachineCalls_ = 0;
+    int resumeMachineCalls_ = 0;
+    int powerOffMachineCalls_ = 0;
+    int pressMenuButtonCalls_ = 0;
+    int unmountImageCalls_ = 0;
     QString lastWriteMemAddress_;
     QByteArray lastWriteMemData_;
     QString lastTypeText_;
     QJsonObject lastConfigsBatch_;
+    QString lastUnmountDrive_;
 };
 
 #endif  // MOCKRESTCLIENT_H

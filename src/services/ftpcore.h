@@ -34,6 +34,24 @@ struct PassiveResult
     quint16 port;  ///< Port number decoded from the two port bytes
 };
 
+/**
+ * @brief A single parsed FTP response line.
+ */
+struct FtpResponseLine
+{
+    int code;      ///< Three-digit FTP response code
+    QString text;  ///< Response text following the code
+};
+
+/**
+ * @brief Result of splitting a raw FTP control-channel buffer into response lines.
+ */
+struct FtpResponseParse
+{
+    QList<FtpResponseLine> lines;  ///< Complete, non-continuation response lines
+    QString remainingBuffer;       ///< Bytes that did not form a complete line
+};
+
 // ---------------------------------------------------------------------------
 // Protocol parsing
 // ---------------------------------------------------------------------------
@@ -62,6 +80,30 @@ struct PassiveResult
  * @return List of parsed entries (may be empty).
  */
 [[nodiscard]] QList<FtpEntry> parseDirectoryListing(const QByteArray &data);
+
+/**
+ * @brief Extracts the quoted path from a 257 PWD response text.
+ *
+ * Expects text of the form @c "\"/path/to/dir\" is current directory".
+ * Extracts the first double-quoted substring.
+ *
+ * @param text The response text portion of a 257 reply (everything after the code).
+ * @return The extracted path, or std::nullopt if no quoted path is found.
+ */
+[[nodiscard]] std::optional<QString> parsePwdResponse(const QString &text);
+
+/**
+ * @brief Splits a raw FTP control-channel buffer into complete response lines.
+ *
+ * Lines are delimited by @c \\r\\n.  Multi-line continuation lines (where the
+ * fourth character is @c '-') are consumed but not returned.  Any trailing
+ * bytes that do not yet form a complete line are returned in
+ * FtpResponseParse::remainingBuffer.
+ *
+ * @param buffer Accumulated bytes from the control socket (may be partial).
+ * @return Parsed lines and the unconsumed remainder of the buffer.
+ */
+[[nodiscard]] FtpResponseParse splitResponseLines(const QString &buffer);
 
 }  // namespace ftp
 

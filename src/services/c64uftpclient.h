@@ -9,11 +9,12 @@
 #ifndef C64UFTPCLIENT_H
 #define C64UFTPCLIENT_H
 
+#include "ftpcommandqueue.h"
+#include "ftptransferstate.h"
 #include "iftpclient.h"
 
 #include <QDateTime>
 #include <QFile>
-#include <QQueue>
 #include <QTcpSocket>
 #include <QTimer>
 
@@ -262,51 +263,8 @@ private slots:
     void onDataError(QAbstractSocket::SocketError error);
 
 private:
-    enum class Command {
-        None,
-        User,
-        Pass,
-        Pwd,
-        Cwd,
-        Type,
-        Pasv,
-        List,
-        Retr,
-        Stor,
-        Mkd,
-        Rmd,
-        Dele,
-        RnFr,
-        RnTo,
-        Quit
-    };
-
-    struct PendingCommand
-    {
-        Command cmd;
-        QString arg;
-        QString localPath;  // For transfers
-        // For RETR commands - store transfer state with the command
-        // so it's not corrupted by concurrent operations
-        std::shared_ptr<QFile> transferFile;
-        bool isMemoryDownload = false;
-    };
-
-    // RAII struct for pending LIST state - cleared with single reset()
-    struct PendingListState
-    {
-        QString path;
-        QByteArray buffer;  // Save buffer when 226 arrives before data socket closes
-    };
-
-    // RAII struct for pending RETR state - cleared with single reset()
-    struct PendingRetrState
-    {
-        QString remotePath;
-        QString localPath;
-        std::shared_ptr<QFile> file;
-        bool isMemory = false;
-    };
+    using Command = FtpCommandQueue::Command;
+    using PendingCommand = FtpCommandQueue::PendingCommand;
 
     void setState(State state);
     void sendCommand(const QString &command);
@@ -343,23 +301,11 @@ private:
     Command currentCommand_ = Command::None;
     QString currentArg_;
     QString currentLocalPath_;
-    QQueue<PendingCommand> commandQueue_;
+    FtpCommandQueue commandQueue_;
     QString responseBuffer_;
 
-    // Data transfer state - separate buffers for LIST and RETR to prevent corruption
-    QByteArray listBuffer_;  // Buffer for LIST (directory listing) data
-    QByteArray retrBuffer_;  // Buffer for RETR (file download to memory) data
-    qint64 transferSize_ = 0;
-    bool downloading_ = false;
-    std::shared_ptr<QFile> transferFile_;     // Legacy - no longer used for STOR
-    std::shared_ptr<QFile> currentRetrFile_;  // Current RETR command file
-    std::shared_ptr<QFile> currentStorFile_;  // Current STOR command file
-    bool currentRetrIsMemory_ = false;
-
-    // Pending operation state
-    // Using optional allows clearing all state with single reset()
-    std::optional<PendingListState> pendingList_;  // LIST command completion
-    std::optional<PendingRetrState> pendingRetr_;  // RETR command completion
+    // Data transfer state
+    FtpTransferState transferState_;
 };
 
 #endif  // C64UFTPCLIENT_H

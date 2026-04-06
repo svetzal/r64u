@@ -139,6 +139,8 @@ add_executable(test_deviceconnection
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
 )
 
 target_include_directories(test_deviceconnection PRIVATE
@@ -380,6 +382,8 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
@@ -459,6 +463,8 @@ add_executable(test_c64uftpclient_protocol
     test_c64uftpclient_protocol.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
 )
 
@@ -516,6 +522,45 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_filepreviewstrategies)
 endif()
 
+# FtpResponseParser tests - pure FTP response parsing functions (in ftpcore)
+add_executable(test_ftpresponseparser
+    test_ftpresponseparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+)
+target_include_directories(test_ftpresponseparser PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ftpresponseparser PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME FtpResponseParserTest COMMAND test_ftpresponseparser)
+if(BUILD_COVERAGE)
+    add_coverage_target(ftpresponseparser test_ftpresponseparser)
+    add_dependencies(coverage coverage_ftpresponseparser)
+endif()
+
+# FtpCommandQueue tests
+add_executable(test_ftpcommandqueue
+    test_ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+)
+target_include_directories(test_ftpcommandqueue PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ftpcommandqueue PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME FtpCommandQueueTest COMMAND test_ftpcommandqueue)
+if(BUILD_COVERAGE)
+    add_coverage_target(ftpcommandqueue test_ftpcommandqueue)
+    add_dependencies(coverage coverage_ftpcommandqueue)
+endif()
+
+# FtpTransferState tests
+add_executable(test_ftptransferstate
+    test_ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+)
+target_include_directories(test_ftptransferstate PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ftptransferstate PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME FtpTransferStateTest COMMAND test_ftptransferstate)
+if(BUILD_COVERAGE)
+    add_coverage_target(ftptransferstate test_ftptransferstate)
+    add_dependencies(coverage coverage_ftptransferstate)
+endif()
+
 # Real Device Download integration test (optional - requires actual hardware)
 # Build only when BUILD_INTEGRATION_TESTS is ON
 option(BUILD_INTEGRATION_TESTS "Build integration tests that require real hardware" OFF)
@@ -524,6 +569,9 @@ if(BUILD_INTEGRATION_TESTS)
     add_executable(test_realdevice_download
         integration/test_realdevice_download.cpp
         ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
         ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
         ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
@@ -749,6 +797,8 @@ add_executable(test_streamingmanager
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamingmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamcontrolclient.cpp
@@ -1268,4 +1318,53 @@ add_test(NAME VideoRecordingServiceTest COMMAND test_videorecordingservice)
 if(BUILD_COVERAGE)
     add_coverage_target(videorecordingservice test_videorecordingservice)
     add_dependencies(coverage coverage_videorecordingservice)
+endif()
+
+# FileBrowserCore tests - pure file browser action routing, no I/O dependencies
+add_executable(test_filebrowsercore
+    test_filebrowsercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filebrowsercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+)
+target_include_directories(test_filebrowsercore PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_filebrowsercore PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME FileBrowserCoreTest COMMAND test_filebrowsercore)
+if(BUILD_COVERAGE)
+    add_coverage_target(filebrowsercore test_filebrowsercore)
+    add_dependencies(coverage coverage_filebrowsercore)
+endif()
+
+# FavoritesUICore tests - pure favorites display logic, no I/O dependencies
+add_executable(test_favoritesuicore
+    test_favoritesuicore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/favoritesuicore.cpp
+)
+target_include_directories(test_favoritesuicore PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_favoritesuicore PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME FavoritesUICoreTest COMMAND test_favoritesuicore)
+if(BUILD_COVERAGE)
+    add_coverage_target(favoritesuicore test_favoritesuicore)
+    add_dependencies(coverage coverage_favoritesuicore)
+endif()
+
+# SystemCommandController tests
+add_executable(test_systemcommandcontroller
+    test_systemcommandcontroller.cpp
+    mocks/mockrestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/systemcommandcontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
+)
+target_include_directories(test_systemcommandcontroller PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_systemcommandcontroller PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+add_test(NAME SystemCommandControllerTest COMMAND test_systemcommandcontroller)
+if(BUILD_COVERAGE)
+    add_coverage_target(systemcommandcontroller test_systemcommandcontroller)
+    add_dependencies(coverage coverage_systemcommandcontroller)
 endif()

@@ -64,8 +64,16 @@ void MockRestClient::mockReset()
     getDrivesCalls_ = 0;
     writeMemCalls_ = 0;
     typeTextCalls_ = 0;
+    resetMachineCalls_ = 0;
+    rebootMachineCalls_ = 0;
+    pauseMachineCalls_ = 0;
+    resumeMachineCalls_ = 0;
+    powerOffMachineCalls_ = 0;
+    pressMenuButtonCalls_ = 0;
+    unmountImageCalls_ = 0;
     lastWriteMemAddress_.clear();
     lastWriteMemData_.clear();
     lastTypeText_.clear();
     lastConfigsBatch_ = QJsonObject();
+    lastUnmountDrive_.clear();
 }

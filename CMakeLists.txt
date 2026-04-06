@@ -89,12 +89,16 @@ set(SOURCES
     src/services/sidfileparser.cpp
     src/services/favoritesmanager.cpp
     src/services/favoritescore.cpp
+    src/services/favoritesuicore.cpp
+    src/services/filebrowsercore.cpp
     src/services/fileactioncore.cpp
     src/services/filetypecore.cpp
     src/services/diskbootsequencecore.cpp
     src/services/diskbootsequenceservice.cpp
     src/services/filemetadatacore.cpp
     src/services/ftpcore.cpp
+    src/services/ftpcommandqueue.cpp
+    src/services/ftptransferstate.cpp
     src/services/streamprotocolcore.cpp
     src/services/restresponsecore.cpp
     src/services/audiostreamcore.cpp
@@ -110,6 +114,8 @@ set(SOURCES
     src/services/hvscparser.cpp
     src/services/hvscmetadataservice.cpp
     src/services/gamebase64service.cpp
+    src/services/servicefactory.cpp
+    src/services/systemcommandcontroller.cpp
     src/services/streamingdiagnostics.cpp
     src/ui/streamingdiagnosticswidget.cpp
     src/models/remotefilemodel.cpp
@@ -174,12 +180,16 @@ set(HEADERS
     src/services/sidfileparser.h
     src/services/favoritesmanager.h
     src/services/favoritescore.h
+    src/services/favoritesuicore.h
+    src/services/filebrowsercore.h
     src/services/fileactioncore.h
     src/services/filetypecore.h
     src/services/diskbootsequencecore.h
     src/services/diskbootsequenceservice.h
     src/services/filemetadatacore.h
     src/services/ftpcore.h
+    src/services/ftpcommandqueue.h
+    src/services/ftptransferstate.h
     src/services/streamprotocolcore.h
     src/services/restresponsecore.h
     src/services/audiostreamcore.h
@@ -193,6 +203,8 @@ set(HEADERS
     src/services/songlengthsdatabase.h
     src/services/hvscmetadataservice.h
     src/services/gamebase64service.h
+    src/services/servicefactory.h
+    src/services/systemcommandcontroller.h
     src/services/streamingdiagnostics.h
     src/ui/streamingdiagnosticswidget.h
     src/utils/rollingstats.h

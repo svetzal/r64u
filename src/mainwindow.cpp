@@ -13,9 +13,11 @@
 #include "services/hvscmetadataservice.h"
 #include "services/irestclient.h"
 #include "services/playlistmanager.h"
+#include "services/servicefactory.h"
 #include "services/songlengthsdatabase.h"
 #include "services/statusmessageservice.h"
 #include "services/streamingmanager.h"
+#include "services/systemcommandcontroller.h"
 #include "services/transferservice.h"
 #include "ui/configpanel.h"
 #include "ui/connectionstatuswidget.h"
@@ -34,52 +36,30 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), deviceConnection_(new DeviceConnection(this)),
-      remoteFileModel_(new RemoteFileModel(this)), transferQueue_(new TransferQueue(this)),
-      configFileLoader_(new ConfigFileLoader(this))
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-    // Connect the FTP client to the model and queue
-    remoteFileModel_->setFtpClient(deviceConnection_->ftpClient());
-    transferQueue_->setFtpClient(deviceConnection_->ftpClient());
+    auto *services = new ServiceFactory(this, this);
 
-    // Create the file preview service
-    filePreviewService_ = new FilePreviewService(deviceConnection_->ftpClient(), this);
+    deviceConnection_ = services->deviceConnection();
+    remoteFileModel_ = services->remoteFileModel();
+    transferQueue_ = services->transferQueue();
+    configFileLoader_ = services->configFileLoader();
+    filePreviewService_ = services->filePreviewService();
+    transferService_ = services->transferService();
+    errorHandler_ = services->errorHandler();
+    statusMessageService_ = services->statusMessageService();
+    favoritesManager_ = services->favoritesManager();
+    playlistManager_ = services->playlistManager();
+    songlengthsDownloader_ = services->songlengthsDownloader();
+    songlengthsDatabase_ = services->songlengthsDatabase();
+    stilDownloader_ = services->stilDownloader();
+    buglistDownloader_ = services->buglistDownloader();
+    hvscMetadataService_ = services->hvscMetadataService();
+    gameBase64Downloader_ = services->gameBase64Downloader();
+    gameBase64Service_ = services->gameBase64Service();
 
-    // Create the transfer service
-    transferService_ = new TransferService(deviceConnection_, transferQueue_, this);
-
-    // Create the error handler
-    errorHandler_ = new ErrorHandler(this, this);
-
-    // Create the status message service for coordinated status bar messages
-    statusMessageService_ = new StatusMessageService(this);
-
-    // Create the favorites manager for bookmarking remote paths
-    favoritesManager_ = new FavoritesManager(this);
-
-    // Create the playlist manager for SID jukebox functionality
-    playlistManager_ = new PlaylistManager(deviceConnection_, this);
-
-    // Create the songlengths database for SID duration lookup
-    songlengthsDownloader_ = new HttpFileDownloader(this);
-    songlengthsDatabase_ = new SonglengthsDatabase(songlengthsDownloader_, this);
-
-    // Create the HVSC metadata service for STIL/BUGlist lookup
-    stilDownloader_ = new HttpFileDownloader(this);
-    buglistDownloader_ = new HttpFileDownloader(this);
-    hvscMetadataService_ = new HVSCMetadataService(stilDownloader_, buglistDownloader_, this);
-
-    // Create the GameBase64 service for game metadata lookup
-    gameBase64Downloader_ = new HttpFileDownloader(this);
-    gameBase64Service_ = new GameBase64Service(gameBase64Downloader_, this);
-
-    // Wire up the songlengths database to the playlist manager
-    playlistManager_->setSonglengthsDatabase(songlengthsDatabase_);
-
-    // Configure the config file loader
-    configFileLoader_->setFtpClient(deviceConnection_->ftpClient());
-    configFileLoader_->setRestClient(deviceConnection_->restClient());
+    systemCommandController_ =
+        new SystemCommandController(deviceConnection_->restClient(), statusMessageService_, this);
 
     setupUi();
     setupMenuBar();
@@ -175,15 +155,18 @@ void MainWindow::setupMenuBar()
     auto *machineMenu = menuBar()->addMenu(tr("&Machine"));
 
     auto *resetMachineAction = machineMenu->addAction(tr("&Reset"));
-    connect(resetMachineAction, &QAction::triggered, this, &MainWindow::onReset);
+    connect(resetMachineAction, &QAction::triggered, systemCommandController_,
+            &SystemCommandController::onReset);
 
     machineMenu->addSeparator();
 
     auto *ejectDriveAAction = machineMenu->addAction(tr("Eject Drive &A"));
-    connect(ejectDriveAAction, &QAction::triggered, this, &MainWindow::onEjectDriveA);
+    connect(ejectDriveAAction, &QAction::triggered, systemCommandController_,
+            &SystemCommandController::onEjectDriveA);
 
     auto *ejectDriveBAction = machineMenu->addAction(tr("Eject Drive &B"));
-    connect(ejectDriveBAction, &QAction::triggered, this, &MainWindow::onEjectDriveB);
+    connect(ejectDriveBAction, &QAction::triggered, systemCommandController_,
+            &SystemCommandController::onEjectDriveB);
 
     // Help menu
     auto *helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -221,23 +204,28 @@ void MainWindow::setupSystemToolBar()
     // Machine actions
     resetAction_ = systemToolBar_->addAction(tr("Reset"));
     resetAction_->setToolTip(tr("Reset the C64"));
-    connect(resetAction_, &QAction::triggered, this, &MainWindow::onReset);
+    connect(resetAction_, &QAction::triggered, systemCommandController_,
+            &SystemCommandController::onReset);
 
     rebootAction_ = systemToolBar_->addAction(tr("Reboot"));
     rebootAction_->setToolTip(tr("Reboot the Ultimate device"));
-    connect(rebootAction_, &QAction::triggered, this, &MainWindow::onReboot);
+    connect(rebootAction_, &QAction::triggered, systemCommandController_,
+            &SystemCommandController::onReboot);
 
     pauseAction_ = systemToolBar_->addAction(tr("Pause"));
     pauseAction_->setToolTip(tr("Pause C64 execution"));
-    connect(pauseAction_, &QAction::triggered, this, &MainWindow::onPause);
+    connect(pauseAction_, &QAction::triggered, systemCommandController_,
+            &SystemCommandController::onPause);
 
     resumeAction_ = systemToolBar_->addAction(tr("Resume"));
     resumeAction_->setToolTip(tr("Resume C64 execution"));
-    connect(resumeAction_, &QAction::triggered, this, &MainWindow::onResume);
+    connect(resumeAction_, &QAction::triggered, systemCommandController_,
+            &SystemCommandController::onResume);
 
     menuAction_ = systemToolBar_->addAction(tr("Menu"));
     menuAction_->setToolTip(tr("Press Ultimate menu button"));
-    connect(menuAction_, &QAction::triggered, this, &MainWindow::onMenuButton);
+    connect(menuAction_, &QAction::triggered, systemCommandController_,
+            &SystemCommandController::onMenuButton);
 
     powerOffAction_ = systemToolBar_->addAction(tr("Power Off"));
     powerOffAction_->setToolTip(tr("Power off the Ultimate device"));
@@ -290,9 +278,11 @@ void MainWindow::setupPanels()
     modeTabWidget_->addTab(viewPanel_, tr("View"));
     modeTabWidget_->addTab(configPanel_, tr("Config"));
 
-    // Connect ExplorePanel drive eject signals to MainWindow slots
-    connect(explorePanel_, &ExplorePanel::ejectDriveARequested, this, &MainWindow::onEjectDriveA);
-    connect(explorePanel_, &ExplorePanel::ejectDriveBRequested, this, &MainWindow::onEjectDriveB);
+    // Connect ExplorePanel drive eject signals to SystemCommandController
+    connect(explorePanel_, &ExplorePanel::ejectDriveARequested, systemCommandController_,
+            &SystemCommandController::onEjectDriveA);
+    connect(explorePanel_, &ExplorePanel::ejectDriveBRequested, systemCommandController_,
+            &SystemCommandController::onEjectDriveB);
 
     // Connect panel status messages through the coordinator service
     connect(
@@ -587,36 +577,6 @@ void MainWindow::onDisconnect()
     deviceConnection_->disconnectFromDevice();
 }
 
-void MainWindow::onReset()
-{
-    deviceConnection_->restClient()->resetMachine();
-    statusMessageService_->showInfo(tr("Reset sent"), 3000);
-}
-
-void MainWindow::onReboot()
-{
-    deviceConnection_->restClient()->rebootMachine();
-    statusMessageService_->showInfo(tr("Reboot sent"), 3000);
-}
-
-void MainWindow::onPause()
-{
-    deviceConnection_->restClient()->pauseMachine();
-    statusMessageService_->showInfo(tr("Pause sent"), 3000);
-}
-
-void MainWindow::onResume()
-{
-    deviceConnection_->restClient()->resumeMachine();
-    statusMessageService_->showInfo(tr("Resume sent"), 3000);
-}
-
-void MainWindow::onMenuButton()
-{
-    deviceConnection_->restClient()->pressMenuButton();
-    statusMessageService_->showInfo(tr("Menu button pressed"), 3000);
-}
-
 void MainWindow::onPowerOff()
 {
     QMessageBox msgBox(this);
@@ -632,21 +592,8 @@ void MainWindow::onPowerOff()
         return;
     }
 
-    deviceConnection_->restClient()->powerOffMachine();
-    statusMessageService_->showInfo(tr("Power off sent"), 3000);
+    systemCommandController_->powerOff();
     deviceConnection_->disconnectFromDevice();
-}
-
-void MainWindow::onEjectDriveA()
-{
-    deviceConnection_->restClient()->unmountImage("a");
-    statusMessageService_->showInfo(tr("Ejecting Drive A"), 3000);
-}
-
-void MainWindow::onEjectDriveB()
-{
-    deviceConnection_->restClient()->unmountImage("b");
-    statusMessageService_->showInfo(tr("Ejecting Drive B"), 3000);
 }
 
 void MainWindow::onRefresh()

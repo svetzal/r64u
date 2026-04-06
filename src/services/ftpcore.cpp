@@ -71,4 +71,54 @@ QList<FtpEntry> parseDirectoryListing(const QByteArray &data)
     return entries;
 }
 
+std::optional<QString> parsePwdResponse(const QString &text)
+{
+    QRegularExpression rx("\"(.*)\"");
+    auto match = rx.match(text);
+    if (!match.hasMatch()) {
+        return std::nullopt;
+    }
+    return match.captured(1);
+}
+
+FtpResponseParse splitResponseLines(const QString &buffer)
+{
+    static constexpr int FtpReplyCodeLength = 3;
+    static constexpr int FtpReplyTextOffset = 4;
+    static constexpr int CrLfLength = 2;
+
+    FtpResponseParse result;
+    QString remaining = buffer;
+
+    while (remaining.contains("\r\n")) {
+        int idx = remaining.indexOf("\r\n");
+        QString line = remaining.left(idx);
+        remaining = remaining.mid(idx + CrLfLength);
+
+        if (line.length() < FtpReplyCodeLength) {
+            continue;
+        }
+
+        bool ok = false;
+        int code = line.left(FtpReplyCodeLength).toInt(&ok);
+        if (!ok) {
+            continue;
+        }
+
+        // Multi-line continuation: 4th char is '-', skip this line
+        if (line.length() > FtpReplyCodeLength && line.at(FtpReplyCodeLength) == '-') {
+            continue;
+        }
+
+        FtpResponseLine responseLine;
+        responseLine.code = code;
+        responseLine.text =
+            line.length() >= FtpReplyTextOffset ? line.mid(FtpReplyTextOffset) : QString();
+        result.lines.append(responseLine);
+    }
+
+    result.remainingBuffer = remaining;
+    return result;
+}
+
 }  // namespace ftp

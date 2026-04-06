@@ -10,7 +10,9 @@
 #include "services/deviceconnection.h"
 #include "services/diskbootsequenceservice.h"
 #include "services/favoritesmanager.h"
+#include "services/favoritesuicore.h"
 #include "services/fileactioncore.h"
+#include "services/filebrowsercore.h"
 #include "services/filepreviewservice.h"
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
@@ -488,31 +490,28 @@ void ExplorePanel::onDoubleClicked(const QModelIndex &index)
         return;
     }
 
-    if (remoteFileModel_->isDirectory(index)) {
-        // Navigate into the directory
-        QString path = remoteFileModel_->filePath(index);
-        setCurrentDirectory(path);
-    } else {
-        // Execute default action based on file type
-        filetype::FileType type = remoteFileModel_->fileType(index);
-        auto action = filetype::defaultAction(type);
+    filetype::FileType type = remoteFileModel_->fileType(index);
+    bool isDirectory = remoteFileModel_->isDirectory(index);
+    auto action = filebrowser::resolveDoubleClickAction(type, isDirectory);
 
-        switch (action) {
-        case filetype::DefaultAction::Play:
-            onPlay();
-            break;
-        case filetype::DefaultAction::Run:
-            onRun();
-            break;
-        case filetype::DefaultAction::Mount:
-            onMount();
-            break;
-        case filetype::DefaultAction::LoadConfig:
-            onLoadConfig();
-            break;
-        case filetype::DefaultAction::None:
-            break;
-        }
+    switch (action) {
+    case filebrowser::DoubleClickAction::Navigate:
+        setCurrentDirectory(remoteFileModel_->filePath(index));
+        break;
+    case filebrowser::DoubleClickAction::Play:
+        onPlay();
+        break;
+    case filebrowser::DoubleClickAction::Run:
+        onRun();
+        break;
+    case filebrowser::DoubleClickAction::Mount:
+        onMount();
+        break;
+    case filebrowser::DoubleClickAction::LoadConfig:
+        onLoadConfig();
+        break;
+    case filebrowser::DoubleClickAction::None:
+        break;
     }
 }
 
@@ -842,26 +841,16 @@ void ExplorePanel::onFavoritesChanged()
     favoritesMenu_->clear();
 
     QStringList favorites = favoritesManager_->favorites();
-    if (favorites.isEmpty()) {
-        auto *emptyAction = favoritesMenu_->addAction(tr("(No favorites)"));
-        emptyAction->setEnabled(false);
-        return;
-    }
-
-    for (const QString &path : favorites) {
-        // Use the file/folder name as the display text
-        QString displayName = path;
-        int lastSlash = path.lastIndexOf('/');
-        if (lastSlash >= 0 && lastSlash < path.length() - 1) {
-            displayName = path.mid(lastSlash + 1);
+    auto entries = favoritesui::buildMenuEntries(favorites);
+    for (const auto &entry : entries) {
+        QAction *action = favoritesMenu_->addAction(entry.displayName);
+        if (entry.path.isEmpty()) {
+            // Placeholder entry — disable it
+            action->setEnabled(false);
+        } else {
+            action->setData(entry.path);
+            action->setToolTip(entry.path);
         }
-        if (displayName.isEmpty()) {
-            displayName = "/";
-        }
-
-        QAction *action = favoritesMenu_->addAction(displayName);
-        action->setData(path);
-        action->setToolTip(path);
     }
 }
 
@@ -899,17 +888,19 @@ void ExplorePanel::onAddToPlaylist()
         return;
     }
 
-    // Filter to only SID files and add them
-    int addedCount = 0;
+    // Build input list of (path, fileType) pairs and delegate filtering to core
+    QList<QPair<QString, filetype::FileType>> items;
+    items.reserve(selectedIndices.size());
     for (const QModelIndex &index : selectedIndices) {
-        filetype::FileType type = remoteFileModel_->fileType(index);
-        if (type == filetype::FileType::SidMusic) {
-            QString path = remoteFileModel_->filePath(index);
-            playlistManager_->addItem(path);
-            addedCount++;
-        }
+        items.append({remoteFileModel_->filePath(index), remoteFileModel_->fileType(index)});
     }
 
+    auto candidates = filebrowser::filterPlaylistCandidates(items);
+    for (const auto &candidate : candidates) {
+        playlistManager_->addItem(candidate.path);
+    }
+
+    int addedCount = candidates.size();
     if (addedCount == 0) {
         emit statusMessage(tr("No SID files in selection"), 3000);
     } else if (addedCount == 1) {
