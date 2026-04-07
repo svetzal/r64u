@@ -21,7 +21,9 @@
 #include "services/transferservice.h"
 #include "ui/configpanel.h"
 #include "ui/connectionstatuswidget.h"
+#include "ui/connectionuicontroller.h"
 #include "ui/explorepanel.h"
+#include "ui/panelcoordinator.h"
 #include "ui/preferencesdialog.h"
 #include "ui/transferpanel.h"
 #include "ui/viewpanel.h"
@@ -70,7 +72,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     switchToMode(Mode::ExploreRun);
     updateWindowTitle();
-    updateActions();
+    connectionUiController_->updateAll();
     loadSettings();
 
     resize(1024, 768);
@@ -91,7 +93,7 @@ void MainWindow::setupUi()
     layout->setSpacing(0);
 
     // Create tabbed mode widget
-    // Note: Signal connection is deferred to setupConnections() to avoid
+    // Note: Signal connection is deferred to PanelCoordinator to avoid
     // triggering onModeChanged before all widgets are initialized
     modeTabWidget_ = new QTabWidget();
     layout->addWidget(modeTabWidget_);
@@ -245,6 +247,17 @@ void MainWindow::setupSystemToolBar()
     // Connection status on the right
     connectionStatus_ = new ConnectionStatusWidget();
     systemToolBar_->addWidget(connectionStatus_);
+
+    // Create ConnectionUIController now that all actions and status widget exist
+    connectionUiController_ =
+        new ConnectionUIController(deviceConnection_, connectionStatus_, this);
+    connectionUiController_->setManagedActions(
+        {resetAction_, rebootAction_, pauseAction_, resumeAction_, menuAction_, powerOffAction_},
+        connectAction_, refreshAction_);
+
+    // Update window title and actions when connection UI changes
+    connect(connectionUiController_, &ConnectionUIController::windowTitleUpdateNeeded, this,
+            &MainWindow::updateWindowTitle);
 }
 
 void MainWindow::setupStatusBar()
@@ -284,36 +297,22 @@ void MainWindow::setupPanels()
     connect(explorePanel_, &ExplorePanel::ejectDriveBRequested, systemCommandController_,
             &SystemCommandController::onEjectDriveB);
 
-    // Connect panel status messages through the coordinator service
-    connect(
-        explorePanel_, &ExplorePanel::statusMessage, this,
-        [this](const QString &msg, int timeout) { statusMessageService_->showInfo(msg, timeout); });
-    connect(
-        transferPanel_, &TransferPanel::statusMessage, this,
-        [this](const QString &msg, int timeout) { statusMessageService_->showInfo(msg, timeout); });
-    connect(transferPanel_, &TransferPanel::clearStatusMessages, statusMessageService_,
-            &StatusMessageService::clearMessages);
-    connect(viewPanel_, &ViewPanel::statusMessage, this, [this](const QString &msg, int timeout) {
-        statusMessageService_->showInfo(msg, timeout);
-    });
-    connect(
-        configPanel_, &ConfigPanel::statusMessage, this,
-        [this](const QString &msg, int timeout) { statusMessageService_->showInfo(msg, timeout); });
+    // Create PanelCoordinator to handle panel signal wiring and mode coordination
+    panelCoordinator_ =
+        new PanelCoordinator(explorePanel_, transferPanel_, viewPanel_, configPanel_,
+                             deviceConnection_, remoteFileModel_, transferService_,
+                             statusMessageService_, errorHandler_, modeTabWidget_, this);
+
+    // PanelCoordinator signals for window title and actions
+    connect(panelCoordinator_, &PanelCoordinator::windowTitleUpdateNeeded, this,
+            &MainWindow::updateWindowTitle);
+    connect(panelCoordinator_, &PanelCoordinator::actionsUpdateNeeded, this,
+            [this]() { connectionUiController_->updateAll(); });
 }
 
 void MainWindow::setupConnections()
 {
-    // Mode tab widget (deferred from setupUi to avoid early signal triggers)
-    connect(modeTabWidget_, &QTabWidget::currentChanged, this, &MainWindow::onModeChanged);
-
-    // Device connection signals
-    connect(deviceConnection_, &DeviceConnection::stateChanged, this,
-            &MainWindow::onConnectionStateChanged);
-    connect(deviceConnection_, &DeviceConnection::deviceInfoUpdated, this,
-            &MainWindow::onDeviceInfoUpdated);
-    connect(deviceConnection_, &DeviceConnection::driveInfoUpdated, this,
-            &MainWindow::onDriveInfoUpdated);
-    // Route error signals through ErrorHandler for consistent presentation
+    // Device connection error routing
     connect(deviceConnection_, &DeviceConnection::connectionError, errorHandler_,
             &ErrorHandler::handleConnectionError);
     connect(deviceConnection_->restClient(), &IRestClient::operationFailed, errorHandler_,
@@ -321,26 +320,13 @@ void MainWindow::setupConnections()
     connect(remoteFileModel_, &RemoteFileModel::errorOccurred, errorHandler_,
             &ErrorHandler::handleDataError);
 
-    // ErrorHandler status messages go through coordinator with appropriate priority
-    connect(errorHandler_, &ErrorHandler::statusMessage, this,
-            [this](const QString &msg, int timeout) {
-                // ErrorHandler always uses warning or error severity
-                statusMessageService_->showWarning(msg, timeout);
-            });
+    // Connection lifecycle signals (navigation / model management)
+    connect(deviceConnection_, &DeviceConnection::stateChanged, this,
+            &MainWindow::onConnectionStateChanged);
+    connect(deviceConnection_, &DeviceConnection::driveInfoUpdated, this,
+            &MainWindow::onDriveInfoUpdated);
 
-    // REST client success signals
-    connect(deviceConnection_->restClient(), &IRestClient::operationSucceeded, this,
-            &MainWindow::onOperationSucceeded);
-
-    // Model signals for loading state (not errors)
-    connect(remoteFileModel_, &RemoteFileModel::loadingStarted, this, [this](const QString &path) {
-        statusMessageService_->showInfo(tr("Loading %1...").arg(path));
-    });
-    connect(remoteFileModel_, &RemoteFileModel::loadingFinished, this, [this](const QString &) {
-        // Loading finished - no need to show a message, just let it clear naturally
-    });
-
-    // Config file loader signals
+    // Config file loader loading started notification
     connect(configFileLoader_, &ConfigFileLoader::loadStarted, this, [this](const QString &path) {
         statusMessageService_->showInfo(
             tr("Loading configuration: %1...").arg(QFileInfo(path).fileName()));
@@ -351,46 +337,27 @@ void MainWindow::switchToMode(Mode mode)
 {
     currentMode_ = mode;
 
-    // Don't sync model while transfer operations are in progress
-    bool canSync = deviceConnection_->isConnected() && !transferService_->isProcessing() &&
-                   !transferService_->isScanning() && !transferService_->isProcessingDelete() &&
-                   !transferService_->isCreatingDirectories();
-
     int pageIndex = 0;
     switch (mode) {
     case Mode::ExploreRun:
         pageIndex = 0;
-        // Sync model with ExplorePanel's directory if needed
-        if (canSync) {
-            QString panelDir = explorePanel_->currentDirectory();
-            if (!panelDir.isEmpty() && panelDir != remoteFileModel_->rootPath()) {
-                explorePanel_->setCurrentDirectory(panelDir);
-            }
-        }
         break;
     case Mode::Transfer:
         pageIndex = 1;
-        // Sync model with TransferPanel's directory if needed
-        if (canSync) {
-            QString panelDir = transferPanel_->currentRemoteDir();
-            if (!panelDir.isEmpty() && panelDir != remoteFileModel_->rootPath()) {
-                transferPanel_->setCurrentRemoteDir(panelDir);
-            }
-        }
         break;
     case Mode::View:
         pageIndex = 2;
         break;
     case Mode::Config:
         pageIndex = 3;
-        // Auto-load config when switching to Config mode if connected and empty
-        configPanel_->refreshIfEmpty();
         break;
     }
     modeTabWidget_->setCurrentIndex(pageIndex);
 
     updateWindowTitle();
-    updateActions();
+    if (connectionUiController_) {
+        connectionUiController_->updateAll();
+    }
 }
 
 void MainWindow::updateWindowTitle()
@@ -425,49 +392,6 @@ void MainWindow::updateWindowTitle()
     title += QString(" - %1").arg(modeName);
 
     setWindowTitle(title);
-}
-
-void MainWindow::updateStatusBar()
-{
-    if (deviceConnection_->isConnected()) {
-        DeviceInfo info = deviceConnection_->deviceInfo();
-        connectionStatus_->setConnected(true);
-        connectionStatus_->setHostname(info.hostname.isEmpty() ? deviceConnection_->host()
-                                                               : info.hostname);
-        connectionStatus_->setFirmwareVersion(info.firmwareVersion);
-    } else {
-        connectionStatus_->setConnected(false);
-    }
-}
-
-void MainWindow::updateActions()
-{
-    // Update connect action text based on state
-    DeviceConnection::ConnectionState state = deviceConnection_->state();
-    switch (state) {
-    case DeviceConnection::ConnectionState::Disconnected:
-        connectAction_->setText(tr("Connect"));
-        break;
-    case DeviceConnection::ConnectionState::Connecting:
-        connectAction_->setText(tr("Cancel"));
-        break;
-    case DeviceConnection::ConnectionState::Connected:
-        connectAction_->setText(tr("Disconnect"));
-        break;
-    case DeviceConnection::ConnectionState::Reconnecting:
-        connectAction_->setText(tr("Cancel"));
-        break;
-    }
-
-    // System control actions only require REST API
-    bool restConnected = deviceConnection_->isRestConnected();
-    resetAction_->setEnabled(restConnected);
-    rebootAction_->setEnabled(restConnected);
-    pauseAction_->setEnabled(restConnected);
-    resumeAction_->setEnabled(restConnected);
-    menuAction_->setEnabled(restConnected);
-    powerOffAction_->setEnabled(restConnected);
-    refreshAction_->setEnabled(deviceConnection_->isConnected());
 }
 
 void MainWindow::loadSettings()
@@ -511,29 +435,6 @@ void MainWindow::saveSettings()
 }
 
 // Slots
-
-void MainWindow::onModeChanged(int index)
-{
-    Mode mode = Mode::ExploreRun;
-    switch (index) {
-    case 0:
-        mode = Mode::ExploreRun;
-        break;
-    case 1:
-        mode = Mode::Transfer;
-        break;
-    case 2:
-        mode = Mode::View;
-        break;
-    case 3:
-        mode = Mode::Config;
-        break;
-    default:
-        mode = Mode::ExploreRun;
-        break;
-    }
-    switchToMode(mode);
-}
 
 void MainWindow::onPreferences()
 {
@@ -598,8 +499,9 @@ void MainWindow::onPowerOff()
 
 void MainWindow::onRefresh()
 {
-    if (!deviceConnection_->isConnected())
+    if (!deviceConnection_->isConnected()) {
         return;
+    }
 
     // Delegate to the current panel
     switch (currentMode_) {
@@ -607,11 +509,9 @@ void MainWindow::onRefresh()
         explorePanel_->refresh();
         break;
     case Mode::Transfer:
-        // Transfer panel has its own refresh
         remoteFileModel_->refresh();
         break;
     case Mode::View:
-        // View mode doesn't have refresh
         break;
     case Mode::Config:
         configPanel_->refreshIfEmpty();
@@ -623,10 +523,6 @@ void MainWindow::onRefresh()
 
 void MainWindow::onConnectionStateChanged()
 {
-    updateWindowTitle();
-    updateStatusBar();
-    updateActions();
-
     DeviceConnection::ConnectionState state = deviceConnection_->state();
 
     switch (state) {
@@ -636,7 +532,6 @@ void MainWindow::onConnectionStateChanged()
     case DeviceConnection::ConnectionState::Connected:
         statusMessageService_->showInfo(tr("Connected"), 3000);
         // Navigate to saved directory for the currently active panel only
-        // (both panels share the same model, so only sync the visible one)
         if (currentMode_ == Mode::ExploreRun) {
             QString dir = explorePanel_->currentDirectory();
             explorePanel_->setCurrentDirectory(dir.isEmpty() ? "/" : dir);
@@ -656,23 +551,7 @@ void MainWindow::onConnectionStateChanged()
     }
 }
 
-void MainWindow::onDeviceInfoUpdated()
-{
-    updateWindowTitle();
-    updateStatusBar();
-}
-
 void MainWindow::onDriveInfoUpdated()
 {
-    updateStatusBar();
     explorePanel_->updateDriveInfo();
-}
-
-void MainWindow::onOperationSucceeded(const QString &operation)
-{
-    statusMessageService_->showInfo(tr("%1 succeeded").arg(operation), 3000);
-
-    if (operation == "mount" || operation == "unmount") {
-        deviceConnection_->refreshDriveInfo();
-    }
 }

@@ -3,14 +3,12 @@
 
 #include "services/filetypecore.h"
 
-#include <QMenu>
 #include <QSplitter>
 #include <QToolBar>
 #include <QTreeView>
 #include <QWidget>
 
 class DeviceConnection;
-class DiskBootSequenceService;
 class RemoteFileModel;
 class ConfigFileLoader;
 class FilePreviewService;
@@ -24,6 +22,11 @@ class FileDetailsPanel;
 class PathNavigationWidget;
 class DriveStatusWidget;
 class PlaylistWidget;
+class FileActionController;
+class ExploreFavoritesController;
+class ExploreContextMenu;
+class PreviewCoordinator;
+class QMenu;
 
 class ExplorePanel : public QWidget
 {
@@ -70,8 +73,9 @@ private slots:
     void onDoubleClicked(const QModelIndex &index);
     void onContextMenu(const QPoint &pos);
     void onParentFolder();
+    void onRefresh();
 
-    // File actions
+    // File action slots (delegate to actionController_)
     void onPlay();
     void onRun();
     void onMount();
@@ -79,54 +83,34 @@ private slots:
     void onMountToDriveB();
     void onLoadConfig();
     void onDownload();
-    void onRefresh();
 
-    // File preview service slots
-    void onFileContentRequested(const QString &path);
-    void onPreviewReady(const QString &remotePath, const QByteArray &data);
-    void onPreviewFailed(const QString &remotePath, const QString &error);
-
-    // Favorites slots
-    void onToggleFavorite();
-    void onFavoriteSelected(QAction *action);
-    void onFavoritesChanged();
-
-    // Playlist slots
+    // Playlist slot
     void onAddToPlaylist();
-
-    // Config file loading slots
-    void onConfigLoadFinished(const QString &path);
-    void onConfigLoadFailed(const QString &path, const QString &error);
 
 protected:
     void showEvent(QShowEvent *event) override;
 
 private:
     void setupUi();
-    void setupContextMenu();
     void setupConnections();
-    void runDiskImage(const QString &path);
-    void updateActionStates(filetype::FileType type, bool canOperate);
-    void ensureStreamingStarted();
 
     // Dependencies (not owned)
     DeviceConnection *deviceConnection_ = nullptr;
     RemoteFileModel *remoteFileModel_ = nullptr;
-    ConfigFileLoader *configFileLoader_ = nullptr;
-    FilePreviewService *previewService_ = nullptr;
-    FavoritesManager *favoritesManager_ = nullptr;
     PlaylistManager *playlistManager_ = nullptr;
-    StreamingManager *streamingManager_ = nullptr;
 
-    // Owned services
-    DiskBootSequenceService *bootService_ = nullptr;
+    // Owned controllers (Qt parent ownership)
+    FileActionController *actionController_ = nullptr;
+    ExploreFavoritesController *favoritesController_ = nullptr;
+    ExploreContextMenu *contextMenu_ = nullptr;
+    PreviewCoordinator *previewCoordinator_ = nullptr;
 
     // State
     QString currentDirectory_;
 
     // UI widgets
     QSplitter *splitter_ = nullptr;
-    QSplitter *rightSplitter_ = nullptr;  // For details + playlist
+    QSplitter *rightSplitter_ = nullptr;
     QTreeView *treeView_ = nullptr;
     FileDetailsPanel *fileDetailsPanel_ = nullptr;
     PlaylistWidget *playlistWidget_ = nullptr;
@@ -135,24 +119,11 @@ private:
     DriveStatusWidget *drive8Status_ = nullptr;
     DriveStatusWidget *drive9Status_ = nullptr;
 
-    // Actions
+    // Toolbar actions
     QAction *playAction_ = nullptr;
     QAction *runAction_ = nullptr;
     QAction *mountAction_ = nullptr;
     QAction *refreshAction_ = nullptr;
-
-    // Context menu
-    QMenu *contextMenu_ = nullptr;
-    QAction *contextPlayAction_ = nullptr;
-    QAction *contextRunAction_ = nullptr;
-    QAction *contextLoadConfigAction_ = nullptr;
-    QAction *contextMountAAction_ = nullptr;
-    QAction *contextMountBAction_ = nullptr;
-    QAction *contextDownloadAction_ = nullptr;
-    QAction *contextToggleFavoriteAction_ = nullptr;
-    QAction *contextAddToPlaylistAction_ = nullptr;
-
-    // Favorites UI
     QAction *toggleFavoriteAction_ = nullptr;
     QMenu *favoritesMenu_ = nullptr;
 };

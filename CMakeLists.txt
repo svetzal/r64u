@@ -54,6 +54,12 @@ set(SOURCES
     src/ui/batchprogresswidget.cpp
     src/ui/transferprogresscontainer.cpp
     src/ui/explorepanel.cpp
+    src/ui/fileactioncontroller.cpp
+    src/ui/explorefavoritescontroller.cpp
+    src/ui/explorecontextmenu.cpp
+    src/ui/previewcoordinator.cpp
+    src/ui/panelcoordinator.cpp
+    src/ui/connectionuicontroller.cpp
     src/ui/transferpanel.cpp
     src/ui/viewpanel.cpp
     src/ui/configpanel.cpp
@@ -122,6 +128,9 @@ set(SOURCES
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
     src/models/configurationmodel.cpp
+    src/ftp/recursivescancoordinator.cpp
+    src/ftp/remotedirectorycreator.cpp
+    src/ftp/folderoperationcoordinator.cpp
 )
 
 set(HEADERS
@@ -141,6 +150,12 @@ set(HEADERS
     src/ui/batchprogresswidget.h
     src/ui/transferprogresscontainer.h
     src/ui/explorepanel.h
+    src/ui/fileactioncontroller.h
+    src/ui/explorefavoritescontroller.h
+    src/ui/explorecontextmenu.h
+    src/ui/previewcoordinator.h
+    src/ui/panelcoordinator.h
+    src/ui/connectionuicontroller.h
     src/ui/transferpanel.h
     src/ui/viewpanel.h
     src/ui/configpanel.h
@@ -212,6 +227,9 @@ set(HEADERS
     src/models/localfileproxymodel.h
     src/models/transferqueue.h
     src/models/configurationmodel.h
+    src/ftp/recursivescancoordinator.h
+    src/ftp/remotedirectorycreator.h
+    src/ftp/folderoperationcoordinator.h
 )
 
 # Platform-specific credential storage

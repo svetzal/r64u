@@ -76,6 +76,9 @@ add_executable(test_transferqueue
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
 )
 
 target_include_directories(test_transferqueue PRIVATE
@@ -387,6 +390,9 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
 )
 
 target_include_directories(test_transferservice PRIVATE
@@ -575,6 +581,9 @@ if(BUILD_INTEGRATION_TESTS)
         ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
         ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+        ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+        ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+        ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
     )
 
     target_include_directories(test_realdevice_download PRIVATE

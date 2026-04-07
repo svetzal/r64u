@@ -27,6 +27,8 @@ class TransferPanel;
 class ViewPanel;
 class ConfigPanel;
 class SystemCommandController;
+class PanelCoordinator;
+class ConnectionUIController;
 
 class MainWindow : public QMainWindow
 {
@@ -39,7 +41,6 @@ public:
     ~MainWindow() override;
 
 private slots:
-    void onModeChanged(int index);
     void onPreferences();
     void onConnect();
     void onDisconnect();
@@ -47,13 +48,9 @@ private slots:
     // System control slots
     void onPowerOff();
 
-    // Connection slots
+    // Connection lifecycle slots (navigation/model management)
     void onConnectionStateChanged();
-    void onDeviceInfoUpdated();
     void onDriveInfoUpdated();
-
-    // Operation result slots
-    void onOperationSucceeded(const QString &operation);
 
     // Refresh slot (shared by panels)
     void onRefresh();
@@ -67,8 +64,6 @@ private:
     void setupConnections();
     void switchToMode(Mode mode);
     void updateWindowTitle();
-    void updateStatusBar();
-    void updateActions();
     void loadSettings();
     void saveSettings();
 
@@ -94,6 +89,8 @@ private:
     GameBase64Service *gameBase64Service_ = nullptr;
 
     SystemCommandController *systemCommandController_ = nullptr;
+    PanelCoordinator *panelCoordinator_ = nullptr;
+    ConnectionUIController *connectionUiController_ = nullptr;
 
     // Central widget
     QTabWidget *modeTabWidget_ = nullptr;

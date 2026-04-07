@@ -1,6 +1,9 @@
 #ifndef TRANSFERQUEUE_H
 #define TRANSFERQUEUE_H
 
+#include "ftp/folderoperationcoordinator.h"
+#include "ftp/recursivescancoordinator.h"
+#include "ftp/remotedirectorycreator.h"
 #include "services/ftpentry.h"
 #include "services/iftpclient.h"
 #include "services/transfercore.h"
@@ -144,10 +147,9 @@ private slots:
     void onDownloadProgress(const QString &file, qint64 received, qint64 total);
     void onDownloadFinished(const QString &remotePath, const QString &localPath);
     void onFtpError(const QString &message);
-    void onDirectoryCreated(const QString &path);
+    void onFtpDirectoryCreated(const QString &path);
     void onDirectoryListed(const QString &path, const QList<FtpEntry> &entries);
     void onFileRemoved(const QString &path);
-    void onDebounceTimeout();
 
 private:
     // Core processing - single entry point
@@ -158,27 +160,17 @@ private:
     // State machine
     void transitionTo(QueueState newState);
 
-    // Folder operations (unified for upload/download)
-    void startFolderOperation(const PendingFolderOp &op);
-    void onFolderOperationComplete();
-    void checkFolderConfirmation();
-
-    // Scanning
-    void startScan(const QString &remotePath, const QString &localBase, const QString &remoteBase,
-                   int batchId);
-    void handleDirectoryListing(const QString &path, const QList<FtpEntry> &entries);
-    void handleDirectoryListingForDelete(const QString &path, const QList<FtpEntry> &entries);
-    void handleDirectoryListingForFolderCheck(const QString &path, const QList<FtpEntry> &entries);
-    void handleDirectoryListingForUploadCheck(const QString &path, const QList<FtpEntry> &entries);
-    void finishScanning();
-
-    // Directory creation (uploads)
-    void createNextDirectory();
-    void queueDirectoriesForUpload(const QString &localDir, const QString &remoteDir);
+    // Folder operation slots (connected from FolderOperationCoordinator signals)
+    void onStartDownloadScanRequested(const QString &remotePath, const QString &localBase,
+                                      const QString &remoteBase, int batchId);
+    void onStartDirectoryCreationRequested(const QString &localDir, const QString &remoteDir);
+    void onStartDeleteRequested(const QString &remotePath);
+    void onPendingUploadAfterDeleteSet(const QString &targetPath);
+    void onAllDirectoriesCreated();
+    void onDeleteScanComplete();
     void finishDirectoryCreation();
 
     // File operations
-    void startNextTransfer();
     void markCurrentComplete(TransferItem::Status status);
     void processNextDelete();
 
@@ -197,10 +189,6 @@ private:
     void emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
                                       bool includeFailed = false);
 
-    // Recursive operation shared logic
-    void enqueueRecursiveOperation(OperationType type, const QString &sourcePath,
-                                   const QString &destPath);
-
     // Timeout handling
     QTimer *operationTimeoutTimer_ = nullptr;
     static constexpr int OperationTimeoutMs = 300000;  // 5 minutes
@@ -211,10 +199,6 @@ private:
     // I/O boundary members (not part of pure state)
     QPointer<IFtpClient> ftpClient_;
 
-    // Debounce timer for collecting items
-    QTimer *debounceTimer_ = nullptr;
-    static constexpr int DebounceMs = 50;
-
     // Event queue for deferred processing
     QQueue<std::function<void()>> eventQueue_;
     bool processingEvents_ = false;
@@ -222,6 +206,11 @@ private:
 
     // All mutable queue state (pure-function compatible)
     transfer::State state_;
+
+    // Coordinator objects (operate on state_ by reference)
+    RecursiveScanCoordinator *scanCoordinator_ = nullptr;
+    RemoteDirectoryCreator *dirCreator_ = nullptr;
+    FolderOperationCoordinator *folderCoordinator_ = nullptr;
 };
 
 #endif  // TRANSFERQUEUE_H
