@@ -23,6 +23,7 @@
 #include "ui/connectionstatuswidget.h"
 #include "ui/connectionuicontroller.h"
 #include "ui/explorepanel.h"
+#include "ui/menubarbuilder.h"
 #include "ui/panelcoordinator.h"
 #include "ui/preferencesdialog.h"
 #include "ui/transferpanel.h"
@@ -103,83 +104,7 @@ void MainWindow::setupUi()
 
 void MainWindow::setupMenuBar()
 {
-    // File menu
-    auto *fileMenu = menuBar()->addMenu(tr("&File"));
-
-    auto *connectAction = fileMenu->addAction(tr("&Connect"));
-    connect(connectAction, &QAction::triggered, this, &MainWindow::onConnect);
-
-    auto *disconnectAction = fileMenu->addAction(tr("&Disconnect"));
-    connect(disconnectAction, &QAction::triggered, this, &MainWindow::onDisconnect);
-
-    fileMenu->addSeparator();
-
-    auto *prefsAction = fileMenu->addAction(tr("&Preferences..."));
-    prefsAction->setShortcut(QKeySequence::Preferences);
-    connect(prefsAction, &QAction::triggered, this, &MainWindow::onPreferences);
-
-    fileMenu->addSeparator();
-
-    auto *quitAction = fileMenu->addAction(tr("&Quit"));
-    quitAction->setShortcut(QKeySequence::Quit);
-    connect(quitAction, &QAction::triggered, this, &QMainWindow::close);
-
-    // View menu
-    auto *viewMenu = menuBar()->addMenu(tr("&View"));
-
-    auto *exploreAction = viewMenu->addAction(tr("&Explore/Run Mode"));
-    exploreAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_1));
-    connect(exploreAction, &QAction::triggered, this,
-            [this]() { modeTabWidget_->setCurrentIndex(0); });
-
-    auto *transferAction = viewMenu->addAction(tr("&Transfer Mode"));
-    transferAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_2));
-    connect(transferAction, &QAction::triggered, this,
-            [this]() { modeTabWidget_->setCurrentIndex(1); });
-
-    auto *viewModeAction = viewMenu->addAction(tr("&View Mode"));
-    viewModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_3));
-    connect(viewModeAction, &QAction::triggered, this,
-            [this]() { modeTabWidget_->setCurrentIndex(2); });
-
-    auto *configModeAction = viewMenu->addAction(tr("&Config Mode"));
-    configModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_4));
-    connect(configModeAction, &QAction::triggered, this,
-            [this]() { modeTabWidget_->setCurrentIndex(3); });
-
-    viewMenu->addSeparator();
-
-    refreshAction_ = viewMenu->addAction(tr("&Refresh"));
-    refreshAction_->setShortcut(QKeySequence::Refresh);
-    connect(refreshAction_, &QAction::triggered, this, &MainWindow::onRefresh);
-
-    // Machine menu
-    auto *machineMenu = menuBar()->addMenu(tr("&Machine"));
-
-    auto *resetMachineAction = machineMenu->addAction(tr("&Reset"));
-    connect(resetMachineAction, &QAction::triggered, systemCommandController_,
-            &SystemCommandController::onReset);
-
-    machineMenu->addSeparator();
-
-    auto *ejectDriveAAction = machineMenu->addAction(tr("Eject Drive &A"));
-    connect(ejectDriveAAction, &QAction::triggered, systemCommandController_,
-            &SystemCommandController::onEjectDriveA);
-
-    auto *ejectDriveBAction = machineMenu->addAction(tr("Eject Drive &B"));
-    connect(ejectDriveBAction, &QAction::triggered, systemCommandController_,
-            &SystemCommandController::onEjectDriveB);
-
-    // Help menu
-    auto *helpMenu = menuBar()->addMenu(tr("&Help"));
-
-    auto *aboutAction = helpMenu->addAction(tr("&About r64u"));
-    connect(aboutAction, &QAction::triggered, this, [this]() {
-        QMessageBox::about(this, tr("About r64u"),
-                           tr("<h3>r64u</h3>"
-                              "<p>Version 0.1.0</p>"
-                              "<p>Remote access tool for Commodore 64 Ultimate devices.</p>"));
-    });
+    refreshAction_ = MenuBarBuilder::build(this, systemCommandController_, modeTabWidget_);
 }
 
 void MainWindow::setupSystemToolBar()

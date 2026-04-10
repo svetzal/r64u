@@ -3,7 +3,9 @@
 #include "services/configfileloader.h"
 #include "services/deviceconnection.h"
 #include "services/diskbootsequenceservice.h"
+#include "services/filebrowsercore.h"
 #include "services/filetypecore.h"
+#include "services/playlistmanager.h"
 #include "services/streamingmanager.h"
 
 #include <QAction>
@@ -24,6 +26,11 @@ FileActionController::FileActionController(DeviceConnection *connection,
 void FileActionController::setStreamingManager(StreamingManager *manager)
 {
     streamingManager_ = manager;
+}
+
+void FileActionController::setPlaylistManager(PlaylistManager *manager)
+{
+    playlistManager_ = manager;
 }
 
 void FileActionController::setActions(QAction *play, QAction *run, QAction *mount)
@@ -109,6 +116,24 @@ void FileActionController::loadConfig(const QString &path, filetype::FileType ty
 void FileActionController::download(const QString &path)
 {
     emit statusMessage(tr("Download requested for: %1").arg(path), 3000);
+}
+
+void FileActionController::addToPlaylist(const QList<QPair<QString, filetype::FileType>> &items)
+{
+    if (!playlistManager_) {
+        return;
+    }
+
+    QList<filebrowser::PlaylistCandidate> candidates = filebrowser::filterPlaylistCandidates(items);
+    if (candidates.isEmpty()) {
+        emit statusMessage(tr("No SID music files in selection"), 3000);
+        return;
+    }
+
+    for (const auto &candidate : candidates) {
+        playlistManager_->addItem(candidate.path);
+    }
+    emit statusMessage(tr("Added %1 item(s) to playlist").arg(candidates.size()), 3000);
 }
 
 void FileActionController::runDiskImage(const QString &path)

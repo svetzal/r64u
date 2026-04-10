@@ -57,6 +57,10 @@ set(SOURCES
     src/ui/fileactioncontroller.cpp
     src/ui/explorefavoritescontroller.cpp
     src/ui/explorecontextmenu.cpp
+    src/ui/explorenavigationcontroller.cpp
+    src/ui/menubarbuilder.cpp
+    src/ui/databasedownloadcontroller.cpp
+    src/ui/connectiontester.cpp
     src/ui/previewcoordinator.cpp
     src/ui/panelcoordinator.cpp
     src/ui/connectionuicontroller.cpp
@@ -127,6 +131,9 @@ set(SOURCES
     src/models/remotefilemodel.cpp
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
+    src/models/batchmanager.cpp
+    src/models/transfertimeoutmanager.cpp
+    src/models/transfereventprocessor.cpp
     src/models/configurationmodel.cpp
     src/ftp/recursivescancoordinator.cpp
     src/ftp/remotedirectorycreator.cpp
@@ -153,6 +160,10 @@ set(HEADERS
     src/ui/fileactioncontroller.h
     src/ui/explorefavoritescontroller.h
     src/ui/explorecontextmenu.h
+    src/ui/explorenavigationcontroller.h
+    src/ui/menubarbuilder.h
+    src/ui/databasedownloadcontroller.h
+    src/ui/connectiontester.h
     src/ui/previewcoordinator.h
     src/ui/panelcoordinator.h
     src/ui/connectionuicontroller.h
@@ -226,6 +237,9 @@ set(HEADERS
     src/models/remotefilemodel.h
     src/models/localfileproxymodel.h
     src/models/transferqueue.h
+    src/models/batchmanager.h
+    src/models/transfertimeoutmanager.h
+    src/models/transfereventprocessor.h
     src/models/configurationmodel.h
     src/ftp/recursivescancoordinator.h
     src/ftp/remotedirectorycreator.h

@@ -3,12 +3,15 @@
 
 #include "services/filetypecore.h"
 
+#include <QList>
 #include <QObject>
+#include <QPair>
 #include <QString>
 
 class DeviceConnection;
 class ConfigFileLoader;
 class DiskBootSequenceService;
+class PlaylistManager;
 class StreamingManager;
 class QAction;
 
@@ -21,6 +24,7 @@ public:
                                   QObject *parent = nullptr);
 
     void setStreamingManager(StreamingManager *manager);
+    void setPlaylistManager(PlaylistManager *manager);
     void setActions(QAction *play, QAction *run, QAction *mount);
 
     void updateActionStates(filetype::FileType type, bool canOperate);
@@ -31,6 +35,7 @@ public slots:
     void mountToDrive(const QString &path, const QString &drive);
     void loadConfig(const QString &path, filetype::FileType type);
     void download(const QString &path);
+    void addToPlaylist(const QList<QPair<QString, filetype::FileType>> &items);
 
 signals:
     void statusMessage(const QString &message, int timeout = 0);
@@ -42,6 +47,7 @@ private:
     DeviceConnection *deviceConnection_ = nullptr;
     ConfigFileLoader *configFileLoader_ = nullptr;
     StreamingManager *streamingManager_ = nullptr;
+    PlaylistManager *playlistManager_ = nullptr;
     DiskBootSequenceService *bootService_ = nullptr;
 
     QAction *playAction_ = nullptr;

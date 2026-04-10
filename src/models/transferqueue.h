@@ -1,6 +1,10 @@
 #ifndef TRANSFERQUEUE_H
 #define TRANSFERQUEUE_H
 
+#include "batchmanager.h"
+#include "transfereventprocessor.h"
+#include "transfertimeoutmanager.h"
+
 #include "ftp/folderoperationcoordinator.h"
 #include "ftp/recursivescancoordinator.h"
 #include "ftp/remotedirectorycreator.h"
@@ -10,10 +14,7 @@
 
 #include <QAbstractListModel>
 #include <QPointer>
-#include <QQueue>
-#include <QSet>
 #include <QString>
-#include <QTimer>
 
 #include <functional>
 
@@ -53,7 +54,7 @@ public:
 
     void setFtpClient(IFtpClient *client);
 
-    // Queue operations - public API remains the same
+    // Queue operations
     void enqueueUpload(const QString &localPath, const QString &remotePath, int targetBatchId = -1);
     void enqueueDownload(const QString &remotePath, const QString &localPath,
                          int targetBatchId = -1);
@@ -91,7 +92,7 @@ public:
     [[nodiscard]] int deleteProgress() const { return state_.deletedCount; }
     [[nodiscard]] int deleteTotalCount() const { return state_.deleteQueue.size(); }
 
-    // Batch operations
+    // Batch operations (delegated to BatchManager)
     [[nodiscard]] BatchProgress activeBatchProgress() const;
     [[nodiscard]] BatchProgress batchProgress(int batchId) const;
     [[nodiscard]] QList<int> allBatchIds() const;
@@ -150,17 +151,34 @@ private slots:
     void onFtpDirectoryCreated(const QString &path);
     void onDirectoryListed(const QString &path, const QList<FtpEntry> &entries);
     void onFileRemoved(const QString &path);
+    void onOperationTimeout();
 
 private:
-    // Core processing - single entry point
+    // Core processing
     void processNext();
     void scheduleProcessNext();
-    void processEventQueue();
 
     // State machine
     void transitionTo(QueueState newState);
 
-    // Folder operation slots (connected from FolderOperationCoordinator signals)
+    // Timeout helpers (thin wrappers over timeoutManager_)
+    void startOperationTimeout();
+    void stopOperationTimeout();
+
+    // Batch management (delegated to batchManager_)
+    int createBatch(OperationType type, const QString &description, const QString &folderName,
+                    const QString &sourcePath = QString());
+    void activateNextBatch();
+    void completeBatch(int batchId);
+    void purgeBatch(int batchId);
+    [[nodiscard]] TransferBatch *findBatch(int batchId);
+    [[nodiscard]] const TransferBatch *findBatch(int batchId) const;
+    [[nodiscard]] TransferBatch *activeBatch();
+    [[nodiscard]] int findItemIndex(const QString &localPath, const QString &remotePath) const;
+    void emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
+                                      bool includeFailed = false);
+
+    // Folder operation slots
     void onStartDownloadScanRequested(const QString &remotePath, const QString &localBase,
                                       const QString &remoteBase, int batchId);
     void onStartDirectoryCreationRequested(const QString &localDir, const QString &remoteDir);
@@ -174,40 +192,18 @@ private:
     void markCurrentComplete(TransferItem::Status status);
     void processNextDelete();
 
-    // Batch management
-    int createBatch(OperationType type, const QString &description, const QString &folderName,
-                    const QString &sourcePath = QString());
-    void activateNextBatch();
-    void completeBatch(int batchId);
-    void purgeBatch(int batchId);
-    [[nodiscard]] TransferBatch *findBatch(int batchId);
-    [[nodiscard]] const TransferBatch *findBatch(int batchId) const;
-    [[nodiscard]] TransferBatch *activeBatch();
-    [[nodiscard]] int findItemIndex(const QString &localPath, const QString &remotePath) const;
-
-    // Batch progress helper
-    void emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
-                                      bool includeFailed = false);
-
-    // Timeout handling
-    QTimer *operationTimeoutTimer_ = nullptr;
-    static constexpr int OperationTimeoutMs = 300000;  // 5 minutes
-    void startOperationTimeout();
-    void stopOperationTimeout();
-    void onOperationTimeout();
-
-    // I/O boundary members (not part of pure state)
+    // I/O boundary
     QPointer<IFtpClient> ftpClient_;
 
-    // Event queue for deferred processing
-    QQueue<std::function<void()>> eventQueue_;
-    bool processingEvents_ = false;
-    bool eventProcessingScheduled_ = false;
-
-    // All mutable queue state (pure-function compatible)
+    // All mutable queue state
     transfer::State state_;
 
-    // Coordinator objects (operate on state_ by reference)
+    // Extracted sub-components (owned, Qt parent)
+    BatchManager *batchManager_ = nullptr;
+    TransferTimeoutManager *timeoutManager_ = nullptr;
+    TransferEventProcessor *eventProcessor_ = nullptr;
+
+    // Coordinator objects
     RecursiveScanCoordinator *scanCoordinator_ = nullptr;
     RemoteDirectoryCreator *dirCreator_ = nullptr;
     FolderOperationCoordinator *folderCoordinator_ = nullptr;

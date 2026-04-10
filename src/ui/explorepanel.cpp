@@ -3,6 +3,7 @@
 #include "drivestatuswidget.h"
 #include "explorecontextmenu.h"
 #include "explorefavoritescontroller.h"
+#include "explorenavigationcontroller.h"
 #include "fileactioncontroller.h"
 #include "filedetailspanel.h"
 #include "pathnavigationwidget.h"
@@ -33,7 +34,7 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
                            FavoritesManager *favoritesManager, PlaylistManager *playlistManager,
                            QWidget *parent)
     : QWidget(parent), deviceConnection_(connection), remoteFileModel_(model),
-      playlistManager_(playlistManager), currentDirectory_("/")
+      playlistManager_(playlistManager)
 {
     Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
     Q_ASSERT(remoteFileModel_ && "RemoteFileModel is required");
@@ -43,17 +44,21 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
     Q_ASSERT(playlistManager_ && "PlaylistManager is required");
 
     actionController_ = new FileActionController(deviceConnection_, configLoader, this);
+    actionController_->setPlaylistManager(playlistManager_);
     favoritesController_ = new ExploreFavoritesController(favoritesManager, this);
     contextMenu_ = new ExploreContextMenu(this);
 
     setupUi();
+
+    // navController_ is constructed after setupUi() so treeView_ and navWidget_ exist
+    navController_ = new ExploreNavigationController(deviceConnection_, remoteFileModel_, treeView_,
+                                                     navWidget_, favoritesController_, this);
 
     previewCoordinator_ =
         new PreviewCoordinator(previewService, fileDetailsPanel_, playlistManager_, this);
 
     setupConnections();
 
-    // Wire config file loader signals to preview coordinator
     connect(configLoader, &ConfigFileLoader::loadFinished, previewCoordinator_,
             &PreviewCoordinator::onConfigLoadFinished);
     connect(configLoader, &ConfigFileLoader::loadFailed, previewCoordinator_,
@@ -65,7 +70,6 @@ void ExplorePanel::setupUi()
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
 
-    // Create horizontal splitter for tree view and details panel
     splitter_ = new QSplitter(Qt::Horizontal);
 
     // Left side: remote file browser with toolbar
@@ -77,7 +81,7 @@ void ExplorePanel::setupUi()
     remoteLabel->setStyleSheet("font-weight: bold;");
     remoteLayout->addWidget(remoteLabel);
 
-    // Path navigation widget (spans full width)
+    // Path navigation widget
     navWidget_ = new PathNavigationWidget(tr("Location:"));
     connect(navWidget_, &PathNavigationWidget::upClicked, this, &ExplorePanel::onParentFolder);
     remoteLayout->addWidget(navWidget_);
@@ -87,7 +91,6 @@ void ExplorePanel::setupUi()
     toolBar_->setIconSize(QSize(16, 16));
     toolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
-    // File actions
     playAction_ = toolBar_->addAction(tr("Play"));
     playAction_->setToolTip(tr("Play selected SID/MOD file"));
     connect(playAction_, &QAction::triggered, this, &ExplorePanel::onPlay);
@@ -108,22 +111,20 @@ void ExplorePanel::setupUi()
 
     toolBar_->addSeparator();
 
-    // Favorites toggle action
     toggleFavoriteAction_ = toolBar_->addAction(QString::fromUtf8("☆"));
     toggleFavoriteAction_->setToolTip(tr("Add/remove current path from favorites"));
     toggleFavoriteAction_->setCheckable(true);
     toggleFavoriteAction_->setEnabled(true);
     connect(toggleFavoriteAction_, &QAction::triggered, this, [this]() {
-        QString path = selectedPath().isEmpty() ? currentDirectory_ : selectedPath();
+        QString path =
+            selectedPath().isEmpty() ? navController_->currentDirectory() : selectedPath();
         favoritesController_->onToggleFavorite(path);
     });
 
-    // Favorites dropdown menu
     favoritesMenu_ = new QMenu(tr("Favorites"), this);
     auto *favoritesMenuAction = toolBar_->addAction(tr("Favorites"));
     favoritesMenuAction->setToolTip(tr("Quick access to favorite locations"));
     favoritesMenuAction->setMenu(favoritesMenu_);
-    // Make it a proper dropdown button
     if (auto *button =
             qobject_cast<QToolButton *>(toolBar_->widgetForAction(favoritesMenuAction))) {
         button->setPopupMode(QToolButton::InstantPopup);
@@ -145,7 +146,6 @@ void ExplorePanel::setupUi()
     treeView_->setSortingEnabled(true);
     treeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
 
-    // Guard against null selection model (can happen if no model is set)
     if (auto *selModel = treeView_->selectionModel()) {
         connect(selModel, &QItemSelectionModel::selectionChanged, this,
                 &ExplorePanel::onSelectionChanged);
@@ -155,7 +155,6 @@ void ExplorePanel::setupUi()
 
     remoteLayout->addWidget(treeView_);
 
-    // Drive status widgets at the bottom
     drive8Status_ = new DriveStatusWidget(tr("Drive 8:"));
     remoteLayout->addWidget(drive8Status_);
 
@@ -167,42 +166,32 @@ void ExplorePanel::setupUi()
     // Right side: vertical splitter for details and playlist
     rightSplitter_ = new QSplitter(Qt::Vertical);
 
-    // File details panel
     fileDetailsPanel_ = new FileDetailsPanel();
     rightSplitter_->addWidget(fileDetailsPanel_);
 
-    // Playlist widget
     playlistWidget_ = new PlaylistWidget(playlistManager_);
     connect(playlistWidget_, &PlaylistWidget::statusMessage, this, &ExplorePanel::statusMessage);
     rightSplitter_->addWidget(playlistWidget_);
 
-    // Set initial right splitter sizes (70% details, 30% playlist)
     rightSplitter_->setSizes({350, 150});
 
     splitter_->addWidget(rightSplitter_);
-
-    // Set initial splitter sizes (40% tree, 60% details+playlist)
     splitter_->setSizes({400, 600});
 
     layout->addWidget(splitter_);
 
-    // Wire up toolbar actions to action controller after creation
     actionController_->setActions(playAction_, runAction_, mountAction_);
-
-    // Wire up favorites controller actions after creation
     favoritesController_->setToggleAction(toggleFavoriteAction_);
     favoritesController_->setFavoritesMenu(favoritesMenu_);
 }
 
 void ExplorePanel::setupConnections()
 {
-    // Subscribe to device connection state changes
     if (deviceConnection_) {
         connect(deviceConnection_, &DeviceConnection::stateChanged, this,
                 &ExplorePanel::onConnectionStateChanged);
     }
 
-    // Connect drive status eject buttons
     if (drive8Status_) {
         connect(drive8Status_, &DriveStatusWidget::ejectClicked, this,
                 &ExplorePanel::ejectDriveARequested);
@@ -212,17 +201,17 @@ void ExplorePanel::setupConnections()
                 &ExplorePanel::ejectDriveBRequested);
     }
 
-    // Connect action controller signals
     connect(actionController_, &FileActionController::statusMessage, this,
             &ExplorePanel::statusMessage);
 
-    // Connect favorites controller signals
     connect(favoritesController_, &ExploreFavoritesController::navigateToPath, this,
             &ExplorePanel::setCurrentDirectory);
     connect(favoritesController_, &ExploreFavoritesController::statusMessage, this,
             &ExplorePanel::statusMessage);
 
-    // Connect context menu signals to action/favorites controllers
+    connect(navController_, &ExploreNavigationController::statusMessage, this,
+            &ExplorePanel::statusMessage);
+
     connect(contextMenu_, &ExploreContextMenu::playRequested, this, &ExplorePanel::onPlay);
     connect(contextMenu_, &ExploreContextMenu::runRequested, this, &ExplorePanel::onRun);
     connect(contextMenu_, &ExploreContextMenu::mountARequested, this,
@@ -233,71 +222,42 @@ void ExplorePanel::setupConnections()
     connect(contextMenu_, &ExploreContextMenu::loadConfigRequested, this,
             &ExplorePanel::onLoadConfig);
     connect(contextMenu_, &ExploreContextMenu::toggleFavoriteRequested, this, [this]() {
-        QString path = selectedPath().isEmpty() ? currentDirectory_ : selectedPath();
+        QString path =
+            selectedPath().isEmpty() ? navController_->currentDirectory() : selectedPath();
         favoritesController_->onToggleFavorite(path);
     });
     connect(contextMenu_, &ExploreContextMenu::addToPlaylistRequested, this,
             &ExplorePanel::onAddToPlaylist);
     connect(contextMenu_, &ExploreContextMenu::refreshRequested, this, &ExplorePanel::onRefresh);
 
-    // Connect preview coordinator
     connect(fileDetailsPanel_, &FileDetailsPanel::contentRequested, previewCoordinator_,
             &PreviewCoordinator::onFileContentRequested);
     connect(previewCoordinator_, &PreviewCoordinator::statusMessage, this,
             &ExplorePanel::statusMessage);
 }
 
+// ============================================================================
+// Public API (delegated to navController_)
+// ============================================================================
+
 void ExplorePanel::setCurrentDirectory(const QString &path)
 {
-    currentDirectory_ = path;
+    navController_->setCurrentDirectory(path);
+}
 
-    if (remoteFileModel_) {
-        remoteFileModel_->setRootPath(path);
-    }
-
-    if (navWidget_) {
-        navWidget_->setPath(path);
-    }
-    emit statusMessage(tr("Navigated to: %1").arg(path), 2000);
-
-    bool canGoUp = (path != "/" && !path.isEmpty());
-    if (navWidget_) {
-        navWidget_->setUpEnabled(canGoUp);
-    }
-
-    // Update favorites star for the new directory
-    favoritesController_->updateForPath(path);
+QString ExplorePanel::currentDirectory() const
+{
+    return navController_->currentDirectory();
 }
 
 void ExplorePanel::refresh()
 {
-    if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        return;
-    }
-
-    if (!remoteFileModel_ || !treeView_) {
-        return;
-    }
-
-    QModelIndex index = treeView_->currentIndex();
-    if (index.isValid() && remoteFileModel_->isDirectory(index)) {
-        remoteFileModel_->refresh(index);
-    } else {
-        remoteFileModel_->refresh();
-    }
-
-    deviceConnection_->refreshDriveInfo();
+    navController_->refresh();
 }
 
 void ExplorePanel::refreshIfStale()
 {
-    if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        return;
-    }
-
-    if (remoteFileModel_) {
-        remoteFileModel_->refreshIfStale();
-    }
+    navController_->refreshIfStale();
 }
 
 void ExplorePanel::showEvent(QShowEvent *event)
@@ -337,13 +297,13 @@ void ExplorePanel::loadSettings()
 {
     QSettings settings;
     QString savedDir = settings.value("directories/exploreRemote", "/").toString();
-    currentDirectory_ = savedDir;
+    navController_->setCurrentDirectory(savedDir);
 }
 
 void ExplorePanel::saveSettings()
 {
     QSettings settings;
-    settings.setValue("directories/exploreRemote", currentDirectory_);
+    settings.setValue("directories/exploreRemote", navController_->currentDirectory());
 }
 
 void ExplorePanel::setSonglengthsDatabase(SonglengthsDatabase *database)
@@ -372,18 +332,22 @@ void ExplorePanel::setStreamingManager(StreamingManager *manager)
     actionController_->setStreamingManager(manager);
 }
 
+// ============================================================================
+// Event handlers
+// ============================================================================
+
 void ExplorePanel::onConnectionStateChanged()
 {
     bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
 
-    // Reset all file action states (no selection context on state change)
     actionController_->updateActionStates(filetype::FileType::Unknown, false);
 
     if (refreshAction_) {
         refreshAction_->setEnabled(canOperate);
     }
 
-    bool canGoUp = (currentDirectory_ != "/" && !currentDirectory_.isEmpty());
+    bool canGoUp = (navController_->currentDirectory() != "/" &&
+                    !navController_->currentDirectory().isEmpty());
     if (navWidget_) {
         navWidget_->setUpEnabled(canGoUp && canOperate);
     }
@@ -433,11 +397,9 @@ void ExplorePanel::onSelectionChanged()
 
     actionController_->updateActionStates(fileType, canOperate && hasSelection);
 
-    // Update favorites toggle button
-    QString pathToCheck = hasSelection ? selected : currentDirectory_;
+    QString pathToCheck = hasSelection ? selected : navController_->currentDirectory();
     favoritesController_->updateForPath(pathToCheck);
 
-    // Update file details panel
     if (!treeView_ || !remoteFileModel_ || !fileDetailsPanel_) {
         return;
     }
@@ -472,7 +434,7 @@ void ExplorePanel::onDoubleClicked(const QModelIndex &index)
 
     switch (action) {
     case filebrowser::DoubleClickAction::Navigate:
-        setCurrentDirectory(remoteFileModel_->filePath(index));
+        navController_->setCurrentDirectory(remoteFileModel_->filePath(index));
         break;
     case filebrowser::DoubleClickAction::Play:
         onPlay();
@@ -523,19 +485,7 @@ void ExplorePanel::onContextMenu(const QPoint &pos)
 
 void ExplorePanel::onParentFolder()
 {
-    if (currentDirectory_.isEmpty() || currentDirectory_ == "/") {
-        return;
-    }
-
-    QString parentPath = currentDirectory_;
-    int lastSlash = parentPath.lastIndexOf('/');
-    if (lastSlash > 0) {
-        parentPath = parentPath.left(lastSlash);
-    } else {
-        parentPath = "/";
-    }
-
-    setCurrentDirectory(parentPath);
+    navController_->navigateToParent();
 }
 
 void ExplorePanel::onPlay()
@@ -595,7 +545,7 @@ void ExplorePanel::onRefresh()
 
 void ExplorePanel::onAddToPlaylist()
 {
-    if (!playlistManager_ || !treeView_ || !remoteFileModel_) {
+    if (!treeView_ || !remoteFileModel_) {
         return;
     }
 
@@ -610,17 +560,5 @@ void ExplorePanel::onAddToPlaylist()
         items.append({remoteFileModel_->filePath(index), remoteFileModel_->fileType(index)});
     }
 
-    auto candidates = filebrowser::filterPlaylistCandidates(items);
-    for (const auto &candidate : candidates) {
-        playlistManager_->addItem(candidate.path);
-    }
-
-    int addedCount = candidates.size();
-    if (addedCount == 0) {
-        emit statusMessage(tr("No SID files in selection"), 3000);
-    } else if (addedCount == 1) {
-        emit statusMessage(tr("Added 1 SID to playlist"), 3000);
-    } else {
-        emit statusMessage(tr("Added %1 SIDs to playlist").arg(addedCount), 3000);
-    }
+    actionController_->addToPlaylist(items);
 }

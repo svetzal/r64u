@@ -25,6 +25,7 @@ class PlaylistWidget;
 class FileActionController;
 class ExploreFavoritesController;
 class ExploreContextMenu;
+class ExploreNavigationController;
 class PreviewCoordinator;
 class QMenu;
 
@@ -40,7 +41,7 @@ public:
 
     // Public API for MainWindow coordination
     void setCurrentDirectory(const QString &path);
-    QString currentDirectory() const { return currentDirectory_; }
+    QString currentDirectory() const;
     void refresh();
     void refreshIfStale();
     void updateDriveInfo();
@@ -84,7 +85,7 @@ private slots:
     void onLoadConfig();
     void onDownload();
 
-    // Playlist slot
+    // Playlist slot (delegates to actionController_)
     void onAddToPlaylist();
 
 protected:
@@ -103,10 +104,8 @@ private:
     FileActionController *actionController_ = nullptr;
     ExploreFavoritesController *favoritesController_ = nullptr;
     ExploreContextMenu *contextMenu_ = nullptr;
+    ExploreNavigationController *navController_ = nullptr;
     PreviewCoordinator *previewCoordinator_ = nullptr;
-
-    // State
-    QString currentDirectory_;
 
     // UI widgets
     QSplitter *splitter_ = nullptr;

@@ -9,13 +9,35 @@
 #include <QFileInfo>
 
 TransferQueue::TransferQueue(QObject *parent)
-    : QAbstractListModel(parent), operationTimeoutTimer_(new QTimer(this)),
+    : QAbstractListModel(parent), batchManager_(new BatchManager(state_, this)),
+      timeoutManager_(new TransferTimeoutManager(this)),
+      eventProcessor_(new TransferEventProcessor(this)),
       scanCoordinator_(new RecursiveScanCoordinator(state_, nullptr, this)),
       dirCreator_(new RemoteDirectoryCreator(state_, nullptr, this)),
       folderCoordinator_(new FolderOperationCoordinator(state_, nullptr, this))
 {
-    operationTimeoutTimer_->setSingleShot(true);
-    connect(operationTimeoutTimer_, &QTimer::timeout, this, &TransferQueue::onOperationTimeout);
+    // --- BatchManager setup ---
+    batchManager_->setModelResetCallbacks([this]() { beginResetModel(); },
+                                          [this]() { endResetModel(); });
+    batchManager_->setRowRemovalCallbacks(
+        [this](int first, int last) { beginRemoveRows(QModelIndex(), first, last); },
+        [this]() { endRemoveRows(); });
+    batchManager_->setStopTimeoutCallback([this]() { stopOperationTimeout(); });
+    batchManager_->setFolderOpCompleteCallback(
+        [this]() { folderCoordinator_->onFolderOperationComplete(); });
+    batchManager_->setScheduleProcessNextCallback([this]() { scheduleProcessNext(); });
+
+    connect(batchManager_, &BatchManager::batchStarted, this, &TransferQueue::batchStarted);
+    connect(batchManager_, &BatchManager::batchProgressUpdate, this,
+            &TransferQueue::batchProgressUpdate);
+    connect(batchManager_, &BatchManager::batchCompleted, this, &TransferQueue::batchCompleted);
+    connect(batchManager_, &BatchManager::allOperationsCompleted, this,
+            &TransferQueue::allOperationsCompleted);
+    connect(batchManager_, &BatchManager::queueChanged, this, &TransferQueue::queueChanged);
+
+    // --- TransferTimeoutManager setup ---
+    connect(timeoutManager_, &TransferTimeoutManager::operationTimedOut, this,
+            &TransferQueue::onOperationTimeout);
 
     // --- RecursiveScanCoordinator connections ---
     connect(scanCoordinator_, &RecursiveScanCoordinator::downloadFileDiscovered, this,
@@ -26,7 +48,6 @@ TransferQueue::TransferQueue(QObject *parent)
             [this](int batchId) { completeBatch(batchId); });
     connect(scanCoordinator_, &RecursiveScanCoordinator::scheduleProcessNextRequested, this,
             [this]() {
-                // Mark batch as scanned before transitioning
                 if (TransferBatch *batch = findBatch(state_.currentFolderOp.batchId)) {
                     batch->scanned = true;
                 }
@@ -42,10 +63,7 @@ TransferQueue::TransferQueue(QObject *parent)
     connect(scanCoordinator_, &RecursiveScanCoordinator::deleteScanComplete, this,
             &TransferQueue::onDeleteScanComplete);
     connect(scanCoordinator_, &RecursiveScanCoordinator::folderCheckComplete, this,
-            [this](const QString & /*path*/) {
-                // After folder existence check, resume folder confirmation logic
-                folderCoordinator_->resumeAfterFolderCheck();
-            });
+            [this](const QString & /*path*/) { folderCoordinator_->resumeAfterFolderCheck(); });
     connect(scanCoordinator_, &RecursiveScanCoordinator::uploadCheckFileExists, this,
             [this](const QString &fileName) {
                 emit overwriteConfirmationNeeded(fileName, OperationType::Upload);
@@ -92,52 +110,23 @@ TransferQueue::~TransferQueue()
     disconnectFtpClient(ftpClient_, this);
 }
 
+// ============================================================================
+// Event queue (delegated to eventProcessor_)
+// ============================================================================
+
 void TransferQueue::scheduleProcessNext()
 {
-    eventQueue_.enqueue([this]() { processNext(); });
-
-    if (!eventProcessingScheduled_) {
-        eventProcessingScheduled_ = true;
-        QTimer::singleShot(0, this, &TransferQueue::processEventQueue);
-    }
-}
-
-void TransferQueue::processEventQueue()
-{
-    eventProcessingScheduled_ = false;
-
-    if (processingEvents_) {
-        if (!eventQueue_.isEmpty() && !eventProcessingScheduled_) {
-            eventProcessingScheduled_ = true;
-            QTimer::singleShot(0, this, &TransferQueue::processEventQueue);
-        }
-        return;
-    }
-
-    processingEvents_ = true;
-    while (!eventQueue_.isEmpty()) {
-        auto event = eventQueue_.dequeue();
-        event();
-    }
-    processingEvents_ = false;
+    eventProcessor_->schedule([this]() { processNext(); });
 }
 
 void TransferQueue::flushEventQueue()
 {
-    if (processingEvents_) {
-        return;
-    }
-
-    eventProcessingScheduled_ = false;
-    processingEvents_ = true;
-
-    while (!eventQueue_.isEmpty()) {
-        auto event = eventQueue_.dequeue();
-        event();
-    }
-
-    processingEvents_ = false;
+    eventProcessor_->flush();
 }
+
+// ============================================================================
+// State machine
+// ============================================================================
 
 void TransferQueue::transitionTo(QueueState newState)
 {
@@ -150,6 +139,10 @@ void TransferQueue::transitionTo(QueueState newState)
 
     state_.queueState = newState;
 }
+
+// ============================================================================
+// FTP client
+// ============================================================================
 
 void TransferQueue::setFtpClient(IFtpClient *client)
 {
@@ -362,7 +355,6 @@ void TransferQueue::onStartDirectoryCreationRequested(const QString &localDir,
         transitionTo(QueueState::CreatingDirectories);
         dirCreator_->createNextDirectory();
     } else {
-        // No directories to create, mark batch as scanned and process files
         if (TransferBatch *batch = findBatch(state_.currentFolderOp.batchId)) {
             batch->scanned = true;
         }
@@ -396,12 +388,10 @@ void TransferQueue::finishDirectoryCreation()
 {
     qDebug() << "TransferQueue: All directories created, queueing files for upload";
 
-    // Mark batch as scanned
     if (TransferBatch *batch = findBatch(state_.currentFolderOp.batchId)) {
         batch->scanned = true;
     }
 
-    // Queue all files for upload
     QDir dir(state_.currentFolderOp.sourcePath);
     if (!dir.exists()) {
         qWarning() << "TransferQueue: Source directory doesn't exist:"
@@ -422,7 +412,6 @@ void TransferQueue::finishDirectoryCreation()
 
     qDebug() << "TransferQueue: Queued" << fileCount << "files for upload";
 
-    // Check for empty folder (no files)
     if (fileCount == 0) {
         if (findBatch(state_.currentFolderOp.batchId)) {
             qDebug() << "TransferQueue: Empty folder upload batch"
@@ -534,7 +523,6 @@ void TransferQueue::processNextDelete()
             qDebug() << "TransferQueue: Delete completed, starting pending upload";
             state_.pendingUploadAfterDelete = false;
 
-            // Queue directories and start uploading via dirCreator
             dirCreator_->queueDirectoriesForUpload(state_.currentFolderOp.sourcePath,
                                                    state_.currentFolderOp.targetPath);
 
@@ -661,7 +649,6 @@ void TransferQueue::onUploadFinished(const QString &localPath, const QString &re
 
     int idx = findItemIndex(localPath, remotePath);
     if (idx >= 0) {
-        // Use the found index, not currentIndex_, in case another operation started
         state_.currentIndex = idx;
         markCurrentComplete(TransferItem::Status::Completed);
 
@@ -669,8 +656,6 @@ void TransferQueue::onUploadFinished(const QString &localPath, const QString &re
         emit operationCompleted(fileName);
     }
 
-    // Only transition to Idle if we haven't already started a new operation
-    // (e.g., when batch completion triggers a new folder operation)
     if (state_.queueState == QueueState::Transferring) {
         transitionTo(QueueState::Idle);
     }
@@ -696,7 +681,6 @@ void TransferQueue::onDownloadFinished(const QString &remotePath, const QString 
 
     int idx = findItemIndex(localPath, remotePath);
     if (idx >= 0) {
-        // Use the found index, not currentIndex_, in case another operation started
         state_.currentIndex = idx;
         markCurrentComplete(TransferItem::Status::Completed);
 
@@ -704,8 +688,6 @@ void TransferQueue::onDownloadFinished(const QString &remotePath, const QString 
         emit operationCompleted(fileName);
     }
 
-    // Only transition to Idle if we haven't already started a new operation
-    // (e.g., when batch completion triggers a new folder operation)
     if (state_.queueState == QueueState::Transferring) {
         transitionTo(QueueState::Idle);
     }
@@ -720,7 +702,7 @@ void TransferQueue::onFtpError(const QString &message)
 
     stopOperationTimeout();
 
-    int originalIndex = state_.currentIndex;  // Save before pure function resets it
+    int originalIndex = state_.currentIndex;
 
     auto result = transfer::handleFtpError(state_, message);
     state_ = result.newState;
@@ -790,7 +772,6 @@ void TransferQueue::onFileRemoved(const QString &path)
         }
     }
 
-    // Handle single delete in regular queue
     for (const auto &item : state_.items) {
         if (item.operationType == OperationType::Delete && item.remotePath == path &&
             item.status == TransferItem::Status::InProgress) {
@@ -815,7 +796,6 @@ void TransferQueue::onFileRemoved(const QString &path)
 
 void TransferQueue::respondToOverwrite(OverwriteResponse response)
 {
-    // Capture the affected batch ID before state_ update clears pendingConfirmation
     int affectedBatchId = -1;
     if (response == OverwriteResponse::Skip) {
         int itemIdx = state_.pendingConfirmation.itemIndex;
@@ -836,7 +816,6 @@ void TransferQueue::respondToOverwrite(OverwriteResponse response)
         emit dataChanged(index(0), index(state_.items.size() - 1));
     }
 
-    // Check batch completion for Skip case
     if (response == OverwriteResponse::Skip && affectedBatchId >= 0) {
         bool batchIsComplete = false;
         if (const TransferBatch *batch = findBatch(affectedBatchId)) {
@@ -854,124 +833,34 @@ void TransferQueue::respondToOverwrite(OverwriteResponse response)
 }
 
 // ============================================================================
-// Batch management
+// Batch management (delegated to batchManager_)
 // ============================================================================
 
 int TransferQueue::createBatch(OperationType type, const QString &description,
                                const QString &folderName, const QString &sourcePath)
 {
-    // createBatch may purge completed batches — use reset model as a safe catch-all
-    beginResetModel();
-    auto result = transfer::createBatch(state_, type, description, folderName, sourcePath);
-    state_ = result.newState;
-    endResetModel();
-
-    qDebug() << "TransferQueue: Created batch" << result.batchId << ":" << description;
-    emit queueChanged();
-
-    return result.batchId;
+    return batchManager_->createBatch(type, description, folderName, sourcePath);
 }
 
 void TransferQueue::activateNextBatch()
 {
-    state_ = transfer::activateNextBatch(state_);
-
-    if (state_.activeBatchIndex >= 0) {
-        qDebug() << "TransferQueue: Activated batch"
-                 << state_.batches[state_.activeBatchIndex].batchId;
-        emit batchStarted(state_.batches[state_.activeBatchIndex].batchId);
-    } else {
-        qDebug() << "TransferQueue: No more batches to activate";
-    }
+    batchManager_->activateNextBatch();
 }
 
 void TransferQueue::completeBatch(int batchId)
 {
-    TransferBatch *batch = findBatch(batchId);
-    if (!batch) {
-        return;
-    }
-
-    qDebug() << "TransferQueue: Completing batch" << batchId
-             << "completed:" << batch->completedCount << "failed:" << batch->failedCount
-             << "total:" << batch->totalCount();
-
-    state_.activeBatchIndex = -1;
-    stopOperationTimeout();
-    state_.currentIndex = -1;
-    transitionTo(QueueState::Idle);
-
-    emit batchCompleted(batchId);
-
-    // Check if this is part of a folder operation
-    if (state_.currentFolderOp.batchId == batchId) {
-        folderCoordinator_->onFolderOperationComplete();
-        return;
-    }
-
-    activateNextBatch();
-
-    bool hasActiveBatches = false;
-    for (const auto &b : state_.batches) {
-        if (!b.isComplete()) {
-            hasActiveBatches = true;
-            break;
-        }
-    }
-
-    if (!hasActiveBatches) {
-        qDebug() << "TransferQueue: All batches complete";
-        state_.overwriteAll = false;
-        emit allOperationsCompleted();
-    } else if (state_.activeBatchIndex >= 0) {
-        scheduleProcessNext();
-    }
+    batchManager_->completeBatch(batchId);
 }
 
 void TransferQueue::purgeBatch(int batchId)
 {
-    for (int i = 0; i < state_.batches.size(); ++i) {
-        if (state_.batches[i].batchId == batchId) {
-            qDebug() << "TransferQueue: Purging batch" << batchId;
-
-            for (int j = state_.items.size() - 1; j >= 0; --j) {
-                if (state_.items[j].batchId == batchId) {
-                    beginRemoveRows(QModelIndex(), j, j);
-                    state_.items.removeAt(j);
-                    endRemoveRows();
-
-                    if (state_.currentIndex > j) {
-                        state_.currentIndex--;
-                    } else if (state_.currentIndex == j) {
-                        state_.currentIndex = -1;
-                    }
-                }
-            }
-
-            if (state_.activeBatchIndex == i) {
-                state_.activeBatchIndex = -1;
-            } else if (state_.activeBatchIndex > i) {
-                state_.activeBatchIndex--;
-            }
-
-            state_.batches.removeAt(i);
-            emit queueChanged();
-            return;
-        }
-    }
+    batchManager_->purgeBatch(batchId);
 }
 
 void TransferQueue::emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
                                                  bool includeFailed)
 {
-    if (TransferBatch *batch = findBatch(batchId)) {
-        int completed =
-            includeFailed ? batch->completedCount + batch->failedCount : batch->completedCount;
-        emit batchProgressUpdate(batchId, completed, batch->totalCount());
-    }
-    if (batchIsComplete) {
-        completeBatch(batchId);
-    }
+    batchManager_->emitBatchProgressAndComplete(batchId, batchIsComplete, includeFailed);
 }
 
 void TransferQueue::markCurrentComplete(TransferItem::Status status)
@@ -993,30 +882,17 @@ void TransferQueue::markCurrentComplete(TransferItem::Status status)
 
 TransferBatch *TransferQueue::findBatch(int batchId)
 {
-    for (auto &batch : state_.batches) {
-        if (batch.batchId == batchId) {
-            return &batch;
-        }
-    }
-    return nullptr;
+    return batchManager_->findBatch(batchId);
 }
 
 const TransferBatch *TransferQueue::findBatch(int batchId) const
 {
-    for (const auto &batch : state_.batches) {
-        if (batch.batchId == batchId) {
-            return &batch;
-        }
-    }
-    return nullptr;
+    return batchManager_->findBatch(batchId);
 }
 
 TransferBatch *TransferQueue::activeBatch()
 {
-    if (state_.activeBatchIndex >= 0 && state_.activeBatchIndex < state_.batches.size()) {
-        return &state_.batches[state_.activeBatchIndex];
-    }
-    return nullptr;
+    return batchManager_->activeBatch();
 }
 
 int TransferQueue::findItemIndex(const QString &localPath, const QString &remotePath) const
@@ -1125,12 +1001,12 @@ bool TransferQueue::isScanningForDelete() const
 
 bool TransferQueue::hasActiveBatch() const
 {
-    return transfer::hasActiveBatch(state_);
+    return batchManager_->hasActiveBatch();
 }
 
 int TransferQueue::queuedBatchCount() const
 {
-    return transfer::queuedBatchCount(state_);
+    return batchManager_->queuedBatchCount();
 }
 
 bool TransferQueue::isPathBeingTransferred(const QString &path, OperationType type) const
@@ -1175,31 +1051,31 @@ QHash<int, QByteArray> TransferQueue::roleNames() const
 
 BatchProgress TransferQueue::activeBatchProgress() const
 {
-    return transfer::computeActiveBatchProgress(state_);
+    return batchManager_->activeBatchProgress();
 }
 
 BatchProgress TransferQueue::batchProgress(int batchId) const
 {
-    return transfer::computeBatchProgress(state_, batchId);
+    return batchManager_->batchProgress(batchId);
 }
 
 QList<int> TransferQueue::allBatchIds() const
 {
-    return transfer::allBatchIds(state_);
+    return batchManager_->allBatchIds();
 }
 
 // ============================================================================
-// Timeout handling
+// Timeout handling (delegated to timeoutManager_)
 // ============================================================================
 
 void TransferQueue::startOperationTimeout()
 {
-    operationTimeoutTimer_->start(OperationTimeoutMs);
+    timeoutManager_->start();
 }
 
 void TransferQueue::stopOperationTimeout()
 {
-    operationTimeoutTimer_->stop();
+    timeoutManager_->stop();
 }
 
 void TransferQueue::onOperationTimeout()
@@ -1214,8 +1090,8 @@ void TransferQueue::onOperationTimeout()
     state_ = transfer::handleOperationTimeout(state_);
 
     if (originalIndex >= 0 && originalIndex < state_.items.size()) {
-        QString errorMessage =
-            tr("Operation timed out after %1 minutes").arg(OperationTimeoutMs / 60000);
+        QString errorMessage = tr("Operation timed out after %1 minutes")
+                                   .arg(TransferTimeoutManager::OperationTimeoutMs / 60000);
         state_.items[originalIndex].errorMessage = errorMessage;
 
         QString fileName = QFileInfo(state_.items[originalIndex].localPath.isEmpty()
