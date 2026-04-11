@@ -279,6 +279,7 @@ private:
     void handleBusyResponse(int code, const QString &text);
     void drainCommandQueue();
     void resetTransferState();
+    void performDisconnectCleanup();
 
 private:
     // Network connections

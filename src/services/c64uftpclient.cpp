@@ -233,51 +233,23 @@ void C64UFtpClient::onControlConnected()
 void C64UFtpClient::onControlDisconnected()
 {
     qDebug() << "FTP: Control socket disconnected";
-
-    // Stop connection timeout timer
-    connectionTimer_->stop();
-
-    // Clear command queue to prevent stale commands executing on reconnection
-    drainCommandQueue();
-
-    // Clear any pending transfer state
-    resetTransferState();
-
-    loggedIn_ = false;
-    setState(State::Disconnected);
+    performDisconnectCleanup();
     emit disconnected();
 }
 
 void C64UFtpClient::onControlError(QAbstractSocket::SocketError socketError)
 {
     qDebug() << "FTP: Control socket error:" << socketError << controlSocket_->errorString();
-
-    // Stop connection timeout timer
-    connectionTimer_->stop();
-
-    // Clear command queue to prevent stale commands executing on reconnection
-    drainCommandQueue();
-
-    // Clear any pending transfer state
-    resetTransferState();
-
-    loggedIn_ = false;
-    emit error(controlSocket_->errorString());
-    setState(State::Disconnected);
+    QString errorMessage = controlSocket_->errorString();
+    performDisconnectCleanup();
+    emit error(errorMessage);
 }
 
 void C64UFtpClient::onConnectionTimeout()
 {
     qDebug() << "FTP: Connection timeout";
-
-    // Abort the connection attempt
     controlSocket_->abort();
-
-    // Clear command queue
-    drainCommandQueue();
-
-    loggedIn_ = false;
-    setState(State::Disconnected);
+    performDisconnectCleanup();
     emit error(tr("Connection timed out after %1 seconds").arg(ConnectionTimeoutMs / 1000));
 }
 
@@ -595,6 +567,15 @@ void C64UFtpClient::drainCommandQueue()
 void C64UFtpClient::resetTransferState()
 {
     transferState_.reset();
+}
+
+void C64UFtpClient::performDisconnectCleanup()
+{
+    connectionTimer_->stop();
+    drainCommandQueue();
+    resetTransferState();
+    loggedIn_ = false;
+    setState(State::Disconnected);
 }
 
 void C64UFtpClient::onDataConnected()

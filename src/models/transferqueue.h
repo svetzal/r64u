@@ -165,6 +165,10 @@ private:
     void startOperationTimeout();
     void stopOperationTimeout();
 
+    // Enqueue helpers
+    [[nodiscard]] int findBatchIndex(int batchId) const;
+    void activateAndSchedule(int batchIdx);
+
     // Batch management (delegated to batchManager_)
     int createBatch(OperationType type, const QString &description, const QString &folderName,
                     const QString &sourcePath = QString());

@@ -170,21 +170,39 @@ void TransferQueue::setFtpClient(IFtpClient *client)
 }
 
 // ============================================================================
+// Enqueue helpers
+// ============================================================================
+
+int TransferQueue::findBatchIndex(int batchId) const
+{
+    for (int i = 0; i < state_.batches.size(); ++i) {
+        if (state_.batches[i].batchId == batchId)
+            return i;
+    }
+    return -1;
+}
+
+void TransferQueue::activateAndSchedule(int batchIdx)
+{
+    if (state_.activeBatchIndex < 0) {
+        state_.activeBatchIndex = batchIdx;
+        state_.batches[batchIdx].scanned = true;
+        state_.batches[batchIdx].folderConfirmed = true;
+        emit batchStarted(state_.batches[batchIdx].batchId);
+    }
+    emit queueChanged();
+    if (state_.queueState == QueueState::Idle)
+        scheduleProcessNext();
+}
+
+// ============================================================================
 // Single-file enqueue operations
 // ============================================================================
 
 void TransferQueue::enqueueUpload(const QString &localPath, const QString &remotePath,
                                   int targetBatchId)
 {
-    int batchIdx = -1;
-    if (targetBatchId >= 0) {
-        for (int i = 0; i < state_.batches.size(); ++i) {
-            if (state_.batches[i].batchId == targetBatchId) {
-                batchIdx = i;
-                break;
-            }
-        }
-    }
+    int batchIdx = (targetBatchId >= 0) ? findBatchIndex(targetBatchId) : -1;
 
     if (batchIdx < 0) {
         batchIdx = state_.activeBatchIndex;
@@ -195,12 +213,7 @@ void TransferQueue::enqueueUpload(const QString &localPath, const QString &remot
                                      : state_.currentFolderOp.sourcePath;
             int batchId = createBatch(OperationType::Upload, tr("Uploading %1").arg(fileName),
                                       fileName, sourcePath);
-            for (int i = 0; i < state_.batches.size(); ++i) {
-                if (state_.batches[i].batchId == batchId) {
-                    batchIdx = i;
-                    break;
-                }
-            }
+            batchIdx = findBatchIndex(batchId);
         }
     }
 
@@ -222,34 +235,13 @@ void TransferQueue::enqueueUpload(const QString &localPath, const QString &remot
     endInsertRows();
 
     state_.batches[batchIdx].items.append(item);
-
-    if (state_.activeBatchIndex < 0) {
-        state_.activeBatchIndex = batchIdx;
-        state_.batches[batchIdx].scanned = true;
-        state_.batches[batchIdx].folderConfirmed = true;
-        emit batchStarted(state_.batches[batchIdx].batchId);
-    }
-
-    emit queueChanged();
-
-    if (state_.queueState == QueueState::Idle) {
-        scheduleProcessNext();
-    }
+    activateAndSchedule(batchIdx);
 }
 
 void TransferQueue::enqueueDownload(const QString &remotePath, const QString &localPath,
                                     int targetBatchId)
 {
-    int batchIdx = -1;
-
-    if (targetBatchId >= 0) {
-        for (int i = 0; i < state_.batches.size(); ++i) {
-            if (state_.batches[i].batchId == targetBatchId) {
-                batchIdx = i;
-                break;
-            }
-        }
-    }
+    int batchIdx = (targetBatchId >= 0) ? findBatchIndex(targetBatchId) : -1;
 
     if (batchIdx < 0) {
         batchIdx = state_.activeBatchIndex;
@@ -260,12 +252,7 @@ void TransferQueue::enqueueDownload(const QString &remotePath, const QString &lo
                                      : QString();
             int batchId = createBatch(OperationType::Download, tr("Downloading %1").arg(fileName),
                                       fileName, sourcePath);
-            for (int i = 0; i < state_.batches.size(); ++i) {
-                if (state_.batches[i].batchId == batchId) {
-                    batchIdx = i;
-                    break;
-                }
-            }
+            batchIdx = findBatchIndex(batchId);
         }
     }
 
@@ -286,19 +273,7 @@ void TransferQueue::enqueueDownload(const QString &remotePath, const QString &lo
     endInsertRows();
 
     state_.batches[batchIdx].items.append(item);
-
-    if (state_.activeBatchIndex < 0) {
-        state_.activeBatchIndex = batchIdx;
-        state_.batches[batchIdx].scanned = true;
-        state_.batches[batchIdx].folderConfirmed = true;
-        emit batchStarted(state_.batches[batchIdx].batchId);
-    }
-
-    emit queueChanged();
-
-    if (state_.queueState == QueueState::Idle) {
-        scheduleProcessNext();
-    }
+    activateAndSchedule(batchIdx);
 }
 
 // ============================================================================

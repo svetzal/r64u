@@ -219,6 +219,26 @@ private slots:
         QCOMPARE(ftp->state(), IFtpClient::State::Ready);
     }
 
+    // === Connection Timeout Tests ===
+
+    void testConnectionTimeoutClearsTransferState()
+    {
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+
+        ftp->setHost("192.168.1.64");
+        ftp->connectToHost();
+
+        QCOMPARE(ftp->state(), IFtpClient::State::Connecting);
+
+        // Trigger the timeout slot directly (simulates the timer expiring)
+        QMetaObject::invokeMethod(ftp, "onConnectionTimeout");
+
+        QCOMPARE(ftp->state(), IFtpClient::State::Disconnected);
+        QVERIFY(!ftp->isLoggedIn());
+        QCOMPARE(errorSpy.count(), 1);
+        QVERIFY(errorSpy.first().first().toString().contains("timed out"));
+    }
+
     // === IsConnected Logic Tests ===
 
     void testIsConnected_FalseWhenDisconnected() { QVERIFY(!ftp->isConnected()); }
