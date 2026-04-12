@@ -6,21 +6,26 @@
 #include "recursivescancoordinator.h"
 
 #include "services/iftpclient.h"
+#include "services/ilocalfilesystem.h"
 #include "services/transfercore.h"
 
 #include <QDebug>
-#include <QDir>
 #include <QFileInfo>
 
 RecursiveScanCoordinator::RecursiveScanCoordinator(transfer::State &state, IFtpClient *ftpClient,
-                                                   QObject *parent)
-    : QObject(parent), state_(state), ftpClient_(ftpClient)
+                                                   ILocalFileSystem *localFs, QObject *parent)
+    : QObject(parent), state_(state), ftpClient_(ftpClient), localFs_(localFs)
 {
 }
 
 void RecursiveScanCoordinator::setFtpClient(IFtpClient *client)
 {
     ftpClient_ = client;
+}
+
+void RecursiveScanCoordinator::setLocalFileSystem(ILocalFileSystem *fs)
+{
+    localFs_ = fs;
 }
 
 bool RecursiveScanCoordinator::handlesListing(const QString &path) const
@@ -125,7 +130,12 @@ void RecursiveScanCoordinator::handleDirectoryListingForDownload(const QString &
         if (relativePath.startsWith('/'))
             relativePath = relativePath.mid(1);
         QString localDirPath = currentScan.localBasePath + '/' + relativePath;
-        QDir().mkpath(localDirPath);
+
+        // Create local directory via gateway
+        if (localFs_ && !localFs_->createDirectoryPath(localDirPath)) {
+            qDebug() << "RecursiveScanCoordinator: Failed to create local directory"
+                     << localDirPath;
+        }
 
         state_.pendingScans.enqueue(subScan);
         state_.requestedListings.insert(subScan.remotePath);

@@ -12,6 +12,15 @@ set(MOCK_FTP_HEADERS
     mocks/mockftpclient.h
 )
 
+# Mock local file system - implements ILocalFileSystem for runtime injection
+set(MOCK_LOCAL_FS_SOURCES
+    mocks/mocklocalfilesystem.cpp
+)
+
+set(MOCK_LOCAL_FS_HEADERS
+    mocks/mocklocalfilesystem.h
+)
+
 # Mock file downloader - implements IFileDownloader for runtime injection
 set(MOCK_FILE_DOWNLOADER_SOURCES
     mocks/mockfiledownloader.cpp
@@ -68,13 +77,15 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_transfercore)
 endif()
 
-# TransferQueue tests - uses new MockFtpClient via interface injection
+# TransferQueue tests - uses MockFtpClient and LocalFileSystem (production) via interface injection
 add_executable(test_transferqueue
     test_transferqueue.cpp
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
@@ -102,6 +113,40 @@ add_test(NAME TransferQueueTest COMMAND test_transferqueue)
 if(BUILD_COVERAGE)
     add_coverage_target(transferqueue test_transferqueue)
     add_dependencies(coverage coverage_transferqueue)
+endif()
+
+# Coordinator tests - isolated unit tests using MockLocalFileSystem (no real disk I/O)
+add_executable(test_coordinators
+    test_coordinators.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${MOCK_LOCAL_FS_SOURCES}
+    ${MOCK_LOCAL_FS_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
+)
+
+target_include_directories(test_coordinators PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_coordinators PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+# Register test with CTest
+add_test(NAME CoordinatorsTest COMMAND test_coordinators)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(coordinators test_coordinators)
+    add_dependencies(coverage coverage_coordinators)
 endif()
 
 # RemoteFileModel tests - uses MockFtpClient via interface injection
@@ -390,7 +435,9 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp

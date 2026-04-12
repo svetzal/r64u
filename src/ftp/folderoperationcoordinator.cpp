@@ -6,15 +6,17 @@
 #include "folderoperationcoordinator.h"
 
 #include "services/iftpclient.h"
+#include "services/ilocalfilesystem.h"
 
 #include <QDebug>
-#include <QDir>
 #include <QFileInfo>
 #include <QTimer>
 
 FolderOperationCoordinator::FolderOperationCoordinator(transfer::State &state,
-                                                       IFtpClient *ftpClient, QObject *parent)
-    : QObject(parent), state_(state), ftpClient_(ftpClient), debounceTimer_(new QTimer(this))
+                                                       IFtpClient *ftpClient,
+                                                       ILocalFileSystem *localFs, QObject *parent)
+    : QObject(parent), state_(state), ftpClient_(ftpClient), localFs_(localFs),
+      debounceTimer_(new QTimer(this))
 {
     debounceTimer_->setSingleShot(true);
     connect(debounceTimer_, &QTimer::timeout, this, &FolderOperationCoordinator::onDebounceTimeout);
@@ -23,6 +25,11 @@ FolderOperationCoordinator::FolderOperationCoordinator(transfer::State &state,
 void FolderOperationCoordinator::setFtpClient(IFtpClient *client)
 {
     ftpClient_ = client;
+}
+
+void FolderOperationCoordinator::setLocalFileSystem(ILocalFileSystem *fs)
+{
+    localFs_ = fs;
 }
 
 void FolderOperationCoordinator::setCreateBatchCallback(
@@ -58,7 +65,8 @@ void FolderOperationCoordinator::enqueueRecursive(transfer::OperationType type,
     op.sourcePath = sourcePath;
     op.destPath = destPath;
     op.targetPath = targetDir;
-    op.destExists = isUpload ? false : QDir(targetDir).exists();
+    // For downloads: query local existence via gateway; uploads never have local destExists
+    op.destExists = isUpload ? false : (localFs_ ? localFs_->directoryExists(targetDir) : false);
 
     // Skip confirmation when: autoMerge is set, or (download and dest doesn't exist yet)
     const bool skipConfirmation = state_.autoMerge || (!isUpload && !op.destExists);
@@ -223,21 +231,25 @@ void FolderOperationCoordinator::startFolderOperation(const transfer::PendingFol
         // Queue all directories for creation, then upload files
         emit startDirectoryCreationRequested(op.sourcePath, op.targetPath);
     } else {
-        // Download: Handle Replace - delete existing local folder first
+        // Download: Handle Replace - delete existing local folder first via gateway
         if (op.destExists && state_.replaceExisting) {
             qDebug() << "FolderOperationCoordinator: Local folder" << op.targetPath
                      << "needs deletion before download (Replace)";
-            QDir localDir(op.targetPath);
-            if (localDir.exists() && !localDir.removeRecursively()) {
-                qDebug() << "FolderOperationCoordinator: Failed to delete local folder"
-                         << op.targetPath;
-                emit statusMessage(tr("Failed to delete local folder '%1'").arg(op.targetPath),
-                                   5000);
+            if (localFs_) {
+                if (!localFs_->removeDirectoryRecursively(op.targetPath)) {
+                    qDebug() << "FolderOperationCoordinator: Failed to delete local folder"
+                             << op.targetPath;
+                    emit statusMessage(tr("Failed to delete local folder '%1'").arg(op.targetPath),
+                                       5000);
+                }
             }
         }
 
-        // Create local base directory
-        QDir().mkpath(op.targetPath);
+        // Create local base directory via gateway
+        if (localFs_ && !localFs_->createDirectoryPath(op.targetPath)) {
+            qDebug() << "FolderOperationCoordinator: Failed to create local directory"
+                     << op.targetPath;
+        }
 
         // Start scanning remote directory
         emit startDownloadScanRequested(op.sourcePath, op.targetPath, op.sourcePath, batchId);

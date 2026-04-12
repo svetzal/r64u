@@ -117,6 +117,8 @@ set(SOURCES
     src/services/playlistmanager.cpp
     src/services/playlistcore.cpp
     src/services/transfercore.cpp
+    src/services/ilocalfilesystem.cpp
+    src/services/localfilesystem.cpp
     src/services/ifiledownloader.cpp
     src/services/httpfiledownloader.cpp
     src/services/songlengthsparser.cpp
@@ -224,6 +226,8 @@ set(HEADERS
     src/services/playlistmanager.h
     src/services/playlistcore.h
     src/services/transfercore.h
+    src/services/ilocalfilesystem.h
+    src/services/localfilesystem.h
     src/services/ifiledownloader.h
     src/services/httpfiledownloader.h
     src/services/songlengthsdatabase.h

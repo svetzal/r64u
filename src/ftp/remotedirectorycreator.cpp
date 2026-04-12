@@ -6,14 +6,13 @@
 #include "remotedirectorycreator.h"
 
 #include "services/iftpclient.h"
+#include "services/ilocalfilesystem.h"
 
 #include <QDebug>
-#include <QDir>
-#include <QDirIterator>
 
 RemoteDirectoryCreator::RemoteDirectoryCreator(transfer::State &state, IFtpClient *ftpClient,
-                                               QObject *parent)
-    : QObject(parent), state_(state), ftpClient_(ftpClient)
+                                               ILocalFileSystem *localFs, QObject *parent)
+    : QObject(parent), state_(state), ftpClient_(ftpClient), localFs_(localFs)
 {
 }
 
@@ -22,11 +21,14 @@ void RemoteDirectoryCreator::setFtpClient(IFtpClient *client)
     ftpClient_ = client;
 }
 
+void RemoteDirectoryCreator::setLocalFileSystem(ILocalFileSystem *fs)
+{
+    localFs_ = fs;
+}
+
 void RemoteDirectoryCreator::queueDirectoriesForUpload(const QString &localDir,
                                                        const QString &remoteDir)
 {
-    QDir baseDir(localDir);
-
     // Queue root directory
     transfer::PendingMkdir rootMkdir;
     rootMkdir.remotePath = remoteDir;
@@ -34,18 +36,19 @@ void RemoteDirectoryCreator::queueDirectoriesForUpload(const QString &localDir,
     rootMkdir.remoteBase = remoteDir;
     state_.pendingMkdirs.enqueue(rootMkdir);
 
-    // Queue all subdirectories
-    QDirIterator it(localDir, QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-        QString subDir = it.next();
-        QString relativePath = baseDir.relativeFilePath(subDir);
-        QString remotePath = remoteDir + '/' + relativePath;
+    // Queue all subdirectories via gateway
+    if (localFs_) {
+        const QStringList subdirs = localFs_->listSubdirectoriesRecursively(localDir);
+        for (const QString &subDir : subdirs) {
+            const QString relativePath = localFs_->relativePath(localDir, subDir);
+            const QString remotePath = remoteDir + '/' + relativePath;
 
-        transfer::PendingMkdir mkdir;
-        mkdir.remotePath = remotePath;
-        mkdir.localDir = subDir;
-        mkdir.remoteBase = remoteDir;
-        state_.pendingMkdirs.enqueue(mkdir);
+            transfer::PendingMkdir mkdir;
+            mkdir.remotePath = remotePath;
+            mkdir.localDir = subDir;
+            mkdir.remoteBase = remoteDir;
+            state_.pendingMkdirs.enqueue(mkdir);
+        }
     }
 
     state_.directoriesCreated = 0;

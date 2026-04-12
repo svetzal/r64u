@@ -13,6 +13,7 @@
 #include <QString>
 
 class IFtpClient;
+class ILocalFileSystem;
 
 /**
  * @brief Coordinator for recursive directory scanning operations.
@@ -20,6 +21,10 @@ class IFtpClient;
  * Handles: download scans, delete scans, folder existence checks,
  * and upload file existence checks. Operates on the shared transfer::State
  * and emits signals when items are discovered or operations complete.
+ *
+ * Local file system mutations (creating directories during download scans)
+ * are routed through ILocalFileSystem, keeping this coordinator independently
+ * testable without real disk access.
  */
 class RecursiveScanCoordinator : public QObject
 {
@@ -27,9 +32,10 @@ class RecursiveScanCoordinator : public QObject
 
 public:
     explicit RecursiveScanCoordinator(transfer::State &state, IFtpClient *ftpClient,
-                                      QObject *parent = nullptr);
+                                      ILocalFileSystem *localFs, QObject *parent = nullptr);
 
     void setFtpClient(IFtpClient *client);
+    void setLocalFileSystem(ILocalFileSystem *fs);
 
     /// Returns true if this coordinator expects a listing for this path
     [[nodiscard]] bool handlesListing(const QString &path) const;
@@ -66,6 +72,7 @@ private:
 
     transfer::State &state_;
     IFtpClient *ftpClient_ = nullptr;
+    ILocalFileSystem *localFs_ = nullptr;
 };
 
 #endif  // RECURSIVESCANCOORDINATOR_H

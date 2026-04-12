@@ -10,6 +10,7 @@
 #include "ftp/remotedirectorycreator.h"
 #include "services/ftpentry.h"
 #include "services/iftpclient.h"
+#include "services/ilocalfilesystem.h"
 #include "services/transfercore.h"
 
 #include <QAbstractListModel>
@@ -53,6 +54,9 @@ public:
     ~TransferQueue() override;
 
     void setFtpClient(IFtpClient *client);
+
+    /// Inject a local file system gateway (used in tests to replace the production implementation).
+    void setLocalFileSystem(ILocalFileSystem *fs);
 
     // Queue operations
     void enqueueUpload(const QString &localPath, const QString &remotePath, int targetBatchId = -1);
@@ -196,8 +200,9 @@ private:
     void markCurrentComplete(TransferItem::Status status);
     void processNextDelete();
 
-    // I/O boundary
+    // I/O boundaries
     QPointer<IFtpClient> ftpClient_;
+    ILocalFileSystem *localFs_ = nullptr;  ///< Owned (Qt parent); replaced in tests
 
     // All mutable queue state
     transfer::State state_;

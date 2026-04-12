@@ -2,19 +2,19 @@
 
 #include "../services/ftpclientmixin.h"
 #include "../services/iftpclient.h"
+#include "../services/localfilesystem.h"
 
 #include <QDebug>
-#include <QDir>
-#include <QDirIterator>
 #include <QFileInfo>
 
 TransferQueue::TransferQueue(QObject *parent)
-    : QAbstractListModel(parent), batchManager_(new BatchManager(state_, this)),
+    : QAbstractListModel(parent), localFs_(new LocalFileSystem(this)),
+      batchManager_(new BatchManager(state_, this)),
       timeoutManager_(new TransferTimeoutManager(this)),
       eventProcessor_(new TransferEventProcessor(this)),
-      scanCoordinator_(new RecursiveScanCoordinator(state_, nullptr, this)),
-      dirCreator_(new RemoteDirectoryCreator(state_, nullptr, this)),
-      folderCoordinator_(new FolderOperationCoordinator(state_, nullptr, this))
+      scanCoordinator_(new RecursiveScanCoordinator(state_, nullptr, localFs_, this)),
+      dirCreator_(new RemoteDirectoryCreator(state_, nullptr, localFs_, this)),
+      folderCoordinator_(new FolderOperationCoordinator(state_, nullptr, localFs_, this))
 {
     // --- BatchManager setup ---
     batchManager_->setModelResetCallbacks([this]() { beginResetModel(); },
@@ -108,6 +108,14 @@ TransferQueue::TransferQueue(QObject *parent)
 TransferQueue::~TransferQueue()
 {
     disconnectFtpClient(ftpClient_, this);
+}
+
+void TransferQueue::setLocalFileSystem(ILocalFileSystem *fs)
+{
+    localFs_ = fs;
+    scanCoordinator_->setLocalFileSystem(fs);
+    dirCreator_->setLocalFileSystem(fs);
+    folderCoordinator_->setLocalFileSystem(fs);
 }
 
 // ============================================================================
@@ -227,7 +235,7 @@ void TransferQueue::enqueueUpload(const QString &localPath, const QString &remot
     item.remotePath = remotePath;
     item.operationType = OperationType::Upload;
     item.status = TransferItem::Status::Pending;
-    item.totalBytes = QFileInfo(localPath).size();
+    item.totalBytes = localFs_->fileSize(localPath);
     item.batchId = state_.batches[batchIdx].batchId;
 
     beginInsertRows(QModelIndex(), state_.items.size(), state_.items.size());
@@ -285,7 +293,7 @@ void TransferQueue::enqueueRecursiveUpload(const QString &localDir, const QStrin
     if (!ftpClient_ || !ftpClient_->isConnected())
         return;
 
-    if (!QDir(localDir).exists())
+    if (!localFs_->directoryExists(localDir))
         return;
 
     folderCoordinator_->enqueueRecursive(OperationType::Upload, localDir, remoteDir);
@@ -367,19 +375,17 @@ void TransferQueue::finishDirectoryCreation()
         batch->scanned = true;
     }
 
-    QDir dir(state_.currentFolderOp.sourcePath);
-    if (!dir.exists()) {
-        qWarning() << "TransferQueue: Source directory doesn't exist:"
-                   << state_.currentFolderOp.sourcePath;
+    const QString &sourcePath = state_.currentFolderOp.sourcePath;
+    if (!localFs_->directoryExists(sourcePath)) {
+        qWarning() << "TransferQueue: Source directory doesn't exist:" << sourcePath;
         return;
     }
 
-    QDirIterator it(state_.currentFolderOp.sourcePath, QDir::Files, QDirIterator::Subdirectories);
+    const QStringList files = localFs_->listFilesRecursively(sourcePath);
     int fileCount = 0;
-    while (it.hasNext()) {
-        QString filePath = it.next();
-        QString relativePath = dir.relativeFilePath(filePath);
-        QString remotePath = state_.currentFolderOp.targetPath + '/' + relativePath;
+    for (const QString &filePath : files) {
+        const QString relativePath = localFs_->relativePath(sourcePath, filePath);
+        const QString remotePath = state_.currentFolderOp.targetPath + '/' + relativePath;
 
         enqueueUpload(filePath, remotePath, state_.currentFolderOp.batchId);
         fileCount++;
@@ -535,7 +541,7 @@ void TransferQueue::processNext()
     bool ftpReady = ftpClient_ && ftpClient_->isConnected();
 
     auto decision = transfer::decideNextAction(
-        state_, ftpReady, [](const QString &path) { return QFileInfo(path).exists(); });
+        state_, ftpReady, [this](const QString &path) { return localFs_->fileExists(path); });
 
     switch (decision.action) {
     case transfer::ProcessNextAction::Blocked:

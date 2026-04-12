@@ -15,6 +15,7 @@
 #include <functional>
 
 class IFtpClient;
+class ILocalFileSystem;
 class QTimer;
 
 /**
@@ -23,6 +24,10 @@ class QTimer;
  * Manages debounce, folder existence confirmation, and operation lifecycle.
  * Uses a callback for batch creation (to keep TransferQueue as the owner of
  * batch state) and emits signals to request the start of each phase.
+ *
+ * Local file system operations (directory existence, creation, deletion) are
+ * routed through ILocalFileSystem, keeping this coordinator independently
+ * testable without real disk access.
  */
 class FolderOperationCoordinator : public QObject
 {
@@ -30,9 +35,10 @@ class FolderOperationCoordinator : public QObject
 
 public:
     explicit FolderOperationCoordinator(transfer::State &state, IFtpClient *ftpClient,
-                                        QObject *parent = nullptr);
+                                        ILocalFileSystem *localFs, QObject *parent = nullptr);
 
     void setFtpClient(IFtpClient *client);
+    void setLocalFileSystem(ILocalFileSystem *fs);
 
     /// Provide a callback for creating a new batch (returns batchId)
     void setCreateBatchCallback(std::function<int(transfer::OperationType, const QString &,
@@ -96,6 +102,7 @@ private:
 
     transfer::State &state_;
     IFtpClient *ftpClient_ = nullptr;
+    ILocalFileSystem *localFs_ = nullptr;
     QTimer *debounceTimer_ = nullptr;
     static constexpr int DebounceMs = 50;
 
