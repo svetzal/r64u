@@ -289,6 +289,31 @@ State purgeBatch(const State &state, int batchId)
     return result;
 }
 
+PurgeBatchPlan planBatchPurge(const State &state, int batchId)
+{
+    PurgeBatchPlan plan;
+
+    for (int i = 0; i < state.batches.size(); ++i) {
+        if (state.batches[i].batchId == batchId) {
+            plan.batchIndex = i;
+            break;
+        }
+    }
+
+    if (plan.batchIndex < 0) {
+        return plan;
+    }
+
+    // Iterate in reverse so indices are already in descending order
+    for (int j = state.items.size() - 1; j >= 0; --j) {
+        if (state.items[j].batchId == batchId) {
+            plan.itemIndicesToRemove.append(j);
+        }
+    }
+
+    return plan;
+}
+
 CreateBatchResult createBatch(const State &state, OperationType type, const QString &description,
                               const QString &folderName, const QString &sourcePath)
 {
@@ -931,6 +956,62 @@ State handleOperationTimeout(const State &state)
 
     result.currentIndex = -1;
     result.queueState = QueueState::Idle;
+
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// FTP handler helpers
+// ---------------------------------------------------------------------------
+
+CompleteTransferResult completeTransferOperation(const State &state)
+{
+    CompleteTransferResult result;
+    result.newState = state;
+
+    if (result.newState.queueState == QueueState::Transferring) {
+        result.newState.queueState = QueueState::Idle;
+        result.transitionedToIdle = true;
+    }
+
+    return result;
+}
+
+AdvanceDeleteResult advanceDeleteProgress(const State &state, const QString &path)
+{
+    AdvanceDeleteResult result;
+    result.newState = state;
+
+    if (result.newState.queueState != QueueState::Deleting ||
+        result.newState.deletedCount >= result.newState.deleteQueue.size()) {
+        return result;
+    }
+
+    if (result.newState.deleteQueue[result.newState.deletedCount].path == path) {
+        result.newState.deletedCount++;
+        result.advanced = true;
+        result.fileName = QFileInfo(path).fileName();
+        result.currentCount = result.newState.deletedCount;
+        result.totalCount = result.newState.deleteQueue.size();
+    }
+
+    return result;
+}
+
+FindDeleteItemResult findInProgressDeleteItem(const State &state, const QString &path)
+{
+    FindDeleteItemResult result;
+
+    for (int i = 0; i < state.items.size(); ++i) {
+        const auto &item = state.items[i];
+        if (item.operationType == OperationType::Delete && item.remotePath == path &&
+            item.status == TransferItem::Status::InProgress) {
+            result.found = true;
+            result.itemIndex = i;
+            result.fileName = QFileInfo(path).fileName();
+            return result;
+        }
+    }
 
     return result;
 }

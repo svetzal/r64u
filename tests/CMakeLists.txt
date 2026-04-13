@@ -77,6 +77,29 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_transfercore)
 endif()
 
+# BatchManager tests - isolated unit tests for batch lifecycle logic (no I/O, no FTP)
+add_executable(test_batchmanager
+    test_batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
+)
+
+target_include_directories(test_batchmanager PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_batchmanager PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME BatchManagerTest COMMAND test_batchmanager)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(batchmanager test_batchmanager)
+    add_dependencies(coverage coverage_batchmanager)
+endif()
+
 # TransferQueue tests - uses MockFtpClient and LocalFileSystem (production) via interface injection
 add_executable(test_transferqueue
     test_transferqueue.cpp

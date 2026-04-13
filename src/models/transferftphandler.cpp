@@ -117,9 +117,9 @@ void TransferFtpHandler::onUploadFinished(const QString &localPath, const QStrin
         emit operationCompleted(fileName);
     }
 
-    if (state_.queueState == transfer::QueueState::Transferring) {
-        state_.queueState = transfer::QueueState::Idle;
-    }
+    auto result = transfer::completeTransferOperation(state_);
+    state_ = result.newState;
+
     emit queueChanged();
     emit scheduleProcessNextRequested();
 }
@@ -149,9 +149,9 @@ void TransferFtpHandler::onDownloadFinished(const QString &remotePath, const QSt
         emit operationCompleted(fileName);
     }
 
-    if (state_.queueState == transfer::QueueState::Transferring) {
-        state_.queueState = transfer::QueueState::Idle;
-    }
+    auto result = transfer::completeTransferOperation(state_);
+    state_ = result.newState;
+
     emit queueChanged();
     emit scheduleProcessNextRequested();
 }
@@ -222,32 +222,31 @@ void TransferFtpHandler::onFileRemoved(const QString &path)
 {
     qDebug() << "TransferFtpHandler: onFileRemoved:" << path;
 
-    if (state_.queueState == transfer::QueueState::Deleting &&
-        state_.deletedCount < state_.deleteQueue.size()) {
-        if (state_.deleteQueue[state_.deletedCount].path == path) {
-            state_.deletedCount++;
-            QString fileName = QFileInfo(path).fileName();
-            emit deleteProgressUpdate(fileName, state_.deletedCount, state_.deleteQueue.size());
-            emit queueChanged();
-            emit processNextDeleteRequested();
-            return;
-        }
+    // Try recursive delete progress first (updates deletedCount, no item state change)
+    auto deleteResult = transfer::advanceDeleteProgress(state_, path);
+    if (deleteResult.advanced) {
+        state_ = deleteResult.newState;
+        emit deleteProgressUpdate(deleteResult.fileName, deleteResult.currentCount,
+                                  deleteResult.totalCount);
+        emit queueChanged();
+        emit processNextDeleteRequested();
+        return;
     }
 
-    for (const auto &item : state_.items) {
-        if (item.operationType == transfer::OperationType::Delete && item.remotePath == path &&
-            item.status == transfer::TransferItem::Status::InProgress) {
+    // Try individual delete item completion (single-file delete, not recursive)
+    auto findResult = transfer::findInProgressDeleteItem(state_, path);
+    if (findResult.found) {
+        stopTimeout();
+        state_.currentIndex = findResult.itemIndex;
+        markCurrentComplete(transfer::TransferItem::Status::Completed);
 
-            stopTimeout();
-            markCurrentComplete(transfer::TransferItem::Status::Completed);
+        emit operationCompleted(findResult.fileName);
 
-            QString fileName = QFileInfo(path).fileName();
-            emit operationCompleted(fileName);
+        auto completeResult = transfer::completeTransferOperation(state_);
+        state_ = completeResult.newState;
 
-            state_.queueState = transfer::QueueState::Idle;
-            emit queueChanged();
-            emit scheduleProcessNextRequested();
-            return;
-        }
+        emit queueChanged();
+        emit scheduleProcessNextRequested();
+        return;
     }
 }

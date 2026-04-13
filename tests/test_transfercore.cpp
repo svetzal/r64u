@@ -233,6 +233,30 @@ private slots:
     void testHandleOperationTimeout_marksInProgressAsFailed();
     void testHandleOperationTimeout_resetsCurrentIndex();
     void testHandleOperationTimeout_transitionsToIdle();
+
+    // planBatchPurge tests
+    void testPlanBatchPurge_identifiesCorrectItems();
+    void testPlanBatchPurge_indicesInDescendingOrder();
+    void testPlanBatchPurge_findsCorrectBatchIndex();
+    void testPlanBatchPurge_nonExistentBatch_emptyPlan();
+    void testPlanBatchPurge_noItems_findsOnlyBatch();
+
+    // completeTransferOperation tests
+    void testCompleteTransferOperation_transitionsFromTransferringToIdle();
+    void testCompleteTransferOperation_noChangeWhenAlreadyIdle();
+    void testCompleteTransferOperation_noChangeWhenDeleting();
+
+    // advanceDeleteProgress tests
+    void testAdvanceDeleteProgress_matchesNextItem();
+    void testAdvanceDeleteProgress_wrongPath_noAdvance();
+    void testAdvanceDeleteProgress_notDeleting_noAdvance();
+    void testAdvanceDeleteProgress_allDeleted_noAdvance();
+
+    // findInProgressDeleteItem tests
+    void testFindInProgressDeleteItem_findsMatchingItem();
+    void testFindInProgressDeleteItem_noMatch_whenPending();
+    void testFindInProgressDeleteItem_noMatch_whenDifferentPath();
+    void testFindInProgressDeleteItem_noMatch_whenUpload();
 };
 
 void TestTransferCore::testQueueStateToString_idle()
@@ -1940,6 +1964,260 @@ void TestTransferCore::testHandleOperationTimeout_transitionsToIdle()
     state.queueState = transfer::QueueState::Transferring;
     transfer::State result = transfer::handleOperationTimeout(state);
     QCOMPARE(result.queueState, transfer::QueueState::Idle);
+}
+
+// ---------------------------------------------------------------------------
+// planBatchPurge tests
+// ---------------------------------------------------------------------------
+
+void TestTransferCore::testPlanBatchPurge_identifiesCorrectItems()
+{
+    transfer::State state;
+
+    transfer::TransferBatch b1;
+    b1.batchId = 1;
+    b1.scanned = true;
+    b1.folderConfirmed = true;
+    state.batches.append(b1);
+
+    transfer::TransferBatch b2;
+    b2.batchId = 2;
+    b2.scanned = true;
+    b2.folderConfirmed = true;
+    state.batches.append(b2);
+
+    // Items: b1, b2, b1, b2, b1
+    for (int i = 0; i < 5; ++i) {
+        transfer::TransferItem item;
+        item.batchId = (i % 2 == 0) ? 1 : 2;
+        item.status = transfer::TransferItem::Status::Completed;
+        state.items.append(item);
+    }
+
+    auto plan = transfer::planBatchPurge(state, 1);
+
+    // Batch 1 items are at indices 0, 2, 4
+    QCOMPARE(plan.itemIndicesToRemove.size(), 3);
+    // Should be descending
+    QCOMPARE(plan.itemIndicesToRemove[0], 4);
+    QCOMPARE(plan.itemIndicesToRemove[1], 2);
+    QCOMPARE(plan.itemIndicesToRemove[2], 0);
+}
+
+void TestTransferCore::testPlanBatchPurge_indicesInDescendingOrder()
+{
+    transfer::State state = makeStateWithItem(transfer::OperationType::Download,
+                                              transfer::TransferItem::Status::Completed, 1);
+    // Add a second item for the same batch
+    transfer::TransferItem item2;
+    item2.batchId = 1;
+    item2.status = transfer::TransferItem::Status::Completed;
+    state.items.append(item2);
+
+    auto plan = transfer::planBatchPurge(state, 1);
+
+    QCOMPARE(plan.itemIndicesToRemove.size(), 2);
+    QVERIFY(plan.itemIndicesToRemove[0] > plan.itemIndicesToRemove[1]);
+}
+
+void TestTransferCore::testPlanBatchPurge_findsCorrectBatchIndex()
+{
+    transfer::State state;
+
+    transfer::TransferBatch b1;
+    b1.batchId = 10;
+    state.batches.append(b1);
+
+    transfer::TransferBatch b2;
+    b2.batchId = 20;
+    state.batches.append(b2);
+
+    auto plan = transfer::planBatchPurge(state, 20);
+    QCOMPARE(plan.batchIndex, 1);
+}
+
+void TestTransferCore::testPlanBatchPurge_nonExistentBatch_emptyPlan()
+{
+    transfer::State state = makeStateWithItem(transfer::OperationType::Download,
+                                              transfer::TransferItem::Status::Completed, 1);
+
+    auto plan = transfer::planBatchPurge(state, 999);
+    QCOMPARE(plan.batchIndex, -1);
+    QCOMPARE(plan.itemIndicesToRemove.size(), 0);
+}
+
+void TestTransferCore::testPlanBatchPurge_noItems_findsOnlyBatch()
+{
+    transfer::State state;
+    transfer::TransferBatch batch;
+    batch.batchId = 5;
+    batch.scanned = true;
+    batch.folderConfirmed = true;
+    state.batches.append(batch);
+    // No items in state.items
+
+    auto plan = transfer::planBatchPurge(state, 5);
+    QCOMPARE(plan.batchIndex, 0);
+    QCOMPARE(plan.itemIndicesToRemove.size(), 0);
+}
+
+// ---------------------------------------------------------------------------
+// completeTransferOperation tests
+// ---------------------------------------------------------------------------
+
+void TestTransferCore::testCompleteTransferOperation_transitionsFromTransferringToIdle()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Transferring;
+
+    auto result = transfer::completeTransferOperation(state);
+    QCOMPARE(result.newState.queueState, transfer::QueueState::Idle);
+    QVERIFY(result.transitionedToIdle);
+}
+
+void TestTransferCore::testCompleteTransferOperation_noChangeWhenAlreadyIdle()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Idle;
+
+    auto result = transfer::completeTransferOperation(state);
+    QCOMPARE(result.newState.queueState, transfer::QueueState::Idle);
+    QVERIFY(!result.transitionedToIdle);
+}
+
+void TestTransferCore::testCompleteTransferOperation_noChangeWhenDeleting()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Deleting;
+
+    auto result = transfer::completeTransferOperation(state);
+    QCOMPARE(result.newState.queueState, transfer::QueueState::Deleting);
+    QVERIFY(!result.transitionedToIdle);
+}
+
+// ---------------------------------------------------------------------------
+// advanceDeleteProgress tests
+// ---------------------------------------------------------------------------
+
+void TestTransferCore::testAdvanceDeleteProgress_matchesNextItem()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Deleting;
+
+    transfer::DeleteItem item;
+    item.path = QStringLiteral("/remote/file.prg");
+    state.deleteQueue.append(item);
+    state.deletedCount = 0;
+
+    auto result = transfer::advanceDeleteProgress(state, QStringLiteral("/remote/file.prg"));
+    QVERIFY(result.advanced);
+    QCOMPARE(result.newState.deletedCount, 1);
+    QCOMPARE(result.fileName, QStringLiteral("file.prg"));
+    QCOMPARE(result.currentCount, 1);
+    QCOMPARE(result.totalCount, 1);
+}
+
+void TestTransferCore::testAdvanceDeleteProgress_wrongPath_noAdvance()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Deleting;
+
+    transfer::DeleteItem item;
+    item.path = QStringLiteral("/remote/file.prg");
+    state.deleteQueue.append(item);
+    state.deletedCount = 0;
+
+    auto result = transfer::advanceDeleteProgress(state, QStringLiteral("/remote/other.prg"));
+    QVERIFY(!result.advanced);
+    QCOMPARE(result.newState.deletedCount, 0);
+}
+
+void TestTransferCore::testAdvanceDeleteProgress_notDeleting_noAdvance()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Idle;
+
+    transfer::DeleteItem item;
+    item.path = QStringLiteral("/remote/file.prg");
+    state.deleteQueue.append(item);
+    state.deletedCount = 0;
+
+    auto result = transfer::advanceDeleteProgress(state, QStringLiteral("/remote/file.prg"));
+    QVERIFY(!result.advanced);
+}
+
+void TestTransferCore::testAdvanceDeleteProgress_allDeleted_noAdvance()
+{
+    transfer::State state;
+    state.queueState = transfer::QueueState::Deleting;
+
+    transfer::DeleteItem item;
+    item.path = QStringLiteral("/remote/file.prg");
+    state.deleteQueue.append(item);
+    state.deletedCount = 1;  // Already past the end
+
+    auto result = transfer::advanceDeleteProgress(state, QStringLiteral("/remote/file.prg"));
+    QVERIFY(!result.advanced);
+    QCOMPARE(result.newState.deletedCount, 1);
+}
+
+// ---------------------------------------------------------------------------
+// findInProgressDeleteItem tests
+// ---------------------------------------------------------------------------
+
+void TestTransferCore::testFindInProgressDeleteItem_findsMatchingItem()
+{
+    transfer::State state;
+    transfer::TransferItem item;
+    item.operationType = transfer::OperationType::Delete;
+    item.remotePath = QStringLiteral("/remote/game.prg");
+    item.status = transfer::TransferItem::Status::InProgress;
+    state.items.append(item);
+
+    auto result = transfer::findInProgressDeleteItem(state, QStringLiteral("/remote/game.prg"));
+    QVERIFY(result.found);
+    QCOMPARE(result.itemIndex, 0);
+    QCOMPARE(result.fileName, QStringLiteral("game.prg"));
+}
+
+void TestTransferCore::testFindInProgressDeleteItem_noMatch_whenPending()
+{
+    transfer::State state;
+    transfer::TransferItem item;
+    item.operationType = transfer::OperationType::Delete;
+    item.remotePath = QStringLiteral("/remote/game.prg");
+    item.status = transfer::TransferItem::Status::Pending;  // Not InProgress
+    state.items.append(item);
+
+    auto result = transfer::findInProgressDeleteItem(state, QStringLiteral("/remote/game.prg"));
+    QVERIFY(!result.found);
+}
+
+void TestTransferCore::testFindInProgressDeleteItem_noMatch_whenDifferentPath()
+{
+    transfer::State state;
+    transfer::TransferItem item;
+    item.operationType = transfer::OperationType::Delete;
+    item.remotePath = QStringLiteral("/remote/other.prg");
+    item.status = transfer::TransferItem::Status::InProgress;
+    state.items.append(item);
+
+    auto result = transfer::findInProgressDeleteItem(state, QStringLiteral("/remote/game.prg"));
+    QVERIFY(!result.found);
+}
+
+void TestTransferCore::testFindInProgressDeleteItem_noMatch_whenUpload()
+{
+    transfer::State state;
+    transfer::TransferItem item;
+    item.operationType = transfer::OperationType::Upload;  // Not Delete
+    item.localPath = QStringLiteral("/local/game.prg");
+    item.remotePath = QStringLiteral("/remote/game.prg");
+    item.status = transfer::TransferItem::Status::InProgress;
+    state.items.append(item);
+
+    auto result = transfer::findInProgressDeleteItem(state, QStringLiteral("/remote/game.prg"));
+    QVERIFY(!result.found);
 }
 
 QTEST_MAIN(TestTransferCore)

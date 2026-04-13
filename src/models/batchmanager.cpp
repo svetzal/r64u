@@ -77,30 +77,35 @@ void BatchManager::completeBatch(int batchId)
     qDebug() << "BatchManager: Completing batch" << batchId << "completed:" << batch->completedCount
              << "failed:" << batch->failedCount << "total:" << batch->totalCount();
 
-    state_.activeBatchIndex = -1;
+    // Delegate state transitions entirely to the pure core, including activateNextBatch()
+    auto result = transfer::completeBatch(state_, batchId);
+    state_ = result.newState;
+
     if (stopTimeoutCb_) {
         stopTimeoutCb_();
     }
-    state_.currentIndex = -1;
-    state_.queueState = transfer::QueueState::Idle;
 
     emit batchCompleted(batchId);
 
-    if (state_.currentFolderOp.batchId == batchId) {
+    if (result.isFolderOperation) {
         if (folderOpCompleteCb_) {
             folderOpCompleteCb_();
         }
         return;
     }
 
-    activateNextBatch();
+    // transfer::completeBatch() already called activateNextBatch() internally;
+    // emit batchStarted if a new batch was activated.
+    if (state_.activeBatchIndex >= 0) {
+        qDebug() << "BatchManager: Activated batch"
+                 << state_.batches[state_.activeBatchIndex].batchId;
+        emit batchStarted(state_.batches[state_.activeBatchIndex].batchId);
+    } else {
+        qDebug() << "BatchManager: No more batches to activate";
+    }
 
-    bool hasActiveBatches = std::any_of(state_.batches.cbegin(), state_.batches.cend(),
-                                        [](const TransferBatch &b) { return !b.isComplete(); });
-
-    if (!hasActiveBatches) {
+    if (!result.hasRemainingActiveBatches) {
         qDebug() << "BatchManager: All batches complete";
-        state_.overwriteAll = false;
         emit allOperationsCompleted();
     } else if (state_.activeBatchIndex >= 0) {
         if (scheduleNextCb_) {
@@ -111,39 +116,39 @@ void BatchManager::completeBatch(int batchId)
 
 void BatchManager::purgeBatch(int batchId)
 {
-    for (int i = 0; i < state_.batches.size(); ++i) {
-        if (state_.batches[i].batchId == batchId) {
-            qDebug() << "BatchManager: Purging batch" << batchId;
+    // Use the pure core to plan which rows to remove (indices in descending order),
+    // then apply them one-by-one so Qt model signals can be interleaved correctly.
+    const auto plan = transfer::planBatchPurge(state_, batchId);
+    if (plan.batchIndex < 0) {
+        return;
+    }
 
-            for (int j = state_.items.size() - 1; j >= 0; --j) {
-                if (state_.items[j].batchId == batchId) {
-                    if (beginRemoveCb_) {
-                        beginRemoveCb_(j, j);
-                    }
-                    state_.items.removeAt(j);
-                    if (endRemoveCb_) {
-                        endRemoveCb_();
-                    }
+    qDebug() << "BatchManager: Purging batch" << batchId;
 
-                    if (state_.currentIndex > j) {
-                        state_.currentIndex--;
-                    } else if (state_.currentIndex == j) {
-                        state_.currentIndex = -1;
-                    }
-                }
-            }
+    for (int idx : plan.itemIndicesToRemove) {
+        if (beginRemoveCb_) {
+            beginRemoveCb_(idx, idx);
+        }
+        state_.items.removeAt(idx);
+        if (endRemoveCb_) {
+            endRemoveCb_();
+        }
 
-            if (state_.activeBatchIndex == i) {
-                state_.activeBatchIndex = -1;
-            } else if (state_.activeBatchIndex > i) {
-                state_.activeBatchIndex--;
-            }
-
-            state_.batches.removeAt(i);
-            emit queueChanged();
-            return;
+        if (state_.currentIndex > idx) {
+            state_.currentIndex--;
+        } else if (state_.currentIndex == idx) {
+            state_.currentIndex = -1;
         }
     }
+
+    if (state_.activeBatchIndex == plan.batchIndex) {
+        state_.activeBatchIndex = -1;
+    } else if (state_.activeBatchIndex > plan.batchIndex) {
+        state_.activeBatchIndex--;
+    }
+
+    state_.batches.removeAt(plan.batchIndex);
+    emit queueChanged();
 }
 
 void BatchManager::emitBatchProgressAndComplete(int batchId, bool batchIsComplete,

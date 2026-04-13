@@ -458,6 +458,18 @@ struct MarkCompleteResult
 /// @note Does NOT emit model signals — caller must call beginRemoveRows/endRemoveRows.
 [[nodiscard]] State purgeBatch(const State &state, int batchId);
 
+/// @brief Plan for purging a batch: which item indices to remove (descending) and the batch index.
+struct PurgeBatchPlan
+{
+    QList<int> itemIndicesToRemove;  ///< Indices in descending order — safe for sequential removal
+    int batchIndex = -1;             ///< Index of the batch in batches list, -1 if not found
+};
+
+/// @brief Compute which items to remove for a batch purge, without modifying state.
+/// Returns indices in descending order so the caller can remove them one-by-one with Qt model
+/// signals interleaved, without invalidating earlier indices.
+[[nodiscard]] PurgeBatchPlan planBatchPurge(const State &state, int batchId);
+
 /// @brief Create a new batch (purging completed batches first).
 /// @param type Operation type for the batch.
 /// @param description Human-readable description.
@@ -661,6 +673,48 @@ struct FtpErrorResult
 /// @param state Current transfer queue state.
 /// @return Updated state with the timed-out item marked Failed and queue transitioned to Idle.
 [[nodiscard]] State handleOperationTimeout(const State &state);
+
+// ---------------------------------------------------------------------------
+// FTP handler helpers
+// ---------------------------------------------------------------------------
+
+/// @brief Result of transitioning queue state to Idle after a transfer completes.
+struct CompleteTransferResult
+{
+    State newState;
+    bool transitionedToIdle = false;  ///< True if queueState changed from Transferring to Idle
+};
+
+/// @brief Transition queue state to Idle after a file transfer completes.
+/// Only transitions if currently in Transferring state; leaves all other states unchanged.
+[[nodiscard]] CompleteTransferResult completeTransferOperation(const State &state);
+
+/// @brief Result of advancing the recursive delete progress counter.
+struct AdvanceDeleteResult
+{
+    State newState;
+    bool advanced = false;  ///< True if the path matched and deletedCount was incremented
+    QString fileName;       ///< Extracted file name for the progress signal
+    int currentCount = 0;   ///< New deletedCount value after advance
+    int totalCount = 0;     ///< Total deleteQueue size
+};
+
+/// @brief Advance the recursive delete progress counter when a file is removed.
+/// Only advances if the queue is in Deleting state and the path matches deleteQueue[deletedCount].
+[[nodiscard]] AdvanceDeleteResult advanceDeleteProgress(const State &state, const QString &path);
+
+/// @brief Result of finding an InProgress delete item matching a remote path.
+struct FindDeleteItemResult
+{
+    bool found = false;  ///< True if a matching InProgress delete item was found
+    int itemIndex = -1;  ///< Index of the matched item in state.items
+    QString fileName;    ///< Extracted file name for signal emission
+};
+
+/// @brief Find an InProgress delete item matching the given remote path.
+/// Does NOT modify state — returns the item index for the caller to act on.
+[[nodiscard]] FindDeleteItemResult findInProgressDeleteItem(const State &state,
+                                                            const QString &path);
 
 }  // namespace transfer
 
