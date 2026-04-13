@@ -9,6 +9,8 @@
 #ifndef SERVICEFACTORY_H
 #define SERVICEFACTORY_H
 
+#include "metadataservicebundle.h"
+
 #include <QObject>
 #include <QWidget>
 
@@ -79,6 +81,9 @@ public:
     [[nodiscard]] HttpFileDownloader *gameBase64Downloader() const;
     /// @brief Returns the GameBase64 service.
     [[nodiscard]] GameBase64Service *gameBase64Service() const;
+
+    /// @brief Returns all metadata download services bundled together.
+    [[nodiscard]] MetadataServiceBundle metadataBundle() const;
 
 private:
     DeviceConnection *deviceConnection_ = nullptr;

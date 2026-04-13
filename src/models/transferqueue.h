@@ -3,6 +3,7 @@
 
 #include "batchmanager.h"
 #include "transfereventprocessor.h"
+#include "transferftphandler.h"
 #include "transfertimeoutmanager.h"
 
 #include "ftp/folderoperationcoordinator.h"
@@ -147,14 +148,6 @@ signals:
     void directoryCreationProgress(int created, int total);
 
 private slots:
-    void onUploadProgress(const QString &file, qint64 sent, qint64 total);
-    void onUploadFinished(const QString &localPath, const QString &remotePath);
-    void onDownloadProgress(const QString &file, qint64 received, qint64 total);
-    void onDownloadFinished(const QString &remotePath, const QString &localPath);
-    void onFtpError(const QString &message);
-    void onFtpDirectoryCreated(const QString &path);
-    void onDirectoryListed(const QString &path, const QList<FtpEntry> &entries);
-    void onFileRemoved(const QString &path);
     void onOperationTimeout();
 
 private:
@@ -186,14 +179,6 @@ private:
     void emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
                                       bool includeFailed = false);
 
-    // Folder operation slots
-    void onStartDownloadScanRequested(const QString &remotePath, const QString &localBase,
-                                      const QString &remoteBase, int batchId);
-    void onStartDirectoryCreationRequested(const QString &localDir, const QString &remoteDir);
-    void onStartDeleteRequested(const QString &remotePath);
-    void onPendingUploadAfterDeleteSet(const QString &targetPath);
-    void onAllDirectoriesCreated();
-    void onDeleteScanComplete();
     void finishDirectoryCreation();
 
     // File operations
@@ -216,6 +201,7 @@ private:
     RecursiveScanCoordinator *scanCoordinator_ = nullptr;
     RemoteDirectoryCreator *dirCreator_ = nullptr;
     FolderOperationCoordinator *folderCoordinator_ = nullptr;
+    TransferFtpHandler *ftpHandler_ = nullptr;
 };
 
 #endif  // TRANSFERQUEUE_H

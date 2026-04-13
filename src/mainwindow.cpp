@@ -8,13 +8,9 @@
 #include "services/errorhandler.h"
 #include "services/favoritesmanager.h"
 #include "services/filepreviewservice.h"
-#include "services/gamebase64service.h"
-#include "services/httpfiledownloader.h"
-#include "services/hvscmetadataservice.h"
 #include "services/irestclient.h"
 #include "services/playlistmanager.h"
 #include "services/servicefactory.h"
-#include "services/songlengthsdatabase.h"
 #include "services/statusmessageservice.h"
 #include "services/streamingmanager.h"
 #include "services/systemcommandcontroller.h"
@@ -26,6 +22,7 @@
 #include "ui/menubarbuilder.h"
 #include "ui/panelcoordinator.h"
 #include "ui/preferencesdialog.h"
+#include "ui/systemtoolbarbuilder.h"
 #include "ui/transferpanel.h"
 #include "ui/viewpanel.h"
 
@@ -53,13 +50,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     statusMessageService_ = services->statusMessageService();
     favoritesManager_ = services->favoritesManager();
     playlistManager_ = services->playlistManager();
-    songlengthsDownloader_ = services->songlengthsDownloader();
-    songlengthsDatabase_ = services->songlengthsDatabase();
-    stilDownloader_ = services->stilDownloader();
-    buglistDownloader_ = services->buglistDownloader();
-    hvscMetadataService_ = services->hvscMetadataService();
-    gameBase64Downloader_ = services->gameBase64Downloader();
-    gameBase64Service_ = services->gameBase64Service();
+    metadataBundle_ = services->metadataBundle();
 
     systemCommandController_ =
         new SystemCommandController(deviceConnection_->restClient(), statusMessageService_, this);
@@ -109,14 +100,23 @@ void MainWindow::setupMenuBar()
 
 void MainWindow::setupSystemToolBar()
 {
-    // System toolbar (top row)
     systemToolBar_ = addToolBar(tr("System"));
     systemToolBar_->setMovable(false);
     systemToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
-    // Connect button
-    connectAction_ = systemToolBar_->addAction(tr("Connect"));
-    connectAction_->setToolTip(tr("Connect to C64U device"));
+    auto result = SystemToolBarBuilder::build(this, systemToolBar_, deviceConnection_,
+                                              systemCommandController_, refreshAction_);
+    connectAction_ = result.connectAction;
+    resetAction_ = result.resetAction;
+    rebootAction_ = result.rebootAction;
+    pauseAction_ = result.pauseAction;
+    resumeAction_ = result.resumeAction;
+    menuAction_ = result.menuAction;
+    powerOffAction_ = result.powerOffAction;
+    connectionStatus_ = result.connectionStatus;
+    connectionUiController_ = result.connectionUiController;
+
+    // Wire actions that need private MainWindow slots
     connect(connectAction_, &QAction::triggered, this, [this]() {
         DeviceConnection::ConnectionState state = deviceConnection_->state();
         if (state == DeviceConnection::ConnectionState::Disconnected) {
@@ -125,62 +125,10 @@ void MainWindow::setupSystemToolBar()
             onDisconnect();
         }
     });
-
-    systemToolBar_->addSeparator();
-
-    // Machine actions
-    resetAction_ = systemToolBar_->addAction(tr("Reset"));
-    resetAction_->setToolTip(tr("Reset the C64"));
-    connect(resetAction_, &QAction::triggered, systemCommandController_,
-            &SystemCommandController::onReset);
-
-    rebootAction_ = systemToolBar_->addAction(tr("Reboot"));
-    rebootAction_->setToolTip(tr("Reboot the Ultimate device"));
-    connect(rebootAction_, &QAction::triggered, systemCommandController_,
-            &SystemCommandController::onReboot);
-
-    pauseAction_ = systemToolBar_->addAction(tr("Pause"));
-    pauseAction_->setToolTip(tr("Pause C64 execution"));
-    connect(pauseAction_, &QAction::triggered, systemCommandController_,
-            &SystemCommandController::onPause);
-
-    resumeAction_ = systemToolBar_->addAction(tr("Resume"));
-    resumeAction_->setToolTip(tr("Resume C64 execution"));
-    connect(resumeAction_, &QAction::triggered, systemCommandController_,
-            &SystemCommandController::onResume);
-
-    menuAction_ = systemToolBar_->addAction(tr("Menu"));
-    menuAction_->setToolTip(tr("Press Ultimate menu button"));
-    connect(menuAction_, &QAction::triggered, systemCommandController_,
-            &SystemCommandController::onMenuButton);
-
-    powerOffAction_ = systemToolBar_->addAction(tr("Power Off"));
-    powerOffAction_->setToolTip(tr("Power off the Ultimate device"));
     connect(powerOffAction_, &QAction::triggered, this, &MainWindow::onPowerOff);
+    connect(result.prefsAction, &QAction::triggered, this, &MainWindow::onPreferences);
 
-    systemToolBar_->addSeparator();
-
-    auto *prefsAction = systemToolBar_->addAction(tr("Preferences"));
-    prefsAction->setToolTip(tr("Open preferences dialog"));
-    connect(prefsAction, &QAction::triggered, this, &MainWindow::onPreferences);
-
-    // Spacer to push connection status to the right
-    auto *spacer = new QWidget();
-    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    systemToolBar_->addWidget(spacer);
-
-    // Connection status on the right
-    connectionStatus_ = new ConnectionStatusWidget();
-    systemToolBar_->addWidget(connectionStatus_);
-
-    // Create ConnectionUIController now that all actions and status widget exist
-    connectionUiController_ =
-        new ConnectionUIController(deviceConnection_, connectionStatus_, this);
-    connectionUiController_->setManagedActions(
-        {resetAction_, rebootAction_, pauseAction_, resumeAction_, menuAction_, powerOffAction_},
-        connectAction_, refreshAction_);
-
-    // Update window title and actions when connection UI changes
+    // Update window title when connection UI changes
     connect(connectionUiController_, &ConnectionUIController::windowTitleUpdateNeeded, this,
             &MainWindow::updateWindowTitle);
 }
@@ -199,9 +147,7 @@ void MainWindow::setupPanels()
     // Create mode panels with their dependencies
     explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, configFileLoader_,
                                      filePreviewService_, favoritesManager_, playlistManager_);
-    explorePanel_->setSonglengthsDatabase(songlengthsDatabase_);
-    explorePanel_->setHVSCMetadataService(hvscMetadataService_);
-    explorePanel_->setGameBase64Service(gameBase64Service_);
+    explorePanel_->setMetadataServices(metadataBundle_);
     transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferService_);
     viewPanel_ = new ViewPanel(deviceConnection_);
     configPanel_ = new ConfigPanel(deviceConnection_);
@@ -365,9 +311,9 @@ void MainWindow::onPreferences()
 {
     if (!preferencesDialog_) {
         preferencesDialog_ = new PreferencesDialog(this);
-        preferencesDialog_->setSonglengthsDatabase(songlengthsDatabase_);
-        preferencesDialog_->setHVSCMetadataService(hvscMetadataService_);
-        preferencesDialog_->setGameBase64Service(gameBase64Service_);
+        preferencesDialog_->setSonglengthsDatabase(metadataBundle_.songlengthsDatabase);
+        preferencesDialog_->setHVSCMetadataService(metadataBundle_.hvscMetadataService);
+        preferencesDialog_->setGameBase64Service(metadataBundle_.gameBase64Service);
     }
 
     if (preferencesDialog_->exec() == QDialog::Accepted) {

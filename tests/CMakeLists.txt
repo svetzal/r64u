@@ -87,6 +87,7 @@ add_executable(test_transferqueue
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
@@ -440,6 +441,7 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
@@ -634,6 +636,7 @@ if(BUILD_INTEGRATION_TESTS)
         ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
         ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+        ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
         ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp

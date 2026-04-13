@@ -2,6 +2,7 @@
 #define EXPLOREPANEL_H
 
 #include "services/filetypecore.h"
+#include "services/metadataservicebundle.h"
 
 #include <QSplitter>
 #include <QToolBar>
@@ -14,9 +15,6 @@ class ConfigFileLoader;
 class FilePreviewService;
 class FavoritesManager;
 class PlaylistManager;
-class SonglengthsDatabase;
-class HVSCMetadataService;
-class GameBase64Service;
 class StreamingManager;
 class FileDetailsPanel;
 class PathNavigationWidget;
@@ -50,10 +48,8 @@ public:
     void loadSettings();
     void saveSettings();
 
-    // Database injection
-    void setSonglengthsDatabase(SonglengthsDatabase *database);
-    void setHVSCMetadataService(HVSCMetadataService *service);
-    void setGameBase64Service(GameBase64Service *service);
+    // Metadata services injection (bundled)
+    void setMetadataServices(const MetadataServiceBundle &bundle);
 
     // Streaming manager injection (for auto-start on play/run)
     void setStreamingManager(StreamingManager *manager);
@@ -74,19 +70,6 @@ private slots:
     void onDoubleClicked(const QModelIndex &index);
     void onContextMenu(const QPoint &pos);
     void onParentFolder();
-    void onRefresh();
-
-    // File action slots (delegate to actionController_)
-    void onPlay();
-    void onRun();
-    void onMount();
-    void onMountToDriveA();
-    void onMountToDriveB();
-    void onLoadConfig();
-    void onDownload();
-
-    // Playlist slot (delegates to actionController_)
-    void onAddToPlaylist();
 
 protected:
     void showEvent(QShowEvent *event) override;

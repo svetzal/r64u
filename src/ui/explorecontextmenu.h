@@ -1,6 +1,8 @@
 #ifndef EXPLORECONTEXTMENU_H
 #define EXPLORECONTEXTMENU_H
 
+#include "explorepanelcore.h"
+
 #include "services/filetypecore.h"
 
 #include <QObject>
@@ -16,8 +18,9 @@ class ExploreContextMenu : public QObject
 public:
     explicit ExploreContextMenu(QObject *parent = nullptr);
 
-    void show(const QPoint &globalPos, filetype::FileType fileType, bool canOperate,
-              bool canAddToPlaylist, bool isFavorite);
+    /// Show the context menu using a pre-computed ActionEnablement struct.
+    void showForSelection(const QPoint &globalPos, const explorepanel::ActionEnablement &enablement,
+                          bool canAddToPlaylist, bool isFavorite);
 
 signals:
     void playRequested();

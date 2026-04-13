@@ -54,11 +54,13 @@ set(SOURCES
     src/ui/batchprogresswidget.cpp
     src/ui/transferprogresscontainer.cpp
     src/ui/explorepanel.cpp
+    src/ui/explorepanelcore.cpp
     src/ui/fileactioncontroller.cpp
     src/ui/explorefavoritescontroller.cpp
     src/ui/explorecontextmenu.cpp
     src/ui/explorenavigationcontroller.cpp
     src/ui/menubarbuilder.cpp
+    src/ui/systemtoolbarbuilder.cpp
     src/ui/databasedownloadcontroller.cpp
     src/ui/connectiontester.cpp
     src/ui/previewcoordinator.cpp
@@ -133,6 +135,7 @@ set(SOURCES
     src/models/remotefilemodel.cpp
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
+    src/models/transferftphandler.cpp
     src/models/batchmanager.cpp
     src/models/transfertimeoutmanager.cpp
     src/models/transfereventprocessor.cpp
@@ -159,11 +162,13 @@ set(HEADERS
     src/ui/batchprogresswidget.h
     src/ui/transferprogresscontainer.h
     src/ui/explorepanel.h
+    src/ui/explorepanelcore.h
     src/ui/fileactioncontroller.h
     src/ui/explorefavoritescontroller.h
     src/ui/explorecontextmenu.h
     src/ui/explorenavigationcontroller.h
     src/ui/menubarbuilder.h
+    src/ui/systemtoolbarbuilder.h
     src/ui/databasedownloadcontroller.h
     src/ui/connectiontester.h
     src/ui/previewcoordinator.h
@@ -234,6 +239,7 @@ set(HEADERS
     src/services/hvscmetadataservice.h
     src/services/gamebase64service.h
     src/services/servicefactory.h
+    src/services/metadataservicebundle.h
     src/services/systemcommandcontroller.h
     src/services/streamingdiagnostics.h
     src/ui/streamingdiagnosticswidget.h
@@ -241,6 +247,7 @@ set(HEADERS
     src/models/remotefilemodel.h
     src/models/localfileproxymodel.h
     src/models/transferqueue.h
+    src/models/transferftphandler.h
     src/models/batchmanager.h
     src/models/transfertimeoutmanager.h
     src/models/transfereventprocessor.h

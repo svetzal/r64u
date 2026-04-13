@@ -128,3 +128,9 @@ GameBase64Service *ServiceFactory::gameBase64Service() const
 {
     return gameBase64Service_;
 }
+
+MetadataServiceBundle ServiceFactory::metadataBundle() const
+{
+    return {songlengthsDownloader_, songlengthsDatabase_,  stilDownloader_,   buglistDownloader_,
+            hvscMetadataService_,   gameBase64Downloader_, gameBase64Service_};
+}

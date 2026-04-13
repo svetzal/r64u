@@ -4,6 +4,7 @@
 #include "explorecontextmenu.h"
 #include "explorefavoritescontroller.h"
 #include "explorenavigationcontroller.h"
+#include "explorepanelcore.h"
 #include "fileactioncontroller.h"
 #include "filedetailspanel.h"
 #include "pathnavigationwidget.h"
@@ -16,10 +17,8 @@
 #include "services/favoritesmanager.h"
 #include "services/filebrowsercore.h"
 #include "services/filepreviewservice.h"
-#include "services/gamebase64service.h"
-#include "services/hvscmetadataservice.h"
+#include "services/metadataservicebundle.h"
 #include "services/playlistmanager.h"
-#include "services/songlengthsdatabase.h"
 
 #include <QHeaderView>
 #include <QLabel>
@@ -93,21 +92,32 @@ void ExplorePanel::setupUi()
 
     playAction_ = toolBar_->addAction(tr("Play"));
     playAction_->setToolTip(tr("Play selected SID/MOD file"));
-    connect(playAction_, &QAction::triggered, this, &ExplorePanel::onPlay);
+    connect(playAction_, &QAction::triggered, this, [this]() {
+        if (!treeView_ || !remoteFileModel_)
+            return;
+        actionController_->play(selectedPath(),
+                                remoteFileModel_->fileType(treeView_->currentIndex()));
+    });
 
     runAction_ = toolBar_->addAction(tr("Run"));
     runAction_->setToolTip(tr("Run selected PRG/CRT file"));
-    connect(runAction_, &QAction::triggered, this, &ExplorePanel::onRun);
+    connect(runAction_, &QAction::triggered, this, [this]() {
+        if (!treeView_ || !remoteFileModel_)
+            return;
+        actionController_->run(selectedPath(),
+                               remoteFileModel_->fileType(treeView_->currentIndex()));
+    });
 
     mountAction_ = toolBar_->addAction(tr("Mount"));
     mountAction_->setToolTip(tr("Mount selected disk image"));
-    connect(mountAction_, &QAction::triggered, this, &ExplorePanel::onMount);
+    connect(mountAction_, &QAction::triggered, this,
+            [this]() { actionController_->mountToDrive(selectedPath(), "a"); });
 
     toolBar_->addSeparator();
 
     refreshAction_ = toolBar_->addAction(tr("Refresh"));
     refreshAction_->setToolTip(tr("Refresh file listing"));
-    connect(refreshAction_, &QAction::triggered, this, &ExplorePanel::onRefresh);
+    connect(refreshAction_, &QAction::triggered, this, [this]() { refresh(); });
 
     toolBar_->addSeparator();
 
@@ -212,23 +222,49 @@ void ExplorePanel::setupConnections()
     connect(navController_, &ExploreNavigationController::statusMessage, this,
             &ExplorePanel::statusMessage);
 
-    connect(contextMenu_, &ExploreContextMenu::playRequested, this, &ExplorePanel::onPlay);
-    connect(contextMenu_, &ExploreContextMenu::runRequested, this, &ExplorePanel::onRun);
+    connect(contextMenu_, &ExploreContextMenu::playRequested, this, [this]() {
+        if (!treeView_ || !remoteFileModel_)
+            return;
+        actionController_->play(selectedPath(),
+                                remoteFileModel_->fileType(treeView_->currentIndex()));
+    });
+    connect(contextMenu_, &ExploreContextMenu::runRequested, this, [this]() {
+        if (!treeView_ || !remoteFileModel_)
+            return;
+        actionController_->run(selectedPath(),
+                               remoteFileModel_->fileType(treeView_->currentIndex()));
+    });
     connect(contextMenu_, &ExploreContextMenu::mountARequested, this,
-            &ExplorePanel::onMountToDriveA);
+            [this]() { actionController_->mountToDrive(selectedPath(), "a"); });
     connect(contextMenu_, &ExploreContextMenu::mountBRequested, this,
-            &ExplorePanel::onMountToDriveB);
-    connect(contextMenu_, &ExploreContextMenu::downloadRequested, this, &ExplorePanel::onDownload);
-    connect(contextMenu_, &ExploreContextMenu::loadConfigRequested, this,
-            &ExplorePanel::onLoadConfig);
+            [this]() { actionController_->mountToDrive(selectedPath(), "b"); });
+    connect(contextMenu_, &ExploreContextMenu::downloadRequested, this,
+            [this]() { actionController_->download(selectedPath()); });
+    connect(contextMenu_, &ExploreContextMenu::loadConfigRequested, this, [this]() {
+        if (!treeView_ || !remoteFileModel_)
+            return;
+        actionController_->loadConfig(selectedPath(),
+                                      remoteFileModel_->fileType(treeView_->currentIndex()));
+    });
     connect(contextMenu_, &ExploreContextMenu::toggleFavoriteRequested, this, [this]() {
         QString path =
             selectedPath().isEmpty() ? navController_->currentDirectory() : selectedPath();
         favoritesController_->onToggleFavorite(path);
     });
-    connect(contextMenu_, &ExploreContextMenu::addToPlaylistRequested, this,
-            &ExplorePanel::onAddToPlaylist);
-    connect(contextMenu_, &ExploreContextMenu::refreshRequested, this, &ExplorePanel::onRefresh);
+    connect(contextMenu_, &ExploreContextMenu::addToPlaylistRequested, this, [this]() {
+        if (!treeView_ || !remoteFileModel_)
+            return;
+        QModelIndexList selectedIndices = treeView_->selectionModel()->selectedRows();
+        if (selectedIndices.isEmpty())
+            return;
+        QList<QPair<QString, filetype::FileType>> items;
+        items.reserve(selectedIndices.size());
+        for (const QModelIndex &idx : selectedIndices) {
+            items.append({remoteFileModel_->filePath(idx), remoteFileModel_->fileType(idx)});
+        }
+        actionController_->addToPlaylist(items);
+    });
+    connect(contextMenu_, &ExploreContextMenu::refreshRequested, this, [this]() { refresh(); });
 
     connect(fileDetailsPanel_, &FileDetailsPanel::contentRequested, previewCoordinator_,
             &PreviewCoordinator::onFileContentRequested);
@@ -268,28 +304,17 @@ void ExplorePanel::showEvent(QShowEvent *event)
 
 void ExplorePanel::updateDriveInfo()
 {
-    if (deviceConnection_ && deviceConnection_->canPerformOperations()) {
-        QList<DriveInfo> drives = deviceConnection_->driveInfo();
-        for (const DriveInfo &drive : drives) {
-            bool hasDisk = !drive.imageFile.isEmpty();
+    bool connected = deviceConnection_ && deviceConnection_->canPerformOperations();
+    QList<DriveInfo> drives = connected ? deviceConnection_->driveInfo() : QList<DriveInfo>();
+    auto state = explorepanel::calculateDriveDisplay(connected, drives);
 
-            if (drive.name.toLower() == "a" && drive8Status_) {
-                drive8Status_->setImageName(drive.imageFile);
-                drive8Status_->setMounted(hasDisk);
-            } else if (drive.name.toLower() == "b" && drive9Status_) {
-                drive9Status_->setImageName(drive.imageFile);
-                drive9Status_->setMounted(hasDisk);
-            }
-        }
-    } else {
-        if (drive8Status_) {
-            drive8Status_->setImageName(QString());
-            drive8Status_->setMounted(false);
-        }
-        if (drive9Status_) {
-            drive9Status_->setImageName(QString());
-            drive9Status_->setMounted(false);
-        }
+    if (drive8Status_) {
+        drive8Status_->setImageName(state.drive8Image);
+        drive8Status_->setMounted(state.drive8Mounted);
+    }
+    if (drive9Status_) {
+        drive9Status_->setImageName(state.drive9Image);
+        drive9Status_->setMounted(state.drive9Mounted);
     }
 }
 
@@ -306,24 +331,12 @@ void ExplorePanel::saveSettings()
     settings.setValue("directories/exploreRemote", navController_->currentDirectory());
 }
 
-void ExplorePanel::setSonglengthsDatabase(SonglengthsDatabase *database)
+void ExplorePanel::setMetadataServices(const MetadataServiceBundle &bundle)
 {
-    if (fileDetailsPanel_ != nullptr) {
-        fileDetailsPanel_->setSonglengthsDatabase(database);
-    }
-}
-
-void ExplorePanel::setHVSCMetadataService(HVSCMetadataService *service)
-{
-    if (fileDetailsPanel_ != nullptr) {
-        fileDetailsPanel_->setHVSCMetadataService(service);
-    }
-}
-
-void ExplorePanel::setGameBase64Service(GameBase64Service *service)
-{
-    if (fileDetailsPanel_ != nullptr) {
-        fileDetailsPanel_->setGameBase64Service(service);
+    if (fileDetailsPanel_) {
+        fileDetailsPanel_->setSonglengthsDatabase(bundle.songlengthsDatabase);
+        fileDetailsPanel_->setHVSCMetadataService(bundle.hvscMetadataService);
+        fileDetailsPanel_->setGameBase64Service(bundle.gameBase64Service);
     }
 }
 
@@ -342,14 +355,13 @@ void ExplorePanel::onConnectionStateChanged()
 
     actionController_->updateActionStates(filetype::FileType::Unknown, false);
 
+    auto enablement = explorepanel::calculateActionEnablement(
+        canOperate, false, filetype::FileType::Unknown, navController_->currentDirectory());
     if (refreshAction_) {
-        refreshAction_->setEnabled(canOperate);
+        refreshAction_->setEnabled(enablement.canRefresh);
     }
-
-    bool canGoUp = (navController_->currentDirectory() != "/" &&
-                    !navController_->currentDirectory().isEmpty());
     if (navWidget_) {
-        navWidget_->setUpEnabled(canGoUp && canOperate);
+        navWidget_->setUpEnabled(enablement.canGoUp);
     }
 
     if (!canOperate && fileDetailsPanel_) {
@@ -437,16 +449,16 @@ void ExplorePanel::onDoubleClicked(const QModelIndex &index)
         navController_->setCurrentDirectory(remoteFileModel_->filePath(index));
         break;
     case filebrowser::DoubleClickAction::Play:
-        onPlay();
+        actionController_->play(selectedPath(), type);
         break;
     case filebrowser::DoubleClickAction::Run:
-        onRun();
+        actionController_->run(selectedPath(), type);
         break;
     case filebrowser::DoubleClickAction::Mount:
-        onMount();
+        actionController_->mountToDrive(selectedPath(), "a");
         break;
     case filebrowser::DoubleClickAction::LoadConfig:
-        onLoadConfig();
+        actionController_->loadConfig(selectedPath(), type);
         break;
     case filebrowser::DoubleClickAction::None:
         break;
@@ -468,7 +480,7 @@ void ExplorePanel::onContextMenu(const QPoint &pos)
     bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
 
     bool canAddToPlaylist = false;
-    QModelIndexList selectedIndices = treeView_->selectionModel()->selectedRows();
+    const QModelIndexList selectedIndices = treeView_->selectionModel()->selectedRows();
     for (const QModelIndex &selIndex : selectedIndices) {
         if (remoteFileModel_->fileType(selIndex) == filetype::FileType::SidMusic) {
             canAddToPlaylist = true;
@@ -476,89 +488,14 @@ void ExplorePanel::onContextMenu(const QPoint &pos)
         }
     }
 
-    QString path = remoteFileModel_->filePath(index);
-    bool isFav = favoritesController_->isFavorite(path);
-
-    contextMenu_->show(treeView_->viewport()->mapToGlobal(pos), fileType, canOperate,
-                       canAddToPlaylist, isFav);
+    bool isFav = favoritesController_->isFavorite(remoteFileModel_->filePath(index));
+    auto enablement = explorepanel::calculateActionEnablement(canOperate, true, fileType,
+                                                              navController_->currentDirectory());
+    contextMenu_->showForSelection(treeView_->viewport()->mapToGlobal(pos), enablement,
+                                   canAddToPlaylist, isFav);
 }
 
 void ExplorePanel::onParentFolder()
 {
     navController_->navigateToParent();
-}
-
-void ExplorePanel::onPlay()
-{
-    if (!treeView_ || !remoteFileModel_) {
-        return;
-    }
-    QString path = selectedPath();
-    filetype::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
-    actionController_->play(path, type);
-}
-
-void ExplorePanel::onRun()
-{
-    if (!treeView_ || !remoteFileModel_) {
-        return;
-    }
-    QString path = selectedPath();
-    filetype::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
-    actionController_->run(path, type);
-}
-
-void ExplorePanel::onMount()
-{
-    onMountToDriveA();
-}
-
-void ExplorePanel::onMountToDriveA()
-{
-    actionController_->mountToDrive(selectedPath(), "a");
-}
-
-void ExplorePanel::onMountToDriveB()
-{
-    actionController_->mountToDrive(selectedPath(), "b");
-}
-
-void ExplorePanel::onLoadConfig()
-{
-    if (!treeView_ || !remoteFileModel_) {
-        return;
-    }
-    QString path = selectedPath();
-    filetype::FileType type = remoteFileModel_->fileType(treeView_->currentIndex());
-    actionController_->loadConfig(path, type);
-}
-
-void ExplorePanel::onDownload()
-{
-    actionController_->download(selectedPath());
-}
-
-void ExplorePanel::onRefresh()
-{
-    refresh();
-}
-
-void ExplorePanel::onAddToPlaylist()
-{
-    if (!treeView_ || !remoteFileModel_) {
-        return;
-    }
-
-    QModelIndexList selectedIndices = treeView_->selectionModel()->selectedRows();
-    if (selectedIndices.isEmpty()) {
-        return;
-    }
-
-    QList<QPair<QString, filetype::FileType>> items;
-    items.reserve(selectedIndices.size());
-    for (const QModelIndex &index : selectedIndices) {
-        items.append({remoteFileModel_->filePath(index), remoteFileModel_->fileType(index)});
-    }
-
-    actionController_->addToPlaylist(items);
 }

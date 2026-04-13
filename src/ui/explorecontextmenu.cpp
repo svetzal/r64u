@@ -1,5 +1,7 @@
 #include "explorecontextmenu.h"
 
+#include "explorepanelcore.h"
+
 #include "services/filetypecore.h"
 
 #include <QAction>
@@ -50,17 +52,17 @@ ExploreContextMenu::ExploreContextMenu(QObject *parent) : QObject(parent)
     connect(refreshAction, &QAction::triggered, this, &ExploreContextMenu::refreshRequested);
 }
 
-void ExploreContextMenu::show(const QPoint &globalPos, filetype::FileType fileType, bool canOperate,
-                              bool canAddToPlaylist, bool isFavorite)
+void ExploreContextMenu::showForSelection(const QPoint &globalPos,
+                                          const explorepanel::ActionEnablement &enablement,
+                                          bool canAddToPlaylist, bool isFavorite)
 {
-    auto caps = filetype::capabilities(fileType);
-    contextPlayAction_->setEnabled(canOperate && caps.canPlay);
+    contextPlayAction_->setEnabled(enablement.canPlay);
     contextAddToPlaylistAction_->setEnabled(canAddToPlaylist);
-    contextRunAction_->setEnabled(canOperate && caps.canRun);
-    contextLoadConfigAction_->setEnabled(canOperate && caps.canLoadConfig);
-    contextMountAAction_->setEnabled(canOperate && caps.canMount);
-    contextMountBAction_->setEnabled(canOperate && caps.canMount);
-    contextDownloadAction_->setEnabled(canOperate);
+    contextRunAction_->setEnabled(enablement.canRun);
+    contextLoadConfigAction_->setEnabled(enablement.canLoadConfig);
+    contextMountAAction_->setEnabled(enablement.canMount);
+    contextMountBAction_->setEnabled(enablement.canMount);
+    contextDownloadAction_->setEnabled(enablement.canDownload);
     contextToggleFavoriteAction_->setText(isFavorite ? tr("Remove from Favorites")
                                                      : tr("Add to Favorites"));
     contextMenu_->exec(globalPos);

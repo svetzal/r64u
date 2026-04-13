@@ -1,6 +1,8 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "services/metadataservicebundle.h"
+
 #include <QMainWindow>
 #include <QProgressBar>
 #include <QTabWidget>
@@ -17,10 +19,6 @@ class ErrorHandler;
 class StatusMessageService;
 class FavoritesManager;
 class PlaylistManager;
-class HttpFileDownloader;
-class SonglengthsDatabase;
-class HVSCMetadataService;
-class GameBase64Service;
 class ConnectionStatusWidget;
 class ExplorePanel;
 class TransferPanel;
@@ -80,13 +78,7 @@ private:
     StatusMessageService *statusMessageService_ = nullptr;
     FavoritesManager *favoritesManager_ = nullptr;
     PlaylistManager *playlistManager_ = nullptr;
-    HttpFileDownloader *songlengthsDownloader_ = nullptr;
-    SonglengthsDatabase *songlengthsDatabase_ = nullptr;
-    HttpFileDownloader *stilDownloader_ = nullptr;
-    HttpFileDownloader *buglistDownloader_ = nullptr;
-    HVSCMetadataService *hvscMetadataService_ = nullptr;
-    HttpFileDownloader *gameBase64Downloader_ = nullptr;
-    GameBase64Service *gameBase64Service_ = nullptr;
+    MetadataServiceBundle metadataBundle_;
 
     SystemCommandController *systemCommandController_ = nullptr;
     PanelCoordinator *panelCoordinator_ = nullptr;
