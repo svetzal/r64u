@@ -133,6 +133,7 @@ void ViewPanel::setupUi()
 
     // Create recording service
     recordingService_ = new VideoRecordingService(this);
+    recordingService_->connectToStreaming(streamingManager_);
 }
 
 void ViewPanel::setupConnections()
@@ -180,18 +181,6 @@ void ViewPanel::setupConnections()
                 &ViewPanel::onRecordingStopped);
         connect(recordingService_, &VideoRecordingService::error, this,
                 &ViewPanel::onRecordingError);
-    }
-
-    // Connect video receiver to recording service (for recording frames)
-    if (streamingManager_ && streamingManager_->videoReceiver()) {
-        connect(streamingManager_->videoReceiver(), &VideoStreamReceiver::frameReady, this,
-                &ViewPanel::onFrameReadyForRecording);
-    }
-
-    // Connect audio receiver to recording service (for recording audio)
-    if (streamingManager_ && streamingManager_->audioReceiver()) {
-        connect(streamingManager_->audioReceiver(), &AudioStreamReceiver::samplesReady, this,
-                &ViewPanel::onAudioSamplesForRecording);
     }
 
     // Connect diagnostics service to widget
@@ -486,81 +475,6 @@ void ViewPanel::onRecordingError(const QString &error)
     if (stopRecordingAction_) {
         stopRecordingAction_->setEnabled(false);
     }
-}
-
-void ViewPanel::onFrameReadyForRecording(const QByteArray &frameData, quint16 frameNumber,
-                                         VideoStreamReceiver::VideoFormat format)
-{
-    Q_UNUSED(frameNumber)
-
-    if (!recordingService_ || !recordingService_->isRecording()) {
-        return;
-    }
-
-    // Convert frame data to QImage (same logic as VideoDisplayWidget)
-    VideoStreamReceiver::VideoFormat videoFormat = format;
-    int height = (videoFormat == VideoStreamReceiver::VideoFormat::NTSC)
-                     ? VideoDisplayWidget::NtscHeight
-                     : VideoDisplayWidget::PalHeight;
-
-    QImage frame(VideoDisplayWidget::FrameWidth, height, QImage::Format_RGB32);
-
-    const auto *src = reinterpret_cast<const quint8 *>(frameData.constData());
-    int srcSize = frameData.size();
-
-    // VIC-II color palette (same as VideoDisplayWidget)
-    static const QRgb vicPalette[16] = {
-        qRgb(0x00, 0x00, 0x00),  // Black
-        qRgb(0xFF, 0xFF, 0xFF),  // White
-        qRgb(0x9F, 0x4E, 0x44),  // Red
-        qRgb(0x6A, 0xBF, 0xC6),  // Cyan
-        qRgb(0xA0, 0x57, 0xA3),  // Purple
-        qRgb(0x5C, 0xAB, 0x5E),  // Green
-        qRgb(0x50, 0x45, 0x9B),  // Blue
-        qRgb(0xC9, 0xD4, 0x87),  // Yellow
-        qRgb(0xA1, 0x68, 0x3C),  // Orange
-        qRgb(0x6D, 0x54, 0x12),  // Brown
-        qRgb(0xCB, 0x7E, 0x75),  // Light Red
-        qRgb(0x62, 0x62, 0x62),  // Dark Grey
-        qRgb(0x89, 0x89, 0x89),  // Medium Grey
-        qRgb(0x9A, 0xE2, 0x9B),  // Light Green
-        qRgb(0x88, 0x7E, 0xCB),  // Light Blue
-        qRgb(0xAD, 0xAD, 0xAD)   // Light Grey
-    };
-
-    for (int y = 0; y < height && y * VideoDisplayWidget::BytesPerLine < srcSize; ++y) {
-        auto *destLine = reinterpret_cast<QRgb *>(frame.scanLine(y));
-        const quint8 *srcLine =
-            src + (static_cast<ptrdiff_t>(y) * VideoDisplayWidget::BytesPerLine);
-
-        for (int byteIdx = 0; byteIdx < VideoDisplayWidget::BytesPerLine; ++byteIdx) {
-            quint8 packedPixels = srcLine[byteIdx];
-
-            // Lower 4 bits = first pixel
-            quint8 pixel1 = packedPixels & 0x0F;
-            // Upper 4 bits = second pixel
-            quint8 pixel2 = (packedPixels >> 4) & 0x0F;
-
-            int x = byteIdx * 2;
-            if (x < VideoDisplayWidget::FrameWidth) {
-                destLine[x] = vicPalette[pixel1];
-            }
-            if (x + 1 < VideoDisplayWidget::FrameWidth) {
-                destLine[x + 1] = vicPalette[pixel2];
-            }
-        }
-    }
-
-    recordingService_->addFrame(frame);
-}
-
-void ViewPanel::onAudioSamplesForRecording(const QByteArray &samples, int sampleCount)
-{
-    if (!recordingService_ || !recordingService_->isRecording()) {
-        return;
-    }
-
-    recordingService_->addAudioSamples(samples, sampleCount);
 }
 
 void ViewPanel::onStatsToggled(bool checked)

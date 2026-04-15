@@ -6,7 +6,10 @@
 #ifndef VIDEORECORDINGSERVICE_H
 #define VIDEORECORDINGSERVICE_H
 
+class StreamingManager;
+
 #include "avicore.h"
+#include "ivideostreamreceiver.h"
 
 #include <QDateTime>
 #include <QFile>
@@ -55,6 +58,8 @@ public:
     [[nodiscard]] int frameCount() const { return frameCount_; }
 
 public slots:
+    void connectToStreaming(StreamingManager *manager);
+
     /**
      * @brief Starts recording to the specified file.
      * @param filePath Path to the output AVI file.
@@ -104,6 +109,10 @@ signals:
      * @param error The error message.
      */
     void error(const QString &error);
+
+private slots:
+    void onRawFrameReady(const QByteArray &frameData, quint16 frameNumber,
+                         IVideoStreamReceiver::VideoFormat format);
 
 private:
     void writeAviHeader();

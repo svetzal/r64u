@@ -1,15 +1,19 @@
 #ifndef TRANSFERPANEL_H
 #define TRANSFERPANEL_H
 
+#include "ui/remotefilebrowserwidget.h"
+
 #include <QSplitter>
 #include <QWidget>
+
+#include <memory>
 
 class DeviceConnection;
 class RemoteFileModel;
 class TransferQueue;
 class TransferService;
 class LocalFileBrowserWidget;
-class RemoteFileBrowserWidget;
+class RemoteFileOperations;
 class TransferProgressContainer;
 
 class TransferPanel : public QWidget
@@ -59,6 +63,8 @@ private:
     RemoteFileBrowserWidget *remoteBrowser_ = nullptr;
     LocalFileBrowserWidget *localBrowser_ = nullptr;
     TransferProgressContainer *progressContainer_ = nullptr;
+    RemoteFileOperations *fileOperations_ = nullptr;
+    std::unique_ptr<RemoteFileBrowserWidget::AutoRefreshSuppressor> refreshSuppressor_;
 };
 
 #endif  // TRANSFERPANEL_H

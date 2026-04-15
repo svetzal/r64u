@@ -1,12 +1,11 @@
 #include "transferprogresscontainer.h"
 
 #include "batchprogresswidget.h"
+#include "transferconfirmationdialogs.h"
 
 #include "services/transferservice.h"
 
 #include <QDebug>
-#include <QMessageBox>
-#include <QPushButton>
 #include <QSizePolicy>
 
 TransferProgressContainer::TransferProgressContainer(QWidget *parent) : QWidget(parent)
@@ -351,81 +350,17 @@ void TransferProgressContainer::onOverwriteConfirmationNeeded(const QString &fil
                                                               OperationType type)
 {
     Q_UNUSED(type)
-
-    // Use the top-level window as parent so dialog shows even if container is hidden
-    QWidget *dialogParent = window();
-    QMessageBox msgBox(dialogParent);
-    msgBox.setWindowTitle(tr("File Already Exists"));
-    msgBox.setText(tr("The file '%1' already exists.\n\n"
-                      "Do you want to overwrite it?")
-                       .arg(fileName));
-    msgBox.setIcon(QMessageBox::Question);
-
-    QPushButton *overwriteButton = msgBox.addButton(tr("Overwrite"), QMessageBox::AcceptRole);
-    QPushButton *overwriteAllButton =
-        msgBox.addButton(tr("Overwrite All"), QMessageBox::AcceptRole);
-    QPushButton *skipButton = msgBox.addButton(tr("Skip"), QMessageBox::RejectRole);
-    msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
-
-    msgBox.setDefaultButton(skipButton);
-    msgBox.exec();
-
-    QAbstractButton *clicked = msgBox.clickedButton();
-
-    if (clicked == overwriteButton) {
-        transferService_->respondToOverwrite(OverwriteResponse::Overwrite);
-    } else if (clicked == overwriteAllButton) {
-        transferService_->respondToOverwrite(OverwriteResponse::OverwriteAll);
-    } else if (clicked == skipButton) {
-        transferService_->respondToOverwrite(OverwriteResponse::Skip);
-    } else {
-        // Cancel button clicked OR dialog dismissed (Escape/X button)
-        transferService_->respondToOverwrite(OverwriteResponse::Cancel);
+    OverwriteResponse response = TransferConfirmationDialogs::askOverwrite(window(), fileName);
+    if (transferService_) {
+        transferService_->respondToOverwrite(response);
     }
 }
 
 void TransferProgressContainer::onFolderExistsConfirmationNeeded(const QStringList &folderNames)
 {
-    // Use the top-level window as parent so dialog shows even if container is hidden
-    QWidget *dialogParent = window();
-    QMessageBox msgBox(dialogParent);
-
-    QString title;
-    QString message;
-
-    if (folderNames.size() == 1) {
-        title = tr("Folder Already Exists");
-        message = tr("The folder '%1' already exists on the remote device.\n\n"
-                     "What would you like to do?")
-                      .arg(folderNames.first());
-    } else {
-        title = tr("Folders Already Exist");
-        message = tr("The following %1 folders already exist on the remote device:\n\n"
-                     "%2\n\n"
-                     "What would you like to do?")
-                      .arg(folderNames.size())
-                      .arg(folderNames.join("\n"));
-    }
-
-    msgBox.setWindowTitle(title);
-    msgBox.setText(message);
-    msgBox.setIcon(QMessageBox::Question);
-
-    QPushButton *mergeButton = msgBox.addButton(tr("Merge"), QMessageBox::AcceptRole);
-    QPushButton *replaceButton = msgBox.addButton(tr("Replace"), QMessageBox::DestructiveRole);
-    msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
-
-    msgBox.setDefaultButton(mergeButton);
-    msgBox.exec();
-
-    QAbstractButton *clicked = msgBox.clickedButton();
-
-    if (clicked == mergeButton) {
-        transferService_->respondToFolderExists(FolderExistsResponse::Merge);
-    } else if (clicked == replaceButton) {
-        transferService_->respondToFolderExists(FolderExistsResponse::Replace);
-    } else {
-        // Cancel button clicked OR dialog dismissed (Escape/X button)
-        transferService_->respondToFolderExists(FolderExistsResponse::Cancel);
+    FolderExistsResponse response =
+        TransferConfirmationDialogs::askFolderExists(window(), folderNames);
+    if (transferService_) {
+        transferService_->respondToFolderExists(response);
     }
 }

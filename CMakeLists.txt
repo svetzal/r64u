@@ -53,6 +53,7 @@ set(SOURCES
     src/ui/transferprogresswidget.cpp
     src/ui/batchprogresswidget.cpp
     src/ui/transferprogresscontainer.cpp
+    src/ui/transferconfirmationdialogs.cpp
     src/ui/explorepanel.cpp
     src/ui/explorepanelcore.cpp
     src/ui/fileactioncontroller.cpp
@@ -116,6 +117,8 @@ set(SOURCES
     src/services/audiostreamcore.cpp
     src/services/avicore.cpp
     src/services/videorecordingservice.cpp
+    src/services/vic2frameconverter.cpp
+    src/services/remotefileoperations.cpp
     src/services/playlistmanager.cpp
     src/services/playlistcore.cpp
     src/services/transfercore.cpp
@@ -161,6 +164,7 @@ set(HEADERS
     src/ui/transferprogresswidget.h
     src/ui/batchprogresswidget.h
     src/ui/transferprogresscontainer.h
+    src/ui/transferconfirmationdialogs.h
     src/ui/explorepanel.h
     src/ui/explorepanelcore.h
     src/ui/fileactioncontroller.h
@@ -228,6 +232,8 @@ set(HEADERS
     src/services/audiostreamcore.h
     src/services/avicore.h
     src/services/videorecordingservice.h
+    src/services/vic2frameconverter.h
+    src/services/remotefileoperations.h
     src/services/playlistmanager.h
     src/services/playlistcore.h
     src/services/transfercore.h

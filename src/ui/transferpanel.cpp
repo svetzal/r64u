@@ -7,6 +7,7 @@
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 #include "services/deviceconnection.h"
+#include "services/remotefileoperations.h"
 #include "services/transferservice.h"
 
 #include <QDir>
@@ -24,10 +25,10 @@ TransferPanel::TransferPanel(DeviceConnection *connection, RemoteFileModel *mode
     Q_ASSERT(model && "RemoteFileModel is required");
     Q_ASSERT(transferService_ && "TransferService is required");
 
-    // Create browser widgets with their dependencies
-    // Guard against null ftpClient() - it should exist if deviceConnection_ is valid
     IFtpClient *ftpClient = deviceConnection_ ? deviceConnection_->ftpClient() : nullptr;
-    remoteBrowser_ = new RemoteFileBrowserWidget(model, ftpClient, this);
+    remoteBrowser_ = new RemoteFileBrowserWidget(model, this);
+    fileOperations_ = new RemoteFileOperations(ftpClient, this);
+    remoteBrowser_->setFileOperations(fileOperations_);
     localBrowser_ = new LocalFileBrowserWidget(this);
     progressContainer_ = new TransferProgressContainer(this);
 
@@ -104,12 +105,14 @@ void TransferPanel::setupConnections()
         // Suppress auto-refresh during queue operations to prevent constant reloading
         connect(transferService_, &TransferService::operationStarted, this, [this]() {
             if (remoteBrowser_) {
-                remoteBrowser_->setSuppressAutoRefresh(true);
+                refreshSuppressor_ =
+                    std::make_unique<RemoteFileBrowserWidget::AutoRefreshSuppressor>(
+                        remoteBrowser_);
             }
         });
         connect(transferService_, &TransferService::allOperationsCompleted, this, [this]() {
+            refreshSuppressor_.reset();
             if (remoteBrowser_) {
-                remoteBrowser_->setSuppressAutoRefresh(false);
                 remoteBrowser_->refresh();
             }
         });

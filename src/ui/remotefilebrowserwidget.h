@@ -7,7 +7,7 @@
 #include <QWidget>
 
 class RemoteFileModel;
-class IFtpClient;
+class RemoteFileOperations;
 class PathNavigationWidget;
 
 class RemoteFileBrowserWidget : public QWidget
@@ -15,8 +15,7 @@ class RemoteFileBrowserWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit RemoteFileBrowserWidget(RemoteFileModel *model, IFtpClient *ftpClient,
-                                     QWidget *parent = nullptr);
+    explicit RemoteFileBrowserWidget(RemoteFileModel *model, QWidget *parent = nullptr);
 
     void setCurrentDirectory(const QString &path);
     QString currentDirectory() const { return currentDirectory_; }
@@ -24,10 +23,29 @@ public:
     [[nodiscard]] QStringList selectedPaths() const;
     [[nodiscard]] bool isSelectedDirectory() const;
     void setDownloadEnabled(bool enabled);
-    void onConnectionStateChanged(bool connected);
+    void setFileOperations(RemoteFileOperations *ops);
     void refresh();
     void refreshIfStale();
-    void setSuppressAutoRefresh(bool suppress);
+
+    class AutoRefreshSuppressor
+    {
+    public:
+        explicit AutoRefreshSuppressor(RemoteFileBrowserWidget *widget) : widget_(widget)
+        {
+            widget_->setSuppressAutoRefresh(true);
+        }
+        ~AutoRefreshSuppressor() { widget_->setSuppressAutoRefresh(false); }
+        AutoRefreshSuppressor(const AutoRefreshSuppressor &) = delete;
+        AutoRefreshSuppressor &operator=(const AutoRefreshSuppressor &) = delete;
+
+    private:
+        RemoteFileBrowserWidget *widget_;
+    };
+
+    [[nodiscard]] AutoRefreshSuppressor suppressRefresh();
+
+public slots:
+    void onConnectionStateChanged(bool connected);
 
 protected:
     void showEvent(QShowEvent *event) override;
@@ -35,6 +53,8 @@ protected:
 signals:
     void downloadRequested(const QString &remotePath, bool isDirectory);
     void deleteRequested(const QString &remotePath, bool isDirectory);
+    void createFolderRequested(const QString &path);
+    void renameRequested(const QString &oldPath, const QString &newPath);
     void currentDirectoryChanged(const QString &path);
     void selectionChanged();
     void statusMessage(const QString &message, int timeout = 0);
@@ -60,9 +80,11 @@ private:
     void setupConnections();
     void updateActions();
 
+    void setSuppressAutoRefresh(bool suppress);
+
     // Dependencies (not owned)
     RemoteFileModel *remoteFileModel_ = nullptr;
-    IFtpClient *ftpClient_ = nullptr;
+    RemoteFileOperations *fileOperations_ = nullptr;
 
     // State
     QString currentDirectory_;

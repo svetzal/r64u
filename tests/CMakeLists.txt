@@ -1392,6 +1392,9 @@ add_executable(test_videorecordingservice
     test_videorecordingservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/avicore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/vic2frameconverter.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
 )
 
 target_include_directories(test_videorecordingservice PRIVATE
@@ -1401,6 +1404,7 @@ target_include_directories(test_videorecordingservice PRIVATE
 target_link_libraries(test_videorecordingservice PRIVATE
     Qt6::Core
     Qt6::Gui
+    Qt6::Network
     Qt6::Test
 )
 

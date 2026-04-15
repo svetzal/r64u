@@ -1,8 +1,6 @@
 #ifndef VIEWPANEL_H
 #define VIEWPANEL_H
 
-#include "services/videostreamreceiver.h"
-
 #include <QButtonGroup>
 #include <QLabel>
 #include <QRadioButton>
@@ -56,9 +54,6 @@ private slots:
     void onRecordingStarted(const QString &filePath);
     void onRecordingStopped(const QString &filePath, int frameCount);
     void onRecordingError(const QString &error);
-    void onFrameReadyForRecording(const QByteArray &frameData, quint16 frameNumber,
-                                  VideoStreamReceiver::VideoFormat format);
-    void onAudioSamplesForRecording(const QByteArray &samples, int sampleCount);
     void onStatsToggled(bool checked);
     void onDiagnosticsUpdated(const DiagnosticsSnapshot &snapshot);
 

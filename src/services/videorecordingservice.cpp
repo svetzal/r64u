@@ -5,10 +5,37 @@
 
 #include "videorecordingservice.h"
 
+#include "audiostreamreceiver.h"
+#include "streamingmanager.h"
+#include "vic2frameconverter.h"
+#include "videostreamreceiver.h"
+
 #include <QBuffer>
 #include <QMutexLocker>
 
 VideoRecordingService::VideoRecordingService(QObject *parent) : QObject(parent) {}
+
+void VideoRecordingService::connectToStreaming(StreamingManager *manager)
+{
+    if (manager && manager->videoReceiver()) {
+        connect(manager->videoReceiver(), &VideoStreamReceiver::frameReady, this,
+                &VideoRecordingService::onRawFrameReady);
+    }
+    if (manager && manager->audioReceiver()) {
+        connect(manager->audioReceiver(), &AudioStreamReceiver::samplesReady, this,
+                &VideoRecordingService::addAudioSamples);
+    }
+}
+
+void VideoRecordingService::onRawFrameReady(const QByteArray &frameData, quint16 frameNumber,
+                                            IVideoStreamReceiver::VideoFormat format)
+{
+    Q_UNUSED(frameNumber)
+    if (!recording_) {
+        return;
+    }
+    addFrame(Vic2::convertFrame(frameData, format));
+}
 
 VideoRecordingService::~VideoRecordingService()
 {

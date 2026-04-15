@@ -3,7 +3,7 @@
 #include "pathnavigationwidget.h"
 
 #include "models/remotefilemodel.h"
-#include "services/iftpclient.h"
+#include "services/remotefileoperations.h"
 
 #include <QFileInfo>
 #include <QHeaderView>
@@ -15,13 +15,10 @@
 #include <QShowEvent>
 #include <QVBoxLayout>
 
-RemoteFileBrowserWidget::RemoteFileBrowserWidget(RemoteFileModel *model, IFtpClient *ftpClient,
-                                                 QWidget *parent)
-    : QWidget(parent), remoteFileModel_(model), ftpClient_(ftpClient), currentDirectory_("/")
+RemoteFileBrowserWidget::RemoteFileBrowserWidget(RemoteFileModel *model, QWidget *parent)
+    : QWidget(parent), remoteFileModel_(model), currentDirectory_("/")
 {
-    // These dependencies are required - assert in debug builds
     Q_ASSERT(remoteFileModel_ && "RemoteFileModel is required");
-    // ftpClient_ may be null if connection not established yet
 
     setupUi();
     setupContextMenu();
@@ -126,16 +123,24 @@ void RemoteFileBrowserWidget::setupContextMenu()
     contextMenu_->addAction(tr("Refresh"), this, &RemoteFileBrowserWidget::onRefresh);
 }
 
-void RemoteFileBrowserWidget::setupConnections()
+void RemoteFileBrowserWidget::setupConnections() {}
+
+void RemoteFileBrowserWidget::setFileOperations(RemoteFileOperations *ops)
 {
-    // FTP client signals - guard against null ftpClient_
-    if (ftpClient_) {
-        connect(ftpClient_, &IFtpClient::directoryCreated, this,
+    fileOperations_ = ops;
+    if (fileOperations_) {
+        connect(this, &RemoteFileBrowserWidget::createFolderRequested, fileOperations_,
+                &RemoteFileOperations::createFolder);
+        connect(this, &RemoteFileBrowserWidget::renameRequested, fileOperations_,
+                &RemoteFileOperations::renameItem);
+        connect(fileOperations_, &RemoteFileOperations::folderCreated, this,
                 &RemoteFileBrowserWidget::onDirectoryCreated);
-        connect(ftpClient_, &IFtpClient::fileRemoved, this,
-                &RemoteFileBrowserWidget::onFileRemoved);
-        connect(ftpClient_, &IFtpClient::fileRenamed, this,
+        connect(fileOperations_, &RemoteFileOperations::itemRenamed, this,
                 &RemoteFileBrowserWidget::onFileRenamed);
+        connect(fileOperations_, &RemoteFileOperations::itemRemoved, this,
+                &RemoteFileBrowserWidget::onFileRemoved);
+        connect(fileOperations_, &RemoteFileOperations::statusMessage, this,
+                &RemoteFileBrowserWidget::statusMessage);
     }
 }
 
@@ -335,7 +340,7 @@ void RemoteFileBrowserWidget::onDownload()
 
 void RemoteFileBrowserWidget::onNewFolder()
 {
-    if (!connected_ || !ftpClient_) {
+    if (!connected_) {
         return;
     }
 
@@ -357,13 +362,13 @@ void RemoteFileBrowserWidget::onNewFolder()
     }
 
     QString newPath = remoteDir + folderName;
-    ftpClient_->makeDirectory(newPath);
+    emit createFolderRequested(newPath);
     emit statusMessage(tr("Creating folder %1 in %2...").arg(folderName).arg(remoteDir));
 }
 
 void RemoteFileBrowserWidget::onRename()
 {
-    if (!connected_ || !ftpClient_) {
+    if (!connected_) {
         return;
     }
 
@@ -400,7 +405,7 @@ void RemoteFileBrowserWidget::onRename()
     }
     QString newPath = parentPath + newName;
 
-    ftpClient_->rename(remotePath, newPath);
+    emit renameRequested(remotePath, newPath);
     emit statusMessage(tr("Renaming %1...").arg(oldName));
 }
 
@@ -483,6 +488,11 @@ void RemoteFileBrowserWidget::onRefresh()
 void RemoteFileBrowserWidget::setSuppressAutoRefresh(bool suppress)
 {
     suppressAutoRefresh_ = suppress;
+}
+
+RemoteFileBrowserWidget::AutoRefreshSuppressor RemoteFileBrowserWidget::suppressRefresh()
+{
+    return AutoRefreshSuppressor(this);
 }
 
 void RemoteFileBrowserWidget::onDirectoryCreated(const QString &path)

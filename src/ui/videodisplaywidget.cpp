@@ -5,6 +5,7 @@
 
 #include "videodisplaywidget.h"
 
+#include "services/vic2frameconverter.h"
 #include "utils/logging.h"
 
 #include <QKeyEvent>
@@ -166,30 +167,10 @@ void VideoDisplayWidget::paintEvent(QPaintEvent * /*event*/)
 
 void VideoDisplayWidget::convertFrameToRgb(const QByteArray &frameData, int height)
 {
-    const auto *src = reinterpret_cast<const quint8 *>(frameData.constData());
-    int srcSize = frameData.size();
-
-    for (int y = 0; y < height && y * BytesPerLine < srcSize; ++y) {
-        auto *destLine = reinterpret_cast<QRgb *>(displayImage_.scanLine(y));
-        const quint8 *srcLine = src + (static_cast<ptrdiff_t>(y) * BytesPerLine);
-
-        for (int byteIdx = 0; byteIdx < BytesPerLine; ++byteIdx) {
-            quint8 packedPixels = srcLine[byteIdx];
-
-            // Lower 4 bits = first pixel
-            quint8 pixel1 = packedPixels & 0x0F;
-            // Upper 4 bits = second pixel
-            quint8 pixel2 = (packedPixels >> 4) & 0x0F;
-
-            int x = byteIdx * 2;
-            if (x < FrameWidth) {
-                destLine[x] = VicPalette[pixel1];
-            }
-            if (x + 1 < FrameWidth) {
-                destLine[x + 1] = VicPalette[pixel2];
-            }
-        }
-    }
+    IVideoStreamReceiver::VideoFormat fmt = (height == NtscHeight)
+                                                ? IVideoStreamReceiver::VideoFormat::NTSC
+                                                : IVideoStreamReceiver::VideoFormat::PAL;
+    displayImage_ = Vic2::convertFrame(frameData, fmt);
 }
 
 QRect VideoDisplayWidget::calculateDisplayRect() const
