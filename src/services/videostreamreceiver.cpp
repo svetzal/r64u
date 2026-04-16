@@ -19,7 +19,8 @@ VideoStreamReceiver::VideoStreamReceiver(QObject *parent)
 
     // Pre-allocate frame buffer for maximum size (PAL)
     // Each line is 192 bytes (384 pixels at 4 bits each)
-    frameBuffer_.resize(static_cast<qsizetype>(BytesPerLine) * MaxFrameHeight);
+    frameBuffer_.resize(static_cast<qsizetype>(videostream::BytesPerLine) *
+                        videostream::MaxFrameHeight);
 }
 
 VideoStreamReceiver::~VideoStreamReceiver()
@@ -102,10 +103,10 @@ void VideoStreamReceiver::onReadyRead()
             if (packetLogCounter < 5 || packetLogCounter % 1000 == 0) {
                 LOG_VERBOSE() << "VideoStreamReceiver: Received packet size:" << packet.size()
                               << "from:" << datagram.senderAddress().toString()
-                              << "expected size:" << PacketSize;
+                              << "expected size:" << videostream::PacketSize;
             }
             packetLogCounter++;
-            if (packet.size() == PacketSize) {
+            if (packet.size() == videostream::PacketSize) {
                 processPacket(packet);
             } else {
                 LOG_VERBOSE() << "VideoStreamReceiver: Ignoring malformed packet, size:"
@@ -124,24 +125,16 @@ void VideoStreamReceiver::processPacket(const QByteArray &packet)
         diagnosticsCallback_.onPacketReceived(diagnosticsTimer_.nsecsElapsed() / 1000);
     }
 
-    PacketHeader header = parseHeader(packet);
+    videostream::PacketHeader header = videostream::parseHeader(packet);
 
     // Track sequence numbers for packet loss and out-of-order detection
     if (!firstPacket_) {
-        quint16 expectedSeq = lastSequenceNumber_ + 1;
-        if (header.sequenceNumber != expectedSeq) {
-            // Check for valid wraparound (0xFFFF -> 0)
-            bool isValidWraparound = (lastSequenceNumber_ == 0xFFFF && header.sequenceNumber == 0);
-            if (!isValidWraparound) {
-                quint16 gap = header.sequenceNumber - expectedSeq;
-                if (gap < 1000) {  // Reasonable gap (not wraparound)
-                    totalPacketsLost_ += gap;
-                } else if (gap > 0xF000) {
-                    // Sequence went backwards - out of order packet
-                    if (diagnosticsCallback_.onOutOfOrderPacket) {
-                        diagnosticsCallback_.onOutOfOrderPacket();
-                    }
-                }
+        auto analysis = videostream::analyzeSequence(header.sequenceNumber, lastSequenceNumber_);
+        if (analysis.isLoss) {
+            totalPacketsLost_ += analysis.gap;
+        } else if (analysis.isOutOfOrder) {
+            if (diagnosticsCallback_.onOutOfOrderPacket) {
+                diagnosticsCallback_.onOutOfOrderPacket();
             }
         }
     }
@@ -163,11 +156,12 @@ void VideoStreamReceiver::processPacket(const QByteArray &packet)
 
     // Copy payload data to frame buffer at the correct line position
     quint16 lineNumber = header.actualLineNumber();
-    int bufferOffset = lineNumber * BytesPerLine;
+    int bufferOffset = lineNumber * videostream::BytesPerLine;
 
     // Ensure we don't write beyond buffer bounds
-    if (bufferOffset + PayloadSize <= frameBuffer_.size()) {
-        memcpy(frameBuffer_.data() + bufferOffset, packet.constData() + HeaderSize, PayloadSize);
+    if (bufferOffset + videostream::PayloadSize <= frameBuffer_.size()) {
+        memcpy(frameBuffer_.data() + bufferOffset, packet.constData() + videostream::HeaderSize,
+               videostream::PayloadSize);
     }
 
     // Track which packets we've received (using line number as identifier)
@@ -183,9 +177,9 @@ void VideoStreamReceiver::processPacket(const QByteArray &packet)
 
         // Calculate expected packet count based on format
         if (videoFormat_ == VideoFormat::PAL) {
-            expectedPackets_ = PalPacketsPerFrame;
+            expectedPackets_ = videostream::PalPacketsPerFrame;
         } else if (videoFormat_ == VideoFormat::NTSC) {
-            expectedPackets_ = NtscPacketsPerFrame;
+            expectedPackets_ = videostream::NtscPacketsPerFrame;
         }
     }
 
@@ -195,23 +189,6 @@ void VideoStreamReceiver::processPacket(const QByteArray &packet)
         receivedPackets_.size() >= expectedPackets_) {
         completeFrame();
     }
-}
-
-VideoStreamReceiver::PacketHeader VideoStreamReceiver::parseHeader(const QByteArray &packet) const
-{
-    PacketHeader header{};
-    const auto *data = reinterpret_cast<const quint8 *>(packet.constData());
-
-    // All values are little-endian
-    header.sequenceNumber = static_cast<quint16>(data[0] | (data[1] << 8));
-    header.frameNumber = static_cast<quint16>(data[2] | (data[3] << 8));
-    header.lineNumber = static_cast<quint16>(data[4] | (data[5] << 8));
-    header.pixelsPerLine = static_cast<quint16>(data[6] | (data[7] << 8));
-    header.linesPerPacket = data[8];
-    header.bitsPerPixel = data[9];
-    header.encodingType = static_cast<quint16>(data[10] | (data[11] << 8));
-
-    return header;
 }
 
 void VideoStreamReceiver::startNewFrame(quint16 frameNumber)
@@ -245,8 +222,9 @@ void VideoStreamReceiver::completeFrame()
     }
 
     // Determine actual frame height based on format
-    int frameHeight = (videoFormat_ == VideoFormat::NTSC) ? NtscHeight : PalHeight;
-    int frameSize = BytesPerLine * frameHeight;
+    int frameHeight =
+        (videoFormat_ == VideoFormat::NTSC) ? videostream::NtscHeight : videostream::PalHeight;
+    int frameSize = videostream::BytesPerLine * frameHeight;
 
     // Extract only the used portion of the frame buffer
     QByteArray frameData = frameBuffer_.left(frameSize);
@@ -272,20 +250,18 @@ void VideoStreamReceiver::completeFrame()
 }
 
 IVideoStreamReceiver::VideoFormat
-VideoStreamReceiver::detectFormat(const PacketHeader &header) const
+VideoStreamReceiver::detectFormat(const videostream::PacketHeader &header) const
 {
-    // The format can be detected from the last packet:
-    // - PAL: final line_num + lines_per_packet = 272
-    // - NTSC: final line_num + lines_per_packet = 240
+    // The format can be detected from the last packet total line count:
+    // - PAL:  actualLineNumber + linesPerPacket == 272
+    // - NTSC: actualLineNumber + linesPerPacket == 240
+    int totalLines = videostream::computeFrameLines(header);
 
-    quint16 lastLine = header.actualLineNumber();
-    int totalLines = lastLine + header.linesPerPacket;
-
-    if (totalLines == PalHeight) {
+    if (totalLines == videostream::PalHeight) {
         return VideoFormat::PAL;
-    } else if (totalLines == NtscHeight) {
+    }
+    if (totalLines == videostream::NtscHeight) {
         return VideoFormat::NTSC;
     }
-
     return VideoFormat::Unknown;
 }

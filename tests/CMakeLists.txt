@@ -395,6 +395,7 @@ add_executable(test_videostreamreceiver
     test_videostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
 )
 
 target_include_directories(test_videostreamreceiver PRIVATE
@@ -770,6 +771,7 @@ add_executable(test_streamingdiagnostics
     ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
@@ -895,6 +897,7 @@ add_executable(test_streamingmanager
     ${CMAKE_SOURCE_DIR}/src/services/streamcontrolclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamprotocolcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audioplaybackservice.cpp
@@ -963,6 +966,28 @@ add_test(NAME AudioStreamCoreTest COMMAND test_audiostreamcore)
 if(BUILD_COVERAGE)
     add_coverage_target(audiostreamcore test_audiostreamcore)
     add_dependencies(coverage coverage_audiostreamcore)
+endif()
+
+# VideoStreamCore tests - pure video packet parsing and format detection, no I/O dependencies
+add_executable(test_videostreamcore
+    test_videostreamcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
+)
+
+target_include_directories(test_videostreamcore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_videostreamcore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME VideoStreamCoreTest COMMAND test_videostreamcore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(videostreamcore test_videostreamcore)
+    add_dependencies(coverage coverage_videostreamcore)
 endif()
 
 # RestResponseCore tests - pure REST JSON response parsing, no I/O dependencies

@@ -115,6 +115,7 @@ set(SOURCES
     src/services/streamprotocolcore.cpp
     src/services/restresponsecore.cpp
     src/services/audiostreamcore.cpp
+    src/services/videostreamcore.cpp
     src/services/avicore.cpp
     src/services/videorecordingservice.cpp
     src/services/vic2frameconverter.cpp
@@ -230,6 +231,7 @@ set(HEADERS
     src/services/streamprotocolcore.h
     src/services/restresponsecore.h
     src/services/audiostreamcore.h
+    src/services/videostreamcore.h
     src/services/avicore.h
     src/services/videorecordingservice.h
     src/services/vic2frameconverter.h

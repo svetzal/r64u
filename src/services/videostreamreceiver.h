@@ -10,6 +10,7 @@
 #define VIDEOSTREAMRECEIVER_H
 
 #include "ivideostreamreceiver.h"
+#include "videostreamcore.h"
 
 #include <QByteArray>
 #include <QElapsedTimer>
@@ -55,40 +56,29 @@ public:
     using VideoFormat = IVideoStreamReceiver::VideoFormat;
 
     /// Video packet size in bytes (12-byte header + 768-byte payload)
-    static constexpr int PacketSize = 780;
-
+    static constexpr int PacketSize = videostream::PacketSize;
     /// Header size in bytes
-    static constexpr int HeaderSize = 12;
-
+    static constexpr int HeaderSize = videostream::HeaderSize;
     /// Payload size in bytes (4 lines × 192 bytes per line)
-    static constexpr int PayloadSize = 768;
-
+    static constexpr int PayloadSize = videostream::PayloadSize;
     /// Pixels per line in the video stream
-    static constexpr int PixelsPerLine = 384;
-
+    static constexpr int PixelsPerLine = videostream::PixelsPerLine;
     /// Lines per packet
-    static constexpr int LinesPerPacket = 4;
-
+    static constexpr int LinesPerPacket = videostream::LinesPerPacket;
     /// Bits per pixel (VIC-II uses 4-bit color indices)
-    static constexpr int BitsPerPixel = 4;
-
+    static constexpr int BitsPerPixel = videostream::BitsPerPixel;
     /// Bytes per line (384 pixels × 4 bits / 8)
-    static constexpr int BytesPerLine = 192;
-
+    static constexpr int BytesPerLine = videostream::BytesPerLine;
     /// Maximum frame height (PAL)
-    static constexpr int MaxFrameHeight = 272;
-
+    static constexpr int MaxFrameHeight = videostream::MaxFrameHeight;
     /// PAL frame height
-    static constexpr int PalHeight = 272;
-
+    static constexpr int PalHeight = videostream::PalHeight;
     /// NTSC frame height
-    static constexpr int NtscHeight = 240;
-
+    static constexpr int NtscHeight = videostream::NtscHeight;
     /// PAL packets per frame (272 lines / 4 lines per packet)
-    static constexpr int PalPacketsPerFrame = 68;
-
+    static constexpr int PalPacketsPerFrame = videostream::PalPacketsPerFrame;
     /// NTSC packets per frame (240 lines / 4 lines per packet)
-    static constexpr int NtscPacketsPerFrame = 60;
+    static constexpr int NtscPacketsPerFrame = videostream::NtscPacketsPerFrame;
 
     /**
      * @brief Constructs a video stream receiver.
@@ -182,28 +172,10 @@ private slots:
     void onReadyRead();
 
 private:
-    /**
-     * @brief Video packet header structure.
-     */
-    struct PacketHeader
-    {
-        quint16 sequenceNumber;
-        quint16 frameNumber;
-        quint16 lineNumber;  // Bits 0-14: line num, Bit 15: last packet flag
-        quint16 pixelsPerLine;
-        quint8 linesPerPacket;
-        quint8 bitsPerPixel;
-        quint16 encodingType;
-
-        [[nodiscard]] bool isLastPacket() const { return (lineNumber & 0x8000) != 0; }
-        [[nodiscard]] quint16 actualLineNumber() const { return lineNumber & 0x7FFF; }
-    };
-
     void processPacket(const QByteArray &packet);
-    [[nodiscard]] PacketHeader parseHeader(const QByteArray &packet) const;
     void startNewFrame(quint16 frameNumber);
     void completeFrame();
-    [[nodiscard]] VideoFormat detectFormat(const PacketHeader &header) const;
+    [[nodiscard]] VideoFormat detectFormat(const videostream::PacketHeader &header) const;
 
     // Network
     QUdpSocket *socket_ = nullptr;
