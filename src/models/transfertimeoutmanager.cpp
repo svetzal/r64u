@@ -1,7 +1,7 @@
 #include "transfertimeoutmanager.h"
 
-TransferTimeoutManager::TransferTimeoutManager(QObject *parent)
-    : QObject(parent), timer_(new QTimer(this))
+TransferTimeoutManager::TransferTimeoutManager(int timeoutMs, QObject *parent)
+    : QObject(parent), timeoutMs_(timeoutMs), timer_(new QTimer(this))
 {
     timer_->setSingleShot(true);
     connect(timer_, &QTimer::timeout, this, &TransferTimeoutManager::onTimerExpired);
@@ -9,7 +9,7 @@ TransferTimeoutManager::TransferTimeoutManager(QObject *parent)
 
 void TransferTimeoutManager::start()
 {
-    timer_->start(OperationTimeoutMs);
+    timer_->start(timeoutMs_);
 }
 
 void TransferTimeoutManager::stop()

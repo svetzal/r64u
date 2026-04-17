@@ -12,7 +12,7 @@
 TransferQueue::TransferQueue(QObject *parent)
     : QAbstractListModel(parent), localFs_(new LocalFileSystem(this)),
       batchManager_(new BatchManager(state_, this)),
-      timeoutManager_(new TransferTimeoutManager(this)),
+      timeoutManager_(new TransferTimeoutManager(TransferTimeoutManager::OperationTimeoutMs, this)),
       eventProcessor_(new TransferEventProcessor(this)),
       scanCoordinator_(new RecursiveScanCoordinator(state_, nullptr, localFs_, this)),
       dirCreator_(new RemoteDirectoryCreator(state_, nullptr, localFs_, this)),

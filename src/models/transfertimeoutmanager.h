@@ -13,7 +13,7 @@ class TransferTimeoutManager : public QObject
 public:
     static constexpr int OperationTimeoutMs = 300000;  // 5 minutes
 
-    explicit TransferTimeoutManager(QObject *parent = nullptr);
+    explicit TransferTimeoutManager(int timeoutMs = OperationTimeoutMs, QObject *parent = nullptr);
 
     void start();
     void stop();
@@ -25,6 +25,7 @@ private slots:
     void onTimerExpired();
 
 private:
+    int timeoutMs_;
     QTimer *timer_;
 };
 

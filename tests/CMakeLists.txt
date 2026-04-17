@@ -1488,3 +1488,81 @@ if(BUILD_COVERAGE)
     add_coverage_target(systemcommandcontroller test_systemcommandcontroller)
     add_dependencies(coverage coverage_systemcommandcontroller)
 endif()
+
+# TransferTimeoutManager tests - isolated unit tests with configurable timeout
+add_executable(test_transfertimeoutmanager
+    test_transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
+)
+
+target_include_directories(test_transfertimeoutmanager PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_transfertimeoutmanager PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME TransferTimeoutManagerTest COMMAND test_transfertimeoutmanager)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(transfertimeoutmanager test_transfertimeoutmanager)
+    add_dependencies(coverage coverage_transfertimeoutmanager)
+endif()
+
+# TransferEventProcessor tests - isolated unit tests for deferred event queue
+add_executable(test_transfereventprocessor
+    test_transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+)
+
+target_include_directories(test_transfereventprocessor PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_transfereventprocessor PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME TransferEventProcessorTest COMMAND test_transfereventprocessor)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(transfereventprocessor test_transfereventprocessor)
+    add_dependencies(coverage coverage_transfereventprocessor)
+endif()
+
+# TransferFtpHandler tests - FTP event translation layer
+add_executable(test_transferftphandler
+    test_transferftphandler.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${MOCK_LOCAL_FS_SOURCES}
+    ${MOCK_LOCAL_FS_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+)
+
+target_include_directories(test_transferftphandler PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_transferftphandler PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME TransferFtpHandlerTest COMMAND test_transferftphandler)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(transferftphandler test_transferftphandler)
+    add_dependencies(coverage coverage_transferftphandler)
+endif()
