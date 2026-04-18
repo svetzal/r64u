@@ -8,8 +8,7 @@
 #include "../services/songlengthsdatabase.h"
 
 DatabaseDownloadController::DatabaseDownloadController(QWidget *parentWidget, QObject *parent)
-    : QObject(parent), parentWidget_(parentWidget),
-      view_(new DatabaseDownloadView(this)),
+    : QObject(parent), parentWidget_(parentWidget), view_(new DatabaseDownloadView(this)),
       messagePresenter_(std::make_unique<QMessageBoxPresenter>())
 {
 }
@@ -201,8 +200,7 @@ void DatabaseDownloadController::onDownloadDatabase()
     songlengthsDatabase_->downloadDatabase();
 }
 
-void DatabaseDownloadController::onDatabaseDownloadProgress(qint64 bytesReceived,
-                                                            qint64 bytesTotal)
+void DatabaseDownloadController::onDatabaseDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
 {
     handleDownloadProgress(view_->songlengths(), bytesReceived, bytesTotal);
 }
@@ -262,8 +260,7 @@ void DatabaseDownloadController::onDownloadBuglist()
     hvscMetadataService_->downloadBuglist();
 }
 
-void DatabaseDownloadController::onBuglistDownloadProgress(qint64 bytesReceived,
-                                                           qint64 bytesTotal)
+void DatabaseDownloadController::onBuglistDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
 {
     handleDownloadProgress(view_->buglist(), bytesReceived, bytesTotal);
 }

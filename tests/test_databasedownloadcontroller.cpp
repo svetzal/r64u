@@ -9,7 +9,7 @@
 
 struct MessageCall
 {
-    QString kind;   ///< "info" or "warning"
+    QString kind;  ///< "info" or "warning"
     QString title;
     QString message;
 };

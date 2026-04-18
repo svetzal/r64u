@@ -21,7 +21,8 @@ QWidget *DatabaseDownloadView::createWidget()
     auto *databaseLayout = new QVBoxLayout(databaseGroup);
 
     // Songlengths section
-    auto *songlengthsLabel = new QLabel(QObject::tr("<b>Songlengths</b> - Accurate song durations"));
+    auto *songlengthsLabel =
+        new QLabel(QObject::tr("<b>Songlengths</b> - Accurate song durations"));
     databaseLayout->addWidget(songlengthsLabel);
 
     dbWidgets_.statusLabel = new QLabel(QObject::tr("Not loaded"));

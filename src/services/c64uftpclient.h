@@ -10,6 +10,7 @@
 #define C64UFTPCLIENT_H
 
 #include "ftpcommandqueue.h"
+#include "ftpresponsehandler.h"
 #include "ftptransferstate.h"
 #include "iftpclient.h"
 
@@ -24,15 +25,9 @@
 /**
  * @brief Asynchronous FTP client for Ultimate 64/II+ devices.
  *
- * This class provides a Qt-based FTP client implementation specifically
- * designed for communicating with C64 Ultimate devices. It supports:
- * - Connection management with automatic login
- * - Directory listing and navigation
- * - File upload and download (to disk or memory)
- * - Directory creation and removal
- * - File deletion and renaming
- *
- * All operations are asynchronous with results delivered via Qt signals.
+ * Coordinates FtpResponseHandler (protocol logic), FtpCommandQueue, and
+ * FtpTransferState. Owns the TCP sockets and delegates response
+ * interpretation to the handler via FtpResponseContext / FtpResponseAction.
  *
  * @par Example usage:
  * @code
@@ -77,8 +72,6 @@ public:
     static constexpr int FtpReplyErrorThreshold = 400;  ///< Codes >= this indicate error
     static constexpr int FtpReplyFileExists = 553;      ///< File/directory already exists
     /// @}
-
-    // State enum is inherited from IFtpClient
 
     /**
      * @brief Constructs an FTP client.
@@ -137,118 +130,37 @@ public:
 
     /**
      * @brief Initiates connection to the configured host.
-     *
-     * Connects to the FTP server and automatically performs login
-     * using the configured credentials. Emits connected() on success
-     * or error() on failure.
      */
     void connectToHost() override;
 
     /**
      * @brief Disconnects from the FTP server.
-     *
-     * Sends QUIT command and closes all connections.
-     * Emits disconnected() when complete.
      */
     void disconnect() override;
     /// @}
 
     /// @name Directory Operations
     /// @{
-
-    /**
-     * @brief Lists contents of a directory.
-     * @param path Directory path to list (empty for current directory).
-     *
-     * Results are delivered via directoryListed() signal.
-     */
     void list(const QString &path = QString()) override;
-
-    /**
-     * @brief Changes the current working directory.
-     * @param path Path to change to.
-     *
-     * Emits directoryChanged() on success.
-     */
     void changeDirectory(const QString &path) override;
-
-    /**
-     * @brief Creates a new directory.
-     * @param path Path of directory to create.
-     *
-     * Emits directoryCreated() on success.
-     */
     void makeDirectory(const QString &path) override;
-
-    /**
-     * @brief Removes an empty directory.
-     * @param path Path of directory to remove.
-     */
     void removeDirectory(const QString &path) override;
-
-    /**
-     * @brief Returns the current working directory.
-     * @return The current directory path.
-     */
     [[nodiscard]] QString currentDirectory() const override { return currentDir_; }
     /// @}
 
     /// @name File Operations
     /// @{
-
-    /**
-     * @brief Downloads a file to the local filesystem.
-     * @param remotePath Path of the remote file.
-     * @param localPath Path where the file will be saved locally.
-     *
-     * Emits downloadProgress() during transfer and downloadFinished() on completion.
-     */
     void download(const QString &remotePath, const QString &localPath) override;
-
-    /**
-     * @brief Downloads a file into memory.
-     * @param remotePath Path of the remote file.
-     *
-     * Useful for previewing files without saving to disk.
-     * Emits downloadToMemoryFinished() with the file data.
-     */
     void downloadToMemory(const QString &remotePath) override;
-
-    /**
-     * @brief Uploads a file to the remote server.
-     * @param localPath Path of the local file.
-     * @param remotePath Destination path on the server.
-     *
-     * Emits uploadProgress() during transfer and uploadFinished() on completion.
-     */
     void upload(const QString &localPath, const QString &remotePath) override;
-
-    /**
-     * @brief Deletes a file from the remote server.
-     * @param path Path of the file to delete.
-     *
-     * Emits fileRemoved() on success.
-     */
     void remove(const QString &path) override;
-
-    /**
-     * @brief Renames or moves a file on the remote server.
-     * @param oldPath Current path of the file.
-     * @param newPath New path for the file.
-     *
-     * Emits fileRenamed() on success.
-     */
     void rename(const QString &oldPath, const QString &newPath) override;
     /// @}
 
     /**
      * @brief Aborts the current operation.
-     *
-     * Cancels any ongoing transfer or command.
      */
     void abort() override;
-
-    // Signals are inherited from IFtpClient
 
 private slots:
     void onControlConnected();
@@ -275,13 +187,16 @@ private:
     void queueStorCommand(const QString &remotePath, const QString &localPath,
                           std::shared_ptr<QFile> file);
     void processNextCommand();
-    void handleResponse(int code, const QString &text);
-    void handleBusyResponse(int code, const QString &text);
     void drainCommandQueue();
     void resetTransferState();
     void performDisconnectCleanup();
 
-private:
+    /// Builds a context snapshot for the response handler.
+    [[nodiscard]] FtpResponseContext buildContext() const;
+
+    /// Applies an action returned by the response handler.
+    void applyAction(const FtpResponseAction &action);
+
     // Network connections
     QTcpSocket *controlSocket_ = nullptr;
     QTcpSocket *dataSocket_ = nullptr;
@@ -307,6 +222,9 @@ private:
 
     // Data transfer state
     FtpTransferState transferState_;
+
+    // Response interpretation (owned, Qt parent)
+    FtpResponseHandler *responseHandler_ = nullptr;
 };
 
 #endif  // C64UFTPCLIENT_H

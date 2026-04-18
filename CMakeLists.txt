@@ -113,6 +113,7 @@ set(SOURCES
     src/services/ftpcore.cpp
     src/services/ftpcommandqueue.cpp
     src/services/ftptransferstate.cpp
+    src/services/ftpresponsehandler.cpp
     src/services/streamprotocolcore.cpp
     src/services/restresponsecore.cpp
     src/services/audiostreamcore.cpp

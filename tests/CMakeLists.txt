@@ -216,6 +216,7 @@ add_executable(test_deviceconnection
     ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
 )
 
 target_include_directories(test_deviceconnection PRIVATE
@@ -460,6 +461,7 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
@@ -550,6 +552,7 @@ add_executable(test_c64uftpclient_protocol
     ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
 )
 
@@ -646,6 +649,22 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_ftptransferstate)
 endif()
 
+# FtpResponseHandler tests - FTP response logic with context/action pattern
+add_executable(test_ftpresponsehandler
+    test_ftpresponsehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+)
+target_include_directories(test_ftpresponsehandler PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ftpresponsehandler PRIVATE Qt6::Core Qt6::Test Qt6::Network)
+add_test(NAME FtpResponseHandlerTest COMMAND test_ftpresponsehandler)
+if(BUILD_COVERAGE)
+    add_coverage_target(ftpresponsehandler test_ftpresponsehandler)
+    add_dependencies(coverage coverage_ftpresponsehandler)
+endif()
+
 # Real Device Download integration test (optional - requires actual hardware)
 # Build only when BUILD_INTEGRATION_TESTS is ON
 option(BUILD_INTEGRATION_TESTS "Build integration tests that require real hardware" OFF)
@@ -657,6 +676,7 @@ if(BUILD_INTEGRATION_TESTS)
         ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
         ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
         ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
         ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
         ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
@@ -892,6 +912,7 @@ add_executable(test_streamingmanager
     ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamingmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamcontrolclient.cpp
