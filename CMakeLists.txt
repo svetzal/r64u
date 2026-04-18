@@ -119,6 +119,7 @@ set(SOURCES
     src/services/videostreamcore.cpp
     src/services/avicore.cpp
     src/services/videorecordingservice.cpp
+    src/services/screenshotservice.cpp
     src/services/vic2frameconverter.cpp
     src/services/remotefileoperations.cpp
     src/services/playlistmanager.cpp

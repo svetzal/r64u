@@ -1567,6 +1567,29 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_transferftphandler)
 endif()
 
+# ScreenshotService tests - captures QImage to temp directory
+add_executable(test_screenshotservice
+    test_screenshotservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/screenshotservice.cpp
+)
+
+target_include_directories(test_screenshotservice PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_screenshotservice PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+)
+
+add_test(NAME ScreenshotServiceTest COMMAND test_screenshotservice)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(screenshotservice test_screenshotservice)
+    add_dependencies(coverage coverage_screenshotservice)
+endif()
+
 # DatabaseDownloadController tests - verifies IMessagePresenter injection (headless)
 add_executable(test_databasedownloadcontroller
     test_databasedownloadcontroller.cpp

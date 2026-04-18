@@ -3,9 +3,9 @@
 #include "streamingdiagnosticswidget.h"
 #include "videodisplaywidget.h"
 
-#include "services/audiostreamreceiver.h"
 #include "services/deviceconnection.h"
 #include "services/keyboardinputservice.h"
+#include "services/screenshotservice.h"
 #include "services/streamingdiagnostics.h"
 #include "services/streamingmanager.h"
 #include "services/videorecordingservice.h"
@@ -13,7 +13,6 @@
 
 #include <QDateTime>
 #include <QDir>
-#include <QFileDialog>
 #include <QFileInfo>
 #include <QKeyEvent>
 #include <QMessageBox>
@@ -24,11 +23,8 @@
 ViewPanel::ViewPanel(DeviceConnection *connection, QWidget *parent)
     : QWidget(parent), deviceConnection_(connection)
 {
-    // DeviceConnection is required - assert in debug builds
     Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
-
     setupUi();
-    setupConnections();
 }
 
 ViewPanel::~ViewPanel() = default;
@@ -128,40 +124,35 @@ void ViewPanel::setupUi()
     videoDisplayWidget_->setMinimumSize(384, 272);
     layout->addWidget(videoDisplayWidget_, 1);
 
-    // Create streaming manager (owns all streaming services)
-    streamingManager_ = StreamingManager::createDefault(deviceConnection_, this);
-
-    // Create recording service
-    recordingService_ = new VideoRecordingService(this);
-    recordingService_->connectToStreaming(streamingManager_);
-}
-
-void ViewPanel::setupConnections()
-{
-    // Subscribe to device connection state changes
+    // Wire device connection state changes (independent of streaming services)
     if (deviceConnection_) {
         connect(deviceConnection_, &DeviceConnection::stateChanged, this,
                 &ViewPanel::onConnectionStateChanged);
     }
+}
+
+void ViewPanel::setStreamingManager(StreamingManager *manager)
+{
+    streamingManager_ = manager;
+
+    if (!streamingManager_) {
+        return;
+    }
 
     // Connect streaming manager to display
-    if (streamingManager_ && streamingManager_->videoReceiver() && videoDisplayWidget_) {
+    if (streamingManager_->videoReceiver() && videoDisplayWidget_) {
         connect(streamingManager_->videoReceiver(), &VideoStreamReceiver::frameReady,
                 videoDisplayWidget_, &VideoDisplayWidget::displayFrame);
     }
 
-    // Connect streaming manager signals
-    if (streamingManager_) {
-        connect(streamingManager_, &StreamingManager::streamingStarted, this,
-                &ViewPanel::onStreamingStarted);
-        connect(streamingManager_, &StreamingManager::streamingStopped, this,
-                &ViewPanel::onStreamingStopped);
-        connect(streamingManager_, &StreamingManager::videoFormatDetected, this,
-                &ViewPanel::onVideoFormatDetected);
-        connect(streamingManager_, &StreamingManager::error, this, &ViewPanel::onStreamingError);
-        connect(streamingManager_, &StreamingManager::statusMessage, this,
-                &ViewPanel::statusMessage);
-    }
+    connect(streamingManager_, &StreamingManager::streamingStarted, this,
+            &ViewPanel::onStreamingStarted);
+    connect(streamingManager_, &StreamingManager::streamingStopped, this,
+            &ViewPanel::onStreamingStopped);
+    connect(streamingManager_, &StreamingManager::videoFormatDetected, this,
+            &ViewPanel::onVideoFormatDetected);
+    connect(streamingManager_, &StreamingManager::error, this, &ViewPanel::onStreamingError);
+    connect(streamingManager_, &StreamingManager::statusMessage, this, &ViewPanel::statusMessage);
 
     // Connect video display keyboard events to keyboard service
     if (videoDisplayWidget_) {
@@ -173,21 +164,37 @@ void ViewPanel::setupConnections()
                 });
     }
 
-    // Connect recording service signals
-    if (recordingService_) {
-        connect(recordingService_, &VideoRecordingService::recordingStarted, this,
-                &ViewPanel::onRecordingStarted);
-        connect(recordingService_, &VideoRecordingService::recordingStopped, this,
-                &ViewPanel::onRecordingStopped);
-        connect(recordingService_, &VideoRecordingService::error, this,
-                &ViewPanel::onRecordingError);
-    }
-
     // Connect diagnostics service to widget
-    if (streamingManager_ && streamingManager_->diagnostics() && diagnosticsWidget_) {
+    if (streamingManager_->diagnostics() && diagnosticsWidget_) {
         connect(streamingManager_->diagnostics(), &StreamingDiagnostics::diagnosticsUpdated, this,
                 &ViewPanel::onDiagnosticsUpdated);
     }
+}
+
+void ViewPanel::setRecordingService(VideoRecordingService *service)
+{
+    recordingService_ = service;
+
+    if (!recordingService_) {
+        return;
+    }
+
+    connect(recordingService_, &VideoRecordingService::recordingStarted, this,
+            &ViewPanel::onRecordingStarted);
+    connect(recordingService_, &VideoRecordingService::recordingStopped, this,
+            &ViewPanel::onRecordingStopped);
+    connect(recordingService_, &VideoRecordingService::error, this, &ViewPanel::onRecordingError);
+}
+
+void ViewPanel::setScreenshotService(ScreenshotService *service)
+{
+    screenshotService_ = service;
+}
+
+void ViewPanel::setupConnections()
+{
+    // Intentionally empty — connections are now wired via setters or setupUi.
+    // Kept to avoid breaking any future call sites expecting this method.
 }
 
 void ViewPanel::updateActions()
@@ -375,7 +382,24 @@ void ViewPanel::onCaptureScreenshot()
         return;
     }
 
-    // Get the capture directory from settings or use Pictures folder
+    if (screenshotService_) {
+        QSettings settings;
+        QString captureDir =
+            settings
+                .value("capture/directory",
+                       QStandardPaths::writableLocation(QStandardPaths::PicturesLocation))
+                .toString();
+
+        QString filename = screenshotService_->capture(frame, captureDir);
+        if (!filename.isEmpty()) {
+            emit statusMessage(tr("Screenshot saved: %1").arg(filename), 5000);
+        } else {
+            emit statusMessage(tr("Failed to save screenshot"), 5000);
+        }
+        return;
+    }
+
+    // Fallback: inline screenshot when no service is injected
     QSettings settings;
     QString captureDir =
         settings
@@ -383,18 +407,15 @@ void ViewPanel::onCaptureScreenshot()
                    QStandardPaths::writableLocation(QStandardPaths::PicturesLocation))
             .toString();
 
-    // Ensure the directory exists
     QDir dir(captureDir);
     if (!dir.exists()) {
         dir.mkpath(".");
     }
 
-    // Generate a timestamp-based filename
     QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss_zzz");
     QString filename = QString("r64u_screenshot_%1.png").arg(timestamp);
     QString filePath = dir.filePath(filename);
 
-    // Save the image
     if (frame.save(filePath, "PNG")) {
         emit statusMessage(tr("Screenshot saved: %1").arg(filename), 5000);
     } else {

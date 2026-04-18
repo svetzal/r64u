@@ -12,7 +12,9 @@
 #include "services/playlistmanager.h"
 #include "services/servicefactory.h"
 #include "services/statusmessageservice.h"
+#include "services/screenshotservice.h"
 #include "services/streamingmanager.h"
+#include "services/videorecordingservice.h"
 #include "services/systemcommandcontroller.h"
 #include "services/transferservice.h"
 #include "ui/configpanel.h"
@@ -150,6 +152,15 @@ void MainWindow::setupPanels()
     explorePanel_->setMetadataServices(metadataBundle_);
     transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferService_);
     viewPanel_ = new ViewPanel(deviceConnection_);
+
+    // Create and inject streaming services into ViewPanel
+    auto *streamingManager = StreamingManager::createDefault(deviceConnection_, viewPanel_);
+    auto *recordingService = new VideoRecordingService(viewPanel_);
+    recordingService->connectToStreaming(streamingManager);
+    viewPanel_->setStreamingManager(streamingManager);
+    viewPanel_->setRecordingService(recordingService);
+    viewPanel_->setScreenshotService(new ScreenshotService(viewPanel_));
+
     configPanel_ = new ConfigPanel(deviceConnection_);
 
     // Wire up the streaming manager for auto stream start/stop

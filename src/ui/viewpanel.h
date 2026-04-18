@@ -11,6 +11,7 @@ class DeviceConnection;
 class VideoDisplayWidget;
 class StreamingManager;
 class VideoRecordingService;
+class ScreenshotService;
 class StreamingDiagnosticsWidget;
 struct DiagnosticsSnapshot;
 
@@ -30,6 +31,24 @@ public:
      * @return Pointer to the streaming manager.
      */
     [[nodiscard]] StreamingManager *streamingManager() const { return streamingManager_; }
+
+    /**
+     * @brief Injects the streaming manager. Wires all streaming-related connections.
+     * @param manager Owned by the caller; must outlive this ViewPanel.
+     */
+    void setStreamingManager(StreamingManager *manager);
+
+    /**
+     * @brief Injects the video recording service. Wires recording-related connections.
+     * @param service Owned by the caller; must outlive this ViewPanel.
+     */
+    void setRecordingService(VideoRecordingService *service);
+
+    /**
+     * @brief Injects the screenshot service.
+     * @param service Owned by the caller; must outlive this ViewPanel.
+     */
+    void setScreenshotService(ScreenshotService *service);
 
     // Settings
     void loadSettings();
@@ -65,11 +84,10 @@ private:
     // Dependencies (not owned)
     DeviceConnection *deviceConnection_ = nullptr;
 
-    // Owned streaming manager
+    // Injected services (not owned)
     StreamingManager *streamingManager_ = nullptr;
-
-    // Owned recording service
     VideoRecordingService *recordingService_ = nullptr;
+    ScreenshotService *screenshotService_ = nullptr;
 
     // UI widgets
     QToolBar *toolBar_ = nullptr;
