@@ -1566,3 +1566,37 @@ if(BUILD_COVERAGE)
     add_coverage_target(transferftphandler test_transferftphandler)
     add_dependencies(coverage coverage_transferftphandler)
 endif()
+
+# DatabaseDownloadController tests - verifies IMessagePresenter injection (headless)
+add_executable(test_databasedownloadcontroller
+    test_databasedownloadcontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadcontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadview.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+)
+
+target_include_directories(test_databasedownloadcontroller PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_databasedownloadcontroller PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+    Qt6::Sql
+    ZLIB::ZLIB
+)
+
+add_test(NAME DatabaseDownloadControllerTest COMMAND test_databasedownloadcontroller)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(databasedownloadcontroller test_databasedownloadcontroller)
+    add_dependencies(coverage coverage_databasedownloadcontroller)
+endif()

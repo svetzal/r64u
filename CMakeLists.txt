@@ -63,6 +63,7 @@ set(SOURCES
     src/ui/menubarbuilder.cpp
     src/ui/systemtoolbarbuilder.cpp
     src/ui/databasedownloadcontroller.cpp
+    src/ui/databasedownloadview.cpp
     src/ui/connectiontester.cpp
     src/ui/previewcoordinator.cpp
     src/ui/panelcoordinator.cpp

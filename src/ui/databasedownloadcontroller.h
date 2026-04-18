@@ -1,23 +1,31 @@
 #ifndef DATABASEDOWNLOADCONTROLLER_H
 #define DATABASEDOWNLOADCONTROLLER_H
 
-#include <QLabel>
+#include "databasedownloadview.h"
+
 #include <QObject>
-#include <QProgressBar>
-#include <QPushButton>
+
+#include <memory>
 
 class SonglengthsDatabase;
 class HVSCMetadataService;
 class GameBase64Service;
+class IMessagePresenter;
 class QWidget;
 
-/// Manages the download UI and logic for all metadata databases in Preferences.
+/**
+ * @brief Coordinates metadata-database download operations.
+ *
+ * Receives service events and updates the DatabaseDownloadView accordingly.
+ * Does not create or own any UI widgets directly.
+ */
 class DatabaseDownloadController : public QObject
 {
     Q_OBJECT
 
 public:
     explicit DatabaseDownloadController(QWidget *parentWidget, QObject *parent = nullptr);
+    ~DatabaseDownloadController() override;
 
     /// Creates and returns the databases widget for embedding in PreferencesDialog.
     QWidget *createWidgets();
@@ -25,6 +33,16 @@ public:
     void setSonglengthsDatabase(SonglengthsDatabase *database);
     void setHVSCMetadataService(HVSCMetadataService *service);
     void setGameBase64Service(GameBase64Service *service);
+
+    /**
+     * @brief Injects a message presenter used to show info/warning dialogs.
+     *
+     * Transfers ownership to this controller. The previous default presenter is
+     * replaced and destroyed.
+     *
+     * @param presenter New presenter; ownership is transferred.
+     */
+    void setMessagePresenter(std::unique_ptr<IMessagePresenter> presenter);
 
 private slots:
     void onDownloadDatabase();
@@ -48,15 +66,6 @@ private slots:
     void onGameBase64DownloadFailed(const QString &error);
 
 private:
-    struct DownloadWidgetGroup
-    {
-        QPushButton *button = nullptr;
-        QProgressBar *progressBar = nullptr;
-        QLabel *statusLabel = nullptr;
-        QString itemName;  ///< e.g., "HVSC Songlengths database"
-        QString unitName;  ///< e.g., "entries"
-    };
-
     void startDownload(DownloadWidgetGroup &group);
     void handleDownloadProgress(DownloadWidgetGroup &group, qint64 bytesReceived,
                                 qint64 bytesTotal);
@@ -64,16 +73,14 @@ private:
     void handleDownloadFailed(DownloadWidgetGroup &group, const QString &error);
 
     QWidget *parentWidget_ = nullptr;
+    DatabaseDownloadView *view_ = nullptr;
+
+    /// Owned message presenter; defaults to QMessageBoxPresenter, replaceable in tests.
+    std::unique_ptr<IMessagePresenter> messagePresenter_;
 
     SonglengthsDatabase *songlengthsDatabase_ = nullptr;
-    DownloadWidgetGroup dbWidgets_;
-
     HVSCMetadataService *hvscMetadataService_ = nullptr;
-    DownloadWidgetGroup stilWidgets_;
-    DownloadWidgetGroup buglistWidgets_;
-
     GameBase64Service *gameBase64Service_ = nullptr;
-    DownloadWidgetGroup gameBase64Widgets_;
 };
 
 #endif  // DATABASEDOWNLOADCONTROLLER_H
