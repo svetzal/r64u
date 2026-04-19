@@ -11,7 +11,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR/build"
-QT_PATH="${QT_PATH:-$HOME/Qt/6.11.0/macos}"
+QT_PATH="${QT_PATH:-$HOME/Qt/6.10.1/macos}"
 
 # Colors for output
 RED='\033[0;31m'

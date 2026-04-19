@@ -2,7 +2,7 @@
   "gates": [
     {
       "name": "coverage",
-      "command": "cmake -B build -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.11.0/macos -DCMAKE_BUILD_TYPE=Debug -DBUILD_COVERAGE=ON && cmake --build build && cmake --build build --target coverage",
+      "command": "cmake -B build -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.10.1/macos -DCMAKE_BUILD_TYPE=Debug -DBUILD_COVERAGE=ON && cmake --build build && cmake --build build --target coverage",
       "required": true,
       "timeout": 300000
     },
