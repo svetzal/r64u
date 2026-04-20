@@ -131,6 +131,23 @@ public:
      * Used for errors from RemoteFileModel and similar data sources.
      */
     void handleDataError(const QString &message);
+
+    /**
+     * @brief Handles a streaming error (warning severity).
+     * @param message The error message.
+     *
+     * Used for errors from StreamingManager and VideoRecordingService.
+     */
+    void handleStreamingError(const QString &message);
+
+    /**
+     * @brief Handles a download failure (warning severity).
+     * @param source Human-readable name of what was being downloaded.
+     * @param error The error message.
+     *
+     * Used for metadata database download failures.
+     */
+    void handleDownloadError(const QString &source, const QString &error);
     /// @}
 
 signals:

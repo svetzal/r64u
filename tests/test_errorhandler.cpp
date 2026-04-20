@@ -40,6 +40,10 @@ private slots:
     // Category and severity string conversion
     void testCategorySeverityLogging();
 
+    // New convenience method tests
+    void testHandleStreamingError();
+    void testHandleDownloadError();
+
 private:
     QWidget *parentWidget_ = nullptr;
     ErrorHandler *handler_ = nullptr;
@@ -179,6 +183,30 @@ void TestErrorHandler::testCategorySeverityLogging()
     QCOMPARE(spy.at(1).at(1).value<ErrorSeverity>(), ErrorSeverity::Warning);
     QCOMPARE(spy.at(2).at(1).value<ErrorSeverity>(), ErrorSeverity::Info);
     QCOMPARE(spy.at(3).at(1).value<ErrorSeverity>(), ErrorSeverity::Warning);
+}
+
+void TestErrorHandler::testHandleStreamingError()
+{
+    QSignalSpy spy(handler_, &ErrorHandler::errorLogged);
+
+    handler_->handleStreamingError("Failed to bind UDP port");
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).value<ErrorCategory>(), ErrorCategory::System);
+    QCOMPARE(spy.at(0).at(1).value<ErrorSeverity>(), ErrorSeverity::Warning);
+}
+
+void TestErrorHandler::testHandleDownloadError()
+{
+    QSignalSpy spy(handler_, &ErrorHandler::errorLogged);
+
+    handler_->handleDownloadError("Song lengths database", "Connection timed out");
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).value<ErrorCategory>(), ErrorCategory::FileOperation);
+    QCOMPARE(spy.at(0).at(1).value<ErrorSeverity>(), ErrorSeverity::Warning);
+    QVERIFY(spy.at(0).at(2).toString().contains("Song lengths database"));
+    QCOMPARE(spy.at(0).at(3).toString(), QString("Connection timed out"));
 }
 
 QTEST_MAIN(TestErrorHandler)

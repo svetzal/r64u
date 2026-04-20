@@ -335,9 +335,8 @@ void ViewPanel::onStreamingStopped()
     }
 }
 
-void ViewPanel::onStreamingError(const QString &error)
+void ViewPanel::onStreamingError(const QString & /*error*/)
 {
-    QMessageBox::warning(this, tr("Stream Error"), error);
     updateActions();
 }
 
@@ -485,10 +484,8 @@ void ViewPanel::onRecordingStopped(const QString &filePath, int frameCount)
         tr("Recording saved: %1 (%2 frames)").arg(fileInfo.fileName()).arg(frameCount), 5000);
 }
 
-void ViewPanel::onRecordingError(const QString &error)
+void ViewPanel::onRecordingError(const QString & /*error*/)
 {
-    emit statusMessage(tr("Recording error: %1").arg(error), 5000);
-
     // Reset button states
     if (startRecordingAction_) {
         startRecordingAction_->setEnabled(streamingManager_ && streamingManager_->isStreaming());

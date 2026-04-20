@@ -8,10 +8,13 @@
 #include "services/errorhandler.h"
 #include "services/favoritesmanager.h"
 #include "services/filepreviewservice.h"
+#include "services/gamebase64service.h"
+#include "services/hvscmetadataservice.h"
 #include "services/irestclient.h"
 #include "services/playlistmanager.h"
 #include "services/screenshotservice.h"
 #include "services/servicefactory.h"
+#include "services/songlengthsdatabase.h"
 #include "services/statusmessageservice.h"
 #include "services/streamingmanager.h"
 #include "services/systemcommandcontroller.h"
@@ -161,6 +164,12 @@ void MainWindow::setupPanels()
     viewPanel_->setRecordingService(recordingService);
     viewPanel_->setScreenshotService(new ScreenshotService(viewPanel_));
 
+    // Route streaming errors through centralized error handler
+    connect(streamingManager, &StreamingManager::error, errorHandler_,
+            &ErrorHandler::handleStreamingError);
+    connect(recordingService, &VideoRecordingService::error, errorHandler_,
+            &ErrorHandler::handleStreamingError);
+
     configPanel_ = new ConfigPanel(deviceConnection_);
 
     // Wire up the streaming manager for auto stream start/stop
@@ -213,6 +222,45 @@ void MainWindow::setupConnections()
         statusMessageService_->showInfo(
             tr("Loading configuration: %1...").arg(QFileInfo(path).fileName()));
     });
+
+    // FTP client errors
+    connect(deviceConnection_->ftpClient(), &IFtpClient::error, errorHandler_,
+            &ErrorHandler::handleDataError);
+
+    // File preview errors
+    connect(filePreviewService_, &FilePreviewService::previewFailed, this,
+            [this](const QString &path, const QString &error) {
+                errorHandler_->handleOperationFailed(tr("Preview of %1").arg(path), error);
+            });
+
+    // Config file load errors
+    connect(configFileLoader_, &ConfigFileLoader::loadFailed, this,
+            [this](const QString &path, const QString &error) {
+                errorHandler_->handleOperationFailed(
+                    tr("Loading %1").arg(QFileInfo(path).fileName()), error);
+            });
+
+    // Transfer service errors
+    connect(transferService_, &TransferService::operationFailed, errorHandler_,
+            &ErrorHandler::handleOperationFailed);
+
+    // Metadata download errors
+    connect(metadataBundle_.songlengthsDatabase, &SonglengthsDatabase::downloadFailed, this,
+            [this](const QString &error) {
+                errorHandler_->handleDownloadError(tr("Song lengths database"), error);
+            });
+    connect(metadataBundle_.hvscMetadataService, &HVSCMetadataService::stilDownloadFailed, this,
+            [this](const QString &error) {
+                errorHandler_->handleDownloadError(tr("HVSC STIL"), error);
+            });
+    connect(metadataBundle_.hvscMetadataService, &HVSCMetadataService::buglistDownloadFailed, this,
+            [this](const QString &error) {
+                errorHandler_->handleDownloadError(tr("HVSC BUGlist"), error);
+            });
+    connect(metadataBundle_.gameBase64Service, &GameBase64Service::downloadFailed, this,
+            [this](const QString &error) {
+                errorHandler_->handleDownloadError(tr("GameBase64"), error);
+            });
 }
 
 void MainWindow::switchToMode(Mode mode)
