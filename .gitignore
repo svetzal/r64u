@@ -75,6 +75,9 @@ CPackSourceConfig.cmake
 # Doxygen generated documentation
 docs/api/
 
+# Git worktrees
+.worktrees/
+
 # Generated source files (in-source builds)
 generated/
 logs.txt
