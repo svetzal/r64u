@@ -1,8 +1,3 @@
-/**
- * @file logging.h
- * @brief Simple logging utility with runtime verbose flag.
- */
-
 #ifndef LOGGING_H
 #define LOGGING_H
 

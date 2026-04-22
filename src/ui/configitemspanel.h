@@ -1,8 +1,3 @@
-/**
- * @file configitemspanel.h
- * @brief Panel displaying editable configuration items for a selected category.
- */
-
 #ifndef CONFIGITEMSPANEL_H
 #define CONFIGITEMSPANEL_H
 

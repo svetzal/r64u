@@ -1,11 +1,3 @@
-/**
- * @file defaultfilepreview.h
- * @brief Default fallback preview strategy for unrecognized file types.
- *
- * Displays basic file information (name, size, type) for files
- * that don't have a specialized preview handler.
- */
-
 #ifndef DEFAULTFILEPREVIEW_H
 #define DEFAULTFILEPREVIEW_H
 

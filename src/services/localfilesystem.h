@@ -1,8 +1,3 @@
-/**
- * @file localfilesystem.h
- * @brief Production implementation of ILocalFileSystem.
- */
-
 #ifndef LOCALFILESYSTEM_H
 #define LOCALFILESYSTEM_H
 

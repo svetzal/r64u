@@ -1,14 +1,3 @@
-/**
- * @file ftpcore.h
- * @brief Pure core functions for FTP protocol parsing.
- *
- * All functions in this namespace are pure: they take immutable input and return
- * new output with no side effects. This enables comprehensive unit testing and
- * clean separation from I/O concerns (QTcpSocket, connection state).
- *
- * This follows the same pattern as playlistcore.h / favoritescore.h.
- */
-
 #ifndef FTPCORE_H
 #define FTPCORE_H
 

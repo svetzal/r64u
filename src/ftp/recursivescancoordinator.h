@@ -1,8 +1,3 @@
-/**
- * @file recursivescancoordinator.h
- * @brief Coordinator for recursive directory scanning operations.
- */
-
 #ifndef RECURSIVESCANCOORDINATOR_H
 #define RECURSIVESCANCOORDINATOR_H
 

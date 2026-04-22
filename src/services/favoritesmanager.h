@@ -1,8 +1,3 @@
-/**
- * @file favoritesmanager.h
- * @brief Service for managing user's favorite/bookmarked file paths.
- */
-
 #ifndef FAVORITESMANAGER_H
 #define FAVORITESMANAGER_H
 

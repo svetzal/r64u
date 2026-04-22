@@ -1,24 +1,3 @@
-/**
- * @file diskbootsequenceservice.h
- * @brief Imperative shell that drives the disk-image boot sequence state machine.
- *
- * This service is the thin imperative wrapper around the pure
- * diskboot::State machine defined in diskbootsequencecore.h.  It owns a
- * QTimer, executes REST calls through IRestClient, and emits Qt signals to
- * report progress to the UI.
- *
- * ## Usage
- *
- * @code
- * auto *svc = new DiskBootSequenceService(this);
- * svc->setRestClient(deviceConnection->restClient());
- * connect(svc, &DiskBootSequenceService::statusMessage, statusBar, &QStatusBar::showMessage);
- * connect(svc, &DiskBootSequenceService::completed, this, []{ qDebug() << "boot done"; });
- *
- * svc->startBootSequence("/SD/games/Bubble Bobble.d64");
- * @endcode
- */
-
 #ifndef DISKBOOTSEQUENCESERVICE_H
 #define DISKBOOTSEQUENCESERVICE_H
 

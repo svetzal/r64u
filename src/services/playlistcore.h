@@ -1,12 +1,3 @@
-/**
- * @file playlistcore.h
- * @brief Pure core functions for playlist management logic.
- *
- * All functions in this namespace are pure: they take immutable input and return
- * new output with no side effects. This enables comprehensive unit testing and
- * clean separation from I/O concerns (REST calls, QSettings, QTimer).
- */
-
 #ifndef PLAYLISTCORE_H
 #define PLAYLISTCORE_H
 

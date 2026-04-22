@@ -1,8 +1,3 @@
-/**
- * @file videorecordingservice.h
- * @brief Service for recording video streams to AVI files.
- */
-
 #ifndef VIDEORECORDINGSERVICE_H
 #define VIDEORECORDINGSERVICE_H
 

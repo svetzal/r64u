@@ -1,11 +1,3 @@
-/**
- * @file ivideostreamreceiver.h
- * @brief Gateway interface for video stream receiver implementations.
- *
- * Abstracts UDP video reception so that StreamingManager can be tested
- * with a mock instead of requiring real network sockets.
- */
-
 #ifndef IVIDEOSTREAMRECEIVER_H
 #define IVIDEOSTREAMRECEIVER_H
 

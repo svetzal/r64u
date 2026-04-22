@@ -1,11 +1,3 @@
-/**
- * @file transferservice.h
- * @brief Service for coordinating file transfer operations.
- *
- * This service encapsulates the transfer workflow, providing high-level
- * signals for UI widgets instead of direct TransferQueue coupling.
- */
-
 #ifndef TRANSFERSERVICE_H
 #define TRANSFERSERVICE_H
 

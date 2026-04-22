@@ -1,12 +1,3 @@
-/**
- * @file favoritescore.h
- * @brief Pure core functions for favorites management logic.
- *
- * All functions in this namespace are pure: they take immutable input and return
- * new output with no side effects. This enables comprehensive unit testing and
- * clean separation from I/O concerns (QSettings persistence).
- */
-
 #ifndef FAVORITESCORE_H
 #define FAVORITESCORE_H
 

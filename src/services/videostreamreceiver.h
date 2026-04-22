@@ -1,11 +1,3 @@
-/**
- * @file videostreamreceiver.h
- * @brief UDP receiver for video stream packets from Ultimate 64/II+ devices.
- *
- * Receives and reassembles video frames from UDP packets sent by the
- * C64 Ultimate device's video streaming feature.
- */
-
 #ifndef VIDEOSTREAMRECEIVER_H
 #define VIDEOSTREAMRECEIVER_H
 

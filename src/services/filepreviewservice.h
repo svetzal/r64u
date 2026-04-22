@@ -1,11 +1,3 @@
-/**
- * @file filepreviewservice.h
- * @brief Service for downloading and managing file previews from remote devices.
- *
- * This service encapsulates the file preview workflow, providing high-level
- * signals for UI widgets instead of direct FTP client coupling.
- */
-
 #ifndef FILEPREVIEWSERVICE_H
 #define FILEPREVIEWSERVICE_H
 

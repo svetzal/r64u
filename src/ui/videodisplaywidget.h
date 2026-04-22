@@ -1,11 +1,3 @@
-/**
- * @file videodisplaywidget.h
- * @brief Widget for displaying VIC-II video frames from the C64 Ultimate.
- *
- * Renders 4-bit VIC-II color indexed frames to RGB using the standard
- * VIC-II color palette and displays them with proper aspect ratio.
- */
-
 #ifndef VIDEODISPLAYWIDGET_H
 #define VIDEODISPLAYWIDGET_H
 

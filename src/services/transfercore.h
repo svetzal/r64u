@@ -1,23 +1,3 @@
-/**
- * @file transfercore.h
- * @brief Pure core functions for transfer queue management logic.
- *
- * All functions in this namespace are pure: they take immutable input and return
- * new output with no side effects. This enables comprehensive unit testing and
- * clean separation from I/O concerns (FTP operations, Qt model signals, timers).
- *
- * The central type is \c transfer::State, which captures the complete mutable
- * state of the transfer queue. TransferQueue stores a single \c state_ member
- * of this type and delegates all business logic to functions in this namespace.
- *
- * ## Architecture
- *
- * - **Pure core** (this file): State transitions, item management, batch lifecycle,
- *   confirmation handling, directory scanning, error handling
- * - **Imperative shell** (TransferQueue): FTP calls, Qt model signals, timers,
- *   debounce, I/O operations
- */
-
 #ifndef TRANSFERCORE_H
 #define TRANSFERCORE_H
 

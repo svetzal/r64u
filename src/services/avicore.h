@@ -1,15 +1,3 @@
-/**
- * @file avicore.h
- * @brief Pure core functions for constructing AVI RIFF container data structures.
- *
- * All functions in this namespace are pure: they take immutable input and return
- * QByteArray values with no side effects. This enables comprehensive unit testing
- * and clean separation from I/O concerns (QFile, recording state).
- *
- * The AVI container uses little-endian 32-bit integers throughout.
- * This follows the same pattern as playlistcore.h / favoritescore.h.
- */
-
 #ifndef AVICORE_H
 #define AVICORE_H
 

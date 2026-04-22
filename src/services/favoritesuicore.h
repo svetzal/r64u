@@ -1,10 +1,3 @@
-/**
- * @file favoritesuicore.h
- * @brief Pure core functions for favorites UI display logic.
- *
- * All functions are pure: they take immutable input and return results
- * with no side effects.
- */
 #ifndef FAVORITESUICORE_H
 #define FAVORITESUICORE_H
 

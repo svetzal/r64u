@@ -1,22 +1,3 @@
-/**
- * @file fileactioncore.h
- * @brief Pure core functions for file preview type detection and routing.
- *
- * All functions in this namespace are pure: they take immutable input and return
- * results with no side effects. This enables comprehensive unit testing and
- * clean separation from UI and service concerns.
- *
- * ## Responsibilities
- *
- * - Classify files by their preview content type (disk image, SID, HTML, text)
- * - Route received preview data to the correct display action
- *
- * ## Architecture
- *
- * - **Pure core** (this file): type classification, routing decisions
- * - **Imperative shell** (FileDetailsPanel, ExplorePanel): widget updates, service calls
- */
-
 #ifndef FILEACTIONCORE_H
 #define FILEACTIONCORE_H
 

@@ -1,11 +1,3 @@
-/**
- * @file iaudiostreamreceiver.h
- * @brief Gateway interface for audio stream receiver implementations.
- *
- * Abstracts UDP audio reception so that StreamingManager can be tested
- * with a mock instead of requiring real network sockets.
- */
-
 #ifndef IAUDIOSTREAMRECEIVER_H
 #define IAUDIOSTREAMRECEIVER_H
 

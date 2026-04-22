@@ -1,12 +1,3 @@
-/**
- * @file hvscparser.h
- * @brief Pure parsing functions for HVSC STIL and BUGlist databases.
- *
- * These functions are free of I/O dependencies, taking raw data as input
- * and returning parsed results. They can be tested directly without any
- * network or filesystem setup.
- */
-
 #ifndef HVSCPARSER_H
 #define HVSCPARSER_H
 

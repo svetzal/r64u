@@ -1,11 +1,3 @@
-/**
- * @file playlistmanager.h
- * @brief Service for managing SID music playlists with playback control.
- *
- * Provides a jukebox-style playlist for SID files with timer-based
- * auto-advance, shuffle, and repeat modes.
- */
-
 #ifndef PLAYLISTMANAGER_H
 #define PLAYLISTMANAGER_H
 

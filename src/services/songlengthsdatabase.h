@@ -1,11 +1,3 @@
-/**
- * @file songlengthsdatabase.h
- * @brief Service for managing the HVSC Songlengths database.
- *
- * Downloads, caches, and queries the HVSC Songlengths.md5 database
- * to provide accurate song durations for SID files.
- */
-
 #ifndef SONGLENGTHSDATABASE_H
 #define SONGLENGTHSDATABASE_H
 

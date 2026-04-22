@@ -1,8 +1,3 @@
-/**
- * @file streamingdiagnosticswidget.h
- * @brief Widget for displaying real-time streaming quality diagnostics.
- */
-
 #ifndef STREAMINGDIAGNOSTICSWIDGET_H
 #define STREAMINGDIAGNOSTICSWIDGET_H
 

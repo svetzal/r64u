@@ -1,8 +1,3 @@
-/**
- * @file folderoperationcoordinator.h
- * @brief Coordinator for recursive folder upload/download/delete operations.
- */
-
 #ifndef FOLDEROPERATIONCOORDINATOR_H
 #define FOLDEROPERATIONCOORDINATOR_H
 

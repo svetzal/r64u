@@ -15,28 +15,9 @@
 class DiskImageReader
 {
 public:
-    /**
-     * @brief Supported disk image formats
-     */
-    enum class Format {
-        Unknown,
-        D64,  // 35-track single-sided 1541 disk (170KB)
-        D71,  // 70-track double-sided 1571 disk (340KB)
-        D81   // 80-track double-sided 1581 disk (800KB)
-    };
+    enum class Format { Unknown, D64, D71, D81 };
 
-    /**
-     * @brief File type codes from directory entries
-     */
-    enum class FileType {
-        DEL = 0,  // Deleted
-        SEQ = 1,  // Sequential
-        PRG = 2,  // Program
-        USR = 3,  // User
-        REL = 4,  // Relative
-        CBM = 5,  // Partition (1581 only)
-        DIR = 6   // Directory (1581 only)
-    };
+    enum class FileType { DEL = 0, SEQ = 1, PRG = 2, USR = 3, REL = 4, CBM = 5, DIR = 6 };
 
     /**
      * @brief Represents a single directory entry
@@ -46,13 +27,13 @@ public:
      */
     struct DirectoryEntry
     {
-        QByteArray filename;           // 16-byte raw PETSCII filename
-        FileType type{FileType::DEL};  // File type
-        quint16 sizeInBlocks{0};       // Size in 254-byte blocks
-        bool isClosed{false};          // True if file is properly closed
-        bool isLocked{false};          // True if file is write-protected
-        quint8 firstTrack{0};          // First data track
-        quint8 firstSector{0};         // First data sector
+        QByteArray filename;  // 16-byte raw PETSCII filename
+        FileType type{FileType::DEL};
+        quint16 sizeInBlocks{0};
+        bool isClosed{false};
+        bool isLocked{false};
+        quint8 firstTrack{0};
+        quint8 firstSector{0};
     };
 
     /**
@@ -63,10 +44,10 @@ public:
      */
     struct DiskDirectory
     {
-        QByteArray diskName;  // 16-byte raw PETSCII disk name
-        QByteArray diskId;    // 2-byte raw PETSCII disk ID
-        QByteArray dosType;   // 2-byte raw PETSCII DOS type (e.g., "2A", "3D")
-        quint16 freeBlocks;   // Number of free blocks
+        QByteArray diskName;
+        QByteArray diskId;
+        QByteArray dosType;
+        quint16 freeBlocks;
         QVector<DirectoryEntry> entries;
         Format format;
     };
@@ -95,60 +76,18 @@ public:
      */
     static QString formatDirectoryListing(const DiskDirectory &dir);
 
-    /**
-     * @brief Get file type string (e.g., "PRG", "SEQ")
-     */
     static QString fileTypeString(FileType type);
-
-    /**
-     * @brief Convert ASCII text to C64 Pro font Unicode (PUA)
-     */
     static QString asciiToC64Font(const QString &text);
 
 private:
-    /**
-     * @brief Detect format from data size and optional filename
-     */
     static Format detectFormat(const QByteArray &data, const QString &filename);
-
-    /**
-     * @brief Calculate sector offset in image for given track/sector
-     */
     static qint64 sectorOffset(Format format, int track, int sector);
-
-    /**
-     * @brief Get number of sectors for a given track (D64/D71 zone recording)
-     */
     static int sectorsInTrack(Format format, int track);
-
-    /**
-     * @brief Read a sector from the image data
-     */
     static QByteArray readSector(const QByteArray &data, Format format, int track, int sector);
-
-    /**
-     * @brief Parse BAM sector for disk name, ID, and free block count
-     */
     static void parseBam(const QByteArray &data, Format format, DiskDirectory &dir);
-
-    /**
-     * @brief Parse all directory sectors
-     */
     static void parseDirectory(const QByteArray &data, Format format, DiskDirectory &dir);
-
-    /**
-     * @brief Parse a single directory entry (32 bytes)
-     */
     static DirectoryEntry parseEntry(const QByteArray &entryData);
-
-    /**
-     * @brief Trim PETSCII padding ($A0) from end of byte array
-     */
     static QByteArray trimPetsciiPadding(const QByteArray &data);
-
-    /**
-     * @brief Count free blocks from BAM bitmap
-     */
     static quint16 countFreeBlocks(const QByteArray &data, Format format);
 
     // Constants for disk geometry

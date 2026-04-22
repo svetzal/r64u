@@ -1,11 +1,3 @@
-/**
- * @file filepreviewstrategy.h
- * @brief Abstract strategy interface for file preview rendering.
- *
- * Defines the interface for file preview strategies that handle
- * format detection and content rendering for different file types.
- */
-
 #ifndef FILEPREVIEWSTRATEGY_H
 #define FILEPREVIEWSTRATEGY_H
 

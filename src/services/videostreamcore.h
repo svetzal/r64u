@@ -1,14 +1,3 @@
-/**
- * @file videostreamcore.h
- * @brief Pure core functions for video stream packet parsing and format detection.
- *
- * All functions in this namespace are pure: they take immutable input and return
- * new output with no side effects. This enables comprehensive unit testing and
- * clean separation from I/O concerns (QUdpSocket, frame assembly, diagnostics).
- *
- * This follows the same pattern as audiostreamcore.h.
- */
-
 #ifndef VIDEOSTREAMCORE_H
 #define VIDEOSTREAMCORE_H
 

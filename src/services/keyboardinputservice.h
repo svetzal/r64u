@@ -1,11 +1,3 @@
-/**
- * @file keyboardinputservice.h
- * @brief Service for sending keyboard input to the C64 via memory writes.
- *
- * Converts Qt key events to PETSCII codes and writes them to the
- * C64 keyboard buffer at $0277-$0280.
- */
-
 #ifndef KEYBOARDINPUTSERVICE_H
 #define KEYBOARDINPUTSERVICE_H
 

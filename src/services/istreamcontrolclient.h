@@ -1,11 +1,3 @@
-/**
- * @file istreamcontrolclient.h
- * @brief Gateway interface for stream control client implementations.
- *
- * Abstracts the TCP stream control protocol so that StreamingManager can be
- * tested with a mock instead of requiring a real network connection.
- */
-
 #ifndef ISTREAMCONTROLCLIENT_H
 #define ISTREAMCONTROLCLIENT_H
 

@@ -1,8 +1,3 @@
-/**
- * @file ftpresponsehandler.h
- * @brief Handles FTP server response codes and drives the client state machine.
- */
-
 #ifndef FTPRESPONSEHANDLER_H
 #define FTPRESPONSEHANDLER_H
 

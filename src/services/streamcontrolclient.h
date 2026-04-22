@@ -1,11 +1,3 @@
-/**
- * @file streamcontrolclient.h
- * @brief TCP client for controlling video/audio streaming on Ultimate 64/II+ devices.
- *
- * Manages the TCP connection to port 64 for starting and stopping
- * video and audio streams from the C64 Ultimate device.
- */
-
 #ifndef STREAMCONTROLCLIENT_H
 #define STREAMCONTROLCLIENT_H
 

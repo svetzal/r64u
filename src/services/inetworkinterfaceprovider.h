@@ -1,11 +1,3 @@
-/**
- * @file inetworkinterfaceprovider.h
- * @brief Gateway interface for network interface enumeration.
- *
- * Abstracts QNetworkInterface::allInterfaces() so that StreamingManager's
- * local-IP discovery logic can be tested without real network interfaces.
- */
-
 #ifndef INETWORKINTERFACEPROVIDER_H
 #define INETWORKINTERFACEPROVIDER_H
 

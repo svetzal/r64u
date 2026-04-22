@@ -1,8 +1,3 @@
-/**
- * @file ftptransferstate.h
- * @brief Tracks all state for active FTP data transfers.
- */
-
 #ifndef FTPTRANSFERSTATE_H
 #define FTPTRANSFERSTATE_H
 

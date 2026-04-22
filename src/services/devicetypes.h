@@ -1,12 +1,3 @@
-/**
- * @file devicetypes.h
- * @brief Shared data types for Ultimate 64/II+ device communication.
- *
- * These types are used by both the IRestClient interface and its
- * implementations. Placing them here avoids circular includes between
- * the interface header and its consumers.
- */
-
 #ifndef DEVICETYPES_H
 #define DEVICETYPES_H
 

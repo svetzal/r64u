@@ -1,14 +1,3 @@
-/**
- * @file restresponsecore.h
- * @brief Pure core functions for parsing REST API JSON responses.
- *
- * All functions in this namespace are pure: they take immutable JSON input and
- * return new output with no side effects. This enables comprehensive unit testing
- * and clean separation from I/O concerns (QNetworkReply, signal emission).
- *
- * This follows the same pattern as playlistcore.h / favoritescore.h.
- */
-
 #ifndef RESTRESPONSECORE_H
 #define RESTRESPONSECORE_H
 

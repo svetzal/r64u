@@ -1,31 +1,3 @@
-/**
- * @file diskbootsequencecore.h
- * @brief Pure core state machine for the C64 disk-image boot sequence.
- *
- * All functions in this namespace are pure: they take immutable input and
- * return new output with no side effects. This enables comprehensive unit
- * testing and clean separation from timer and REST-client concerns.
- *
- * ## The Boot Sequence
- *
- * Running a disk image on a real C64 requires a carefully timed choreography:
- *
- *  1. Mount the disk image on Drive A
- *  2. Wait 500 ms for the mount to complete
- *  3. Reset the C64
- *  4. Wait 3000 ms for the C64 to finish its boot ROM
- *  5. Type LOAD"*",8,1 into the keyboard buffer
- *  6. Wait 500 ms for the buffer to be consumed
- *  7. Send a RETURN keystroke to execute the LOAD command
- *  8. Wait 5000 ms for the program to load from disk
- *  9. Type RUN followed by RETURN
- *
- * ## Architecture
- *
- * - **Pure core** (this file): state transitions, action decisions, status messages
- * - **Imperative shell** (DiskBootSequenceService): QTimer, IRestClient calls, Qt signals
- */
-
 #ifndef DISKBOOTSEQUENCECORE_H
 #define DISKBOOTSEQUENCECORE_H
 

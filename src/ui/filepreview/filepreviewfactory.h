@@ -1,11 +1,3 @@
-/**
- * @file filepreviewfactory.h
- * @brief Factory for creating file preview strategies.
- *
- * Selects the appropriate preview strategy based on file type
- * by checking extensions and file characteristics.
- */
-
 #ifndef FILEPREVIEWFACTORY_H
 #define FILEPREVIEWFACTORY_H
 

@@ -1,11 +1,3 @@
-/**
- * @file networkinterfaceprovider.h
- * @brief Production implementation of INetworkInterfaceProvider.
- *
- * Thin wrapper around QNetworkInterface::allInterfaces(). Contains no
- * logic worth testing independently.
- */
-
 #ifndef NETWORKINTERFACEPROVIDER_H
 #define NETWORKINTERFACEPROVIDER_H
 

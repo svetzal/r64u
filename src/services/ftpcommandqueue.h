@@ -1,8 +1,3 @@
-/**
- * @file ftpcommandqueue.h
- * @brief Manages queued FTP commands with associated state.
- */
-
 #ifndef FTPCOMMANDQUEUE_H
 #define FTPCOMMANDQUEUE_H
 

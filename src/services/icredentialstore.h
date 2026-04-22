@@ -1,11 +1,3 @@
-/**
- * @file icredentialstore.h
- * @brief Gateway interface for credential storage implementations.
- *
- * Abstracts platform-specific secure storage so that callers can be
- * tested with an in-memory mock instead of touching the system keychain.
- */
-
 #ifndef ICREDENTIALSTORE_H
 #define ICREDENTIALSTORE_H
 

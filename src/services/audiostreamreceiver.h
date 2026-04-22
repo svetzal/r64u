@@ -1,11 +1,3 @@
-/**
- * @file audiostreamreceiver.h
- * @brief UDP receiver for audio stream packets from Ultimate 64/II+ devices.
- *
- * Receives and buffers audio samples from UDP packets sent by the
- * C64 Ultimate device's audio streaming feature.
- */
-
 #ifndef AUDIOSTREAMRECEIVER_H
 #define AUDIOSTREAMRECEIVER_H
 
@@ -53,14 +45,10 @@ class AudioStreamReceiver : public IAudioStreamReceiver
     Q_OBJECT
 
 public:
-    /// Default UDP port for audio stream reception
     static constexpr quint16 DefaultPort = 21001;
 
-    /// Type alias for backward compatibility with callers using AudioStreamReceiver::AudioFormat
     using AudioFormat = IAudioStreamReceiver::AudioFormat;
 
-    /// @name Protocol constants (re-exported from audiostream:: for backward compatibility)
-    /// @{
     static constexpr int PacketSize = audiostream::PacketSize;
     static constexpr int HeaderSize = audiostream::HeaderSize;
     static constexpr int PayloadSize = audiostream::PayloadSize;
@@ -68,50 +56,17 @@ public:
     static constexpr int BytesPerSample = audiostream::BytesPerSample;
     static constexpr double PalSampleRate = audiostream::PalSampleRate;
     static constexpr double NtscSampleRate = audiostream::NtscSampleRate;
-    /// @}
 
-    /// Default jitter buffer size (in packets)
     static constexpr int DefaultJitterBufferSize = 10;
 
-    /**
-     * @brief Constructs an audio stream receiver.
-     * @param parent Optional parent QObject for memory management.
-     */
     explicit AudioStreamReceiver(QObject *parent = nullptr);
-
-    /**
-     * @brief Destructor. Closes the socket.
-     */
     ~AudioStreamReceiver() override;
 
-    /**
-     * @brief Binds the UDP socket to the default audio port.
-     * @return true if binding succeeded, false otherwise.
-     */
     bool bind() override;
-
-    /**
-     * @brief Binds the UDP socket to the specified port.
-     * @param port UDP port number to listen on (default: 21001).
-     * @return true if binding succeeded, false otherwise.
-     */
     bool bind(quint16 port);
-
-    /**
-     * @brief Closes the UDP socket and stops reception.
-     */
     void close() override;
-
-    /**
-     * @brief Returns whether the socket is bound and receiving.
-     * @return true if active, false otherwise.
-     */
     [[nodiscard]] bool isActive() const override;
 
-    /**
-     * @brief Returns the port the socket is bound to.
-     * @return The port number, or 0 if not bound.
-     */
     [[nodiscard]] quint16 port() const;
 
     /**
@@ -120,34 +75,11 @@ public:
      */
     void setJitterBufferSize(int packets);
 
-    /**
-     * @brief Returns the jitter buffer size.
-     * @return Number of packets in the jitter buffer.
-     */
     [[nodiscard]] int jitterBufferSize() const { return jitterBufferSize_; }
-
-    /**
-     * @brief Returns the number of buffered packets.
-     * @return Current buffer level.
-     */
     [[nodiscard]] int bufferedPackets() const;
 
-    /**
-     * @brief Sets the audio format (for sample rate selection).
-     * @param format The audio format (PAL or NTSC).
-     */
     void setAudioFormat(AudioFormat format) override;
-
-    /**
-     * @brief Returns the current audio format.
-     * @return The audio format.
-     */
     [[nodiscard]] AudioFormat audioFormat() const { return audioFormat_; }
-
-    /**
-     * @brief Returns the sample rate for the current format.
-     * @return Sample rate in Hz.
-     */
     [[nodiscard]] double sampleRate() const;
 
     /**
@@ -161,8 +93,7 @@ public:
     };
 
     /**
-     * @brief Sets the diagnostics callback for timing data.
-     * @param callback Callback structure with timing functions.
+     * @brief Sets the diagnostics callback.
      *
      * When set, these callbacks are invoked during packet processing
      * to provide high-frequency timing data for diagnostics.
@@ -170,23 +101,16 @@ public:
     void setDiagnosticsCallback(const DiagnosticsCallback &callback);
 
 signals:
-    /**
-     * @brief Emitted when a socket error occurs.
-     * @param error Error description.
-     */
     void socketError(const QString &error);
 
     /**
      * @brief Emitted periodically with reception statistics.
      * @param packetsReceived Total packets received.
-     * @param packetsLost Estimated packets lost (sequence gaps).
+     * @param packetsLost Estimated packets lost (from sequence number gaps).
      * @param bufferLevel Current jitter buffer level.
      */
     void statsUpdated(quint64 packetsReceived, quint64 packetsLost, int bufferLevel);
 
-    /**
-     * @brief Emitted when the jitter buffer underruns.
-     */
     void bufferUnderrun();
 
 private slots:

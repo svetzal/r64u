@@ -1,8 +1,3 @@
-/**
- * @file playlistwidget.h
- * @brief UI widget for displaying and controlling a SID music playlist.
- */
-
 #ifndef PLAYLISTWIDGET_H
 #define PLAYLISTWIDGET_H
 

@@ -1,10 +1,3 @@
-/**
- * @file filebrowsercore.h
- * @brief Pure core functions for file browser action routing.
- *
- * All functions are pure: they take immutable input and return results
- * with no side effects. This enables comprehensive unit testing.
- */
 #ifndef FILEBROWSERCORE_H
 #define FILEBROWSERCORE_H
 

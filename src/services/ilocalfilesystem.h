@@ -1,19 +1,3 @@
-/**
- * @file ilocalfilesystem.h
- * @brief Gateway interface for local file system operations.
- *
- * All local file system I/O is routed through this interface, enabling
- * unit testing of coordinator logic without touching the real file system.
- * This mirrors the IFtpClient gateway pattern already used for remote I/O.
- *
- * The production implementation (LocalFileSystem) wraps Qt's QDir,
- * QDirIterator, and QFileInfo APIs. Test code injects a mock that records
- * calls and returns pre-configured values.
- *
- * @note This interface deliberately contains no business logic. Any logic
- *       found here should be moved to the pure transfer core instead.
- */
-
 #ifndef ILOCALFILESYSTEM_H
 #define ILOCALFILESYSTEM_H
 

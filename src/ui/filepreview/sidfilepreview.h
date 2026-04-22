@@ -1,11 +1,3 @@
-/**
- * @file sidfilepreview.h
- * @brief Preview strategy for C64 SID music files.
- *
- * Handles SID files (.sid, .psid, .rsid) and displays metadata including
- * title, author, copyright, and technical information.
- */
-
 #ifndef SIDFILEPREVIEW_H
 #define SIDFILEPREVIEW_H
 

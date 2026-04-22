@@ -1,11 +1,3 @@
-/**
- * @file errorhandler.h
- * @brief Centralized error handling service for consistent error presentation.
- *
- * This service standardizes how errors are categorized, displayed, and logged
- * across the application, providing a consistent user experience.
- */
-
 #ifndef ERRORHANDLER_H
 #define ERRORHANDLER_H
 

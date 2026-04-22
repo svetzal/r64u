@@ -1,12 +1,3 @@
-/**
- * @file ftpclientmixin.h
- * @brief Free-function helpers for FTP client lifecycle management.
- *
- * Provides a reusable helper to disconnect all signals from an FTP client
- * to a given QObject receiver, used in destructors and setFtpClient() setters
- * to avoid signals being delivered after the receiver's members are destroyed.
- */
-
 #ifndef FTPCLIENTMIXIN_H
 #define FTPCLIENTMIXIN_H
 

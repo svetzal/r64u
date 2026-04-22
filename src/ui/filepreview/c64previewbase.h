@@ -1,13 +1,3 @@
-/**
- * @file c64previewbase.h
- * @brief Shared base class for C64-styled file preview strategies.
- *
- * Provides the common widget structure, C64 styling, and shared operations
- * (clear, showError) used by DiskImagePreview, SidFilePreview, and
- * TextFilePreview. Subclasses implement canHandle(), showPreview(), and
- * showLoading() for their specific file types.
- */
-
 #ifndef C64PREVIEWBASE_H
 #define C64PREVIEWBASE_H
 

@@ -1,11 +1,3 @@
-/**
- * @file rollingstats.h
- * @brief Rolling window statistics utility for streaming diagnostics.
- *
- * Provides efficient calculation of mean, standard deviation, min, and max
- * over a fixed-size rolling window of samples.
- */
-
 #ifndef ROLLINGSTATS_H
 #define ROLLINGSTATS_H
 

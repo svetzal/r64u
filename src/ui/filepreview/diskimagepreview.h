@@ -1,11 +1,3 @@
-/**
- * @file diskimagepreview.h
- * @brief Preview strategy for C64 disk image files.
- *
- * Handles disk image files (.d64, .g64, .d71, .d81) and displays
- * the disk directory with PETSCII graphics.
- */
-
 #ifndef DISKIMAGEPREVIEW_H
 #define DISKIMAGEPREVIEW_H
 

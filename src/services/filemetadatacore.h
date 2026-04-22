@@ -1,26 +1,3 @@
-/**
- * @file filemetadatacore.h
- * @brief Pure core functions for composing file metadata display strings.
- *
- * All functions in this namespace are pure: they take immutable input structs
- * and return formatted strings with no side effects.  This enables
- * comprehensive unit testing of the metadata display logic without creating
- * any UI widgets or real database services.
- *
- * ## Design
- *
- * The caller (FileDetailsPanel) is responsible for:
- *  1. Calling the appropriate services (SidFileParser, SonglengthsDatabase, etc.)
- *  2. Building a context struct from the results
- *  3. Passing the context to the relevant format function
- *  4. Displaying the returned string
- *
- * The pure core is responsible for:
- *  - Deciding which sections to include based on availability flags
- *  - Formatting each section consistently
- *  - Handling "not available" / "not loaded" diagnostic messages
- */
-
 #ifndef FILEMETADATACORE_H
 #define FILEMETADATACORE_H
 

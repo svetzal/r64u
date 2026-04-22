@@ -1,12 +1,3 @@
-/**
- * @file filetypecore.h
- * @brief Pure core functions for C64 file type detection and capabilities.
- *
- * All functions in this namespace are pure: they take immutable input and return
- * results with no side effects. This enables comprehensive unit testing and
- * clean separation from UI and model concerns.
- */
-
 #ifndef FILETYPECORE_H
 #define FILETYPECORE_H
 

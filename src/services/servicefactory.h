@@ -1,11 +1,3 @@
-/**
- * @file servicefactory.h
- * @brief Centralized service instantiation and dependency wiring.
- *
- * ServiceFactory owns all application services and wires their
- * dependencies. MainWindow receives non-owning pointers via accessor
- * methods.
- */
 #ifndef SERVICEFACTORY_H
 #define SERVICEFACTORY_H
 

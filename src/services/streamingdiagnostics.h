@@ -1,11 +1,3 @@
-/**
- * @file streamingdiagnostics.h
- * @brief Real-time streaming quality diagnostics service.
- *
- * Collects and aggregates metrics from video and audio stream receivers
- * to provide quality indicators and diagnostic information.
- */
-
 #ifndef STREAMINGDIAGNOSTICS_H
 #define STREAMINGDIAGNOSTICS_H
 

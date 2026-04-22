@@ -1,12 +1,3 @@
-/**
- * @file songlengthsparser.h
- * @brief Pure parsing functions for the HVSC Songlengths.md5 database.
- *
- * These functions are free of I/O dependencies, taking raw data as input
- * and returning parsed results. They can be tested directly without any
- * network or filesystem setup.
- */
-
 #ifndef SONGLENGTHSPARSER_H
 #define SONGLENGTHSPARSER_H
 

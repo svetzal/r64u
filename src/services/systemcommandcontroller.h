@@ -1,10 +1,3 @@
-/**
- * @file systemcommandcontroller.h
- * @brief Controller for system-level machine commands.
- *
- * Encapsulates the pass-through REST commands for machine control,
- * enabling unit testing without Qt widgets.
- */
 #ifndef SYSTEMCOMMANDCONTROLLER_H
 #define SYSTEMCOMMANDCONTROLLER_H
 

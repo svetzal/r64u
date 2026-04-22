@@ -1,14 +1,3 @@
-/**
- * @file audiostreamcore.h
- * @brief Pure core functions for audio stream packet parsing and rate calculation.
- *
- * All functions in this namespace are pure: they take immutable input and return
- * new output with no side effects. This enables comprehensive unit testing and
- * clean separation from I/O concerns (QUdpSocket, jitter buffer, timers).
- *
- * This follows the same pattern as playlistcore.h / favoritescore.h.
- */
-
 #ifndef AUDIOSTREAMCORE_H
 #define AUDIOSTREAMCORE_H
 

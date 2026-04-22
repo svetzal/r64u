@@ -1,11 +1,3 @@
-/**
- * @file hvscmetadataservice.h
- * @brief Service for managing HVSC STIL and BUGlist metadata.
- *
- * Downloads, caches, and queries the HVSC STIL.txt and BUGlist.txt files
- * to provide tune commentary, cover information, and bug warnings.
- */
-
 #ifndef HVSCMETADATASERVICE_H
 #define HVSCMETADATASERVICE_H
 

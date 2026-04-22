@@ -1,11 +1,3 @@
-/**
- * @file iaudioplaybackservice.h
- * @brief Gateway interface for audio playback service implementations.
- *
- * Abstracts audio playback so that StreamingManager can be tested
- * without requiring a real audio device.
- */
-
 #ifndef IAUDIOPLAYBACKSERVICE_H
 #define IAUDIOPLAYBACKSERVICE_H
 

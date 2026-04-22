@@ -1,11 +1,3 @@
-/**
- * @file streamingmanager.h
- * @brief High-level manager for C64 Ultimate video and audio streaming.
- *
- * Manages the complete streaming lifecycle including stream control,
- * video reception, audio reception, audio playback, and keyboard input.
- */
-
 #ifndef STREAMINGMANAGER_H
 #define STREAMINGMANAGER_H
 

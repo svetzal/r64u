@@ -1,11 +1,3 @@
-/**
- * @file sidfileparser.h
- * @brief Parser for Commodore SID music file format.
- *
- * Parses PSID/RSID file headers to extract metadata for display.
- * Supports v1-v4 formats including multi-SID (2SID/3SID) files.
- */
-
 #ifndef SIDFILEPARSER_H
 #define SIDFILEPARSER_H
 

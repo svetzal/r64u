@@ -1,11 +1,3 @@
-/**
- * @file textfilepreview.h
- * @brief Preview strategy for text and HTML files.
- *
- * Handles plain text files (.txt, .cfg, .log, .ini, .md, .json, .xml)
- * and HTML files (.html, .htm) with appropriate rendering.
- */
-
 #ifndef TEXTFILEPREVIEW_H
 #define TEXTFILEPREVIEW_H
 

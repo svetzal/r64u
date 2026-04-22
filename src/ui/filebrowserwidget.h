@@ -1,11 +1,3 @@
-/**
- * @file filebrowserwidget.h
- * @brief Abstract base class for file browser widgets.
- *
- * Provides common UI structure and behavior for both local and remote
- * file browsers, including toolbar, tree view, and navigation widget.
- */
-
 #ifndef FILEBROWSERWIDGET_H
 #define FILEBROWSERWIDGET_H
 

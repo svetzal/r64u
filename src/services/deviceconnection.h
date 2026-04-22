@@ -1,11 +1,3 @@
-/**
- * @file deviceconnection.h
- * @brief High-level connection manager for Ultimate 64/II+ devices.
- *
- * Provides unified connection management combining both REST and FTP
- * protocols with automatic reconnection support.
- */
-
 #ifndef DEVICECONNECTION_H
 #define DEVICECONNECTION_H
 
@@ -46,21 +38,9 @@ class DeviceConnection : public QObject
     Q_PROPERTY(bool connected READ isConnected NOTIFY stateChanged)
 
 public:
-    /**
-     * @brief Connection state of the device manager.
-     */
-    enum class ConnectionState {
-        Disconnected,  ///< Not connected to any device
-        Connecting,    ///< Connection in progress
-        Connected,     ///< Both REST and FTP connections established
-        Reconnecting   ///< Attempting to reconnect after connection loss
-    };
+    enum class ConnectionState { Disconnected, Connecting, Connected, Reconnecting };
     Q_ENUM(ConnectionState)
 
-    /**
-     * @brief Constructs a device connection manager.
-     * @param parent Optional parent QObject for memory management.
-     */
     explicit DeviceConnection(QObject *parent = nullptr);
 
     /**
@@ -68,70 +48,25 @@ public:
      * @param restClient Pre-created REST client (ownership transferred).
      * @param ftpClient Pre-created FTP client (ownership transferred).
      * @param parent Optional parent QObject for memory management.
-     *
-     * This constructor is primarily for testing, allowing mock clients to be injected.
      */
     DeviceConnection(IRestClient *restClient, IFtpClient *ftpClient, QObject *parent = nullptr);
 
-    /**
-     * @brief Destructor. Disconnects if connected.
-     */
     ~DeviceConnection() override;
 
-    /// @name Configuration
-    /// @{
-
-    /**
-     * @brief Sets the target device host.
-     * @param host Hostname or IP address of the Ultimate device.
-     */
     void setHost(const QString &host);
-
-    /**
-     * @brief Returns the currently configured host.
-     * @return The hostname or IP address.
-     */
     [[nodiscard]] QString host() const { return host_; }
-
-    /**
-     * @brief Sets the authentication password.
-     * @param password Password for device authentication.
-     */
     void setPassword(const QString &password);
-
-    /**
-     * @brief Enables or disables automatic reconnection.
-     * @param enabled True to enable auto-reconnect.
-     */
     void setAutoReconnect(bool enabled);
-
-    /**
-     * @brief Returns whether auto-reconnect is enabled.
-     * @return True if auto-reconnect is enabled.
-     */
     [[nodiscard]] bool autoReconnect() const { return autoReconnect_; }
-    /// @}
 
-    /// @name Connection State
-    /// @{
-
-    /**
-     * @brief Returns the current connection state.
-     * @return The current ConnectionState enum value.
-     */
     [[nodiscard]] ConnectionState state() const { return state_; }
-
-    /**
-     * @brief Checks if fully connected to the device.
-     * @return True if both REST and FTP connections are established.
-     */
     [[nodiscard]] bool isConnected() const { return state_ == ConnectionState::Connected; }
 
     /**
      * @brief Checks if the REST API is reachable.
      * @return True if REST connection is established (regardless of FTP state).
      *
-     * This is useful for enabling actions that only require the REST API,
+     * Useful for enabling actions that only require the REST API,
      * such as system control commands (reset, reboot, pause, etc.).
      */
     [[nodiscard]] bool isRestConnected() const { return restConnected_; }
@@ -143,125 +78,29 @@ public:
      * Use this instead of isConnected() for guards in UI operation handlers.
      * This explicitly prevents operations during Connecting or Reconnecting
      * states, avoiding race conditions and providing clearer user feedback.
-     *
-     * @par Example usage:
-     * @code
-     * void onRefresh() {
-     *     if (!deviceConnection_->canPerformOperations()) {
-     *         return;  // Silent return or show "connecting..." message
-     *     }
-     *     // Proceed with refresh
-     * }
-     * @endcode
      */
     [[nodiscard]] bool canPerformOperations() const { return state_ == ConnectionState::Connected; }
-    /// @}
 
-    /// @name Device Information
-    /// @{
-
-    /**
-     * @brief Returns cached device information.
-     * @return The DeviceInfo structure (valid when connected).
-     */
     [[nodiscard]] DeviceInfo deviceInfo() const { return deviceInfo_; }
-
-    /**
-     * @brief Returns cached drive information.
-     * @return List of DriveInfo structures (valid when connected).
-     */
     [[nodiscard]] QList<DriveInfo> driveInfo() const { return driveInfo_; }
-    /// @}
 
-    /// @name Protocol Clients
-    /// @{
-
-    /**
-     * @brief Returns the REST API client.
-     * @return Pointer to the IRestClient instance.
-     */
     [[nodiscard]] IRestClient *restClient() { return restClient_; }
-
-    /**
-     * @brief Returns the FTP client.
-     * @return Pointer to the IFtpClient instance.
-     */
     [[nodiscard]] IFtpClient *ftpClient() { return ftpClient_; }
-    /// @}
 
 public slots:
-    /**
-     * @brief Initiates connection to the configured device.
-     *
-     * Connects both REST and FTP protocols. Emits connected() when
-     * both are established, or connectionError() on failure.
-     */
     void connectToDevice();
-
-    /**
-     * @brief Disconnects from the device.
-     *
-     * Closes both REST and FTP connections.
-     * Emits disconnected() when complete.
-     */
     void disconnectFromDevice();
-
-    /**
-     * @brief Refreshes the cached device information.
-     *
-     * Emits deviceInfoUpdated() on success.
-     */
     void refreshDeviceInfo();
-
-    /**
-     * @brief Refreshes the cached drive information.
-     *
-     * Emits driveInfoUpdated() on success.
-     */
     void refreshDriveInfo();
 
 signals:
-    /// @name Connection Signals
-    /// @{
-
-    /**
-     * @brief Emitted when the connection state changes.
-     * @param state The new connection state.
-     */
     void stateChanged(DeviceConnection::ConnectionState state);
-
-    /**
-     * @brief Emitted when fully connected to the device.
-     */
     void connected();
-
-    /**
-     * @brief Emitted when disconnected from the device.
-     */
     void disconnected();
-
-    /**
-     * @brief Emitted when a connection error occurs.
-     * @param message Human-readable error description.
-     */
     void connectionError(const QString &message);
-    /// @}
 
-    /// @name Information Signals
-    /// @{
-
-    /**
-     * @brief Emitted when device information is updated.
-     * @param info The updated device information.
-     */
     void deviceInfoUpdated(const DeviceInfo &info);
-
-    /**
-     * @brief Emitted when drive information is updated.
-     * @param drives The updated list of drive information.
-     */
     void driveInfoUpdated(const QList<DriveInfo> &drives);
-    /// @}
 
 private slots:
     void onRestInfoReceived(const DeviceInfo &info);
@@ -302,11 +141,7 @@ private:
      */
     [[nodiscard]] static bool isValidTransition(ConnectionState from, ConnectionState to);
 
-    /**
-     * @brief Resets protocol connection flags atomically.
-     */
     void resetProtocolFlags();
-
     void checkBothConnected();
     void startReconnect();
     void stopReconnect();

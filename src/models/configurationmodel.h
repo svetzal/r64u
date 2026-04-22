@@ -1,11 +1,3 @@
-/**
- * @file configurationmodel.h
- * @brief Model for storing and managing device configuration data.
- *
- * Provides storage for configuration categories and items retrieved from
- * the Ultimate device REST API, with dirty state tracking for modifications.
- */
-
 #ifndef CONFIGURATIONMODEL_H
 #define CONFIGURATIONMODEL_H
 

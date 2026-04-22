@@ -1,12 +1,3 @@
-/**
- * @file systemcredentialstore.h
- * @brief Production implementation of ICredentialStore using CredentialStore.
- *
- * Thin wrapper around the platform-specific CredentialStore static methods.
- * Contains no logic worth testing independently — all logic is in the
- * underlying platform implementation.
- */
-
 #ifndef SYSTEMCREDENTIALSTORE_H
 #define SYSTEMCREDENTIALSTORE_H
 

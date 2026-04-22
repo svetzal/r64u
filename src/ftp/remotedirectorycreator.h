@@ -1,8 +1,3 @@
-/**
- * @file remotedirectorycreator.h
- * @brief Coordinator for creating remote directory hierarchies before uploads.
- */
-
 #ifndef REMOTEDIRECTORYCREATOR_H
 #define REMOTEDIRECTORYCREATOR_H
 

@@ -1,11 +1,3 @@
-/**
- * @file c64uftpclient.h
- * @brief FTP client for communicating with Ultimate 64/II+ devices.
- *
- * Provides asynchronous FTP operations for file transfers, directory
- * management, and remote file system navigation on C64 Ultimate devices.
- */
-
 #ifndef C64UFTPCLIENT_H
 #define C64UFTPCLIENT_H
 
