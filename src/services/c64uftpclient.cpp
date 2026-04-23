@@ -217,7 +217,14 @@ FtpResponseContext C64UFtpClient::buildContext() const
 
 void C64UFtpClient::applyAction(const FtpResponseAction &action)
 {
-    // Apply transfer-state mutations first
+    applyTransferStateMutations(action);
+    applyConnectionStateChanges(action);
+    emitResponseSignals(action);
+    executeResponseAction(action);
+}
+
+void C64UFtpClient::applyTransferStateMutations(const FtpResponseAction &action)
+{
     if (action.setDownloading) {
         transferState_.setDownloading(true);
     }
@@ -234,7 +241,6 @@ void C64UFtpClient::applyAction(const FtpResponseAction &action)
         transferState_.clearRetrBuffer();
     }
 
-    // Save pending states
     if (!action.pendingListPath.isNull()) {
         transferState_.savePendingList(action.pendingListPath, transferState_.listBuffer());
         transferState_.clearListBuffer();
@@ -245,8 +251,10 @@ void C64UFtpClient::applyAction(const FtpResponseAction &action)
             transferState_.currentRetrFile(), transferState_.isCurrentRetrMemory());
         transferState_.setCurrentRetrFile(nullptr, false);
     }
+}
 
-    // State transitions
+void C64UFtpClient::applyConnectionStateChanges(const FtpResponseAction &action)
+{
     if (action.transitionToReady) {
         setState(State::Ready);
     }
@@ -256,13 +264,13 @@ void C64UFtpClient::applyAction(const FtpResponseAction &action)
     if (!action.updatedCurrentDir.isEmpty()) {
         currentDir_ = action.updatedCurrentDir;
     }
-
-    // Enqueue additional commands
     if (action.enqueueCommand != Command::None) {
         queueCommand(action.enqueueCommand);
     }
+}
 
-    // Emit signals
+void C64UFtpClient::emitResponseSignals(const FtpResponseAction &action)
+{
     if (action.emitConnected) {
         emit connected();
     }
@@ -301,12 +309,14 @@ void C64UFtpClient::applyAction(const FtpResponseAction &action)
     if (!action.errorMessage.isEmpty()) {
         emit error(action.errorMessage);
     }
+}
 
-    // STOR 150: send the file data via data socket
+void C64UFtpClient::executeResponseAction(const FtpResponseAction &action)
+{
+    // STOR 150/125: send file data via data socket
     if (action.kind == FtpResponseAction::Kind::None && currentCommand_ == Command::Stor &&
         action.uploadFinishedLocalPath.isEmpty() && action.errorMessage.isEmpty() &&
         !action.clearCurrentStorFile) {
-        // This is the 150/125 case for STOR — send the file
         auto storFile = transferState_.currentStorFile();
         if (storFile && storFile->isOpen()) {
             QByteArray data = storFile->readAll();
@@ -318,29 +328,26 @@ void C64UFtpClient::applyAction(const FtpResponseAction &action)
         }
     }
 
-    // Execute the primary action
     switch (action.kind) {
     case FtpResponseAction::Kind::ProcessNext:
         processNextCommand();
         break;
 
-    case FtpResponseAction::Kind::ProcessNextAndConnect:
-        // Use actual peer host rather than PASV-reported (often internal) IP
-        {
-            QString actualHost = controlSocket_->peerAddress().toString();
-            qDebug() << "FTP: PASV response host:" << action.dataHost << "port:" << action.dataPort;
-            qDebug() << "FTP: Using actual host:" << actualHost << "port:" << action.dataPort;
-            dataSocket_->connectToHost(actualHost, action.dataPort);
-            processNextCommand();
-        }
+    case FtpResponseAction::Kind::ProcessNextAndConnect: {
+        QString actualHost = controlSocket_->peerAddress().toString();
+        qDebug() << "FTP: PASV response host:" << action.dataHost << "port:" << action.dataPort;
+        qDebug() << "FTP: Using actual host:" << actualHost << "port:" << action.dataPort;
+        dataSocket_->connectToHost(actualHost, action.dataPort);
+        processNextCommand();
         break;
+    }
 
     case FtpResponseAction::Kind::Disconnect:
         disconnect();
         break;
 
     case FtpResponseAction::Kind::EmitError:
-        // Already emitted above
+        // Already emitted in emitResponseSignals
         break;
 
     case FtpResponseAction::Kind::None:

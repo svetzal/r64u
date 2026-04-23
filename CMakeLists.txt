@@ -87,6 +87,7 @@ set(SOURCES
     src/services/filepreviewservice.cpp
     src/services/transferservice.cpp
     src/services/errorhandler.cpp
+    src/services/errorsourceconnector.cpp
     src/services/statusmessageservice.cpp
     src/services/istreamcontrolclient.cpp
     src/services/ivideostreamreceiver.cpp
@@ -142,6 +143,7 @@ set(SOURCES
     src/models/remotefilemodel.cpp
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
+    src/models/transferorchestrator.cpp
     src/models/transferftphandler.cpp
     src/models/batchmanager.cpp
     src/models/transfertimeoutmanager.cpp
@@ -258,6 +260,7 @@ set(HEADERS
     src/models/remotefilemodel.h
     src/models/localfileproxymodel.h
     src/models/transferqueue.h
+    src/models/transferorchestrator.h
     src/models/transferftphandler.h
     src/models/batchmanager.h
     src/models/transfertimeoutmanager.h

@@ -189,6 +189,11 @@ private:
     /// Applies an action returned by the response handler.
     void applyAction(const FtpResponseAction &action);
 
+    void applyTransferStateMutations(const FtpResponseAction &action);
+    void applyConnectionStateChanges(const FtpResponseAction &action);
+    void emitResponseSignals(const FtpResponseAction &action);
+    void executeResponseAction(const FtpResponseAction &action);
+
     // Network connections
     QTcpSocket *controlSocket_ = nullptr;
     QTcpSocket *dataSocket_ = nullptr;

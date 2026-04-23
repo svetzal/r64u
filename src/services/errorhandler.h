@@ -8,6 +8,17 @@
 
 class QWidget;
 
+class ConfigFileLoader;
+class DeviceConnection;
+class FilePreviewService;
+class GameBase64Service;
+class HVSCMetadataService;
+class IFtpClient;
+class IRestClient;
+class RemoteFileModel;
+class SonglengthsDatabase;
+class TransferService;
+
 /**
  * @brief Categories of errors for appropriate handling.
  */
@@ -73,6 +84,11 @@ public:
      * @brief Destructor.
      */
     ~ErrorHandler() override = default;
+
+    void connectSources(DeviceConnection *dc, IRestClient *restClient, RemoteFileModel *rfm,
+                        IFtpClient *ftpClient, FilePreviewService *fps, ConfigFileLoader *cfl,
+                        TransferService *ts, SonglengthsDatabase *sld, HVSCMetadataService *hvsc,
+                        GameBase64Service *gb64);
 
     /// @name Generic Error Handling
     /// @{

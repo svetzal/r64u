@@ -1,19 +1,38 @@
-/**
- * @file test_errorhandler.cpp
- * @brief Unit tests for ErrorHandler.
- *
- * Tests verify:
- * - Error handling emits status messages
- * - Severity levels determine timeout durations
- * - Connection errors are handled as critical
- * - Signal forwarding works correctly
- */
-
 #include "services/errorhandler.h"
+#include "services/iftpclient.h"
 
 #include <QSignalSpy>
 #include <QWidget>
 #include <QtTest/QtTest>
+
+class MinimalFtpSource : public IFtpClient
+{
+    Q_OBJECT
+
+public:
+    explicit MinimalFtpSource(QObject *parent = nullptr) : IFtpClient(parent) {}
+    void setHost(const QString &, quint16) override {}
+    [[nodiscard]] QString host() const override { return {}; }
+    void setCredentials(const QString &, const QString &) override {}
+    [[nodiscard]] State state() const override { return State::Disconnected; }
+    [[nodiscard]] bool isConnected() const override { return false; }
+    [[nodiscard]] bool isLoggedIn() const override { return false; }
+    void connectToHost() override {}
+    void disconnect() override {}
+    void list(const QString &) override {}
+    void changeDirectory(const QString &) override {}
+    void makeDirectory(const QString &) override {}
+    void removeDirectory(const QString &) override {}
+    [[nodiscard]] QString currentDirectory() const override { return {}; }
+    void download(const QString &, const QString &) override {}
+    void downloadToMemory(const QString &) override {}
+    void upload(const QString &, const QString &) override {}
+    void remove(const QString &) override {}
+    void rename(const QString &, const QString &) override {}
+    void abort() override {}
+
+    void emitError(const QString &msg) { emit error(msg); }
+};
 
 class TestErrorHandler : public QObject
 {
@@ -43,6 +62,9 @@ private slots:
     // New convenience method tests
     void testHandleStreamingError();
     void testHandleDownloadError();
+
+    // connectSources routing test
+    void testConnectSourcesSignalRouting();
 
 private:
     QWidget *parentWidget_ = nullptr;
@@ -207,6 +229,20 @@ void TestErrorHandler::testHandleDownloadError()
     QCOMPARE(spy.at(0).at(1).value<ErrorSeverity>(), ErrorSeverity::Warning);
     QVERIFY(spy.at(0).at(2).toString().contains("Song lengths database"));
     QCOMPARE(spy.at(0).at(3).toString(), QString("Connection timed out"));
+}
+
+void TestErrorHandler::testConnectSourcesSignalRouting()
+{
+    QSignalSpy spy(handler_, &ErrorHandler::statusMessage);
+
+    MinimalFtpSource source(this);
+    handler_->connectSources(nullptr, nullptr, nullptr, &source, nullptr, nullptr, nullptr, nullptr,
+                             nullptr, nullptr);
+
+    source.emitError("FTP connection dropped");
+
+    QCOMPARE(spy.count(), 1);
+    QVERIFY(spy.at(0).at(0).toString().contains("FTP connection dropped"));
 }
 
 QTEST_MAIN(TestErrorHandler)

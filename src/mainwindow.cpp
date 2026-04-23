@@ -203,13 +203,12 @@ void MainWindow::setupPanels()
 
 void MainWindow::setupConnections()
 {
-    // Device connection error routing
-    connect(deviceConnection_, &DeviceConnection::connectionError, errorHandler_,
-            &ErrorHandler::handleConnectionError);
-    connect(deviceConnection_->restClient(), &IRestClient::operationFailed, errorHandler_,
-            &ErrorHandler::handleOperationFailed);
-    connect(remoteFileModel_, &RemoteFileModel::errorOccurred, errorHandler_,
-            &ErrorHandler::handleDataError);
+    // Route all error signals through the centralized error handler
+    errorHandler_->connectSources(
+        deviceConnection_, deviceConnection_->restClient(), remoteFileModel_,
+        deviceConnection_->ftpClient(), filePreviewService_, configFileLoader_, transferService_,
+        metadataBundle_.songlengthsDatabase, metadataBundle_.hvscMetadataService,
+        metadataBundle_.gameBase64Service);
 
     // Connection lifecycle signals (navigation / model management)
     connect(deviceConnection_, &DeviceConnection::stateChanged, this,
@@ -222,45 +221,6 @@ void MainWindow::setupConnections()
         statusMessageService_->showInfo(
             tr("Loading configuration: %1...").arg(QFileInfo(path).fileName()));
     });
-
-    // FTP client errors
-    connect(deviceConnection_->ftpClient(), &IFtpClient::error, errorHandler_,
-            &ErrorHandler::handleDataError);
-
-    // File preview errors
-    connect(filePreviewService_, &FilePreviewService::previewFailed, this,
-            [this](const QString &path, const QString &error) {
-                errorHandler_->handleOperationFailed(tr("Preview of %1").arg(path), error);
-            });
-
-    // Config file load errors
-    connect(configFileLoader_, &ConfigFileLoader::loadFailed, this,
-            [this](const QString &path, const QString &error) {
-                errorHandler_->handleOperationFailed(
-                    tr("Loading %1").arg(QFileInfo(path).fileName()), error);
-            });
-
-    // Transfer service errors
-    connect(transferService_, &TransferService::operationFailed, errorHandler_,
-            &ErrorHandler::handleOperationFailed);
-
-    // Metadata download errors
-    connect(metadataBundle_.songlengthsDatabase, &SonglengthsDatabase::downloadFailed, this,
-            [this](const QString &error) {
-                errorHandler_->handleDownloadError(tr("Song lengths database"), error);
-            });
-    connect(metadataBundle_.hvscMetadataService, &HVSCMetadataService::stilDownloadFailed, this,
-            [this](const QString &error) {
-                errorHandler_->handleDownloadError(tr("HVSC STIL"), error);
-            });
-    connect(metadataBundle_.hvscMetadataService, &HVSCMetadataService::buglistDownloadFailed, this,
-            [this](const QString &error) {
-                errorHandler_->handleDownloadError(tr("HVSC BUGlist"), error);
-            });
-    connect(metadataBundle_.gameBase64Service, &GameBase64Service::downloadFailed, this,
-            [this](const QString &error) {
-                errorHandler_->handleDownloadError(tr("GameBase64"), error);
-            });
 }
 
 void MainWindow::switchToMode(Mode mode)

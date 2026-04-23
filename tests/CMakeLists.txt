@@ -110,6 +110,7 @@ add_executable(test_transferqueue
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
@@ -137,6 +138,43 @@ add_test(NAME TransferQueueTest COMMAND test_transferqueue)
 if(BUILD_COVERAGE)
     add_coverage_target(transferqueue test_transferqueue)
     add_dependencies(coverage coverage_transferqueue)
+endif()
+
+# TransferOrchestrator tests - uses MockFtpClient, tests orchestration logic without QAbstractListModel
+add_executable(test_transferorchestrator
+    test_transferorchestrator.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
+)
+
+target_include_directories(test_transferorchestrator PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_transferorchestrator PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME TransferOrchestratorTest COMMAND test_transferorchestrator)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(transferorchestrator test_transferorchestrator)
+    add_dependencies(coverage coverage_transferorchestrator)
 endif()
 
 # Coordinator tests - isolated unit tests using MockLocalFileSystem (no real disk I/O)
@@ -467,6 +505,7 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
@@ -499,10 +538,13 @@ endif()
 # ErrorHandler tests
 add_executable(test_errorhandler
     test_errorhandler.cpp
+    stubs/errorsourceconnector_stub.cpp
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
 )
 
 target_include_directories(test_errorhandler PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
 )
 
@@ -510,6 +552,7 @@ target_link_libraries(test_errorhandler PRIVATE
     Qt6::Core
     Qt6::Test
     Qt6::Widgets
+    Qt6::Network
 )
 
 # Register test with CTest
@@ -680,6 +723,7 @@ if(BUILD_INTEGRATION_TESTS)
         ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
         ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+        ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
         ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp

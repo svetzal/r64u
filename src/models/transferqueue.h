@@ -1,24 +1,12 @@
 #ifndef TRANSFERQUEUE_H
 #define TRANSFERQUEUE_H
 
-#include "batchmanager.h"
-#include "transfereventprocessor.h"
-#include "transferftphandler.h"
-#include "transfertimeoutmanager.h"
+#include "transferorchestrator.h"
 
-#include "ftp/folderoperationcoordinator.h"
-#include "ftp/recursivescancoordinator.h"
-#include "ftp/remotedirectorycreator.h"
-#include "services/ftpentry.h"
-#include "services/iftpclient.h"
-#include "services/ilocalfilesystem.h"
 #include "services/transfercore.h"
 
 #include <QAbstractListModel>
-#include <QPointer>
 #include <QString>
-
-#include <functional>
 
 using transfer::BatchProgress;
 using transfer::ConfirmationContext;
@@ -52,11 +40,10 @@ public:
     };
 
     explicit TransferQueue(QObject *parent = nullptr);
-    ~TransferQueue() override;
+    ~TransferQueue() override = default;
 
     void setFtpClient(IFtpClient *client);
 
-    /// Inject a local file system gateway (used in tests to replace the production implementation).
     void setLocalFileSystem(ILocalFileSystem *fs);
 
     // Queue operations
@@ -80,24 +67,18 @@ public:
     [[nodiscard]] int pendingCount() const;
     [[nodiscard]] int activeCount() const;
     [[nodiscard]] int activeAndPendingCount() const;
-    [[nodiscard]] bool isProcessing() const
-    {
-        return state_.queueState == QueueState::Transferring;
-    }
-    [[nodiscard]] bool isProcessingDelete() const
-    {
-        return state_.queueState == QueueState::Deleting;
-    }
-    [[nodiscard]] bool isScanning() const { return state_.queueState == QueueState::Scanning; }
+    [[nodiscard]] bool isProcessing() const { return orchestrator_->isProcessing(); }
+    [[nodiscard]] bool isProcessingDelete() const { return orchestrator_->isProcessingDelete(); }
+    [[nodiscard]] bool isScanning() const { return orchestrator_->isScanning(); }
     [[nodiscard]] bool isScanningForDelete() const;
     [[nodiscard]] bool isCreatingDirectories() const
     {
-        return state_.queueState == QueueState::CreatingDirectories;
+        return orchestrator_->isCreatingDirectories();
     }
-    [[nodiscard]] int deleteProgress() const { return state_.deletedCount; }
-    [[nodiscard]] int deleteTotalCount() const { return state_.deleteQueue.size(); }
+    [[nodiscard]] int deleteProgress() const { return orchestrator_->deleteProgress(); }
+    [[nodiscard]] int deleteTotalCount() const { return orchestrator_->deleteTotalCount(); }
 
-    // Batch operations (delegated to BatchManager)
+    // Batch operations (delegated to orchestrator)
     [[nodiscard]] BatchProgress activeBatchProgress() const;
     [[nodiscard]] BatchProgress batchProgress(int batchId) const;
     [[nodiscard]] QList<int> allBatchIds() const;
@@ -115,10 +96,10 @@ public:
 
     // Confirmation handling
     void respondToOverwrite(OverwriteResponse response);
-    void setAutoOverwrite(bool autoOverwrite) { state_.overwriteAll = autoOverwrite; }
+    void setAutoOverwrite(bool autoOverwrite) { orchestrator_->setAutoOverwrite(autoOverwrite); }
 
     void respondToFolderExists(FolderExistsResponse response);
-    void setAutoMerge(bool autoMerge) { state_.autoMerge = autoMerge; }
+    void setAutoMerge(bool autoMerge) { orchestrator_->setAutoMerge(autoMerge); }
 
     // For testing
     void flushEventQueue();
@@ -147,61 +128,8 @@ signals:
     void scanningProgress(int directoriesScanned, int directoriesRemaining, int filesDiscovered);
     void directoryCreationProgress(int created, int total);
 
-private slots:
-    void onOperationTimeout();
-
 private:
-    // Core processing
-    void processNext();
-    void scheduleProcessNext();
-
-    // State machine
-    void transitionTo(QueueState newState);
-
-    // Timeout helpers (thin wrappers over timeoutManager_)
-    void startOperationTimeout();
-    void stopOperationTimeout();
-
-    // Enqueue helpers
-    [[nodiscard]] int findBatchIndex(int batchId) const;
-    void activateAndSchedule(int batchIdx);
-
-    // Batch management (delegated to batchManager_)
-    int createBatch(OperationType type, const QString &description, const QString &folderName,
-                    const QString &sourcePath = QString());
-    void activateNextBatch();
-    void completeBatch(int batchId);
-    void purgeBatch(int batchId);
-    [[nodiscard]] TransferBatch *findBatch(int batchId);
-    [[nodiscard]] const TransferBatch *findBatch(int batchId) const;
-    [[nodiscard]] TransferBatch *activeBatch();
-    [[nodiscard]] int findItemIndex(const QString &localPath, const QString &remotePath) const;
-    void emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
-                                      bool includeFailed = false);
-
-    void finishDirectoryCreation();
-
-    // File operations
-    void markCurrentComplete(TransferItem::Status status);
-    void processNextDelete();
-
-    // I/O boundaries
-    QPointer<IFtpClient> ftpClient_;
-    ILocalFileSystem *localFs_ = nullptr;  ///< Owned (Qt parent); replaced in tests
-
-    // All mutable queue state
-    transfer::State state_;
-
-    // Extracted sub-components (owned, Qt parent)
-    BatchManager *batchManager_ = nullptr;
-    TransferTimeoutManager *timeoutManager_ = nullptr;
-    TransferEventProcessor *eventProcessor_ = nullptr;
-
-    // Coordinator objects
-    RecursiveScanCoordinator *scanCoordinator_ = nullptr;
-    RemoteDirectoryCreator *dirCreator_ = nullptr;
-    FolderOperationCoordinator *folderCoordinator_ = nullptr;
-    TransferFtpHandler *ftpHandler_ = nullptr;
+    TransferOrchestrator *orchestrator_ = nullptr;
 };
 
 #endif  // TRANSFERQUEUE_H
