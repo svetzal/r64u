@@ -7,8 +7,7 @@
 
 #include "services/iftpclient.h"
 #include "services/ilocalfilesystem.h"
-
-#include <QDebug>
+#include "utils/logging.h"
 
 RemoteDirectoryCreator::RemoteDirectoryCreator(transfer::State &state, IFtpClient *ftpClient,
                                                ILocalFileSystem *localFs, QObject *parent)
@@ -59,7 +58,7 @@ void RemoteDirectoryCreator::queueDirectoriesForUpload(const QString &localDir,
 void RemoteDirectoryCreator::createNextDirectory()
 {
     if (state_.pendingMkdirs.isEmpty()) {
-        qDebug() << "RemoteDirectoryCreator: All directories created";
+        qCDebug(LogTransfer) << "RemoteDirectoryCreator: All directories created";
         emit allDirectoriesCreated();
         return;
     }
@@ -72,9 +71,11 @@ void RemoteDirectoryCreator::createNextDirectory()
 
 void RemoteDirectoryCreator::onDirectoryCreated(const QString &path)
 {
-    qDebug() << "RemoteDirectoryCreator: onDirectoryCreated:" << path;
+    qCDebug(LogTransfer) << "RemoteDirectoryCreator: onDirectoryCreated:" << path;
 
     if (state_.queueState != transfer::QueueState::CreatingDirectories) {
+        qCDebug(LogTransfer) << "RemoteDirectoryCreator::onDirectoryCreated: unexpected state,"
+                             << "ignoring" << path;
         return;
     }
 
@@ -85,7 +86,7 @@ void RemoteDirectoryCreator::onDirectoryCreated(const QString &path)
         emit directoryCreationProgress(state_.directoriesCreated, state_.totalDirectoriesToCreate);
 
         if (state_.pendingMkdirs.isEmpty()) {
-            qDebug() << "RemoteDirectoryCreator: All directories created";
+            qCDebug(LogTransfer) << "RemoteDirectoryCreator: All directories created";
             emit allDirectoriesCreated();
         } else {
             createNextDirectory();

@@ -1,5 +1,7 @@
 #include "configurationmodel.h"
 
+#include "utils/logging.h"
+
 ConfigurationModel::ConfigurationModel(QObject *parent) : QObject(parent) {}
 
 void ConfigurationModel::setCategories(const QStringList &categories)
@@ -115,9 +117,11 @@ bool ConfigurationModel::setValue(const QString &category, const QString &item,
                                   const QVariant &value)
 {
     if (!items_.contains(category)) {
+        qCWarning(LogConfig) << "setValue: unknown category" << category;
         return false;
     }
     if (!items_[category].contains(item)) {
+        qCWarning(LogConfig) << "setValue: unknown item" << item << "in category" << category;
         return false;
     }
 

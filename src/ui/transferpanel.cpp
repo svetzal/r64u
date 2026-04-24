@@ -9,6 +9,7 @@
 #include "services/deviceconnection.h"
 #include "services/remotefileoperations.h"
 #include "services/transferservice.h"
+#include "utils/logging.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -192,6 +193,8 @@ bool TransferPanel::isSelectedRemoteDirectory() const
 void TransferPanel::onUploadRequested(const QString &localPath, bool isDirectory)
 {
     if (!transferService_) {
+        qCDebug(LogUi) << "onUploadRequested: transferService_ is null, skipping upload of"
+                       << localPath;
         return;
     }
 
@@ -210,6 +213,9 @@ void TransferPanel::onUploadRequested(const QString &localPath, bool isDirectory
 void TransferPanel::onDownloadRequested(const QString &remotePath, bool isDirectory)
 {
     if (!transferService_ || !localBrowser_) {
+        qCDebug(LogUi) << "onDownloadRequested: transferService_ or localBrowser_ is null, "
+                          "skipping download of"
+                       << remotePath;
         return;
     }
 
@@ -225,6 +231,8 @@ void TransferPanel::onDownloadRequested(const QString &remotePath, bool isDirect
 void TransferPanel::onDeleteRequested(const QString &remotePath, bool isDirectory)
 {
     if (!transferService_) {
+        qCDebug(LogUi) << "onDeleteRequested: transferService_ is null, skipping delete of"
+                       << remotePath;
         return;
     }
 

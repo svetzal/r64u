@@ -8,6 +8,8 @@
 #include "audiostreamreceiver.h"
 #include "videostreamreceiver.h"
 
+#include "utils/logging.h"
+
 #include <QColor>
 #include <QMutexLocker>
 #include <QTimer>

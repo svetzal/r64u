@@ -5,6 +5,7 @@
 #include "../services/ftpclientmixin.h"
 #include "../services/iftpclient.h"
 #include "../services/localfilesystem.h"
+#include "../utils/logging.h"
 
 #include <QDebug>
 #include <QFileInfo>
@@ -210,8 +211,9 @@ void TransferOrchestrator::transitionTo(QueueState newState)
         return;
     }
 
-    qDebug() << "TransferOrchestrator: State transition" << queueStateToString(state_.queueState)
-             << "->" << queueStateToString(newState);
+    qCDebug(LogTransfer) << "TransferOrchestrator: State transition"
+                         << queueStateToString(state_.queueState) << "->"
+                         << queueStateToString(newState);
 
     state_.queueState = newState;
 }
@@ -279,7 +281,7 @@ void TransferOrchestrator::enqueueUpload(const QString &localPath, const QString
     }
 
     if (batchIdx < 0 || batchIdx >= state_.batches.size()) {
-        qWarning() << "TransferOrchestrator::enqueueUpload - no valid batch";
+        qCWarning(LogTransfer) << "TransferOrchestrator::enqueueUpload - no valid batch";
         return;
     }
 
@@ -320,7 +322,7 @@ void TransferOrchestrator::enqueueDownload(const QString &remotePath, const QStr
     }
 
     if (batchIdx < 0 || batchIdx >= state_.batches.size()) {
-        qWarning() << "TransferOrchestrator::enqueueDownload - no valid batch";
+        qCWarning(LogTransfer) << "TransferOrchestrator::enqueueDownload - no valid batch";
         return;
     }
 
@@ -347,8 +349,10 @@ void TransferOrchestrator::enqueueDownload(const QString &remotePath, const QStr
 
 void TransferOrchestrator::enqueueRecursiveUpload(const QString &localDir, const QString &remoteDir)
 {
-    if (!ftpClient_ || !ftpClient_->isConnected())
+    if (!ftpClient_ || !ftpClient_->isConnected()) {
+        qCWarning(LogTransfer) << "enqueueRecursiveUpload skipped: FTP not connected";
         return;
+    }
 
     if (!localFs_->directoryExists(localDir))
         return;
@@ -359,8 +363,10 @@ void TransferOrchestrator::enqueueRecursiveUpload(const QString &localDir, const
 void TransferOrchestrator::enqueueRecursiveDownload(const QString &remoteDir,
                                                     const QString &localDir)
 {
-    if (!ftpClient_ || !ftpClient_->isConnected())
+    if (!ftpClient_ || !ftpClient_->isConnected()) {
+        qCWarning(LogTransfer) << "enqueueRecursiveDownload skipped: FTP not connected";
         return;
+    }
 
     QString normalizedRemote = remoteDir;
     while (normalizedRemote.endsWith('/') && normalizedRemote.length() > 1) {
@@ -381,7 +387,8 @@ void TransferOrchestrator::respondToFolderExists(FolderExistsResponse response)
 
 void TransferOrchestrator::finishDirectoryCreation()
 {
-    qDebug() << "TransferOrchestrator: All directories created, queueing files for upload";
+    qCDebug(LogTransfer)
+        << "TransferOrchestrator: All directories created, queueing files for upload";
 
     if (TransferBatch *batch = findBatch(state_.currentFolderOp.batchId)) {
         batch->scanned = true;
@@ -389,7 +396,8 @@ void TransferOrchestrator::finishDirectoryCreation()
 
     const QString &sourcePath = state_.currentFolderOp.sourcePath;
     if (!localFs_->directoryExists(sourcePath)) {
-        qWarning() << "TransferOrchestrator: Source directory doesn't exist:" << sourcePath;
+        qCWarning(LogTransfer) << "TransferOrchestrator: Source directory doesn't exist:"
+                               << sourcePath;
         return;
     }
 
@@ -403,12 +411,12 @@ void TransferOrchestrator::finishDirectoryCreation()
         fileCount++;
     }
 
-    qDebug() << "TransferOrchestrator: Queued" << fileCount << "files for upload";
+    qCDebug(LogTransfer) << "TransferOrchestrator: Queued" << fileCount << "files for upload";
 
     if (fileCount == 0) {
         if (findBatch(state_.currentFolderOp.batchId)) {
-            qDebug() << "TransferOrchestrator: Empty folder upload batch"
-                     << state_.currentFolderOp.batchId;
+            qCDebug(LogTransfer) << "TransferOrchestrator: Empty folder upload batch"
+                                 << state_.currentFolderOp.batchId;
             completeBatch(state_.currentFolderOp.batchId);
             return;
         }
@@ -440,7 +448,7 @@ void TransferOrchestrator::enqueueDelete(const QString &remotePath, bool isDirec
     }
 
     if (batchIdx < 0 || batchIdx >= state_.batches.size()) {
-        qWarning() << "TransferOrchestrator::enqueueDelete - no valid batch";
+        qCWarning(LogTransfer) << "TransferOrchestrator::enqueueDelete - no valid batch";
         return;
     }
 
@@ -475,8 +483,10 @@ void TransferOrchestrator::enqueueDelete(const QString &remotePath, bool isDirec
 
 void TransferOrchestrator::enqueueRecursiveDelete(const QString &remotePath)
 {
-    if (!ftpClient_ || !ftpClient_->isConnected())
+    if (!ftpClient_ || !ftpClient_->isConnected()) {
+        qCWarning(LogTransfer) << "enqueueRecursiveDelete skipped: FTP not connected";
         return;
+    }
 
     QString normalizedPath = remotePath;
     while (normalizedPath.endsWith('/') && normalizedPath.length() > 1) {
@@ -484,7 +494,8 @@ void TransferOrchestrator::enqueueRecursiveDelete(const QString &remotePath)
     }
 
     if (isPathBeingTransferred(normalizedPath, OperationType::Delete)) {
-        qDebug() << "TransferOrchestrator: Ignoring duplicate delete request for" << normalizedPath;
+        qCDebug(LogTransfer) << "TransferOrchestrator: Ignoring duplicate delete request for"
+                             << normalizedPath;
         emit statusMessage(
             tr("'%1' is already being deleted").arg(QFileInfo(normalizedPath).fileName()), 3000);
         return;
@@ -503,19 +514,21 @@ void TransferOrchestrator::enqueueRecursiveDelete(const QString &remotePath)
 void TransferOrchestrator::processNextDelete()
 {
     if (!ftpClient_ || !ftpClient_->isConnected()) {
+        qCWarning(LogTransfer) << "processNextDelete: FTP disconnected, resetting to Idle";
         transitionTo(QueueState::Idle);
         return;
     }
 
     if (state_.deletedCount >= state_.deleteQueue.size()) {
-        qDebug() << "TransferOrchestrator: All deletes complete";
+        qCDebug(LogTransfer) << "TransferOrchestrator: All deletes complete";
         transitionTo(QueueState::Idle);
         state_.deleteQueue.clear();
         state_.recursiveDeleteBase.clear();
         emit operationCompleted(tr("Deleted %1 items").arg(state_.deletedCount));
 
         if (state_.pendingUploadAfterDelete) {
-            qDebug() << "TransferOrchestrator: Delete completed, starting pending upload";
+            qCDebug(LogTransfer)
+                << "TransferOrchestrator: Delete completed, starting pending upload";
             state_.pendingUploadAfterDelete = false;
 
             dirCreator_->queueDirectoriesForUpload(state_.currentFolderOp.sourcePath,
@@ -534,8 +547,8 @@ void TransferOrchestrator::processNextDelete()
     }
 
     const DeleteItem &item = state_.deleteQueue[state_.deletedCount];
-    qDebug() << "TransferOrchestrator: Deleting" << (state_.deletedCount + 1) << "of"
-             << state_.deleteQueue.size() << ":" << item.path;
+    qCDebug(LogTransfer) << "TransferOrchestrator: Deleting" << (state_.deletedCount + 1) << "of"
+                         << state_.deleteQueue.size() << ":" << item.path;
 
     if (item.isDirectory) {
         ftpClient_->removeDirectory(item.path);
@@ -550,8 +563,8 @@ void TransferOrchestrator::processNextDelete()
 
 void TransferOrchestrator::processNext()
 {
-    qDebug() << "TransferOrchestrator: processNext, state:"
-             << queueStateToString(state_.queueState);
+    qCDebug(LogTransfer) << "TransferOrchestrator: processNext, state:"
+                         << queueStateToString(state_.queueState);
 
     bool ftpReady = ftpClient_ && ftpClient_->isConnected();
 
@@ -560,12 +573,12 @@ void TransferOrchestrator::processNext()
 
     switch (decision.action) {
     case transfer::ProcessNextAction::Blocked:
-        qDebug() << "TransferOrchestrator: processNext blocked by state:"
-                 << queueStateToString(state_.queueState);
+        qCDebug(LogTransfer) << "TransferOrchestrator: processNext blocked by state:"
+                             << queueStateToString(state_.queueState);
         return;
 
     case transfer::ProcessNextAction::NoFtpClient:
-        qDebug() << "TransferOrchestrator: FTP client not ready";
+        qCDebug(LogTransfer) << "TransferOrchestrator: FTP client not ready";
         return;
 
     case transfer::ProcessNextAction::StartFolderOp: {
@@ -614,7 +627,7 @@ void TransferOrchestrator::processNext()
     }
 
     case transfer::ProcessNextAction::NoPending:
-        qDebug() << "TransferOrchestrator: No more pending items";
+        qCDebug(LogTransfer) << "TransferOrchestrator: No more pending items";
         stopOperationTimeout();
         state_.currentIndex = -1;
         if (state_.batches.isEmpty()) {
@@ -703,6 +716,7 @@ void TransferOrchestrator::emitBatchProgressAndComplete(int batchId, bool batchI
 void TransferOrchestrator::markCurrentComplete(TransferItem::Status status)
 {
     if (state_.currentIndex < 0 || state_.currentIndex >= state_.items.size()) {
+        qCWarning(LogTransfer) << "markCurrentComplete: invalid index" << state_.currentIndex;
         return;
     }
 
@@ -777,6 +791,7 @@ void TransferOrchestrator::cancelBatch(int batchId)
 {
     int batchIdx = transfer::findBatchIndex(state_, batchId);
     if (batchIdx < 0) {
+        qCWarning(LogTransfer) << "cancelBatch: batch" << batchId << "not found";
         return;
     }
 
@@ -871,7 +886,7 @@ void TransferOrchestrator::stopOperationTimeout()
 
 void TransferOrchestrator::onOperationTimeout()
 {
-    qDebug() << "TransferOrchestrator: Operation timeout!";
+    qCDebug(LogTransfer) << "TransferOrchestrator: Operation timeout!";
 
     if (ftpClient_) {
         ftpClient_->abort();

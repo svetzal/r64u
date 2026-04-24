@@ -4,6 +4,7 @@
 
 #include "models/remotefilemodel.h"
 #include "services/remotefileoperations.h"
+#include "utils/logging.h"
 
 #include <QFileInfo>
 #include <QHeaderView>
@@ -106,6 +107,7 @@ void RemoteFileBrowserWidget::setupContextMenu()
     contextMenu_ = new QMenu(this);
     setDestAction_ = contextMenu_->addAction(tr("Set as Upload Destination"), this, [this]() {
         if (!treeView_ || !remoteFileModel_) {
+            qCDebug(LogUi) << "setupContextMenu: treeView or remoteFileModel is null";
             return;
         }
         QModelIndex index = treeView_->currentIndex();
@@ -252,6 +254,8 @@ void RemoteFileBrowserWidget::refresh()
 void RemoteFileBrowserWidget::refreshIfStale()
 {
     if (!connected_ || suppressAutoRefresh_) {
+        qCDebug(LogUi) << "refreshIfStale: skipped (connected=" << connected_
+                       << "suppress=" << suppressAutoRefresh_ << ")";
         return;
     }
 
@@ -271,6 +275,7 @@ void RemoteFileBrowserWidget::showEvent(QShowEvent *event)
 void RemoteFileBrowserWidget::onDoubleClicked(const QModelIndex &index)
 {
     if (!index.isValid() || !remoteFileModel_) {
+        qCDebug(LogUi) << "onDoubleClicked: invalid index or null remoteFileModel";
         return;
     }
 
@@ -283,6 +288,7 @@ void RemoteFileBrowserWidget::onDoubleClicked(const QModelIndex &index)
 void RemoteFileBrowserWidget::onContextMenu(const QPoint &pos)
 {
     if (!treeView_ || !remoteFileModel_) {
+        qCDebug(LogUi) << "onContextMenu: treeView or remoteFileModel is null";
         return;
     }
 
@@ -341,6 +347,7 @@ void RemoteFileBrowserWidget::onDownload()
 void RemoteFileBrowserWidget::onNewFolder()
 {
     if (!connected_) {
+        qCWarning(LogUi) << "onNewFolder skipped: not connected";
         return;
     }
 
@@ -369,6 +376,7 @@ void RemoteFileBrowserWidget::onNewFolder()
 void RemoteFileBrowserWidget::onRename()
 {
     if (!connected_) {
+        qCWarning(LogUi) << "onRename skipped: not connected";
         return;
     }
 

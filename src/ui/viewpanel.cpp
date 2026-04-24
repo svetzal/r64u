@@ -10,6 +10,7 @@
 #include "services/streamingmanager.h"
 #include "services/videorecordingservice.h"
 #include "services/videostreamreceiver.h"
+#include "utils/logging.h"
 
 #include <QDateTime>
 #include <QDir>
@@ -372,6 +373,7 @@ void ViewPanel::onScalingModeChanged(int id)
 void ViewPanel::onCaptureScreenshot()
 {
     if (!videoDisplayWidget_) {
+        qCDebug(LogUi) << "onCaptureScreenshot: videoDisplayWidget_ is null, skipping";
         return;
     }
 
@@ -425,6 +427,7 @@ void ViewPanel::onCaptureScreenshot()
 void ViewPanel::onStartRecording()
 {
     if (!recordingService_) {
+        qCDebug(LogUi) << "onStartRecording: recordingService_ is null, skipping";
         return;
     }
 

@@ -1,6 +1,7 @@
 #include "batchmanager.h"
 
-#include <QDebug>
+#include "../utils/logging.h"
+
 #include <QFileInfo>
 
 #include <algorithm>
@@ -48,7 +49,7 @@ int BatchManager::createBatch(OperationType type, const QString &description,
         endResetCb_();
     }
 
-    qDebug() << "BatchManager: Created batch" << result.batchId << ":" << description;
+    qCDebug(LogTransfer) << "BatchManager: Created batch" << result.batchId << ":" << description;
     emit queueChanged();
 
     return result.batchId;
@@ -59,11 +60,11 @@ void BatchManager::activateNextBatch()
     state_ = transfer::activateNextBatch(state_);
 
     if (state_.activeBatchIndex >= 0) {
-        qDebug() << "BatchManager: Activated batch"
-                 << state_.batches[state_.activeBatchIndex].batchId;
+        qCDebug(LogTransfer) << "BatchManager: Activated batch"
+                             << state_.batches[state_.activeBatchIndex].batchId;
         emit batchStarted(state_.batches[state_.activeBatchIndex].batchId);
     } else {
-        qDebug() << "BatchManager: No more batches to activate";
+        qCDebug(LogTransfer) << "BatchManager: No more batches to activate";
     }
 }
 
@@ -74,8 +75,9 @@ void BatchManager::completeBatch(int batchId)
         return;
     }
 
-    qDebug() << "BatchManager: Completing batch" << batchId << "completed:" << batch->completedCount
-             << "failed:" << batch->failedCount << "total:" << batch->totalCount();
+    qCDebug(LogTransfer) << "BatchManager: Completing batch" << batchId
+                         << "completed:" << batch->completedCount << "failed:" << batch->failedCount
+                         << "total:" << batch->totalCount();
 
     // Delegate state transitions entirely to the pure core, including activateNextBatch()
     auto result = transfer::completeBatch(state_, batchId);
@@ -97,15 +99,15 @@ void BatchManager::completeBatch(int batchId)
     // transfer::completeBatch() already called activateNextBatch() internally;
     // emit batchStarted if a new batch was activated.
     if (state_.activeBatchIndex >= 0) {
-        qDebug() << "BatchManager: Activated batch"
-                 << state_.batches[state_.activeBatchIndex].batchId;
+        qCDebug(LogTransfer) << "BatchManager: Activated batch"
+                             << state_.batches[state_.activeBatchIndex].batchId;
         emit batchStarted(state_.batches[state_.activeBatchIndex].batchId);
     } else {
-        qDebug() << "BatchManager: No more batches to activate";
+        qCDebug(LogTransfer) << "BatchManager: No more batches to activate";
     }
 
     if (!result.hasRemainingActiveBatches) {
-        qDebug() << "BatchManager: All batches complete";
+        qCDebug(LogTransfer) << "BatchManager: All batches complete";
         emit allOperationsCompleted();
     } else if (state_.activeBatchIndex >= 0) {
         if (scheduleNextCb_) {
@@ -123,7 +125,7 @@ void BatchManager::purgeBatch(int batchId)
         return;
     }
 
-    qDebug() << "BatchManager: Purging batch" << batchId;
+    qCDebug(LogTransfer) << "BatchManager: Purging batch" << batchId;
 
     for (int idx : plan.itemIndicesToRemove) {
         if (beginRemoveCb_) {

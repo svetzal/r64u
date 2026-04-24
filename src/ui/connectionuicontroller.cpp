@@ -2,6 +2,7 @@
 
 #include "services/deviceconnection.h"
 #include "ui/connectionstatuswidget.h"
+#include "utils/logging.h"
 
 #include <QAction>
 
@@ -54,6 +55,7 @@ void ConnectionUIController::onDriveInfoUpdated()
 void ConnectionUIController::updateStatusBar()
 {
     if (!statusWidget_ || !deviceConnection_) {
+        qCDebug(LogUi) << "updateStatusBar: statusWidget_ or deviceConnection_ is null, skipping";
         return;
     }
 
@@ -71,6 +73,7 @@ void ConnectionUIController::updateStatusBar()
 void ConnectionUIController::updateActions()
 {
     if (!deviceConnection_) {
+        qCDebug(LogUi) << "updateActions: deviceConnection_ is null, skipping";
         return;
     }
 

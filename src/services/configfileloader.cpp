@@ -4,7 +4,8 @@
 #include "iftpclient.h"
 #include "irestclient.h"
 
-#include <QDebug>
+#include "utils/logging.h"
+
 #include <QJsonDocument>
 #include <QRegularExpression>
 #include <QTextStream>
@@ -135,17 +136,20 @@ QJsonObject ConfigFileLoader::parseConfigFile(const QByteArray &data)
 void ConfigFileLoader::onDownloadFinished(const QString &remotePath, const QByteArray &data)
 {
     if (remotePath != pendingPath_) {
+        qCDebug(LogConfig) << "ConfigFileLoader: ignoring download for unrequested path"
+                           << remotePath;
         return;
     }
 
-    qDebug() << "ConfigFileLoader: Downloaded" << data.size() << "bytes from" << remotePath;
-    qDebug() << "ConfigFileLoader: Raw content:" << QString::fromUtf8(data);
+    qCDebug(LogConfig) << "ConfigFileLoader: Downloaded" << data.size() << "bytes from"
+                       << remotePath;
+    qCDebug(LogConfig) << "ConfigFileLoader: Raw content:" << QString::fromUtf8(data);
 
     QJsonObject configs = parseConfigFile(data);
 
-    qDebug() << "ConfigFileLoader: Parsed" << configs.count() << "sections";
-    qDebug() << "ConfigFileLoader: JSON to send:"
-             << QJsonDocument(configs).toJson(QJsonDocument::Indented);
+    qCDebug(LogConfig) << "ConfigFileLoader: Parsed" << configs.count() << "sections";
+    qCDebug(LogConfig) << "ConfigFileLoader: JSON to send:"
+                       << QJsonDocument(configs).toJson(QJsonDocument::Indented);
 
     if (configs.isEmpty()) {
         emit loadFailed(pendingPath_, tr("No configuration data found in file"));

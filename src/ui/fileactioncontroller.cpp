@@ -7,6 +7,7 @@
 #include "services/filetypecore.h"
 #include "services/playlistmanager.h"
 #include "services/streamingmanager.h"
+#include "utils/logging.h"
 
 #include <QAction>
 
@@ -110,6 +111,8 @@ void FileActionController::loadConfig(const QString &path, filetype::FileType ty
     }
     if (configFileLoader_) {
         configFileLoader_->loadConfigFile(path);
+    } else {
+        qCDebug(LogUi) << "loadConfig: configFileLoader_ is null, skipping load for" << path;
     }
 }
 
@@ -121,6 +124,7 @@ void FileActionController::download(const QString &path)
 void FileActionController::addToPlaylist(const QList<QPair<QString, filetype::FileType>> &items)
 {
     if (!playlistManager_) {
+        qCDebug(LogUi) << "addToPlaylist: playlistManager_ is null, skipping";
         return;
     }
 

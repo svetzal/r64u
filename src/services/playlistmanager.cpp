@@ -11,6 +11,8 @@
 #include "songlengthsdatabase.h"
 #include "streamingmanager.h"
 
+#include "utils/logging.h"
+
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
@@ -113,6 +115,7 @@ PlaylistManager::PlaylistItem PlaylistManager::itemAt(int index) const
 void PlaylistManager::play(int index)
 {
     if (state_.items.isEmpty()) {
+        qCWarning(LogPlaylist) << "Cannot play: playlist is empty";
         return;
     }
 
@@ -158,6 +161,7 @@ void PlaylistManager::stop()
 void PlaylistManager::next()
 {
     if (state_.items.isEmpty()) {
+        qCDebug(LogPlaylist) << "next() called on empty playlist";
         return;
     }
 
@@ -179,6 +183,7 @@ void PlaylistManager::next()
 void PlaylistManager::previous()
 {
     if (state_.items.isEmpty()) {
+        qCDebug(LogPlaylist) << "previous() called on empty playlist";
         return;
     }
 
@@ -258,6 +263,7 @@ void PlaylistManager::setItemDuration(int index, int seconds)
 void PlaylistManager::updateDurationFromData(const QString &path, const QByteArray &sidData)
 {
     if (songlengthsDatabase_ == nullptr || !songlengthsDatabase_->isLoaded()) {
+        qCWarning(LogPlaylist) << "Cannot update duration: songlengths database not loaded";
         return;
     }
 
@@ -370,6 +376,8 @@ void PlaylistManager::ensureStreamingStarted()
 void PlaylistManager::startTimer()
 {
     if (state_.currentIndex < 0 || state_.currentIndex >= state_.items.count()) {
+        qCWarning(LogPlaylist) << "Cannot start timer: index" << state_.currentIndex
+                               << "out of range";
         return;
     }
 
@@ -385,6 +393,8 @@ void PlaylistManager::stopTimer()
 void PlaylistManager::playCurrentItem()
 {
     if (state_.currentIndex < 0 || state_.currentIndex >= state_.items.count()) {
+        qCWarning(LogPlaylist) << "Cannot play current item: index" << state_.currentIndex
+                               << "out of range (count:" << state_.items.count() << ")";
         return;
     }
 
@@ -414,12 +424,14 @@ void PlaylistManager::onSidDataReceived(const QString &remotePath, const QByteAr
 {
     // Check if this is a path we requested for duration lookup
     if (!pendingDurationLookups_.contains(remotePath)) {
+        qCDebug(LogPlaylist) << "SID data received for unrequested path:" << remotePath;
         return;
     }
 
     pendingDurationLookups_.remove(remotePath);
 
     if (songlengthsDatabase_ == nullptr || !songlengthsDatabase_->isLoaded()) {
+        qCWarning(LogPlaylist) << "Cannot look up duration: songlengths database not loaded";
         return;
     }
 

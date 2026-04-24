@@ -38,6 +38,7 @@ find_package(ZLIB REQUIRED)
 
 set(SOURCES
     src/main.cpp
+    src/utils/logging.cpp
     src/mainwindow.cpp
     src/ui/preferencesdialog.cpp
     src/ui/configitemspanel.cpp

@@ -2,6 +2,7 @@
 #define LOGGING_H
 
 #include <QDebug>
+#include <QLoggingCategory>
 
 namespace r64u {
 
@@ -20,5 +21,15 @@ inline bool verboseLogging = false;
 #define LOG_VERBOSE()         \
     if (r64u::verboseLogging) \
     qDebug()
+
+Q_DECLARE_LOGGING_CATEGORY(LogPlaylist)
+Q_DECLARE_LOGGING_CATEGORY(LogFtp)
+Q_DECLARE_LOGGING_CATEGORY(LogTransfer)
+Q_DECLARE_LOGGING_CATEGORY(LogStreaming)
+Q_DECLARE_LOGGING_CATEGORY(LogMetadata)
+Q_DECLARE_LOGGING_CATEGORY(LogConfig)
+Q_DECLARE_LOGGING_CATEGORY(LogDevice)
+Q_DECLARE_LOGGING_CATEGORY(LogUi)
+Q_DECLARE_LOGGING_CATEGORY(LogFileOps)
 
 #endif  // LOGGING_H

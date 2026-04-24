@@ -2,6 +2,8 @@
 
 #include "iftpclient.h"
 
+#include "utils/logging.h"
+
 RemoteFileOperations::RemoteFileOperations(IFtpClient *ftpClient, QObject *parent)
     : QObject(parent), ftpClient_(ftpClient)
 {
@@ -16,6 +18,7 @@ RemoteFileOperations::RemoteFileOperations(IFtpClient *ftpClient, QObject *paren
 void RemoteFileOperations::createFolder(const QString &path)
 {
     if (!ftpClient_) {
+        qCWarning(LogFileOps) << "createFolder skipped: FTP client not configured";
         return;
     }
     ftpClient_->makeDirectory(path);
@@ -24,6 +27,7 @@ void RemoteFileOperations::createFolder(const QString &path)
 void RemoteFileOperations::renameItem(const QString &oldPath, const QString &newPath)
 {
     if (!ftpClient_) {
+        qCWarning(LogFileOps) << "renameItem skipped: FTP client not configured";
         return;
     }
     ftpClient_->rename(oldPath, newPath);

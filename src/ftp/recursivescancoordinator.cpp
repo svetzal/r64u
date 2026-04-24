@@ -8,8 +8,8 @@
 #include "services/iftpclient.h"
 #include "services/ilocalfilesystem.h"
 #include "services/transfercore.h"
+#include "utils/logging.h"
 
-#include <QDebug>
 #include <QFileInfo>
 
 RecursiveScanCoordinator::RecursiveScanCoordinator(transfer::State &state, IFtpClient *ftpClient,
@@ -111,7 +111,7 @@ void RecursiveScanCoordinator::handleDirectoryListingForDownload(const QString &
     }
 
     if (!found) {
-        qDebug() << "RecursiveScanCoordinator: No matching pending scan for" << path;
+        qCDebug(LogTransfer) << "RecursiveScanCoordinator: No matching pending scan for" << path;
         return;
     }
 
@@ -133,8 +133,8 @@ void RecursiveScanCoordinator::handleDirectoryListingForDownload(const QString &
 
         // Create local directory via gateway
         if (localFs_ && !localFs_->createDirectoryPath(localDirPath)) {
-            qDebug() << "RecursiveScanCoordinator: Failed to create local directory"
-                     << localDirPath;
+            qCDebug(LogTransfer) << "RecursiveScanCoordinator: Failed to create local directory"
+                                 << localDirPath;
         }
 
         state_.pendingScans.enqueue(subScan);
@@ -168,8 +168,11 @@ void RecursiveScanCoordinator::handleDirectoryListingForDelete(const QString &pa
         }
     }
 
-    if (!found)
+    if (!found) {
+        qCDebug(LogTransfer) << "RecursiveScanCoordinator: no matching pending delete scan for"
+                             << path;
         return;
+    }
 
     state_.directoriesScanned++;
 
@@ -225,8 +228,8 @@ void RecursiveScanCoordinator::handleUploadCheck(const QString &path,
 
 void RecursiveScanCoordinator::finishScanning()
 {
-    qDebug() << "RecursiveScanCoordinator: Scanning complete, filesDiscovered:"
-             << state_.filesDiscovered;
+    qCDebug(LogTransfer) << "RecursiveScanCoordinator: Scanning complete, filesDiscovered:"
+                         << state_.filesDiscovered;
 
     // Check for empty batches
     QList<int> emptyBatchIds;
@@ -238,7 +241,7 @@ void RecursiveScanCoordinator::finishScanning()
     }
 
     for (int batchId : emptyBatchIds) {
-        qDebug() << "RecursiveScanCoordinator: Completing empty batch" << batchId;
+        qCDebug(LogTransfer) << "RecursiveScanCoordinator: Completing empty batch" << batchId;
         emit completeBatchRequested(batchId);
     }
 

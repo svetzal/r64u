@@ -2,6 +2,7 @@
 
 #include "services/favoritesmanager.h"
 #include "services/favoritesuicore.h"
+#include "utils/logging.h"
 
 #include <QAction>
 #include <QFileInfo>
@@ -31,6 +32,9 @@ void ExploreFavoritesController::setFavoritesMenu(QMenu *menu)
 void ExploreFavoritesController::updateForPath(const QString &path)
 {
     if (!toggleFavoriteAction_ || !favoritesManager_) {
+        qCDebug(LogUi)
+            << "updateForPath: toggleFavoriteAction_ or favoritesManager_ is null, skipping for"
+            << path;
         return;
     }
     bool fav = favoritesManager_->isFavorite(path);
@@ -66,6 +70,7 @@ void ExploreFavoritesController::onToggleFavorite(const QString &path)
 void ExploreFavoritesController::onFavoriteSelected(QAction *action)
 {
     if (!action) {
+        qCDebug(LogUi) << "onFavoriteSelected: action is null, skipping";
         return;
     }
 
@@ -90,6 +95,8 @@ void ExploreFavoritesController::onFavoriteSelected(QAction *action)
 void ExploreFavoritesController::onFavoritesChanged()
 {
     if (!favoritesMenu_ || !favoritesManager_) {
+        qCDebug(LogUi)
+            << "onFavoritesChanged: favoritesMenu_ or favoritesManager_ is null, skipping";
         return;
     }
 

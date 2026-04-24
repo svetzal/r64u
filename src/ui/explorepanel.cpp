@@ -19,6 +19,7 @@
 #include "services/filepreviewservice.h"
 #include "services/metadataservicebundle.h"
 #include "services/playlistmanager.h"
+#include "utils/logging.h"
 
 #include <QHeaderView>
 #include <QLabel>
@@ -372,6 +373,7 @@ void ExplorePanel::onConnectionStateChanged()
 QString ExplorePanel::selectedPath() const
 {
     if (!treeView_ || !remoteFileModel_) {
+        qCDebug(LogUi) << "ExplorePanel::selectedPath: treeView or remoteFileModel is null";
         return {};
     }
     QModelIndex index = treeView_->currentIndex();
@@ -384,6 +386,7 @@ QString ExplorePanel::selectedPath() const
 bool ExplorePanel::isSelectedDirectory() const
 {
     if (!treeView_ || !remoteFileModel_) {
+        qCDebug(LogUi) << "ExplorePanel::isSelectedDirectory: treeView or remoteFileModel is null";
         return false;
     }
     QModelIndex index = treeView_->currentIndex();
@@ -413,11 +416,13 @@ void ExplorePanel::onSelectionChanged()
     favoritesController_->updateForPath(pathToCheck);
 
     if (!treeView_ || !remoteFileModel_ || !fileDetailsPanel_) {
+        qCDebug(LogUi) << "onSelectionChanged: null treeView, remoteFileModel, or fileDetailsPanel";
         return;
     }
 
     QModelIndex index = treeView_->currentIndex();
     if (!index.isValid()) {
+        qCDebug(LogUi) << "onSelectionChanged: no valid current index";
         fileDetailsPanel_->clear();
         return;
     }
@@ -437,6 +442,7 @@ void ExplorePanel::onSelectionChanged()
 void ExplorePanel::onDoubleClicked(const QModelIndex &index)
 {
     if (!index.isValid() || !remoteFileModel_) {
+        qCDebug(LogUi) << "onDoubleClicked: invalid index or null remoteFileModel";
         return;
     }
 
@@ -468,11 +474,13 @@ void ExplorePanel::onDoubleClicked(const QModelIndex &index)
 void ExplorePanel::onContextMenu(const QPoint &pos)
 {
     if (!treeView_ || !remoteFileModel_) {
+        qCDebug(LogUi) << "onContextMenu: treeView or remoteFileModel is null";
         return;
     }
 
     QModelIndex index = treeView_->indexAt(pos);
     if (!index.isValid()) {
+        qCDebug(LogUi) << "onContextMenu: no item at position" << pos;
         return;
     }
 

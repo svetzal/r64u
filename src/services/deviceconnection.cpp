@@ -3,6 +3,8 @@
 #include "c64uftpclient.h"
 #include "c64urestclient.h"
 
+#include "utils/logging.h"
+
 DeviceConnection::DeviceConnection(QObject *parent)
     : DeviceConnection(new C64URestClient(nullptr), new C64UFtpClient(nullptr), parent)
 {
@@ -70,8 +72,8 @@ bool DeviceConnection::isValidTransition(ConnectionState from, ConnectionState t
 bool DeviceConnection::tryTransitionTo(ConnectionState newState)
 {
     if (!isValidTransition(state_, newState)) {
-        qWarning() << "DeviceConnection: Invalid state transition from" << static_cast<int>(state_)
-                   << "to" << static_cast<int>(newState);
+        qCWarning(LogDevice) << "DeviceConnection: Invalid state transition from"
+                             << static_cast<int>(state_) << "to" << static_cast<int>(newState);
         return false;
     }
 
@@ -118,6 +120,8 @@ void DeviceConnection::connectToDevice()
     // multiple connection attempts in flight simultaneously
     if (state_ == ConnectionState::Connecting || state_ == ConnectionState::Connected ||
         state_ == ConnectionState::Reconnecting) {
+        qCDebug(LogDevice) << "connectToDevice: skipped, already in state"
+                           << static_cast<int>(state_);
         return;
     }
 
@@ -205,6 +209,8 @@ void DeviceConnection::onRestConnectionError(const QString &error)
     if (connectingInProgress_) {
         // Guard: only handle if we're still in a connecting state
         if (state_ != ConnectionState::Connecting && state_ != ConnectionState::Reconnecting) {
+            qCDebug(LogDevice) << "onRestConnectionError: ignoring, state is"
+                               << static_cast<int>(state_);
             return;
         }
 
@@ -257,6 +263,7 @@ void DeviceConnection::onFtpError(const QString &message)
     if (connectingInProgress_) {
         // Guard: only handle if we're still in a connecting state
         if (state_ != ConnectionState::Connecting && state_ != ConnectionState::Reconnecting) {
+            qCDebug(LogDevice) << "onFtpError: ignoring, state is" << static_cast<int>(state_);
             return;
         }
 
@@ -277,6 +284,7 @@ void DeviceConnection::checkBothConnected()
 {
     // Guard: only check if we're in a connecting state
     if (state_ != ConnectionState::Connecting && state_ != ConnectionState::Reconnecting) {
+        qCDebug(LogDevice) << "checkBothConnected: skipped, state is" << static_cast<int>(state_);
         return;
     }
 
@@ -322,6 +330,7 @@ void DeviceConnection::onReconnectTimer()
 {
     // Guard: only attempt reconnect if still in reconnecting state
     if (state_ != ConnectionState::Reconnecting) {
+        qCDebug(LogDevice) << "onReconnectTimer: skipped, state is" << static_cast<int>(state_);
         return;
     }
 

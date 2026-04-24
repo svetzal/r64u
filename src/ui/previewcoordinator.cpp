@@ -4,6 +4,7 @@
 #include "services/filepreviewservice.h"
 #include "services/playlistmanager.h"
 #include "ui/filedetailspanel.h"
+#include "utils/logging.h"
 
 #include <QFileInfo>
 #include <QMessageBox>
@@ -32,6 +33,8 @@ void PreviewCoordinator::onFileContentRequested(const QString &path)
 void PreviewCoordinator::onPreviewReady(const QString &remotePath, const QByteArray &data)
 {
     if (!detailsPanel_) {
+        qCDebug(LogUi) << "onPreviewReady: detailsPanel_ is null, skipping preview for"
+                       << remotePath;
         return;
     }
 

@@ -80,6 +80,7 @@ endif()
 # BatchManager tests - isolated unit tests for batch lifecycle logic (no I/O, no FTP)
 add_executable(test_batchmanager
     test_batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
 )
@@ -105,6 +106,7 @@ add_executable(test_transferqueue
     test_transferqueue.cpp
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
@@ -145,6 +147,7 @@ add_executable(test_transferorchestrator
     test_transferorchestrator.cpp
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
@@ -184,6 +187,7 @@ add_executable(test_coordinators
     ${MOCK_FTP_HEADERS}
     ${MOCK_LOCAL_FS_SOURCES}
     ${MOCK_LOCAL_FS_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
@@ -216,6 +220,7 @@ add_executable(test_remotefilemodel
     test_remotefilemodel.cpp
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
@@ -245,6 +250,7 @@ endif()
 # DeviceConnection tests - tests state machine using real clients with signal injection
 add_executable(test_deviceconnection
     test_deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
@@ -279,6 +285,7 @@ endif()
 # ConfigurationModel tests
 add_executable(test_configurationmodel
     test_configurationmodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/models/configurationmodel.cpp
 )
 
@@ -352,6 +359,7 @@ endif()
 # ConfigFileLoader tests - uses IFtpClient/IRestClient interfaces
 add_executable(test_configfileloader
     test_configfileloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/configfileloader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
@@ -490,6 +498,7 @@ add_executable(test_transferservice
     test_transferservice.cpp
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
@@ -621,6 +630,7 @@ endif()
 # FilePreview strategy tests
 add_executable(test_filepreviewstrategies
     test_filepreviewstrategies.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filepreview/c64previewbase.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filepreview/filepreviewfactory.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filepreview/textfilepreview.cpp
@@ -715,6 +725,7 @@ option(BUILD_INTEGRATION_TESTS "Build integration tests that require real hardwa
 if(BUILD_INTEGRATION_TESTS)
     add_executable(test_realdevice_download
         integration/test_realdevice_download.cpp
+        ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
         ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
         ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
         ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
@@ -753,6 +764,7 @@ add_executable(test_filebrowsersync
     test_filebrowsersync.cpp
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
@@ -832,6 +844,7 @@ endif()
 # StreamingDiagnostics tests
 add_executable(test_streamingdiagnostics
     test_streamingdiagnostics.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
@@ -943,6 +956,7 @@ add_executable(test_streamingmanager
     ${MOCK_STREAMING_SOURCES}
     ${MOCK_STREAMING_HEADERS}
     mocks/mockrestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/istreamcontrolclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
@@ -1605,6 +1619,7 @@ add_executable(test_transferftphandler
     ${MOCK_FTP_HEADERS}
     ${MOCK_LOCAL_FS_SOURCES}
     ${MOCK_LOCAL_FS_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp

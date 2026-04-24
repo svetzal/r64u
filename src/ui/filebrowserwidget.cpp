@@ -2,6 +2,8 @@
 
 #include "pathnavigationwidget.h"
 
+#include "utils/logging.h"
+
 #include <QAbstractItemModel>
 #include <QFileInfo>
 #include <QHeaderView>
@@ -82,12 +84,15 @@ void FileBrowserWidget::setupConnections()
                         emit selectionChanged();
                     });
         }
+    } else {
+        qCDebug(LogUi) << "setupConnections: treeView_ is null, skipping connection setup";
     }
 }
 
 void FileBrowserWidget::onDoubleClicked(const QModelIndex &index)
 {
     if (!index.isValid()) {
+        qCDebug(LogUi) << "onDoubleClicked: invalid index, skipping";
         return;
     }
 
@@ -101,6 +106,7 @@ void FileBrowserWidget::onContextMenu(const QPoint &pos)
 {
     QModelIndex index = treeView_->indexAt(pos);
     if (!index.isValid()) {
+        qCDebug(LogUi) << "onContextMenu: no item at position, skipping context menu";
         return;
     }
 

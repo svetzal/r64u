@@ -5,8 +5,8 @@
 #include "../ftp/recursivescancoordinator.h"
 #include "../ftp/remotedirectorycreator.h"
 #include "../services/ftpclientmixin.h"
+#include "../utils/logging.h"
 
-#include <QDebug>
 #include <QFileInfo>
 
 TransferFtpHandler::TransferFtpHandler(transfer::State &state, QObject *parent)
@@ -74,6 +74,8 @@ void TransferFtpHandler::stopTimeout()
 void TransferFtpHandler::markCurrentComplete(transfer::TransferItem::Status status)
 {
     if (state_.currentIndex < 0 || state_.currentIndex >= state_.items.size()) {
+        qCWarning(LogTransfer) << "TransferFtpHandler::markCurrentComplete: invalid index"
+                               << state_.currentIndex;
         return;
     }
 
@@ -158,8 +160,8 @@ void TransferFtpHandler::onDownloadFinished(const QString &remotePath, const QSt
 
 void TransferFtpHandler::onFtpError(const QString &message)
 {
-    qDebug() << "TransferFtpHandler: onFtpError:" << message
-             << "state:" << transfer::queueStateToString(state_.queueState);
+    qCDebug(LogTransfer) << "TransferFtpHandler: onFtpError:" << message
+                         << "state:" << transfer::queueStateToString(state_.queueState);
 
     stopTimeout();
 
@@ -208,19 +210,20 @@ void TransferFtpHandler::onFtpDirectoryCreated(const QString &path)
 
 void TransferFtpHandler::onDirectoryListed(const QString &path, const QList<FtpEntry> &entries)
 {
-    qDebug() << "TransferFtpHandler: onDirectoryListed:" << path << "entries:" << entries.size();
+    qCDebug(LogTransfer) << "TransferFtpHandler: onDirectoryListed:" << path
+                         << "entries:" << entries.size();
 
     if (scanCoordinator_ && scanCoordinator_->handlesListing(path)) {
         scanCoordinator_->onDirectoryListed(path, entries);
         return;
     }
 
-    qDebug() << "TransferFtpHandler: Ignoring untracked listing for" << path;
+    qCDebug(LogTransfer) << "TransferFtpHandler: Ignoring untracked listing for" << path;
 }
 
 void TransferFtpHandler::onFileRemoved(const QString &path)
 {
-    qDebug() << "TransferFtpHandler: onFileRemoved:" << path;
+    qCDebug(LogTransfer) << "TransferFtpHandler: onFileRemoved:" << path;
 
     // Try recursive delete progress first (updates deletedCount, no item state change)
     auto deleteResult = transfer::advanceDeleteProgress(state_, path);

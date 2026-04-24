@@ -5,6 +5,8 @@
 
 #include "c64previewbase.h"
 
+#include "utils/logging.h"
+
 #include <QFont>
 #include <QGuiApplication>
 #include <QStyleHints>
@@ -46,6 +48,8 @@ void C64PreviewBase::showError(const QString &error)
 {
     if (textBrowser_) {
         textBrowser_->setPlainText(tr("Error: %1").arg(error));
+    } else {
+        qCDebug(LogUi) << "showError: textBrowser_ is null, cannot display error:" << error;
     }
 }
 
@@ -62,6 +66,7 @@ void C64PreviewBase::clear()
 void C64PreviewBase::applyC64TextStyle()
 {
     if (!textBrowser_) {
+        qCDebug(LogUi) << "applyC64TextStyle: textBrowser_ is null, skipping style application";
         return;
     }
 
@@ -106,6 +111,7 @@ void C64PreviewBase::applyC64TextStyle()
 void C64PreviewBase::applyLineHeight(int percentage)
 {
     if (!textBrowser_) {
+        qCDebug(LogUi) << "applyLineHeight: textBrowser_ is null, skipping line height application";
         return;
     }
 

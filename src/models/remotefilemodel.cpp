@@ -2,9 +2,9 @@
 
 #include "services/filetypecore.h"
 #include "services/ftpclientmixin.h"
+#include "utils/logging.h"
 
 #include <QApplication>
-#include <QDebug>
 #include <QStyle>
 
 #include <algorithm>
@@ -226,6 +226,8 @@ void RemoteFileModel::fetchMore(const QModelIndex &parent)
 {
     TreeNode *node = nodeFromIndex(parent);
     if (!node || !ftpClient_ || node->fetching) {
+        qCDebug(LogFileOps) << "fetchMore: skipped (node=" << (node ? node->fullPath : "null")
+                            << "ftpClient_=" << (ftpClient_ != nullptr) << ")";
         return;
     }
 
@@ -288,6 +290,7 @@ void RemoteFileModel::refresh(const QModelIndex &index)
 {
     TreeNode *node = nodeFromIndex(index);
     if (!node || !node->isDirectory) {
+        qCDebug(LogFileOps) << "refresh(index): skipped, node is null or not a directory";
         return;
     }
 
@@ -391,6 +394,7 @@ bool RemoteFileModel::isStale(const QModelIndex &index) const
 void RemoteFileModel::refreshIfStale()
 {
     if (!ftpClient_) {
+        qCDebug(LogFileOps) << "refreshIfStale: skipped, FTP client not set";
         return;
     }
 
@@ -440,38 +444,39 @@ QString RemoteFileModel::fileTypeString(filetype::FileType type)
 
 void RemoteFileModel::onDirectoryListed(const QString &path, const QList<FtpEntry> &entries)
 {
-    qDebug() << "Model: onDirectoryListed path:" << path << "entries:" << entries.size();
-    qDebug() << "Model: requestedListings_:" << requestedListings_;
+    qCDebug(LogFileOps) << "Model: onDirectoryListed path:" << path << "entries:" << entries.size();
+    qCDebug(LogFileOps) << "Model: requestedListings_:" << requestedListings_;
 
     // Ignore listings we didn't request (e.g., from TransferQueue's delete scanning)
     if (!requestedListings_.contains(path)) {
-        qDebug() << "Model: Ignoring listing for path we didn't request:" << path;
+        qCDebug(LogFileOps) << "Model: Ignoring listing for path we didn't request:" << path;
         return;
     }
     requestedListings_.remove(path);
 
-    qDebug() << "Model: pendingFetches_ keys:" << pendingFetches_.keys();
+    qCDebug(LogFileOps) << "Model: pendingFetches_ keys:" << pendingFetches_.keys();
 
     TreeNode *node = pendingFetches_.take(path);
     if (!node) {
         // If we requested this listing (it was in requestedListings_) but there's no
         // corresponding node in pendingFetches_, something is wrong. Don't try to guess
         // which node to use - this could cause entries to be added to the wrong node.
-        qWarning() << "Model: Listing for" << path
-                   << "was in requestedListings_ but not in pendingFetches_"
-                   << "- this indicates a bug. Ignoring to prevent corruption.";
-        qWarning() << "Model: rootPath_:" << rootPath_
-                   << "pendingFetches_ keys:" << pendingFetches_.keys();
+        qCWarning(LogFileOps) << "Model: Listing for" << path
+                              << "was in requestedListings_ but not in pendingFetches_"
+                              << "- this indicates a bug. Ignoring to prevent corruption.";
+        qCWarning(LogFileOps) << "Model: rootPath_:" << rootPath_
+                              << "pendingFetches_ keys:" << pendingFetches_.keys();
         return;
     }
 
-    qDebug() << "Model: Found pending node:" << node->name << "fullPath:" << node->fullPath;
+    qCDebug(LogFileOps) << "Model: Found pending node:" << node->name
+                        << "fullPath:" << node->fullPath;
 
     // Validate that the node's path matches what we requested
     // This catches dangling pointers or state corruption
     if (node->fullPath != path) {
-        qWarning() << "Model: Node path mismatch - expected:" << path << "got:" << node->fullPath
-                   << "- ignoring to prevent corruption!";
+        qCWarning(LogFileOps) << "Model: Node path mismatch - expected:" << path
+                              << "got:" << node->fullPath << "- ignoring to prevent corruption!";
         return;
     }
 
@@ -547,14 +552,15 @@ RemoteFileModel::TreeNode *RemoteFileModel::findNodeByPath(const QString &path) 
 void RemoteFileModel::populateNode(TreeNode *node, const QList<FtpEntry> &entries)
 {
     QModelIndex parentIndex = indexFromNode(node);
-    qDebug() << "Model: populateNode for" << node->name
-             << "parentIndex valid:" << parentIndex.isValid() << "entries:" << entries.count()
-             << "existing children:" << node->children.count();
+    qCDebug(LogFileOps) << "Model: populateNode for" << node->name
+                        << "parentIndex valid:" << parentIndex.isValid()
+                        << "entries:" << entries.count()
+                        << "existing children:" << node->children.count();
 
     // Defensive check: clear any existing children before populating
     // This prevents model corruption if a listing is processed twice due to edge cases
     if (!node->children.isEmpty()) {
-        qWarning()
+        qCWarning(LogFileOps)
             << "Model: populateNode called on node with existing children - clearing them first";
         beginRemoveRows(parentIndex, 0, node->children.count() - 1);
         qDeleteAll(node->children);
@@ -575,8 +581,8 @@ void RemoteFileModel::populateNode(TreeNode *node, const QList<FtpEntry> &entrie
                       return a.name.compare(b.name, Qt::CaseInsensitive) < 0;
                   });
 
-        qDebug() << "Model: beginInsertRows parentIndex:" << parentIndex << "rows 0 to"
-                 << sortedEntries.count() - 1;
+        qCDebug(LogFileOps) << "Model: beginInsertRows parentIndex:" << parentIndex << "rows 0 to"
+                            << sortedEntries.count() - 1;
         beginInsertRows(parentIndex, 0, sortedEntries.count() - 1);
 
         for (const FtpEntry &entry : sortedEntries) {
@@ -601,10 +607,12 @@ void RemoteFileModel::populateNode(TreeNode *node, const QList<FtpEntry> &entrie
             }
 
             node->children.append(child);
-            qDebug() << "Model: Added child:" << child->name << "isDir:" << child->isDirectory;
+            qCDebug(LogFileOps) << "Model: Added child:" << child->name
+                                << "isDir:" << child->isDirectory;
         }
 
         endInsertRows();
-        qDebug() << "Model: endInsertRows, node now has" << node->children.count() << "children";
+        qCDebug(LogFileOps) << "Model: endInsertRows, node now has" << node->children.count()
+                            << "children";
     }
 }

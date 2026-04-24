@@ -4,6 +4,7 @@
 
 #include "models/configurationmodel.h"
 #include "services/deviceconnection.h"
+#include "utils/logging.h"
 
 #include <QMessageBox>
 #include <QPushButton>
@@ -99,6 +100,8 @@ void ConfigPanel::setupConnections()
         connect(configModel_, &ConfigurationModel::categoriesChanged, this, [this]() {
             // Update category list when categories change
             if (!categoryList_ || !configModel_) {
+                qCDebug(LogUi)
+                    << "categoriesChanged: categoryList_ or configModel_ is null, skipping update";
                 return;
             }
             categoryList_->clear();
@@ -171,6 +174,7 @@ void ConfigPanel::onSaveToFlash()
     }
 
     if (!deviceConnection_->restClient()) {
+        qCDebug(LogUi) << "onSaveToFlash: restClient() is null, skipping";
         return;
     }
 
@@ -186,6 +190,7 @@ void ConfigPanel::onLoadFromFlash()
     }
 
     if (!deviceConnection_->restClient()) {
+        qCDebug(LogUi) << "onLoadFromFlash: restClient() is null, skipping";
         return;
     }
 
@@ -201,6 +206,7 @@ void ConfigPanel::onResetToDefaults()
     }
 
     if (!deviceConnection_->restClient()) {
+        qCDebug(LogUi) << "onResetToDefaults: restClient() is null, skipping";
         return;
     }
 
@@ -229,6 +235,7 @@ void ConfigPanel::onRefresh()
     }
 
     if (!deviceConnection_->restClient()) {
+        qCDebug(LogUi) << "onRefresh: restClient() is null, skipping";
         return;
     }
 
@@ -344,6 +351,7 @@ void ConfigPanel::onItemEdited(const QString &category, const QString &item, con
     }
 
     if (!deviceConnection_->restClient()) {
+        qCDebug(LogUi) << "onItemEdited: restClient() is null, skipping update for" << item;
         return;
     }
 

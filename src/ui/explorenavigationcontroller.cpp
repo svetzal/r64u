@@ -5,6 +5,7 @@
 
 #include "models/remotefilemodel.h"
 #include "services/deviceconnection.h"
+#include "utils/logging.h"
 
 #include <QTreeView>
 
@@ -70,6 +71,7 @@ void ExploreNavigationController::refresh()
     }
 
     if (!remoteFileModel_ || !treeView_) {
+        qCDebug(LogUi) << "refresh: remoteFileModel_ or treeView_ is null, skipping refresh";
         return;
     }
 
