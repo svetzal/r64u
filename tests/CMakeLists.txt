@@ -2033,3 +2033,76 @@ if(BUILD_COVERAGE)
     add_coverage_target(panelcoordinator test_panelcoordinator)
     add_dependencies(coverage coverage_panelcoordinator)
 endif()
+
+# ServiceFactory tests - verifies construction and wiring of all application services
+add_executable(test_servicefactory
+    test_servicefactory.cpp
+    stubs/errorsourceconnector_stub.cpp
+    stubs/streamingmanager_stub.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/servicefactory.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/configfileloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filepreviewservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/favoritesmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/favoritescore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/playlistmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/httpfiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
+    # Headers listed so AUTOMOC generates moc files for stubs
+    ${CMAKE_SOURCE_DIR}/src/services/streamingmanager.h
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
+)
+
+target_include_directories(test_servicefactory PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_servicefactory PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+    Qt6::Widgets
+    Qt6::Sql
+    ZLIB::ZLIB
+)
+
+add_test(NAME ServiceFactoryTest COMMAND test_servicefactory)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(servicefactory test_servicefactory)
+    add_dependencies(coverage coverage_servicefactory)
+endif()
