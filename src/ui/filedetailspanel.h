@@ -1,6 +1,8 @@
 #ifndef FILEDETAILSPANEL_H
 #define FILEDETAILSPANEL_H
 
+#include "idetailsdisplay.h"
+
 #include <QLabel>
 #include <QStackedWidget>
 #include <QStyleHints>
@@ -11,7 +13,7 @@ class SonglengthsDatabase;
 class HVSCMetadataService;
 class GameBase64Service;
 
-class FileDetailsPanel : public QWidget
+class FileDetailsPanel : public QWidget, public IDetailsDisplay
 {
     Q_OBJECT
 
@@ -34,11 +36,11 @@ public:
     void setGameBase64Service(GameBase64Service *service);
 
     void showFileDetails(const QString &path, qint64 size, const QString &type);
-    void showTextContent(const QString &content);
-    void showDiskDirectory(const QByteArray &diskImageData, const QString &filename);
-    void showSidDetails(const QByteArray &sidData, const QString &filename);
+    void showTextContent(const QString &content) override;
+    void showDiskDirectory(const QByteArray &diskImageData, const QString &filename) override;
+    void showSidDetails(const QByteArray &sidData, const QString &filename) override;
     void showLoading(const QString &path);
-    void showError(const QString &message);
+    void showError(const QString &message) override;
     void clear();
 
     // File type detection — delegates to fileaction::detectPreviewType()

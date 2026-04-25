@@ -5,7 +5,7 @@
 #include <QString>
 
 class FilePreviewService;
-class FileDetailsPanel;
+class IDetailsDisplay;
 class PlaylistManager;
 
 class PreviewCoordinator : public QObject
@@ -13,7 +13,7 @@ class PreviewCoordinator : public QObject
     Q_OBJECT
 
 public:
-    explicit PreviewCoordinator(FilePreviewService *previewService, FileDetailsPanel *detailsPanel,
+    explicit PreviewCoordinator(FilePreviewService *previewService, IDetailsDisplay *detailsPanel,
                                 PlaylistManager *playlistManager, QObject *parent = nullptr);
 
 public slots:
@@ -30,7 +30,7 @@ private slots:
 
 private:
     FilePreviewService *previewService_ = nullptr;
-    FileDetailsPanel *detailsPanel_ = nullptr;
+    IDetailsDisplay *detailsPanel_ = nullptr;
     PlaylistManager *playlistManager_ = nullptr;
 };
 

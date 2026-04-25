@@ -1880,6 +1880,44 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_explorenavigationcontroller)
 endif()
 
+# PreviewCoordinator tests - routing logic via IDetailsDisplay mock
+add_executable(test_previewcoordinator
+    test_previewcoordinator.cpp
+    stubs/playlistmanager_test_stubs.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filepreviewservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/playlistmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/previewcoordinator.cpp
+    # Headers listed so AUTOMOC generates moc files for stubs
+    ${CMAKE_SOURCE_DIR}/src/services/streamingmanager.h
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
+)
+
+target_include_directories(test_previewcoordinator PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_previewcoordinator PRIVATE
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME PreviewCoordinatorTest COMMAND test_previewcoordinator)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(previewcoordinator test_previewcoordinator)
+    add_dependencies(coverage coverage_previewcoordinator)
+endif()
+
 # DatabaseDownloadController tests - verifies IMessagePresenter injection (headless)
 add_executable(test_databasedownloadcontroller
     test_databasedownloadcontroller.cpp

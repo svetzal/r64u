@@ -185,6 +185,7 @@ set(HEADERS
     src/ui/systemtoolbarbuilder.h
     src/ui/databasedownloadcontroller.h
     src/ui/connectiontester.h
+    src/ui/idetailsdisplay.h
     src/ui/previewcoordinator.h
     src/ui/panelcoordinator.h
     src/ui/connectionuicontroller.h

@@ -3,14 +3,14 @@
 #include "services/fileactioncore.h"
 #include "services/filepreviewservice.h"
 #include "services/playlistmanager.h"
-#include "ui/filedetailspanel.h"
+#include "ui/idetailsdisplay.h"
 #include "utils/logging.h"
 
 #include <QFileInfo>
 #include <QMessageBox>
 
 PreviewCoordinator::PreviewCoordinator(FilePreviewService *previewService,
-                                       FileDetailsPanel *detailsPanel,
+                                       IDetailsDisplay *detailsPanel,
                                        PlaylistManager *playlistManager, QObject *parent)
     : QObject(parent), previewService_(previewService), detailsPanel_(detailsPanel),
       playlistManager_(playlistManager)
@@ -76,9 +76,8 @@ void PreviewCoordinator::onConfigLoadFailed(const QString &path, const QString &
 {
     emit statusMessage(tr("Failed to load %1: %2").arg(QFileInfo(path).fileName()).arg(error),
                        5000);
-    // Show dialog - need a parent widget. Since we don't have one here, use nullptr
-    // (detailsPanel_ parent could be used via its window() accessor)
-    QWidget *parentWidget = detailsPanel_ ? detailsPanel_->window() : nullptr;
+    // IDetailsDisplay does not expose window(); pass nullptr as dialog parent.
+    QWidget *parentWidget = nullptr;
     QMessageBox::warning(
         parentWidget, tr("Configuration Error"),
         tr("Failed to load configuration file:\n%1\n\nError: %2").arg(path).arg(error));
