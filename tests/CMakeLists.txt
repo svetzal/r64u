@@ -1305,6 +1305,31 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_vic2frameconverter)
 endif()
 
+# C64URestClient tests - tests setHost() normalization and password state
+add_executable(test_c64urestclient
+    test_c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+)
+
+target_include_directories(test_c64urestclient PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_c64urestclient PRIVATE
+    Qt6::Core
+    Qt6::Network
+    Qt6::Test
+)
+
+add_test(NAME C64URestClientTest COMMAND test_c64urestclient)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(c64urestclient test_c64urestclient)
+    add_dependencies(coverage coverage_c64urestclient)
+endif()
+
 # GameBase64Service tests
 add_executable(test_gamebase64service
     test_gamebase64service.cpp
