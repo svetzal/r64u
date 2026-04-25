@@ -1282,6 +1282,29 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_playlistcore)
 endif()
 
+# Vic2FrameConverter tests - pure data conversion, no I/O dependencies
+add_executable(test_vic2frameconverter
+    test_vic2frameconverter.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/vic2frameconverter.cpp
+)
+
+target_include_directories(test_vic2frameconverter PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_vic2frameconverter PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+)
+
+add_test(NAME Vic2FrameConverterTest COMMAND test_vic2frameconverter)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(vic2frameconverter test_vic2frameconverter)
+    add_dependencies(coverage coverage_vic2frameconverter)
+endif()
+
 # GameBase64Service tests
 add_executable(test_gamebase64service
     test_gamebase64service.cpp
