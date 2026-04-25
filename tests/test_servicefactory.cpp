@@ -1,5 +1,6 @@
-#include "services/servicefactory.h"
-
+#include "models/remotefilemodel.h"
+#include "models/transferqueue.h"
+#include "services/configfileloader.h"
 #include "services/deviceconnection.h"
 #include "services/errorhandler.h"
 #include "services/favoritesmanager.h"
@@ -7,14 +8,12 @@
 #include "services/gamebase64service.h"
 #include "services/httpfiledownloader.h"
 #include "services/hvscmetadataservice.h"
+#include "services/metadataservicebundle.h"
 #include "services/playlistmanager.h"
+#include "services/servicefactory.h"
 #include "services/songlengthsdatabase.h"
 #include "services/statusmessageservice.h"
 #include "services/transferservice.h"
-#include "services/configfileloader.h"
-#include "models/remotefilemodel.h"
-#include "models/transferqueue.h"
-#include "services/metadataservicebundle.h"
 
 #include <QtTest>
 
