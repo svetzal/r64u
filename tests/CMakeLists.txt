@@ -1282,6 +1282,37 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_playlistcore)
 endif()
 
+# PlaylistManager tests - tests signal emissions and state orchestration with null device
+add_executable(test_playlistmanager
+    test_playlistmanager.cpp
+    stubs/playlistmanager_test_stubs.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/playlistmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
+    # Headers listed here so AUTOMOC generates moc files needed by stubs
+    ${CMAKE_SOURCE_DIR}/src/services/streamingmanager.h
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
+)
+
+target_include_directories(test_playlistmanager PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_playlistmanager PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME PlaylistManagerTest COMMAND test_playlistmanager)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(playlistmanager test_playlistmanager)
+    add_dependencies(coverage coverage_playlistmanager)
+endif()
+
 # Vic2FrameConverter tests - pure data conversion, no I/O dependencies
 add_executable(test_vic2frameconverter
     test_vic2frameconverter.cpp
