@@ -1,13 +1,13 @@
 #include "connectionuicontroller.h"
 
 #include "services/deviceconnection.h"
-#include "ui/connectionstatuswidget.h"
+#include "ui/iconnectionstatusview.h"
 #include "utils/logging.h"
 
 #include <QAction>
 
 ConnectionUIController::ConnectionUIController(DeviceConnection *connection,
-                                               ConnectionStatusWidget *statusWidget,
+                                               IConnectionStatusView *statusWidget,
                                                QObject *parent)
     : QObject(parent), deviceConnection_(connection), statusWidget_(statusWidget)
 {

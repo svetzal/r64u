@@ -1,19 +1,21 @@
 #ifndef CONNECTIONSTATUSWIDGET_H
 #define CONNECTIONSTATUSWIDGET_H
 
+#include "iconnectionstatusview.h"
+
 #include <QLabel>
 #include <QWidget>
 
-class ConnectionStatusWidget : public QWidget
+class ConnectionStatusWidget : public QWidget, public IConnectionStatusView
 {
     Q_OBJECT
 
 public:
     explicit ConnectionStatusWidget(QWidget *parent = nullptr);
 
-    void setConnected(bool connected);
-    void setHostname(const QString &hostname);
-    void setFirmwareVersion(const QString &version);
+    void setConnected(bool connected) override;
+    void setHostname(const QString &hostname) override;
+    void setFirmwareVersion(const QString &version) override;
 
 private:
     QLabel *statusLabel_ = nullptr;

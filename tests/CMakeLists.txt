@@ -1918,6 +1918,41 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_previewcoordinator)
 endif()
 
+# ConnectionUIController tests - verifies IConnectionStatusView injection and action management
+add_executable(test_connectionuicontroller
+    test_connectionuicontroller.cpp
+    mocks/mockrestclient.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/connectionuicontroller.cpp
+)
+target_include_directories(test_connectionuicontroller PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_connectionuicontroller PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+    Qt6::Gui
+)
+add_test(NAME ConnectionUIControllerTest COMMAND test_connectionuicontroller)
+if(BUILD_COVERAGE)
+    add_coverage_target(connectionuicontroller test_connectionuicontroller)
+    add_dependencies(coverage coverage_connectionuicontroller)
+endif()
+
 # DatabaseDownloadController tests - verifies IMessagePresenter injection (headless)
 add_executable(test_databasedownloadcontroller
     test_databasedownloadcontroller.cpp

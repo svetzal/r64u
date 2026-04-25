@@ -5,7 +5,7 @@
 #include <QObject>
 
 class DeviceConnection;
-class ConnectionStatusWidget;
+class IConnectionStatusView;
 class QAction;
 
 class ConnectionUIController : public QObject
@@ -14,7 +14,7 @@ class ConnectionUIController : public QObject
 
 public:
     explicit ConnectionUIController(DeviceConnection *connection,
-                                    ConnectionStatusWidget *statusWidget,
+                                    IConnectionStatusView *statusWidget,
                                     QObject *parent = nullptr);
 
     void setManagedActions(const QList<QAction *> &systemActions, QAction *connectAction,
@@ -35,7 +35,7 @@ private:
     void updateActions();
 
     DeviceConnection *deviceConnection_ = nullptr;
-    ConnectionStatusWidget *statusWidget_ = nullptr;
+    IConnectionStatusView *statusWidget_ = nullptr;
     QAction *connectAction_ = nullptr;
     QAction *refreshAction_ = nullptr;
     QList<QAction *> systemActions_;

@@ -188,6 +188,7 @@ set(HEADERS
     src/ui/idetailsdisplay.h
     src/ui/previewcoordinator.h
     src/ui/panelcoordinator.h
+    src/ui/iconnectionstatusview.h
     src/ui/connectionuicontroller.h
     src/ui/transferpanel.h
     src/ui/viewpanel.h
