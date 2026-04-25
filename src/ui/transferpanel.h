@@ -1,6 +1,7 @@
 #ifndef TRANSFERPANEL_H
 #define TRANSFERPANEL_H
 
+#include "ui/ipanel.h"
 #include "ui/remotefilebrowserwidget.h"
 
 #include <QSplitter>
@@ -16,19 +17,21 @@ class LocalFileBrowserWidget;
 class RemoteFileOperations;
 class TransferProgressContainer;
 
-class TransferPanel : public QWidget
+class TransferPanel : public QWidget, public IPanel
 {
     Q_OBJECT
 
 public:
+    QObject *asQObject() override { return this; }
+
     explicit TransferPanel(DeviceConnection *connection, RemoteFileModel *model,
                            TransferService *transferService, QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
     void setCurrentLocalDir(const QString &path);
-    void setCurrentRemoteDir(const QString &path);
+    void setCurrentRemoteDir(const QString &path) override;
     QString currentLocalDir() const;
-    QString currentRemoteDir() const;
+    QString currentRemoteDir() const override;
 
     // Settings
     void loadSettings();

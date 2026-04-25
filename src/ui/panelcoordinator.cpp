@@ -1,23 +1,18 @@
 #include "panelcoordinator.h"
 
 #include "models/remotefilemodel.h"
-#include "services/configfileloader.h"
 #include "services/deviceconnection.h"
 #include "services/errorhandler.h"
 #include "services/irestclient.h"
 #include "services/statusmessageservice.h"
 #include "services/transferservice.h"
-#include "ui/configpanel.h"
-#include "ui/explorepanel.h"
-#include "ui/transferpanel.h"
-#include "ui/viewpanel.h"
+#include "ui/ipanel.h"
 
-#include <QFileInfo>
 #include <QTabWidget>
 
-PanelCoordinator::PanelCoordinator(ExplorePanel *explore, TransferPanel *transfer, ViewPanel *view,
-                                   ConfigPanel *config, DeviceConnection *connection,
-                                   RemoteFileModel *model, TransferService *transferService,
+PanelCoordinator::PanelCoordinator(IPanel *explore, IPanel *transfer, IPanel *view, IPanel *config,
+                                   DeviceConnection *connection, RemoteFileModel *model,
+                                   TransferService *transferService,
                                    StatusMessageService *statusService, ErrorHandler *errorHandler,
                                    QTabWidget *tabWidget, QObject *parent)
     : QObject(parent), explorePanel_(explore), transferPanel_(transfer), viewPanel_(view),
@@ -25,21 +20,17 @@ PanelCoordinator::PanelCoordinator(ExplorePanel *explore, TransferPanel *transfe
       transferService_(transferService), statusMessageService_(statusService),
       errorHandler_(errorHandler), modeTabWidget_(tabWidget)
 {
-    // Panel status message routing
-    connect(
-        explorePanel_, &ExplorePanel::statusMessage, this,
-        [this](const QString &msg, int timeout) { statusMessageService_->showInfo(msg, timeout); });
-    connect(
-        transferPanel_, &TransferPanel::statusMessage, this,
-        [this](const QString &msg, int timeout) { statusMessageService_->showInfo(msg, timeout); });
-    connect(transferPanel_, &TransferPanel::clearStatusMessages, statusMessageService_,
-            &StatusMessageService::clearMessages);
-    connect(viewPanel_, &ViewPanel::statusMessage, this, [this](const QString &msg, int timeout) {
-        statusMessageService_->showInfo(msg, timeout);
-    });
-    connect(
-        configPanel_, &ConfigPanel::statusMessage, this,
-        [this](const QString &msg, int timeout) { statusMessageService_->showInfo(msg, timeout); });
+    // Panel status message routing via string-based SIGNAL/SLOT (required for IPanel bridge)
+    connect(explorePanel_->asQObject(), SIGNAL(statusMessage(QString, int)), this,
+            SLOT(onAnyPanelStatusMessage(QString, int)));
+    connect(transferPanel_->asQObject(), SIGNAL(statusMessage(QString, int)), this,
+            SLOT(onAnyPanelStatusMessage(QString, int)));
+    connect(transferPanel_->asQObject(), SIGNAL(clearStatusMessages()), this,
+            SLOT(onTransferPanelClearMessages()));
+    connect(viewPanel_->asQObject(), SIGNAL(statusMessage(QString, int)), this,
+            SLOT(onAnyPanelStatusMessage(QString, int)));
+    connect(configPanel_->asQObject(), SIGNAL(statusMessage(QString, int)), this,
+            SLOT(onAnyPanelStatusMessage(QString, int)));
 
     // Error handler routing
     connect(errorHandler_, &ErrorHandler::statusMessage, this,
@@ -63,14 +54,25 @@ PanelCoordinator::PanelCoordinator(ExplorePanel *explore, TransferPanel *transfe
     connect(modeTabWidget_, &QTabWidget::currentChanged, this, &PanelCoordinator::onModeChanged);
 }
 
+void PanelCoordinator::onAnyPanelStatusMessage(const QString &msg, int timeout)
+{
+    statusMessageService_->showInfo(msg, timeout);
+}
+
+void PanelCoordinator::onTransferPanelClearMessages()
+{
+    statusMessageService_->clearMessages();
+}
+
 void PanelCoordinator::onModeChanged(int index)
 {
     emit windowTitleUpdateNeeded();
     emit actionsUpdateNeeded();
 
     // Don't sync model while transfer operations are in progress
-    bool canSync = deviceConnection_->isConnected() && !transferService_->isProcessing() &&
-                   !transferService_->isScanning() && !transferService_->isProcessingDelete() &&
+    bool canSync = deviceConnection_->isConnected() && transferService_ &&
+                   !transferService_->isProcessing() && !transferService_->isScanning() &&
+                   !transferService_->isProcessingDelete() &&
                    !transferService_->isCreatingDirectories();
 
     switch (index) {

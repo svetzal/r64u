@@ -32,10 +32,7 @@ private slots:
     // Initial state
     // ======================================================================
 
-    void testInitialDirectory_IsRoot()
-    {
-        QCOMPARE(ctrl_->currentDirectory(), QString("/"));
-    }
+    void testInitialDirectory_IsRoot() { QCOMPARE(ctrl_->currentDirectory(), QString("/")); }
 
     // ======================================================================
     // setCurrentDirectory

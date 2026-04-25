@@ -2,6 +2,7 @@
 #define CONFIGPANEL_H
 
 #include "services/irestclient.h"
+#include "ui/ipanel.h"
 
 #include <QLabel>
 #include <QListWidget>
@@ -13,15 +14,17 @@ class DeviceConnection;
 class ConfigurationModel;
 class ConfigItemsPanel;
 
-class ConfigPanel : public QWidget
+class ConfigPanel : public QWidget, public IPanel
 {
     Q_OBJECT
 
 public:
     explicit ConfigPanel(DeviceConnection *connection, QWidget *parent = nullptr);
 
+    QObject *asQObject() override { return this; }
+
     // Public API for MainWindow coordination
-    void refreshIfEmpty();
+    void refreshIfEmpty() override;
 
 signals:
     void statusMessage(const QString &message, int timeout = 0);

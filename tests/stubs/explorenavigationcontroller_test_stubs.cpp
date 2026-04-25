@@ -28,39 +28,75 @@ void RemoteFileModel::clear() {}
 void RemoteFileModel::invalidateCache() {}
 void RemoteFileModel::invalidatePath(const QString & /*path*/) {}
 void RemoteFileModel::refreshIfStale() {}
-bool RemoteFileModel::isDirectory(const QModelIndex & /*index*/) const { return false; }
-bool RemoteFileModel::isStale(const QModelIndex & /*index*/) const { return false; }
+bool RemoteFileModel::isDirectory(const QModelIndex & /*index*/) const
+{
+    return false;
+}
+bool RemoteFileModel::isStale(const QModelIndex & /*index*/) const
+{
+    return false;
+}
 
-QString RemoteFileModel::filePath(const QModelIndex & /*index*/) const { return {}; }
+QString RemoteFileModel::filePath(const QModelIndex & /*index*/) const
+{
+    return {};
+}
 filetype::FileType RemoteFileModel::fileType(const QModelIndex & /*index*/) const
 {
     return filetype::FileType::Unknown;
 }
-qint64 RemoteFileModel::fileSize(const QModelIndex & /*index*/) const { return 0; }
+qint64 RemoteFileModel::fileSize(const QModelIndex & /*index*/) const
+{
+    return 0;
+}
 
 filetype::FileType RemoteFileModel::detectFileType(const QString & /*filename*/)
 {
     return filetype::FileType::Unknown;
 }
-QIcon RemoteFileModel::iconForFileType(filetype::FileType /*type*/) { return {}; }
-QString RemoteFileModel::fileTypeString(filetype::FileType /*type*/) { return {}; }
+QIcon RemoteFileModel::iconForFileType(filetype::FileType /*type*/)
+{
+    return {};
+}
+QString RemoteFileModel::fileTypeString(filetype::FileType /*type*/)
+{
+    return {};
+}
 
 QModelIndex RemoteFileModel::index(int /*row*/, int /*column*/,
-                                    const QModelIndex & /*parent*/) const
+                                   const QModelIndex & /*parent*/) const
 {
     return {};
 }
-QModelIndex RemoteFileModel::parent(const QModelIndex & /*child*/) const { return {}; }
-int RemoteFileModel::rowCount(const QModelIndex & /*parent*/) const { return 0; }
-int RemoteFileModel::columnCount(const QModelIndex & /*parent*/) const { return 0; }
-QVariant RemoteFileModel::data(const QModelIndex & /*index*/, int /*role*/) const { return {}; }
+QModelIndex RemoteFileModel::parent(const QModelIndex & /*child*/) const
+{
+    return {};
+}
+int RemoteFileModel::rowCount(const QModelIndex & /*parent*/) const
+{
+    return 0;
+}
+int RemoteFileModel::columnCount(const QModelIndex & /*parent*/) const
+{
+    return 0;
+}
+QVariant RemoteFileModel::data(const QModelIndex & /*index*/, int /*role*/) const
+{
+    return {};
+}
 QVariant RemoteFileModel::headerData(int /*section*/, Qt::Orientation /*orientation*/,
-                                      int /*role*/) const
+                                     int /*role*/) const
 {
     return {};
 }
-bool RemoteFileModel::hasChildren(const QModelIndex & /*parent*/) const { return false; }
-bool RemoteFileModel::canFetchMore(const QModelIndex & /*parent*/) const { return false; }
+bool RemoteFileModel::hasChildren(const QModelIndex & /*parent*/) const
+{
+    return false;
+}
+bool RemoteFileModel::canFetchMore(const QModelIndex & /*parent*/) const
+{
+    return false;
+}
 void RemoteFileModel::fetchMore(const QModelIndex & /*parent*/) {}
 Qt::ItemFlags RemoteFileModel::flags(const QModelIndex & /*index*/) const
 {
@@ -69,7 +105,7 @@ Qt::ItemFlags RemoteFileModel::flags(const QModelIndex & /*index*/) const
 
 // MOC-required private slots
 void RemoteFileModel::onDirectoryListed(const QString & /*path*/,
-                                         const QList<FtpEntry> & /*entries*/)
+                                        const QList<FtpEntry> & /*entries*/)
 {
 }
 void RemoteFileModel::onFtpError(const QString & /*message*/) {}
@@ -80,7 +116,7 @@ void RemoteFileModel::onFtpError(const QString & /*message*/) {}
 
 DeviceConnection::DeviceConnection(QObject *parent) : QObject(parent) {}
 DeviceConnection::DeviceConnection(IRestClient * /*restClient*/, IFtpClient * /*ftpClient*/,
-                                    QObject *parent)
+                                   QObject *parent)
     : QObject(parent)
 {
 }
@@ -99,7 +135,7 @@ void DeviceConnection::onRestInfoReceived(const DeviceInfo & /*info*/) {}
 void DeviceConnection::onRestDrivesReceived(const QList<DriveInfo> & /*drives*/) {}
 void DeviceConnection::onRestConnectionError(const QString & /*error*/) {}
 void DeviceConnection::onRestOperationFailed(const QString & /*operation*/,
-                                              const QString & /*error*/)
+                                             const QString & /*error*/)
 {
 }
 void DeviceConnection::onFtpConnected() {}
@@ -112,7 +148,7 @@ void DeviceConnection::onReconnectTimer() {}
 // ---------------------------------------------------------------------------
 
 ExploreFavoritesController::ExploreFavoritesController(FavoritesManager * /*favoritesManager*/,
-                                                        QObject *parent)
+                                                       QObject *parent)
     : QObject(parent)
 {
 }
@@ -120,7 +156,10 @@ ExploreFavoritesController::ExploreFavoritesController(FavoritesManager * /*favo
 void ExploreFavoritesController::setToggleAction(QAction * /*action*/) {}
 void ExploreFavoritesController::setFavoritesMenu(QMenu * /*menu*/) {}
 void ExploreFavoritesController::updateForPath(const QString & /*path*/) {}
-bool ExploreFavoritesController::isFavorite(const QString & /*path*/) const { return false; }
+bool ExploreFavoritesController::isFavorite(const QString & /*path*/) const
+{
+    return false;
+}
 void ExploreFavoritesController::onToggleFavorite(const QString & /*path*/) {}
 void ExploreFavoritesController::onFavoriteSelected(QAction * /*action*/) {}
 void ExploreFavoritesController::onFavoritesChanged() {}

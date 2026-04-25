@@ -1,11 +1,13 @@
 #pragma once
 #include "inavigationview.h"
+
 #include <QObject>
 
 class PathNavigationWidget;
 class QTreeView;
 
-class NavigationViewAdapter : public QObject, public INavigationView {
+class NavigationViewAdapter : public QObject, public INavigationView
+{
     Q_OBJECT
 public:
     explicit NavigationViewAdapter(QTreeView *treeView, PathNavigationWidget *navWidget,

@@ -186,6 +186,7 @@ set(HEADERS
     src/ui/databasedownloadcontroller.h
     src/ui/connectiontester.h
     src/ui/idetailsdisplay.h
+    src/ui/ipanel.h
     src/ui/previewcoordinator.h
     src/ui/panelcoordinator.h
     src/ui/iconnectionstatusview.h

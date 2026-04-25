@@ -2,7 +2,8 @@
 #include <QModelIndex>
 #include <QString>
 
-class INavigationView {
+class INavigationView
+{
 public:
     virtual ~INavigationView() = default;
     virtual void setPath(const QString &path) = 0;

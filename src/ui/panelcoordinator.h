@@ -3,10 +3,7 @@
 
 #include <QObject>
 
-class ExplorePanel;
-class TransferPanel;
-class ViewPanel;
-class ConfigPanel;
+class IPanel;
 class StatusMessageService;
 class RemoteFileModel;
 class TransferService;
@@ -19,11 +16,11 @@ class PanelCoordinator : public QObject
     Q_OBJECT
 
 public:
-    explicit PanelCoordinator(ExplorePanel *explore, TransferPanel *transfer, ViewPanel *view,
-                              ConfigPanel *config, DeviceConnection *connection,
-                              RemoteFileModel *model, TransferService *transferService,
-                              StatusMessageService *statusService, ErrorHandler *errorHandler,
-                              QTabWidget *tabWidget, QObject *parent = nullptr);
+    explicit PanelCoordinator(IPanel *explore, IPanel *transfer, IPanel *view, IPanel *config,
+                              DeviceConnection *connection, RemoteFileModel *model,
+                              TransferService *transferService, StatusMessageService *statusService,
+                              ErrorHandler *errorHandler, QTabWidget *tabWidget,
+                              QObject *parent = nullptr);
 
 signals:
     void windowTitleUpdateNeeded();
@@ -32,12 +29,14 @@ signals:
 private slots:
     void onModeChanged(int index);
     void onOperationSucceeded(const QString &operation);
+    void onAnyPanelStatusMessage(const QString &msg, int timeout);
+    void onTransferPanelClearMessages();
 
 private:
-    ExplorePanel *explorePanel_;
-    TransferPanel *transferPanel_;
-    ViewPanel *viewPanel_;
-    ConfigPanel *configPanel_;
+    IPanel *explorePanel_;
+    IPanel *transferPanel_;
+    IPanel *viewPanel_;
+    IPanel *configPanel_;
     DeviceConnection *deviceConnection_;
     RemoteFileModel *remoteFileModel_;
     TransferService *transferService_;

@@ -14,8 +14,7 @@ class ConnectionUIController : public QObject
 
 public:
     explicit ConnectionUIController(DeviceConnection *connection,
-                                    IConnectionStatusView *statusWidget,
-                                    QObject *parent = nullptr);
+                                    IConnectionStatusView *statusWidget, QObject *parent = nullptr);
 
     void setManagedActions(const QList<QAction *> &systemActions, QAction *connectAction,
                            QAction *refreshAction);

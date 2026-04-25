@@ -51,7 +51,8 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
 
     setupUi();
 
-    // navViewAdapter_ and navController_ are constructed after setupUi() so treeView_ and navWidget_ exist
+    // navViewAdapter_ and navController_ are constructed after setupUi() so treeView_ and
+    // navWidget_ exist
     navViewAdapter_ = new NavigationViewAdapter(treeView_, navWidget_, this);
     navController_ = new ExploreNavigationController(deviceConnection_, remoteFileModel_,
                                                      navViewAdapter_, favoritesController_, this);

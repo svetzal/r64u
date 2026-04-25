@@ -1,6 +1,8 @@
 #ifndef VIEWPANEL_H
 #define VIEWPANEL_H
 
+#include "ui/ipanel.h"
+
 #include <QButtonGroup>
 #include <QLabel>
 #include <QRadioButton>
@@ -15,11 +17,13 @@ class ScreenshotService;
 class StreamingDiagnosticsWidget;
 struct DiagnosticsSnapshot;
 
-class ViewPanel : public QWidget
+class ViewPanel : public QWidget, public IPanel
 {
     Q_OBJECT
 
 public:
+    QObject *asQObject() override { return this; }
+
     explicit ViewPanel(DeviceConnection *connection, QWidget *parent = nullptr);
     ~ViewPanel() override;
 

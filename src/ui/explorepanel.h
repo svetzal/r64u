@@ -3,6 +3,7 @@
 
 #include "services/filetypecore.h"
 #include "services/metadataservicebundle.h"
+#include "ui/ipanel.h"
 
 #include <QSplitter>
 #include <QToolBar>
@@ -28,19 +29,21 @@ class NavigationViewAdapter;
 class PreviewCoordinator;
 class QMenu;
 
-class ExplorePanel : public QWidget
+class ExplorePanel : public QWidget, public IPanel
 {
     Q_OBJECT
 
 public:
+    QObject *asQObject() override { return this; }
+
     explicit ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
                           ConfigFileLoader *configLoader, FilePreviewService *previewService,
                           FavoritesManager *favoritesManager, PlaylistManager *playlistManager,
                           QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
-    void setCurrentDirectory(const QString &path);
-    QString currentDirectory() const;
+    void setCurrentDirectory(const QString &path) override;
+    QString currentDirectory() const override;
     void refresh();
     void refreshIfStale();
     void updateDriveInfo();

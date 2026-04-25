@@ -1,10 +1,12 @@
 #pragma once
 #include "ui/inavigationview.h"
+
 #include <QList>
 #include <QModelIndex>
 #include <QString>
 
-class MockNavigationView : public INavigationView {
+class MockNavigationView : public INavigationView
+{
 public:
     void setPath(const QString &path) override { pathHistory.append(path); }
     void setUpEnabled(bool enabled) override { upEnabledHistory.append(enabled); }

@@ -7,8 +7,7 @@
 #include <QAction>
 
 ConnectionUIController::ConnectionUIController(DeviceConnection *connection,
-                                               IConnectionStatusView *statusWidget,
-                                               QObject *parent)
+                                               IConnectionStatusView *statusWidget, QObject *parent)
     : QObject(parent), deviceConnection_(connection), statusWidget_(statusWidget)
 {
     connect(deviceConnection_, &DeviceConnection::stateChanged, this,
