@@ -573,6 +573,57 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_errorhandler)
 endif()
 
+# ErrorSourceConnector tests - verifies connectSources() signal routing for each source type
+add_executable(test_errorsourceconnector
+    test_errorsourceconnector.cpp
+    stubs/errorsourceconnector_test_stubs.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${MOCK_FILE_DOWNLOADER_SOURCES}
+    ${MOCK_FILE_DOWNLOADER_HEADERS}
+    mocks/mockrestclient.cpp
+    mocks/mockrestclient.h
+    ${CMAKE_SOURCE_DIR}/src/services/errorsourceconnector.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filepreviewservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/configfileloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
+    # Headers for AUTOMOC to generate signal implementations for stubbed classes
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.h
+    ${CMAKE_SOURCE_DIR}/src/services/transferservice.h
+)
+
+target_include_directories(test_errorsourceconnector PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_errorsourceconnector PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+    Qt6::Widgets
+    Qt6::Sql
+    ZLIB::ZLIB
+)
+
+add_test(NAME ErrorSourceConnectorTest COMMAND test_errorsourceconnector)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(errorsourceconnector test_errorsourceconnector)
+    add_dependencies(coverage coverage_errorsourceconnector)
+endif()
+
 # StatusMessageService tests
 add_executable(test_statusmessageservice
     test_statusmessageservice.cpp

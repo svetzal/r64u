@@ -21,15 +21,9 @@ private slots:
 
     // === Initial State Tests ===
 
-    void testInitialState_HostIsEmpty()
-    {
-        QCOMPARE(client->host(), QString(""));
-    }
+    void testInitialState_HostIsEmpty() { QCOMPARE(client->host(), QString("")); }
 
-    void testInitialState_HasNoPassword()
-    {
-        QVERIFY(!client->hasPassword());
-    }
+    void testInitialState_HasNoPassword() { QVERIFY(!client->hasPassword()); }
 
     // === setHost() Normalization Tests ===
 
