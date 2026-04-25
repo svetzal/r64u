@@ -7,6 +7,7 @@
 #include "explorepanelcore.h"
 #include "fileactioncontroller.h"
 #include "filedetailspanel.h"
+#include "navigationviewadapter.h"
 #include "pathnavigationwidget.h"
 #include "playlistwidget.h"
 #include "previewcoordinator.h"
@@ -50,9 +51,10 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
 
     setupUi();
 
-    // navController_ is constructed after setupUi() so treeView_ and navWidget_ exist
-    navController_ = new ExploreNavigationController(deviceConnection_, remoteFileModel_, treeView_,
-                                                     navWidget_, favoritesController_, this);
+    // navViewAdapter_ and navController_ are constructed after setupUi() so treeView_ and navWidget_ exist
+    navViewAdapter_ = new NavigationViewAdapter(treeView_, navWidget_, this);
+    navController_ = new ExploreNavigationController(deviceConnection_, remoteFileModel_,
+                                                     navViewAdapter_, favoritesController_, this);
 
     previewCoordinator_ =
         new PreviewCoordinator(previewService, fileDetailsPanel_, playlistManager_, this);

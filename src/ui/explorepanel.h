@@ -24,6 +24,7 @@ class FileActionController;
 class ExploreFavoritesController;
 class ExploreContextMenu;
 class ExploreNavigationController;
+class NavigationViewAdapter;
 class PreviewCoordinator;
 class QMenu;
 
@@ -87,6 +88,7 @@ private:
     FileActionController *actionController_ = nullptr;
     ExploreFavoritesController *favoritesController_ = nullptr;
     ExploreContextMenu *contextMenu_ = nullptr;
+    NavigationViewAdapter *navViewAdapter_ = nullptr;
     ExploreNavigationController *navController_ = nullptr;
     PreviewCoordinator *previewCoordinator_ = nullptr;
 

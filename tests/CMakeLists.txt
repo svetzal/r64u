@@ -1849,6 +1849,37 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_fileactioncontroller)
 endif()
 
+# ExploreNavigationController tests - navigation logic with MockNavigationView
+add_executable(test_explorenavigationcontroller
+    test_explorenavigationcontroller.cpp
+    stubs/explorenavigationcontroller_test_stubs.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/explorenavigationcontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    # Headers listed so AUTOMOC generates moc files for stubbed classes
+    ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.h
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.h
+    ${CMAKE_SOURCE_DIR}/src/ui/explorefavoritescontroller.h
+)
+
+target_include_directories(test_explorenavigationcontroller PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_explorenavigationcontroller PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+    Qt6::Widgets
+)
+
+add_test(NAME ExploreNavigationControllerTest COMMAND test_explorenavigationcontroller)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(explorenavigationcontroller test_explorenavigationcontroller)
+    add_dependencies(coverage coverage_explorenavigationcontroller)
+endif()
+
 # DatabaseDownloadController tests - verifies IMessagePresenter injection (headless)
 add_executable(test_databasedownloadcontroller
     test_databasedownloadcontroller.cpp

@@ -61,6 +61,7 @@ set(SOURCES
     src/ui/explorefavoritescontroller.cpp
     src/ui/explorecontextmenu.cpp
     src/ui/explorenavigationcontroller.cpp
+    src/ui/navigationviewadapter.cpp
     src/ui/menubarbuilder.cpp
     src/ui/systemtoolbarbuilder.cpp
     src/ui/databasedownloadcontroller.cpp
@@ -178,6 +179,8 @@ set(HEADERS
     src/ui/explorefavoritescontroller.h
     src/ui/explorecontextmenu.h
     src/ui/explorenavigationcontroller.h
+    src/ui/inavigationview.h
+    src/ui/navigationviewadapter.h
     src/ui/menubarbuilder.h
     src/ui/systemtoolbarbuilder.h
     src/ui/databasedownloadcontroller.h

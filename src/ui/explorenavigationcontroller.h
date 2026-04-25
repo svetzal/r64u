@@ -7,8 +7,7 @@
 class DeviceConnection;
 class RemoteFileModel;
 class ExploreFavoritesController;
-class PathNavigationWidget;
-class QTreeView;
+class INavigationView;
 
 /// Owns the current-directory state for ExplorePanel and encapsulates
 /// all navigation operations: set directory, navigate to parent, refresh.
@@ -18,7 +17,7 @@ class ExploreNavigationController : public QObject
 
 public:
     explicit ExploreNavigationController(DeviceConnection *connection, RemoteFileModel *model,
-                                         QTreeView *treeView, PathNavigationWidget *navWidget,
+                                         INavigationView *view,
                                          ExploreFavoritesController *favoritesController,
                                          QObject *parent = nullptr);
 
@@ -35,8 +34,7 @@ signals:
 private:
     DeviceConnection *deviceConnection_ = nullptr;
     RemoteFileModel *remoteFileModel_ = nullptr;
-    QTreeView *treeView_ = nullptr;
-    PathNavigationWidget *navWidget_ = nullptr;
+    INavigationView *view_ = nullptr;
     ExploreFavoritesController *favoritesController_ = nullptr;
 
     QString currentDirectory_;

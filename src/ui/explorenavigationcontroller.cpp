@@ -1,20 +1,17 @@
 #include "explorenavigationcontroller.h"
 
 #include "explorefavoritescontroller.h"
-#include "pathnavigationwidget.h"
+#include "inavigationview.h"
 
 #include "models/remotefilemodel.h"
 #include "services/deviceconnection.h"
 #include "utils/logging.h"
 
-#include <QTreeView>
-
 ExploreNavigationController::ExploreNavigationController(
-    DeviceConnection *connection, RemoteFileModel *model, QTreeView *treeView,
-    PathNavigationWidget *navWidget, ExploreFavoritesController *favoritesController,
-    QObject *parent)
-    : QObject(parent), deviceConnection_(connection), remoteFileModel_(model), treeView_(treeView),
-      navWidget_(navWidget), favoritesController_(favoritesController), currentDirectory_("/")
+    DeviceConnection *connection, RemoteFileModel *model, INavigationView *view,
+    ExploreFavoritesController *favoritesController, QObject *parent)
+    : QObject(parent), deviceConnection_(connection), remoteFileModel_(model), view_(view),
+      favoritesController_(favoritesController), currentDirectory_("/")
 {
 }
 
@@ -26,15 +23,15 @@ void ExploreNavigationController::setCurrentDirectory(const QString &path)
         remoteFileModel_->setRootPath(path);
     }
 
-    if (navWidget_) {
-        navWidget_->setPath(path);
+    if (view_) {
+        view_->setPath(path);
     }
 
     emit statusMessage(tr("Navigated to: %1").arg(path), 2000);
 
     bool canGoUp = (path != "/" && !path.isEmpty());
-    if (navWidget_) {
-        navWidget_->setUpEnabled(canGoUp);
+    if (view_) {
+        view_->setUpEnabled(canGoUp);
     }
 
     if (favoritesController_) {
@@ -70,12 +67,12 @@ void ExploreNavigationController::refresh()
         return;
     }
 
-    if (!remoteFileModel_ || !treeView_) {
-        qCDebug(LogUi) << "refresh: remoteFileModel_ or treeView_ is null, skipping refresh";
+    if (!remoteFileModel_ || !view_) {
+        qCDebug(LogUi) << "refresh: remoteFileModel_ or view_ is null, skipping refresh";
         return;
     }
 
-    QModelIndex index = treeView_->currentIndex();
+    QModelIndex index = view_->currentIndex();
     if (index.isValid() && remoteFileModel_->isDirectory(index)) {
         remoteFileModel_->refresh(index);
     } else {
