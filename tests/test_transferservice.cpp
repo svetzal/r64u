@@ -32,9 +32,15 @@ private slots:
 
     // Connection state tests - verify operations fail when not connected
     void testUploadFailsWhenNotConnected();
+    void testUploadEmitsOperationFailedWhenNotConnected();
+    void testUploadDirectoryEmitsOperationFailedWhenNotConnected();
     void testDownloadFailsWhenNotConnected();
+    void testDownloadEmitsOperationFailedWhenNotConnected();
+    void testDownloadDirectoryEmitsOperationFailedWhenNotConnected();
     void testDeleteFailsWhenNotConnected();
+    void testDeleteEmitsOperationFailedWhenNotConnected();
     void testDeleteRecursiveFailsWhenNotConnected();
+    void testDeleteRecursiveEmitsOperationFailedWhenNotConnected();
 
     // Signal forwarding tests - verify signals from queue are forwarded
     void testOperationStartedForwarded();
@@ -137,6 +143,71 @@ void TestTransferService::testDeleteRecursiveFailsWhenNotConnected()
 {
     bool result = service_->deleteRecursive("/remote/folder");
     QVERIFY(!result);
+}
+
+void TestTransferService::testUploadEmitsOperationFailedWhenNotConnected()
+{
+    QSignalSpy spy(service_, &TransferService::operationFailed);
+
+    service_->uploadFile(tempDir_->filePath("testfile.txt"), "/remote/");
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).toString(), QString("testfile.txt"));
+    QVERIFY(!spy.at(0).at(1).toString().isEmpty());
+}
+
+void TestTransferService::testUploadDirectoryEmitsOperationFailedWhenNotConnected()
+{
+    QSignalSpy spy(service_, &TransferService::operationFailed);
+
+    service_->uploadDirectory(tempDir_->path(), "/remote/");
+
+    QCOMPARE(spy.count(), 1);
+    QVERIFY(!spy.at(0).at(1).toString().isEmpty());
+}
+
+void TestTransferService::testDownloadEmitsOperationFailedWhenNotConnected()
+{
+    QSignalSpy spy(service_, &TransferService::operationFailed);
+
+    service_->downloadFile("/remote/file.txt", tempDir_->path());
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).toString(), QString("file.txt"));
+    QVERIFY(!spy.at(0).at(1).toString().isEmpty());
+}
+
+void TestTransferService::testDownloadDirectoryEmitsOperationFailedWhenNotConnected()
+{
+    QSignalSpy spy(service_, &TransferService::operationFailed);
+
+    service_->downloadDirectory("/remote/folder", tempDir_->path());
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).toString(), QString("folder"));
+    QVERIFY(!spy.at(0).at(1).toString().isEmpty());
+}
+
+void TestTransferService::testDeleteEmitsOperationFailedWhenNotConnected()
+{
+    QSignalSpy spy(service_, &TransferService::operationFailed);
+
+    service_->deleteRemote("/remote/file.txt", false);
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).toString(), QString("file.txt"));
+    QVERIFY(!spy.at(0).at(1).toString().isEmpty());
+}
+
+void TestTransferService::testDeleteRecursiveEmitsOperationFailedWhenNotConnected()
+{
+    QSignalSpy spy(service_, &TransferService::operationFailed);
+
+    service_->deleteRecursive("/remote/folder");
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).toString(), QString("folder"));
+    QVERIFY(!spy.at(0).at(1).toString().isEmpty());
 }
 
 // Signal forwarding tests

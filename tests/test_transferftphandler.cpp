@@ -229,6 +229,90 @@ private slots:
 
         QCOMPARE(queueSpy.count(), 0);
     }
+
+    // -------------------------------------------------------------------------
+    // RemoteDirectoryCreator: null FTP client / null localFs guard tests
+    // -------------------------------------------------------------------------
+
+    void testCreateNextDirectory_nullFtpClient_emitsError()
+    {
+        // Construct creator with null FTP client
+        RemoteDirectoryCreator creator(state_, nullptr, mockFs, this);
+
+        transfer::PendingMkdir mkdir;
+        mkdir.remotePath = "/remote/newdir";
+        state_.pendingMkdirs.enqueue(mkdir);
+
+        QSignalSpy errorSpy(&creator, &RemoteDirectoryCreator::error);
+
+        creator.createNextDirectory();
+
+        QCOMPARE(errorSpy.count(), 1);
+        QVERIFY(!errorSpy.at(0).at(0).toString().isEmpty());
+    }
+
+    void testQueueDirectoriesForUpload_nullLocalFs_onlyQueuesRoot()
+    {
+        // Construct creator with null localFs — only root should be queued
+        RemoteDirectoryCreator creator(state_, mockFtp, nullptr, this);
+
+        creator.queueDirectoriesForUpload("/local/dir", "/remote/dir");
+
+        // Root directory is always queued regardless of localFs being null
+        QCOMPARE(state_.pendingMkdirs.size(), 1);
+        QCOMPARE(state_.pendingMkdirs.head().remotePath, QString("/remote/dir"));
+    }
+
+    // -------------------------------------------------------------------------
+    // TransferFtpHandler: null timeoutManager_ guard tests
+    // -------------------------------------------------------------------------
+
+    void testStartTimeout_nullTimeoutManager_doesNotCrash()
+    {
+        // handler has no timeout manager set
+        TransferFtpHandler handlerNoTimeout(state_, this);
+        handlerNoTimeout.setFtpClient(mockFtp);
+        // No setTimeoutManager() call — timeoutManager_ stays null
+
+        // Trigger startTimeout indirectly via uploadProgress
+        transfer::TransferItem item;
+        item.localPath = "/local/file.txt";
+        item.remotePath = "/remote/file.txt";
+        item.operationType = transfer::OperationType::Upload;
+        item.status = transfer::TransferItem::Status::InProgress;
+        state_.items.append(item);
+        state_.currentIndex = 0;
+
+        // Should not crash even though timeoutManager_ is null
+        emit mockFtp->uploadProgress("/local/file.txt", 100, 200);
+
+        QCOMPARE(state_.items[0].bytesTransferred, qint64(100));
+    }
+
+    void testStopTimeout_nullTimeoutManager_doesNotCrash()
+    {
+        // handler has no timeout manager set
+        TransferFtpHandler handlerNoTimeout(state_, this);
+        handlerNoTimeout.setFtpClient(mockFtp);
+        // No setTimeoutManager() call — timeoutManager_ stays null
+
+        transfer::TransferItem item;
+        item.localPath = "/local/file.txt";
+        item.remotePath = "/remote/file.txt";
+        item.operationType = transfer::OperationType::Upload;
+        item.status = transfer::TransferItem::Status::InProgress;
+        item.batchId = -1;
+        state_.items.append(item);
+        state_.currentIndex = 0;
+        state_.queueState = transfer::QueueState::Transferring;
+
+        QSignalSpy completedSpy(&handlerNoTimeout, &TransferFtpHandler::operationCompleted);
+
+        // uploadFinished calls stopTimeout() — should not crash with null manager
+        emit mockFtp->uploadFinished("/local/file.txt", "/remote/file.txt");
+
+        QCOMPARE(completedSpy.count(), 1);
+    }
 };
 
 QTEST_MAIN(TestTransferFtpHandler)

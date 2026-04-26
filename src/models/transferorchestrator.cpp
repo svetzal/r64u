@@ -177,6 +177,8 @@ TransferOrchestrator::~TransferOrchestrator()
 void TransferOrchestrator::setModelCallbacks(const ModelCallbacks &callbacks)
 {
     modelCallbacks_ = callbacks;
+    if (!modelCallbacks_.beginResetModel)
+        qCDebug(LogTransfer) << "TransferOrchestrator: model callbacks not set (headless mode)";
 }
 
 void TransferOrchestrator::setLocalFileSystem(ILocalFileSystem *fs)

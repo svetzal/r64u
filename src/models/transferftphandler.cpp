@@ -59,16 +59,20 @@ void TransferFtpHandler::setScanCoordinator(RecursiveScanCoordinator *coordinato
 
 void TransferFtpHandler::startTimeout()
 {
-    if (timeoutManager_) {
-        timeoutManager_->start();
+    if (!timeoutManager_) {
+        qCWarning(LogTransfer) << "TransferFtpHandler: timeoutManager_ is null";
+        return;
     }
+    timeoutManager_->start();
 }
 
 void TransferFtpHandler::stopTimeout()
 {
-    if (timeoutManager_) {
-        timeoutManager_->stop();
+    if (!timeoutManager_) {
+        qCWarning(LogTransfer) << "TransferFtpHandler: timeoutManager_ is null";
+        return;
     }
+    timeoutManager_->stop();
 }
 
 void TransferFtpHandler::markCurrentComplete(transfer::TransferItem::Status status)

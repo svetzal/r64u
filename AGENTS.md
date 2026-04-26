@@ -240,3 +240,18 @@ We use semantic versioning (MAJOR.MINOR.PATCH):
 - **MAJOR**: Breaking changes or significant new functionality
 - **MINOR**: New features, backward compatible
 - **PATCH**: Bug fixes, minor improvements
+
+## Error Handling Strategy
+
+All error conditions must reach the user through the signal chain:
+
+1. **Service/model layer** emits an error signal (`error()`, `operationFailed()`, etc.)
+2. **ErrorHandler::connectSources()** wires signals to `ErrorHandler` methods
+3. **ErrorHandler** categorizes, logs, and displays via status bar or dialog
+
+**Rules for new code:**
+- Never silently return from a function that the user initiated. Emit a signal or log a warning.
+- Guard clauses for null dependencies: `qCWarning` + early return is acceptable for internal precondition failures.
+- Guard clauses for user-facing operations (transfers, connections): must emit an error signal.
+- Use `ErrorCategory` and `ErrorSeverity` from `errorhandler.h` when routing to ErrorHandler.
+- Optional/headless callbacks (e.g., model callbacks in tests) may use `qCDebug` level only.

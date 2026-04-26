@@ -41,6 +41,7 @@ TransferService::~TransferService() = default;
 bool TransferService::uploadFile(const QString &localPath, const QString &remoteDir)
 {
     if (!connection_->isConnected()) {
+        emit operationFailed(QFileInfo(localPath).fileName(), tr("Not connected to device"));
         return false;
     }
 
@@ -59,6 +60,7 @@ bool TransferService::uploadFile(const QString &localPath, const QString &remote
 bool TransferService::uploadDirectory(const QString &localDir, const QString &remoteDir)
 {
     if (!connection_->isConnected()) {
+        emit operationFailed(QFileInfo(localDir).fileName(), tr("Not connected to device"));
         return false;
     }
 
@@ -72,6 +74,7 @@ bool TransferService::uploadDirectory(const QString &localDir, const QString &re
 bool TransferService::downloadFile(const QString &remotePath, const QString &localDir)
 {
     if (!connection_->isConnected()) {
+        emit operationFailed(QFileInfo(remotePath).fileName(), tr("Not connected to device"));
         return false;
     }
 
@@ -85,6 +88,7 @@ bool TransferService::downloadFile(const QString &remotePath, const QString &loc
 bool TransferService::downloadDirectory(const QString &remoteDir, const QString &localDir)
 {
     if (!connection_->isConnected()) {
+        emit operationFailed(QFileInfo(remoteDir).fileName(), tr("Not connected to device"));
         return false;
     }
 
@@ -97,6 +101,7 @@ bool TransferService::downloadDirectory(const QString &remoteDir, const QString 
 bool TransferService::deleteRemote(const QString &remotePath, bool isDirectory)
 {
     if (!connection_->isConnected()) {
+        emit operationFailed(QFileInfo(remotePath).fileName(), tr("Not connected to device"));
         return false;
     }
 
@@ -109,6 +114,7 @@ bool TransferService::deleteRemote(const QString &remotePath, bool isDirectory)
 bool TransferService::deleteRecursive(const QString &remotePath)
 {
     if (!connection_->isConnected()) {
+        emit operationFailed(QFileInfo(remotePath).fileName(), tr("Not connected to device"));
         return false;
     }
 

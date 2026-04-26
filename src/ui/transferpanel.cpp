@@ -204,9 +204,11 @@ void TransferPanel::onUploadRequested(const QString &localPath, bool isDirectory
     }
 
     if (isDirectory) {
-        transferService_->uploadDirectory(localPath, remoteDir);
+        if (!transferService_->uploadDirectory(localPath, remoteDir))
+            qCWarning(LogUi) << "Upload not queued (disconnected):" << localPath;
     } else {
-        transferService_->uploadFile(localPath, remoteDir);
+        if (!transferService_->uploadFile(localPath, remoteDir))
+            qCWarning(LogUi) << "Upload not queued (disconnected):" << localPath;
     }
 }
 
@@ -222,9 +224,11 @@ void TransferPanel::onDownloadRequested(const QString &remotePath, bool isDirect
     QString downloadDir = localBrowser_->currentDirectory();
 
     if (isDirectory) {
-        transferService_->downloadDirectory(remotePath, downloadDir);
+        if (!transferService_->downloadDirectory(remotePath, downloadDir))
+            qCWarning(LogUi) << "Download not queued (disconnected):" << remotePath;
     } else {
-        transferService_->downloadFile(remotePath, downloadDir);
+        if (!transferService_->downloadFile(remotePath, downloadDir))
+            qCWarning(LogUi) << "Download not queued (disconnected):" << remotePath;
     }
 }
 
@@ -237,8 +241,10 @@ void TransferPanel::onDeleteRequested(const QString &remotePath, bool isDirector
     }
 
     if (isDirectory) {
-        transferService_->deleteRecursive(remotePath);
+        if (!transferService_->deleteRecursive(remotePath))
+            qCWarning(LogUi) << "Delete not queued (disconnected):" << remotePath;
     } else {
-        transferService_->deleteRemote(remotePath, false);
+        if (!transferService_->deleteRemote(remotePath, false))
+            qCWarning(LogUi) << "Delete not queued (disconnected):" << remotePath;
     }
 }

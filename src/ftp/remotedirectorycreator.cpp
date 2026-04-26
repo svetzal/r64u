@@ -36,6 +36,10 @@ void RemoteDirectoryCreator::queueDirectoriesForUpload(const QString &localDir,
     state_.pendingMkdirs.enqueue(rootMkdir);
 
     // Queue all subdirectories via gateway
+    if (!localFs_) {
+        qCWarning(LogTransfer) << "RemoteDirectoryCreator: localFs_ is null, cannot enumerate"
+                               << localDir;
+    }
     if (localFs_) {
         const QStringList subdirs = localFs_->listSubdirectoriesRecursively(localDir);
         for (const QString &subDir : subdirs) {
@@ -64,9 +68,13 @@ void RemoteDirectoryCreator::createNextDirectory()
     }
 
     transfer::PendingMkdir mkdir = state_.pendingMkdirs.head();
-    if (ftpClient_) {
-        ftpClient_->makeDirectory(mkdir.remotePath);
+    if (!ftpClient_) {
+        qCWarning(LogTransfer) << "RemoteDirectoryCreator: ftpClient_ is null, cannot create"
+                               << mkdir.remotePath;
+        emit error(tr("Cannot create directory: not connected"));
+        return;
     }
+    ftpClient_->makeDirectory(mkdir.remotePath);
 }
 
 void RemoteDirectoryCreator::onDirectoryCreated(const QString &path)

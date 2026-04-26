@@ -41,6 +41,7 @@ public:
 signals:
     void directoryCreationProgress(int created, int total);
     void allDirectoriesCreated();
+    void error(const QString &message);
 
 private:
     transfer::State &state_;
