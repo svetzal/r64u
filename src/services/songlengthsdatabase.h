@@ -1,7 +1,7 @@
 #ifndef SONGLENGTHSDATABASE_H
 #define SONGLENGTHSDATABASE_H
 
-#include "ifiledownloader.h"
+#include "cacheddownloadmanager.h"
 #include "songlengthsparser.h"
 
 #include <QList>
@@ -141,17 +141,11 @@ signals:
      */
     void databaseLoaded();
 
-private slots:
-    void onDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void onDownloaderFinished(const QByteArray &data);
-    void onDownloaderFailed(const QString &error);
-
 private:
-    bool parseDatabase(const QByteArray &data);
+    bool parseDatabaseData(const QByteArray &data);
     bool parseDatabaseFile(const QString &filePath);
 
-    IFileDownloader *downloader_ = nullptr;
-
+    CachedDownloadManager *manager_;
     songlengths::ParsedDatabase parsedDb_;
 };
 

@@ -5,66 +5,72 @@
 
 #include "hvscmetadataservice.h"
 
+#include "cacheddownloadmanager.h"
 #include "hvscparser.h"
 
-#include <QDir>
 #include <QFile>
-#include <QStandardPaths>
 
 HVSCMetadataService::HVSCMetadataService(IFileDownloader *stilDownloader,
                                          IFileDownloader *buglistDownloader, QObject *parent)
-    : QObject(parent), stilDownloader_(stilDownloader), buglistDownloader_(buglistDownloader)
+    : QObject(parent)
 {
-    connect(stilDownloader_, &IFileDownloader::downloadProgress, this,
-            &HVSCMetadataService::onStilDownloaderProgress);
-    connect(stilDownloader_, &IFileDownloader::downloadFinished, this,
-            &HVSCMetadataService::onStilDownloaderFinished);
-    connect(stilDownloader_, &IFileDownloader::downloadFailed, this,
-            &HVSCMetadataService::onStilDownloaderFailed);
+    stilManager_ = new CachedDownloadManager(
+        stilDownloader, QStringLiteral("STIL.txt"), QUrl(QString::fromLatin1(StilUrl)),
+        [this](const QByteArray &data) -> int {
+            stilDatabase_ = hvsc::parseStilData(data);
+            return stilDatabase_.isEmpty() ? -1 : stilDatabase_.size();
+        },
+        this);
 
-    connect(buglistDownloader_, &IFileDownloader::downloadProgress, this,
-            &HVSCMetadataService::onBuglistDownloaderProgress);
-    connect(buglistDownloader_, &IFileDownloader::downloadFinished, this,
-            &HVSCMetadataService::onBuglistDownloaderFinished);
-    connect(buglistDownloader_, &IFileDownloader::downloadFailed, this,
-            &HVSCMetadataService::onBuglistDownloaderFailed);
+    buglistManager_ = new CachedDownloadManager(
+        buglistDownloader, QStringLiteral("BUGlist.txt"), QUrl(QString::fromLatin1(BuglistUrl)),
+        [this](const QByteArray &data) -> int {
+            buglistDatabase_ = hvsc::parseBuglistData(data);
+            return buglistDatabase_.isEmpty() ? -1 : buglistDatabase_.size();
+        },
+        this);
 
-    // Try to load from cache on startup
-    if (hasCachedStil()) {
-        loadStilFromCache();
-    }
-    if (hasCachedBuglist()) {
-        loadBuglistFromCache();
-    }
+    connect(stilManager_, &CachedDownloadManager::downloadProgress, this,
+            &HVSCMetadataService::stilDownloadProgress);
+    connect(stilManager_, &CachedDownloadManager::downloadFinished, this,
+            &HVSCMetadataService::stilDownloadFinished);
+    connect(stilManager_, &CachedDownloadManager::downloadFailed, this,
+            &HVSCMetadataService::stilDownloadFailed);
+    connect(stilManager_, &CachedDownloadManager::loaded, this, &HVSCMetadataService::stilLoaded);
+
+    connect(buglistManager_, &CachedDownloadManager::downloadProgress, this,
+            &HVSCMetadataService::buglistDownloadProgress);
+    connect(buglistManager_, &CachedDownloadManager::downloadFinished, this,
+            &HVSCMetadataService::buglistDownloadFinished);
+    connect(buglistManager_, &CachedDownloadManager::downloadFailed, this,
+            &HVSCMetadataService::buglistDownloadFailed);
+    connect(buglistManager_, &CachedDownloadManager::loaded, this,
+            &HVSCMetadataService::buglistLoaded);
 }
 
 QString HVSCMetadataService::stilCacheFilePath() const
 {
-    QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QDir().mkpath(dataDir);
-    return dataDir + "/STIL.txt";
+    return stilManager_->cacheFilePath();
 }
 
 QString HVSCMetadataService::buglistCacheFilePath() const
 {
-    QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QDir().mkpath(dataDir);
-    return dataDir + "/BUGlist.txt";
+    return buglistManager_->cacheFilePath();
 }
 
 bool HVSCMetadataService::hasCachedStil() const
 {
-    return QFile::exists(stilCacheFilePath());
+    return stilManager_->hasCachedFile();
 }
 
 bool HVSCMetadataService::hasCachedBuglist() const
 {
-    return QFile::exists(buglistCacheFilePath());
+    return buglistManager_->hasCachedFile();
 }
 
 bool HVSCMetadataService::loadStilFromCache()
 {
-    QString path = stilCacheFilePath();
+    const QString path = stilCacheFilePath();
     if (!QFile::exists(path)) {
         return false;
     }
@@ -78,7 +84,7 @@ bool HVSCMetadataService::loadStilFromCache()
 
 bool HVSCMetadataService::loadBuglistFromCache()
 {
-    QString path = buglistCacheFilePath();
+    const QString path = buglistCacheFilePath();
     if (!QFile::exists(path)) {
         return false;
     }
@@ -102,76 +108,12 @@ HVSCMetadataService::BugInfo HVSCMetadataService::lookupBuglist(const QString &h
 
 void HVSCMetadataService::downloadStil()
 {
-    if (stilDownloader_->isDownloading()) {
-        return;
-    }
-
-    stilDownloader_->download(QUrl(QString::fromLatin1(StilUrl)));
+    stilManager_->download();
 }
 
 void HVSCMetadataService::downloadBuglist()
 {
-    if (buglistDownloader_->isDownloading()) {
-        return;
-    }
-
-    buglistDownloader_->download(QUrl(QString::fromLatin1(BuglistUrl)));
-}
-
-void HVSCMetadataService::onStilDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal)
-{
-    emit stilDownloadProgress(bytesReceived, bytesTotal);
-}
-
-void HVSCMetadataService::onStilDownloaderFinished(const QByteArray &data)
-{
-    // Save to cache
-    QFile cacheFile(stilCacheFilePath());
-    if (cacheFile.open(QIODevice::WriteOnly)) {
-        cacheFile.write(data);
-        cacheFile.close();
-    }
-
-    // Parse the database
-    if (parseStil(data)) {
-        emit stilDownloadFinished(stilDatabase_.size());
-        emit stilLoaded();
-    } else {
-        emit stilDownloadFailed(tr("Failed to parse STIL database"));
-    }
-}
-
-void HVSCMetadataService::onStilDownloaderFailed(const QString &error)
-{
-    emit stilDownloadFailed(error);
-}
-
-void HVSCMetadataService::onBuglistDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal)
-{
-    emit buglistDownloadProgress(bytesReceived, bytesTotal);
-}
-
-void HVSCMetadataService::onBuglistDownloaderFinished(const QByteArray &data)
-{
-    // Save to cache
-    QFile cacheFile(buglistCacheFilePath());
-    if (cacheFile.open(QIODevice::WriteOnly)) {
-        cacheFile.write(data);
-        cacheFile.close();
-    }
-
-    // Parse the database
-    if (parseBuglist(data)) {
-        emit buglistDownloadFinished(buglistDatabase_.size());
-        emit buglistLoaded();
-    } else {
-        emit buglistDownloadFailed(tr("Failed to parse BUGlist database"));
-    }
-}
-
-void HVSCMetadataService::onBuglistDownloaderFailed(const QString &error)
-{
-    emit buglistDownloadFailed(error);
+    buglistManager_->download();
 }
 
 bool HVSCMetadataService::parseStil(const QByteArray &data)
@@ -187,7 +129,7 @@ bool HVSCMetadataService::parseStilFile(const QString &filePath)
         return false;
     }
 
-    QByteArray data = file.readAll();
+    const QByteArray data = file.readAll();
     file.close();
 
     return parseStil(data);
@@ -206,7 +148,7 @@ bool HVSCMetadataService::parseBuglistFile(const QString &filePath)
         return false;
     }
 
-    QByteArray data = file.readAll();
+    const QByteArray data = file.readAll();
     file.close();
 
     return parseBuglist(data);

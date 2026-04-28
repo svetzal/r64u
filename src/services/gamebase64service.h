@@ -1,7 +1,7 @@
 #ifndef GAMEBASE64SERVICE_H
 #define GAMEBASE64SERVICE_H
 
-#include "ifiledownloader.h"
+#include "cacheddownloadmanager.h"
 
 #include <QHash>
 #include <QObject>
@@ -111,18 +111,13 @@ signals:
     /// Emitted when database is unloaded/cleared
     void databaseUnloaded();
 
-private slots:
-    void onDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void onDownloaderFinished(const QByteArray &data);
-    void onDownloaderFailed(const QString &error);
-
 private:
     void openDatabase(const QString &path);
     void closeDatabase();
     [[nodiscard]] GameInfo buildGameInfoFromQuery(const QSqlQuery &query) const;
     [[nodiscard]] static bool decompressGzip(const QString &gzipPath, const QString &outputPath);
 
-    IFileDownloader *downloader_ = nullptr;
+    CachedDownloadManager *manager_;
     QSqlDatabase database_;
     QString connectionName_;
 

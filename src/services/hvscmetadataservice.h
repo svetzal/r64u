@@ -1,8 +1,8 @@
 #ifndef HVSCMETADATASERVICE_H
 #define HVSCMETADATASERVICE_H
 
+#include "cacheddownloadmanager.h"
 #include "hvscparser.h"
-#include "ifiledownloader.h"
 
 #include <QHash>
 #include <QList>
@@ -138,23 +138,14 @@ signals:
     void buglistDownloadFailed(const QString &error);
     void buglistLoaded();
 
-private slots:
-    void onStilDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void onStilDownloaderFinished(const QByteArray &data);
-    void onStilDownloaderFailed(const QString &error);
-
-    void onBuglistDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void onBuglistDownloaderFinished(const QByteArray &data);
-    void onBuglistDownloaderFailed(const QString &error);
-
 private:
     bool parseStil(const QByteArray &data);
     bool parseStilFile(const QString &filePath);
     bool parseBuglist(const QByteArray &data);
     bool parseBuglistFile(const QString &filePath);
 
-    IFileDownloader *stilDownloader_ = nullptr;
-    IFileDownloader *buglistDownloader_ = nullptr;
+    CachedDownloadManager *stilManager_;
+    CachedDownloadManager *buglistManager_;
 
     // STIL database: HVSC path -> entries
     QHash<QString, QList<hvsc::SubtuneEntry>> stilDatabase_;

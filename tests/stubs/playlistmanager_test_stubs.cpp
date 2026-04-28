@@ -21,7 +21,7 @@
 // ---------------------------------------------------------------------------
 
 SonglengthsDatabase::SonglengthsDatabase(IFileDownloader * /*downloader*/, QObject *parent)
-    : QObject(parent)
+    : QObject(parent), manager_(nullptr)
 {
 }
 
@@ -64,13 +64,7 @@ void StreamingManager::onStreamCommandFailed(const QString & /*command*/, const 
 }
 
 // ---------------------------------------------------------------------------
-// SonglengthsDatabase private slots stubs
+// SonglengthsDatabase public slot stubs
 // ---------------------------------------------------------------------------
 
 void SonglengthsDatabase::downloadDatabase() {}
-
-void SonglengthsDatabase::onDownloaderProgress(qint64 /*bytesReceived*/, qint64 /*bytesTotal*/) {}
-
-void SonglengthsDatabase::onDownloaderFinished(const QByteArray & /*data*/) {}
-
-void SonglengthsDatabase::onDownloaderFailed(const QString & /*error*/) {}

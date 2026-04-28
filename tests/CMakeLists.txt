@@ -593,6 +593,7 @@ add_executable(test_errorsourceconnector
     ${CMAKE_SOURCE_DIR}/src/services/configfileloader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
@@ -931,6 +932,7 @@ add_executable(test_hvscmetadataservice
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
 )
@@ -1259,6 +1261,7 @@ add_executable(test_filemetadatacore
     ${CMAKE_SOURCE_DIR}/src/services/filemetadatacore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/sidfileparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
@@ -1418,6 +1421,7 @@ add_executable(test_gamebase64service
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
 )
 
@@ -1443,12 +1447,42 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_gamebase64service)
 endif()
 
+# CachedDownloadManager tests - download-cache-parse lifecycle logic
+add_executable(test_cacheddownloadmanager
+    test_cacheddownloadmanager.cpp
+    ${MOCK_FILE_DOWNLOADER_SOURCES}
+    ${MOCK_FILE_DOWNLOADER_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
+)
+
+target_include_directories(test_cacheddownloadmanager PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_cacheddownloadmanager PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+# Register test with CTest
+add_test(NAME CachedDownloadManagerTest COMMAND test_cacheddownloadmanager)
+
+# Add coverage target if coverage is enabled
+if(BUILD_COVERAGE)
+    add_coverage_target(cacheddownloadmanager test_cacheddownloadmanager)
+    add_dependencies(coverage coverage_cacheddownloadmanager)
+endif()
+
 # SonglengthsDatabase tests
 add_executable(test_songlengthsdatabase
     test_songlengthsdatabase.cpp
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
 )
@@ -1958,6 +1992,7 @@ add_executable(test_databasedownloadcontroller
     test_databasedownloadcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadview.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
@@ -2062,6 +2097,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/httpfiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp

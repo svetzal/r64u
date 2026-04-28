@@ -1,6 +1,7 @@
 #include "gamebase64service.h"
 
-#include <QCoreApplication>
+#include "cacheddownloadmanager.h"
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -13,16 +14,39 @@
 #include <zlib.h>
 
 GameBase64Service::GameBase64Service(IFileDownloader *downloader, QObject *parent)
-    : QObject(parent), downloader_(downloader), connectionName_(QUuid::createUuid().toString())
+    : QObject(parent), connectionName_(QUuid::createUuid().toString())
 {
-    connect(downloader_, &IFileDownloader::downloadProgress, this,
-            &GameBase64Service::onDownloaderProgress);
-    connect(downloader_, &IFileDownloader::downloadFinished, this,
-            &GameBase64Service::onDownloaderFinished);
-    connect(downloader_, &IFileDownloader::downloadFailed, this,
-            &GameBase64Service::onDownloaderFailed);
+    manager_ = new CachedDownloadManager(
+        downloader, QStringLiteral("gamebase64.db.gz"), QUrl(QString::fromLatin1(DatabaseUrl)),
+        [this](const QByteArray & /*data*/) -> int {
+            // The gz file has already been saved to manager_->cacheFilePath() by the
+            // CachedDownloadManager before this callback is invoked.  Decompress it
+            // to the database path, then remove the temporary gz file.
+            const QString gzipPath = manager_->cacheFilePath();
+            const QString dbPath = databaseCacheFilePath();
 
-    // Try to load from cache on startup
+            if (!decompressGzip(gzipPath, dbPath)) {
+                QFile::remove(gzipPath);
+                return -1;
+            }
+
+            QFile::remove(gzipPath);
+
+            openDatabase(dbPath);
+            return databaseLoaded_ ? gameCount_ : -1;
+        },
+        this);
+
+    connect(manager_, &CachedDownloadManager::downloadProgress, this,
+            &GameBase64Service::downloadProgress);
+    connect(manager_, &CachedDownloadManager::downloadFinished, this,
+            &GameBase64Service::downloadFinished);
+    connect(manager_, &CachedDownloadManager::downloadFailed, this,
+            &GameBase64Service::downloadFailed);
+    // manager_->loaded() is not forwarded here: GameBase64Service emits databaseLoaded(int)
+    // from openDatabase(), which is invoked inside the parse callback above.
+
+    // Try to load from cache on startup (the decompressed .db, not the .gz)
     if (hasCachedDatabase()) {
         loadFromCache();
     }
@@ -46,78 +70,24 @@ QString GameBase64Service::databaseCacheFilePath() const
 
 void GameBase64Service::downloadDatabase()
 {
-    if (downloader_->isDownloading()) {
-        return;  // Already downloading
-    }
-
-    // Ensure cache directory exists
-    QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QDir().mkpath(dataPath);
-
-    downloader_->download(QUrl(QString::fromLatin1(DatabaseUrl)));
+    manager_->download();
 }
 
 void GameBase64Service::cancelDownload()
 {
-    downloader_->cancel();
-}
-
-void GameBase64Service::onDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal)
-{
-    emit downloadProgress(bytesReceived, bytesTotal);
-}
-
-void GameBase64Service::onDownloaderFinished(const QByteArray &data)
-{
-    QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    QString gzipPath = dataPath + "/gamebase64.db.gz";
-    QString dbPath = databaseCacheFilePath();
-
-    // Write compressed file
-    QFile gzipFile(gzipPath);
-    if (!gzipFile.open(QIODevice::WriteOnly)) {
-        emit downloadFailed(
-            tr("Failed to save compressed database: %1").arg(gzipFile.errorString()));
-        return;
-    }
-    gzipFile.write(data);
-    gzipFile.close();
-
-    // Decompress
-    if (!decompressGzip(gzipPath, dbPath)) {
-        QFile::remove(gzipPath);
-        emit downloadFailed(tr("Failed to decompress database"));
-        return;
-    }
-
-    // Clean up compressed file
-    QFile::remove(gzipPath);
-
-    // Load the database
-    loadFromCache();
-
-    if (databaseLoaded_) {
-        emit downloadFinished(gameCount_);
-    } else {
-        emit downloadFailed(tr("Failed to load downloaded database"));
-    }
-}
-
-void GameBase64Service::onDownloaderFailed(const QString &error)
-{
-    emit downloadFailed(error);
+    manager_->cancelDownload();
 }
 
 bool GameBase64Service::decompressGzip(const QString &gzipPath, const QString &outputPath)
 {
-    gzFile gzFile = gzopen(gzipPath.toLocal8Bit().constData(), "rb");
-    if (gzFile == nullptr) {
+    gzFile gzFileHandle = gzopen(gzipPath.toLocal8Bit().constData(), "rb");
+    if (gzFileHandle == nullptr) {
         return false;
     }
 
     QFile outFile(outputPath);
     if (!outFile.open(QIODevice::WriteOnly)) {
-        gzclose(gzFile);
+        gzclose(gzFileHandle);
         return false;
     }
 
@@ -125,9 +95,9 @@ bool GameBase64Service::decompressGzip(const QString &gzipPath, const QString &o
     char buffer[bufferSize];
     int bytesRead = 0;
 
-    while ((bytesRead = gzread(gzFile, buffer, bufferSize)) > 0) {
+    while ((bytesRead = gzread(gzFileHandle, buffer, bufferSize)) > 0) {
         if (outFile.write(buffer, bytesRead) != bytesRead) {
-            gzclose(gzFile);
+            gzclose(gzFileHandle);
             outFile.close();
             QFile::remove(outputPath);
             return false;
@@ -135,7 +105,7 @@ bool GameBase64Service::decompressGzip(const QString &gzipPath, const QString &o
     }
 
     bool success = (bytesRead == 0);  // 0 means EOF, negative means error
-    gzclose(gzFile);
+    gzclose(gzFileHandle);
     outFile.close();
 
     if (!success) {
@@ -147,7 +117,7 @@ bool GameBase64Service::decompressGzip(const QString &gzipPath, const QString &o
 
 void GameBase64Service::loadFromCache()
 {
-    QString dbPath = databaseCacheFilePath();
+    const QString dbPath = databaseCacheFilePath();
     if (!QFile::exists(dbPath)) {
         return;
     }
@@ -159,7 +129,7 @@ void GameBase64Service::clearCache()
 {
     closeDatabase();
 
-    QString dbPath = databaseCacheFilePath();
+    const QString dbPath = databaseCacheFilePath();
     if (QFile::exists(dbPath)) {
         QFile::remove(dbPath);
     }
