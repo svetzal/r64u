@@ -136,6 +136,8 @@ TransferOrchestrator::TransferOrchestrator(QObject *parent)
             &TransferOrchestrator::operationsCancelled);
     connect(folderCoordinator_, &FolderOperationCoordinator::statusMessage, this,
             &TransferOrchestrator::statusMessage);
+    connect(folderCoordinator_, &FolderOperationCoordinator::operationFailed, this,
+            &TransferOrchestrator::operationFailed);
     connect(folderCoordinator_, &FolderOperationCoordinator::scheduleProcessNextRequested, this,
             [this]() { scheduleProcessNext(); });
 
@@ -284,6 +286,7 @@ void TransferOrchestrator::enqueueUpload(const QString &localPath, const QString
 
     if (batchIdx < 0 || batchIdx >= state_.batches.size()) {
         qCWarning(LogTransfer) << "TransferOrchestrator::enqueueUpload - no valid batch";
+        emit operationFailed(QFileInfo(localPath).fileName(), tr("Failed to create upload batch"));
         return;
     }
 
@@ -325,6 +328,8 @@ void TransferOrchestrator::enqueueDownload(const QString &remotePath, const QStr
 
     if (batchIdx < 0 || batchIdx >= state_.batches.size()) {
         qCWarning(LogTransfer) << "TransferOrchestrator::enqueueDownload - no valid batch";
+        emit operationFailed(QFileInfo(remotePath).fileName(),
+                             tr("Failed to create download batch"));
         return;
     }
 
@@ -353,11 +358,14 @@ void TransferOrchestrator::enqueueRecursiveUpload(const QString &localDir, const
 {
     if (!ftpClient_ || !ftpClient_->isConnected()) {
         qCWarning(LogTransfer) << "enqueueRecursiveUpload skipped: FTP not connected";
+        emit operationFailed(QFileInfo(localDir).fileName(), tr("Not connected to device"));
         return;
     }
 
-    if (!localFs_->directoryExists(localDir))
+    if (!localFs_->directoryExists(localDir)) {
+        emit operationFailed(QFileInfo(localDir).fileName(), tr("Local directory does not exist"));
         return;
+    }
 
     folderCoordinator_->enqueueRecursive(OperationType::Upload, localDir, remoteDir);
 }
@@ -367,6 +375,7 @@ void TransferOrchestrator::enqueueRecursiveDownload(const QString &remoteDir,
 {
     if (!ftpClient_ || !ftpClient_->isConnected()) {
         qCWarning(LogTransfer) << "enqueueRecursiveDownload skipped: FTP not connected";
+        emit operationFailed(QFileInfo(remoteDir).fileName(), tr("Not connected to device"));
         return;
     }
 
@@ -451,6 +460,7 @@ void TransferOrchestrator::enqueueDelete(const QString &remotePath, bool isDirec
 
     if (batchIdx < 0 || batchIdx >= state_.batches.size()) {
         qCWarning(LogTransfer) << "TransferOrchestrator::enqueueDelete - no valid batch";
+        emit operationFailed(QFileInfo(remotePath).fileName(), tr("Failed to create delete batch"));
         return;
     }
 
@@ -487,6 +497,7 @@ void TransferOrchestrator::enqueueRecursiveDelete(const QString &remotePath)
 {
     if (!ftpClient_ || !ftpClient_->isConnected()) {
         qCWarning(LogTransfer) << "enqueueRecursiveDelete skipped: FTP not connected";
+        emit operationFailed(QFileInfo(remotePath).fileName(), tr("Not connected to device"));
         return;
     }
 

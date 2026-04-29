@@ -32,6 +32,7 @@ public:
     void setCurrentRemoteDir(const QString &path) override;
     QString currentLocalDir() const;
     QString currentRemoteDir() const override;
+    RemoteFileOperations *fileOperations() const { return fileOperations_; }
 
     // Settings
     void loadSettings();

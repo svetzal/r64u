@@ -158,6 +158,36 @@ private slots:
         // After processNext, state should be Transferring
         QCOMPARE(orchestrator->state().queueState, QueueState::Transferring);
     }
+
+    void testEnqueueRecursiveUpload_NotConnected_EmitsOperationFailed()
+    {
+        mockFtp->mockSetConnected(false);
+        QSignalSpy spy(orchestrator, &TransferOrchestrator::operationFailed);
+
+        orchestrator->enqueueRecursiveUpload(tempDir.path(), "/remote/dir");
+
+        QCOMPARE(spy.count(), 1);
+    }
+
+    void testEnqueueRecursiveDownload_NotConnected_EmitsOperationFailed()
+    {
+        mockFtp->mockSetConnected(false);
+        QSignalSpy spy(orchestrator, &TransferOrchestrator::operationFailed);
+
+        orchestrator->enqueueRecursiveDownload("/remote/dir", tempDir.path());
+
+        QCOMPARE(spy.count(), 1);
+    }
+
+    void testEnqueueRecursiveDelete_NotConnected_EmitsOperationFailed()
+    {
+        mockFtp->mockSetConnected(false);
+        QSignalSpy spy(orchestrator, &TransferOrchestrator::operationFailed);
+
+        orchestrator->enqueueRecursiveDelete("/remote/dir");
+
+        QCOMPARE(spy.count(), 1);
+    }
 };
 
 QTEST_MAIN(TestTransferOrchestrator)

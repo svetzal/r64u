@@ -69,9 +69,11 @@ void RecursiveScanCoordinator::startDownloadScan(const QString &remotePath,
     emit scanningStarted(state_.scanningFolderName, transfer::OperationType::Download);
     emit scanningProgress(0, 1, 0);
 
-    if (ftpClient_) {
-        ftpClient_->list(remotePath);
+    if (!ftpClient_) {
+        emit statusMessage(tr("Cannot scan: FTP client not configured"), 5000);
+        return;
     }
+    ftpClient_->list(remotePath);
 }
 
 void RecursiveScanCoordinator::startDeleteScan(const QString &remotePath)
@@ -89,9 +91,11 @@ void RecursiveScanCoordinator::startDeleteScan(const QString &remotePath)
     emit scanningStarted(folderName, transfer::OperationType::Delete);
     emit scanningProgress(0, 1, 0);
 
-    if (ftpClient_) {
-        ftpClient_->list(remotePath);
+    if (!ftpClient_) {
+        emit statusMessage(tr("Cannot scan: FTP client not configured"), 5000);
+        return;
     }
+    ftpClient_->list(remotePath);
 }
 
 void RecursiveScanCoordinator::handleDirectoryListingForDownload(const QString &path,

@@ -7,6 +7,7 @@
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
 #include "services/iftpclient.h"
+#include "services/remotefileoperations.h"
 #include "services/songlengthsdatabase.h"
 
 #include <QSignalSpy>
@@ -148,6 +149,7 @@ private slots:
     void testHvscMetadataService_StilDownloadFailedRoutedToDownloadError();
     void testHvscMetadataService_BuglistDownloadFailedRoutedToDownloadError();
     void testGameBase64Service_DownloadFailedRoutedToDownloadError();
+    void testRemoteFileOperations_OperationFailedRoutedToOperationFailed();
 };
 
 void TestErrorSourceConnector::init()
@@ -177,7 +179,7 @@ void TestErrorSourceConnector::testNullSafety_AllNullSources()
 {
     // connectSources() with all nulls must not crash
     handler_->connectSources(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-                             nullptr, nullptr);
+                             nullptr, nullptr, nullptr);
     // If we reach here without crashing, the null guard works
     QVERIFY(true);
 }
@@ -188,7 +190,7 @@ void TestErrorSourceConnector::testFtpClient_ErrorRoutedToDataError()
 
     MinimalFtpSource ftpSource;
     handler_->connectSources(nullptr, nullptr, nullptr, &ftpSource, nullptr, nullptr, nullptr,
-                             nullptr, nullptr, nullptr);
+                             nullptr, nullptr, nullptr, nullptr);
 
     ftpSource.emitError("FTP connection dropped");
 
@@ -202,7 +204,7 @@ void TestErrorSourceConnector::testRestClient_OperationFailedRoutedToOperationFa
 
     MockRestClient restClient;
     handler_->connectSources(nullptr, &restClient, nullptr, nullptr, nullptr, nullptr, nullptr,
-                             nullptr, nullptr, nullptr);
+                             nullptr, nullptr, nullptr, nullptr);
 
     restClient.mockEmitOperationFailed("getVersion", "Host unreachable");
 
@@ -218,7 +220,7 @@ void TestErrorSourceConnector::testRemoteFileModel_ErrorOccurredRoutedToDataErro
 
     SignallingRemoteFileModel model;
     handler_->connectSources(nullptr, nullptr, &model, nullptr, nullptr, nullptr, nullptr, nullptr,
-                             nullptr, nullptr);
+                             nullptr, nullptr, nullptr);
 
     model.emitError("Failed to list directory");
 
@@ -239,7 +241,7 @@ void TestErrorSourceConnector::testFilePreviewService_PreviewFailedRoutedToOpera
     MinimalFtpSource ftpSource;
     SignallingFilePreviewService fps(&ftpSource);
     handler_->connectSources(nullptr, nullptr, nullptr, nullptr, &fps, nullptr, nullptr, nullptr,
-                             nullptr, nullptr);
+                             nullptr, nullptr, nullptr);
 
     fps.emitPreviewFailed("/SD/game.prg", "Download timed out");
 
@@ -255,7 +257,7 @@ void TestErrorSourceConnector::testConfigFileLoader_LoadFailedRoutedToOperationF
 
     SignallingConfigFileLoader loader;
     handler_->connectSources(nullptr, nullptr, nullptr, nullptr, nullptr, &loader, nullptr, nullptr,
-                             nullptr, nullptr);
+                             nullptr, nullptr, nullptr);
 
     loader.emitLoadFailed("/SD/config/myconfig.cfg", "File not found");
 
@@ -277,7 +279,7 @@ void TestErrorSourceConnector::testSonglengthsDatabase_DownloadFailedRoutedToDow
 
     SignallingSonglengthsDatabase sld(downloader1_);
     handler_->connectSources(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, &sld,
-                             nullptr, nullptr);
+                             nullptr, nullptr, nullptr);
 
     sld.emitDownloadFailed("Connection timed out");
 
@@ -294,7 +296,7 @@ void TestErrorSourceConnector::testHvscMetadataService_StilDownloadFailedRoutedT
 
     SignallingHVSCMetadataService hvsc(downloader1_, downloader2_);
     handler_->connectSources(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-                             &hvsc, nullptr);
+                             &hvsc, nullptr, nullptr);
 
     hvsc.emitStilDownloadFailed("Server error 503");
 
@@ -311,7 +313,7 @@ void TestErrorSourceConnector::testHvscMetadataService_BuglistDownloadFailedRout
 
     SignallingHVSCMetadataService hvsc(downloader1_, downloader2_);
     handler_->connectSources(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-                             &hvsc, nullptr);
+                             &hvsc, nullptr, nullptr);
 
     hvsc.emitBuglistDownloadFailed("Network unreachable");
 
@@ -328,7 +330,7 @@ void TestErrorSourceConnector::testGameBase64Service_DownloadFailedRoutedToDownl
 
     SignallingGameBase64Service gb64(downloader1_);
     handler_->connectSources(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-                             nullptr, &gb64);
+                             nullptr, &gb64, nullptr);
 
     gb64.emitDownloadFailed("Disk full");
 
@@ -337,6 +339,21 @@ void TestErrorSourceConnector::testGameBase64Service_DownloadFailedRoutedToDownl
     QCOMPARE(spy.at(0).at(1).value<ErrorSeverity>(), ErrorSeverity::Warning);
     QVERIFY(spy.at(0).at(2).toString().contains("GameBase64"));
     QCOMPARE(spy.at(0).at(3).toString(), QString("Disk full"));
+}
+
+void TestErrorSourceConnector::testRemoteFileOperations_OperationFailedRoutedToOperationFailed()
+{
+    QSignalSpy spy(handler_, &ErrorHandler::statusMessage);
+
+    RemoteFileOperations rfo(nullptr);
+    handler_->connectSources(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                             nullptr, nullptr, &rfo);
+
+    rfo.createFolder("/some/path");
+
+    QCOMPARE(spy.count(), 1);
+    const QString msg = spy.at(0).at(0).toString();
+    QVERIFY(msg.contains("Create folder") || msg.contains("FTP client not configured"));
 }
 
 QTEST_MAIN(TestErrorSourceConnector)

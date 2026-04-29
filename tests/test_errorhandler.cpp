@@ -237,7 +237,7 @@ void TestErrorHandler::testConnectSourcesSignalRouting()
 
     MinimalFtpSource source(this);
     handler_->connectSources(nullptr, nullptr, nullptr, &source, nullptr, nullptr, nullptr, nullptr,
-                             nullptr, nullptr);
+                             nullptr, nullptr, nullptr);
 
     source.emitError("FTP connection dropped");
 

@@ -21,6 +21,7 @@ signals:
     void itemRenamed(const QString &oldPath, const QString &newPath);
     void itemRemoved(const QString &path);
     void statusMessage(const QString &message, int timeout = 0);
+    void operationFailed(const QString &operation, const QString &error);
 
 private:
     IFtpClient *ftpClient_ = nullptr;

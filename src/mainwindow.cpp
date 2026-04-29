@@ -208,7 +208,7 @@ void MainWindow::setupConnections()
         deviceConnection_, deviceConnection_->restClient(), remoteFileModel_,
         deviceConnection_->ftpClient(), filePreviewService_, configFileLoader_, transferService_,
         metadataBundle_.songlengthsDatabase, metadataBundle_.hvscMetadataService,
-        metadataBundle_.gameBase64Service);
+        metadataBundle_.gameBase64Service, transferPanel_->fileOperations());
 
     // Connection lifecycle signals (navigation / model management)
     connect(deviceConnection_, &DeviceConnection::stateChanged, this,

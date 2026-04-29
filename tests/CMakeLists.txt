@@ -599,6 +599,7 @@ add_executable(test_errorsourceconnector
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/remotefileoperations.cpp
     # Headers for AUTOMOC to generate signal implementations for stubbed classes
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.h
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.h
@@ -623,6 +624,30 @@ add_test(NAME ErrorSourceConnectorTest COMMAND test_errorsourceconnector)
 if(BUILD_COVERAGE)
     add_coverage_target(errorsourceconnector test_errorsourceconnector)
     add_dependencies(coverage coverage_errorsourceconnector)
+endif()
+
+# RemoteFileOperations tests - signal emission for null FTP client guard clauses
+add_executable(test_remotefileoperations
+    test_remotefileoperations.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/remotefileoperations.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+)
+
+target_include_directories(test_remotefileoperations PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_remotefileoperations PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME RemoteFileOperationsTest COMMAND test_remotefileoperations)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(remotefileoperations test_remotefileoperations)
+    add_dependencies(coverage coverage_remotefileoperations)
 endif()
 
 # StatusMessageService tests

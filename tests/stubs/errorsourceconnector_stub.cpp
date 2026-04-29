@@ -8,6 +8,7 @@ class GameBase64Service;
 class HVSCMetadataService;
 class IRestClient;
 class RemoteFileModel;
+class RemoteFileOperations;
 class SonglengthsDatabase;
 class TransferService;
 
@@ -15,7 +16,8 @@ void ErrorHandler::connectSources(DeviceConnection * /*dc*/, IRestClient * /*res
                                   RemoteFileModel * /*rfm*/, IFtpClient *ftpClient,
                                   FilePreviewService * /*fps*/, ConfigFileLoader * /*cfl*/,
                                   TransferService * /*ts*/, SonglengthsDatabase * /*sld*/,
-                                  HVSCMetadataService * /*hvsc*/, GameBase64Service * /*gb64*/)
+                                  HVSCMetadataService * /*hvsc*/, GameBase64Service * /*gb64*/,
+                                  RemoteFileOperations * /*rfo*/)
 {
     if (ftpClient) {
         connect(ftpClient, &IFtpClient::error, this, &ErrorHandler::handleDataError);

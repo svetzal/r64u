@@ -241,6 +241,8 @@ void FolderOperationCoordinator::startFolderOperation(const transfer::PendingFol
                              << op.targetPath;
                     emit statusMessage(tr("Failed to delete local folder '%1'").arg(op.targetPath),
                                        5000);
+                    emit operationFailed(QFileInfo(op.targetPath).fileName(),
+                                         tr("Failed to delete existing local folder"));
                 }
             }
         }
@@ -249,6 +251,9 @@ void FolderOperationCoordinator::startFolderOperation(const transfer::PendingFol
         if (localFs_ && !localFs_->createDirectoryPath(op.targetPath)) {
             qDebug() << "FolderOperationCoordinator: Failed to create local directory"
                      << op.targetPath;
+            emit operationFailed(QFileInfo(op.targetPath).fileName(),
+                                 tr("Failed to create local directory"));
+            return;
         }
 
         // Start scanning remote directory

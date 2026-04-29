@@ -6,6 +6,7 @@
 #include "hvscmetadataservice.h"
 #include "iftpclient.h"
 #include "irestclient.h"
+#include "remotefileoperations.h"
 #include "songlengthsdatabase.h"
 #include "transferservice.h"
 
@@ -17,7 +18,8 @@ void ErrorHandler::connectSources(DeviceConnection *dc, IRestClient *restClient,
                                   RemoteFileModel *rfm, IFtpClient *ftpClient,
                                   FilePreviewService *fps, ConfigFileLoader *cfl,
                                   TransferService *ts, SonglengthsDatabase *sld,
-                                  HVSCMetadataService *hvsc, GameBase64Service *gb64)
+                                  HVSCMetadataService *hvsc, GameBase64Service *gb64,
+                                  RemoteFileOperations *rfo)
 {
     if (dc) {
         connect(dc, &DeviceConnection::connectionError, this, &ErrorHandler::handleConnectionError);
@@ -61,5 +63,9 @@ void ErrorHandler::connectSources(DeviceConnection *dc, IRestClient *restClient,
     if (gb64) {
         connect(gb64, &GameBase64Service::downloadFailed, this,
                 [this](const QString &error) { handleDownloadError(tr("GameBase64"), error); });
+    }
+    if (rfo) {
+        connect(rfo, &RemoteFileOperations::operationFailed, this,
+                &ErrorHandler::handleOperationFailed);
     }
 }

@@ -84,6 +84,7 @@ signals:
 
     void statusMessage(const QString &message, int timeout);
     void scheduleProcessNextRequested();
+    void operationFailed(const QString &fileName, const QString &error);
 
     /// The pendingUploadAfterDelete flag has been set; caller should start delete
     void pendingUploadAfterDeleteSet(const QString &targetPath);

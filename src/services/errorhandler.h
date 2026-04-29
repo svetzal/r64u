@@ -16,6 +16,7 @@ class HVSCMetadataService;
 class IFtpClient;
 class IRestClient;
 class RemoteFileModel;
+class RemoteFileOperations;
 class SonglengthsDatabase;
 class TransferService;
 
@@ -88,7 +89,7 @@ public:
     void connectSources(DeviceConnection *dc, IRestClient *restClient, RemoteFileModel *rfm,
                         IFtpClient *ftpClient, FilePreviewService *fps, ConfigFileLoader *cfl,
                         TransferService *ts, SonglengthsDatabase *sld, HVSCMetadataService *hvsc,
-                        GameBase64Service *gb64);
+                        GameBase64Service *gb64, RemoteFileOperations *rfo = nullptr);
 
     /// @name Generic Error Handling
     /// @{
