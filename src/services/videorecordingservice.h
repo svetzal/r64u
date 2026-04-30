@@ -1,7 +1,7 @@
 #ifndef VIDEORECORDINGSERVICE_H
 #define VIDEORECORDINGSERVICE_H
 
-class StreamingManager;
+class StreamingService;
 
 #include "avicore.h"
 #include "ivideostreamreceiver.h"
@@ -53,7 +53,7 @@ public:
     [[nodiscard]] int frameCount() const { return frameCount_; }
 
 public slots:
-    void connectToStreaming(StreamingManager *manager);
+    void connectToStreaming(StreamingService *manager);
 
     /**
      * @brief Starts recording to the specified file.

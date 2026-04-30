@@ -1,15 +1,15 @@
 /**
- * @file playlistmanager.cpp
- * @brief Implementation of the PlaylistManager service.
+ * @file playlistservice.cpp
+ * @brief Implementation of the PlaylistService service.
  */
 
-#include "playlistmanager.h"
+#include "playlistservice.h"
 
 #include "deviceconnection.h"
 #include "iftpclient.h"
 #include "playlistcore.h"
 #include "songlengthsdatabase.h"
-#include "streamingmanager.h"
+#include "streamingservice.h"
 
 #include "utils/logging.h"
 
@@ -22,37 +22,37 @@
 
 #include <algorithm>
 
-PlaylistManager::PlaylistManager(DeviceConnection *connection, QObject *parent)
+PlaylistService::PlaylistService(DeviceConnection *connection, QObject *parent)
     : QObject(parent), deviceConnection_(connection), advanceTimer_(new QTimer(this))
 {
     advanceTimer_->setSingleShot(true);
-    connect(advanceTimer_, &QTimer::timeout, this, &PlaylistManager::onAdvanceTimer);
+    connect(advanceTimer_, &QTimer::timeout, this, &PlaylistService::onAdvanceTimer);
 
     // Connect to FTP client for SID data fetching (for duration lookup)
     if (deviceConnection_ != nullptr && deviceConnection_->ftpClient() != nullptr) {
         connect(deviceConnection_->ftpClient(), &IFtpClient::downloadToMemoryFinished, this,
-                &PlaylistManager::onSidDataReceived);
+                &PlaylistService::onSidDataReceived);
     }
 
     loadSettings();
 }
 
-void PlaylistManager::setSonglengthsDatabase(SonglengthsDatabase *database)
+void PlaylistService::setSonglengthsDatabase(SonglengthsDatabase *database)
 {
     songlengthsDatabase_ = database;
 }
 
-void PlaylistManager::setStreamingManager(StreamingManager *manager)
+void PlaylistService::setStreamingManager(StreamingService *manager)
 {
     streamingManager_ = manager;
 }
 
-void PlaylistManager::addItem(const QString &path, int subsong)
+void PlaylistService::addItem(const QString &path, int subsong)
 {
     addItem(playlist::createItem(path, subsong, state_.defaultDuration));
 }
 
-void PlaylistManager::addItem(const PlaylistItem &item)
+void PlaylistService::addItem(const PlaylistItem &item)
 {
     state_ = playlist::addItem(state_, item);
 
@@ -71,7 +71,7 @@ void PlaylistManager::addItem(const PlaylistItem &item)
     emit playlistChanged();
 }
 
-void PlaylistManager::removeItem(int index)
+void PlaylistService::removeItem(int index)
 {
     auto [newState, wasPlaying] = playlist::removeItem(state_, index);
     bool wasStreaming = wasPlaying && playing_;
@@ -86,13 +86,13 @@ void PlaylistManager::removeItem(int index)
     }
 }
 
-void PlaylistManager::moveItem(int from, int to)
+void PlaylistService::moveItem(int from, int to)
 {
     state_ = playlist::moveItem(state_, from, to);
     emit playlistChanged();
 }
 
-void PlaylistManager::clear()
+void PlaylistService::clear()
 {
     if (state_.items.isEmpty()) {
         return;
@@ -104,7 +104,7 @@ void PlaylistManager::clear()
     emit playlistChanged();
 }
 
-PlaylistManager::PlaylistItem PlaylistManager::itemAt(int index) const
+PlaylistService::PlaylistItem PlaylistService::itemAt(int index) const
 {
     if (index < 0 || index >= state_.items.count()) {
         return {};
@@ -112,7 +112,7 @@ PlaylistManager::PlaylistItem PlaylistManager::itemAt(int index) const
     return state_.items.at(index);
 }
 
-void PlaylistManager::play(int index)
+void PlaylistService::play(int index)
 {
     if (state_.items.isEmpty()) {
         qCWarning(LogPlaylist) << "Cannot play: playlist is empty";
@@ -140,7 +140,7 @@ void PlaylistManager::play(int index)
     emit currentIndexChanged(state_.currentIndex);
 }
 
-void PlaylistManager::stop()
+void PlaylistService::stop()
 {
     stopTimer();
     playing_ = false;
@@ -158,7 +158,7 @@ void PlaylistManager::stop()
     emit playbackStopped();
 }
 
-void PlaylistManager::next()
+void PlaylistService::next()
 {
     if (state_.items.isEmpty()) {
         qCDebug(LogPlaylist) << "next() called on empty playlist";
@@ -180,7 +180,7 @@ void PlaylistManager::next()
     }
 }
 
-void PlaylistManager::previous()
+void PlaylistService::previous()
 {
     if (state_.items.isEmpty()) {
         qCDebug(LogPlaylist) << "previous() called on empty playlist";
@@ -201,7 +201,7 @@ void PlaylistManager::previous()
     }
 }
 
-void PlaylistManager::setShuffle(bool enabled)
+void PlaylistService::setShuffle(bool enabled)
 {
     if (state_.shuffle == enabled) {
         return;
@@ -218,7 +218,7 @@ void PlaylistManager::setShuffle(bool enabled)
     emit shuffleChanged(enabled);
 }
 
-void PlaylistManager::setRepeatMode(RepeatMode mode)
+void PlaylistService::setRepeatMode(RepeatMode mode)
 {
     if (state_.repeatMode == mode) {
         return;
@@ -229,7 +229,7 @@ void PlaylistManager::setRepeatMode(RepeatMode mode)
     emit repeatModeChanged(mode);
 }
 
-void PlaylistManager::setDefaultDuration(int seconds)
+void PlaylistService::setDefaultDuration(int seconds)
 {
     seconds = std::clamp(seconds, 10, 3600);  // 10 seconds to 1 hour
 
@@ -242,7 +242,7 @@ void PlaylistManager::setDefaultDuration(int seconds)
     emit defaultDurationChanged(seconds);
 }
 
-void PlaylistManager::setItemDuration(int index, int seconds)
+void PlaylistService::setItemDuration(int index, int seconds)
 {
     if (index < 0 || index >= state_.items.count()) {
         return;
@@ -260,7 +260,7 @@ void PlaylistManager::setItemDuration(int index, int seconds)
     emit playlistChanged();
 }
 
-void PlaylistManager::updateDurationFromData(const QString &path, const QByteArray &sidData)
+void PlaylistService::updateDurationFromData(const QString &path, const QByteArray &sidData)
 {
     if (songlengthsDatabase_ == nullptr || !songlengthsDatabase_->isLoaded()) {
         qCWarning(LogPlaylist) << "Cannot update duration: songlengths database not loaded";
@@ -287,7 +287,7 @@ void PlaylistManager::updateDurationFromData(const QString &path, const QByteArr
     emit playlistChanged();
 }
 
-bool PlaylistManager::savePlaylist(const QString &filePath) const
+bool PlaylistService::savePlaylist(const QString &filePath) const
 {
     QJsonObject json = playlist::serialize(state_.items);
     QJsonDocument doc(json);
@@ -300,7 +300,7 @@ bool PlaylistManager::savePlaylist(const QString &filePath) const
     return true;
 }
 
-bool PlaylistManager::loadPlaylist(const QString &filePath)
+bool PlaylistService::loadPlaylist(const QString &filePath)
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -332,7 +332,7 @@ bool PlaylistManager::loadPlaylist(const QString &filePath)
     return true;
 }
 
-void PlaylistManager::saveSettings() const
+void PlaylistService::saveSettings() const
 {
     QSettings settings;
     settings.setValue("playlist/shuffle", state_.shuffle);
@@ -340,7 +340,7 @@ void PlaylistManager::saveSettings() const
     settings.setValue("playlist/defaultDuration", state_.defaultDuration);
 }
 
-void PlaylistManager::loadSettings()
+void PlaylistService::loadSettings()
 {
     QSettings settings;
     state_.shuffle = settings.value("playlist/shuffle", false).toBool();
@@ -348,7 +348,7 @@ void PlaylistManager::loadSettings()
     state_.defaultDuration = settings.value("playlist/defaultDuration", 180).toInt();
 }
 
-void PlaylistManager::onAdvanceTimer()
+void PlaylistService::onAdvanceTimer()
 {
     if (!playing_ || state_.items.isEmpty()) {
         return;
@@ -366,14 +366,14 @@ void PlaylistManager::onAdvanceTimer()
     emit trackAdvanced(state_.currentIndex);
 }
 
-void PlaylistManager::ensureStreamingStarted()
+void PlaylistService::ensureStreamingStarted()
 {
     if (streamingManager_ != nullptr && !streamingManager_->isStreaming()) {
         streamingManager_->startStreaming();
     }
 }
 
-void PlaylistManager::startTimer()
+void PlaylistService::startTimer()
 {
     if (state_.currentIndex < 0 || state_.currentIndex >= state_.items.count()) {
         qCWarning(LogPlaylist) << "Cannot start timer: index" << state_.currentIndex
@@ -385,12 +385,12 @@ void PlaylistManager::startTimer()
     advanceTimer_->start(durationMs);
 }
 
-void PlaylistManager::stopTimer()
+void PlaylistService::stopTimer()
 {
     advanceTimer_->stop();
 }
 
-void PlaylistManager::playCurrentItem()
+void PlaylistService::playCurrentItem()
 {
     if (state_.currentIndex < 0 || state_.currentIndex >= state_.items.count()) {
         qCWarning(LogPlaylist) << "Cannot play current item: index" << state_.currentIndex
@@ -420,7 +420,7 @@ void PlaylistManager::playCurrentItem()
     startTimer();
 }
 
-void PlaylistManager::onSidDataReceived(const QString &remotePath, const QByteArray &data)
+void PlaylistService::onSidDataReceived(const QString &remotePath, const QByteArray &data)
 {
     // Check if this is a path we requested for duration lookup
     if (!pendingDurationLookups_.contains(remotePath)) {

@@ -5,8 +5,8 @@
 #include "services/diskbootsequenceservice.h"
 #include "services/filebrowsercore.h"
 #include "services/filetypecore.h"
-#include "services/playlistmanager.h"
-#include "services/streamingmanager.h"
+#include "services/playlistservice.h"
+#include "services/streamingservice.h"
 #include "utils/logging.h"
 
 #include <QAction>
@@ -24,12 +24,12 @@ FileActionController::FileActionController(DeviceConnection *connection,
             &FileActionController::statusMessage);
 }
 
-void FileActionController::setStreamingManager(StreamingManager *manager)
+void FileActionController::setStreamingManager(StreamingService *manager)
 {
     streamingManager_ = manager;
 }
 
-void FileActionController::setPlaylistManager(PlaylistManager *manager)
+void FileActionController::setPlaylistManager(PlaylistService *manager)
 {
     playlistManager_ = manager;
 }

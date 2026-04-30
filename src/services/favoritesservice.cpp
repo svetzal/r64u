@@ -1,30 +1,30 @@
 /**
- * @file favoritesmanager.cpp
- * @brief Implementation of the FavoritesManager service.
+ * @file favoritesservice.cpp
+ * @brief Implementation of the FavoritesService service.
  */
 
-#include "favoritesmanager.h"
+#include "favoritesservice.h"
 
 #include "favoritescore.h"
 
 #include <QSettings>
 
-FavoritesManager::FavoritesManager(QObject *parent) : QObject(parent)
+FavoritesService::FavoritesService(QObject *parent) : QObject(parent)
 {
     loadSettings();
 }
 
-QStringList FavoritesManager::favorites() const
+QStringList FavoritesService::favorites() const
 {
     return favorites::sorted(favorites_);
 }
 
-bool FavoritesManager::isFavorite(const QString &path) const
+bool FavoritesService::isFavorite(const QString &path) const
 {
     return favorites_.contains(path);
 }
 
-void FavoritesManager::addFavorite(const QString &path)
+void FavoritesService::addFavorite(const QString &path)
 {
     auto [paths, added] = favorites::addFavorite(favorites_, path);
     if (!added) {
@@ -37,7 +37,7 @@ void FavoritesManager::addFavorite(const QString &path)
     emit favoritesChanged();
 }
 
-void FavoritesManager::removeFavorite(const QString &path)
+void FavoritesService::removeFavorite(const QString &path)
 {
     auto [paths, removed] = favorites::removeFavorite(favorites_, path);
     if (!removed) {
@@ -50,7 +50,7 @@ void FavoritesManager::removeFavorite(const QString &path)
     emit favoritesChanged();
 }
 
-bool FavoritesManager::toggleFavorite(const QString &path)
+bool FavoritesService::toggleFavorite(const QString &path)
 {
     if (isFavorite(path)) {
         removeFavorite(path);
@@ -61,7 +61,7 @@ bool FavoritesManager::toggleFavorite(const QString &path)
     }
 }
 
-void FavoritesManager::moveFavorite(int from, int to)
+void FavoritesService::moveFavorite(int from, int to)
 {
     QStringList moved = favorites::moveFavorite(favorites_, from, to);
     if (moved == favorites_) {
@@ -73,7 +73,7 @@ void FavoritesManager::moveFavorite(int from, int to)
     emit favoritesChanged();
 }
 
-void FavoritesManager::clearAll()
+void FavoritesService::clearAll()
 {
     if (favorites_.isEmpty()) {
         return;
@@ -84,13 +84,13 @@ void FavoritesManager::clearAll()
     emit favoritesChanged();
 }
 
-void FavoritesManager::loadSettings()
+void FavoritesService::loadSettings()
 {
     QSettings settings;
     favorites_ = settings.value("bookmarks/paths").toStringList();
 }
 
-void FavoritesManager::saveSettings()
+void FavoritesService::saveSettings()
 {
     QSettings settings;
     settings.setValue("bookmarks/paths", favorites_);

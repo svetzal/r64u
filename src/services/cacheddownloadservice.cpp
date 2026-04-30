@@ -1,45 +1,45 @@
 /**
- * @file cacheddownloadmanager.cpp
- * @brief Implementation of CachedDownloadManager.
+ * @file cacheddownloadservice.cpp
+ * @brief Implementation of CachedDownloadService.
  */
 
-#include "cacheddownloadmanager.h"
+#include "cacheddownloadservice.h"
 
 #include <QDir>
 #include <QFile>
 #include <QStandardPaths>
 
-CachedDownloadManager::CachedDownloadManager(IFileDownloader *downloader,
+CachedDownloadService::CachedDownloadService(IFileDownloader *downloader,
                                              const QString &cacheFilename, const QUrl &downloadUrl,
                                              ParseCallback parseCallback, QObject *parent)
     : QObject(parent), downloader_(downloader), cacheFilename_(cacheFilename),
       downloadUrl_(downloadUrl), parseCallback_(std::move(parseCallback))
 {
     connect(downloader_, &IFileDownloader::downloadProgress, this,
-            &CachedDownloadManager::onDownloaderProgress);
+            &CachedDownloadService::onDownloaderProgress);
     connect(downloader_, &IFileDownloader::downloadFinished, this,
-            &CachedDownloadManager::onDownloaderFinished);
+            &CachedDownloadService::onDownloaderFinished);
     connect(downloader_, &IFileDownloader::downloadFailed, this,
-            &CachedDownloadManager::onDownloaderFailed);
+            &CachedDownloadService::onDownloaderFailed);
 
     if (hasCachedFile()) {
         loadFromFile(cacheFilePath());
     }
 }
 
-QString CachedDownloadManager::cacheFilePath() const
+QString CachedDownloadService::cacheFilePath() const
 {
     QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     QDir().mkpath(dataDir);
     return dataDir + "/" + cacheFilename_;
 }
 
-bool CachedDownloadManager::hasCachedFile() const
+bool CachedDownloadService::hasCachedFile() const
 {
     return QFile::exists(cacheFilePath());
 }
 
-void CachedDownloadManager::download()
+void CachedDownloadService::download()
 {
     if (downloader_->isDownloading()) {
         return;
@@ -47,17 +47,17 @@ void CachedDownloadManager::download()
     downloader_->download(downloadUrl_);
 }
 
-void CachedDownloadManager::cancelDownload()
+void CachedDownloadService::cancelDownload()
 {
     downloader_->cancel();
 }
 
-void CachedDownloadManager::onDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal)
+void CachedDownloadService::onDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal)
 {
     emit downloadProgress(bytesReceived, bytesTotal);
 }
 
-void CachedDownloadManager::onDownloaderFinished(const QByteArray &data)
+void CachedDownloadService::onDownloaderFinished(const QByteArray &data)
 {
     // Persist to cache before parsing so the data is available on next startup
     // even if parsing fails.
@@ -76,12 +76,12 @@ void CachedDownloadManager::onDownloaderFinished(const QByteArray &data)
     }
 }
 
-void CachedDownloadManager::onDownloaderFailed(const QString &error)
+void CachedDownloadService::onDownloaderFailed(const QString &error)
 {
     emit downloadFailed(error);
 }
 
-bool CachedDownloadManager::loadFromFile(const QString &filePath)
+bool CachedDownloadService::loadFromFile(const QString &filePath)
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {

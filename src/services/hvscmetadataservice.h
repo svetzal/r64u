@@ -1,7 +1,7 @@
 #ifndef HVSCMETADATASERVICE_H
 #define HVSCMETADATASERVICE_H
 
-#include "cacheddownloadmanager.h"
+#include "cacheddownloadservice.h"
 #include "hvscparser.h"
 
 #include <QHash>
@@ -144,8 +144,8 @@ private:
     bool parseBuglist(const QByteArray &data);
     bool parseBuglistFile(const QString &filePath);
 
-    CachedDownloadManager *stilManager_;
-    CachedDownloadManager *buglistManager_;
+    CachedDownloadService *stilManager_;
+    CachedDownloadService *buglistManager_;
 
     // STIL database: HVSC path -> entries
     QHash<QString, QList<hvsc::SubtuneEntry>> stilDatabase_;

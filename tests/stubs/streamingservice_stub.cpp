@@ -1,18 +1,18 @@
 /**
- * @file streamingmanager_stub.cpp
- * @brief Link-time stub for StreamingManager.
+ * @file streamingservice_stub.cpp
+ * @brief Link-time stub for StreamingService.
  *
  * ServiceFactory tests pull in the real service layer but not the full
  * streaming dependency chain (Qt Multimedia, stream sockets, etc.).
- * PlaylistManager includes streamingmanager.h and calls isStreaming() /
+ * PlaylistService includes streamingservice.h and calls isStreaming() /
  * startStreaming() / stopStreaming() only when the pointer is non-null;
- * since ServiceFactory never sets a StreamingManager on PlaylistManager,
+ * since ServiceFactory never sets a StreamingService on PlaylistService,
  * these bodies are never reached — but the linker still requires the symbols.
  */
 
-#include "services/streamingmanager.h"
+#include "services/streamingservice.h"
 
-StreamingManager::StreamingManager(DeviceConnection * /*connection*/,
+StreamingService::StreamingService(DeviceConnection * /*connection*/,
                                    IStreamControlClient * /*streamControl*/,
                                    IVideoStreamReceiver * /*videoReceiver*/,
                                    IAudioStreamReceiver * /*audioReceiver*/,
@@ -23,19 +23,19 @@ StreamingManager::StreamingManager(DeviceConnection * /*connection*/,
 {
 }
 
-StreamingManager::~StreamingManager() = default;
+StreamingService::~StreamingService() = default;
 
-bool StreamingManager::startStreaming()
+bool StreamingService::startStreaming()
 {
     return false;
 }
 
-void StreamingManager::stopStreaming() {}
+void StreamingService::stopStreaming() {}
 
-void StreamingManager::onVideoFormatDetected(int /*format*/) {}
+void StreamingService::onVideoFormatDetected(int /*format*/) {}
 
-void StreamingManager::onStreamCommandSucceeded(const QString & /*command*/) {}
+void StreamingService::onStreamCommandSucceeded(const QString & /*command*/) {}
 
-void StreamingManager::onStreamCommandFailed(const QString & /*command*/, const QString & /*error*/)
+void StreamingService::onStreamCommandFailed(const QString & /*command*/, const QString & /*error*/)
 {
 }

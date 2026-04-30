@@ -7,7 +7,7 @@
 #include "services/keyboardinputservice.h"
 #include "services/screenshotservice.h"
 #include "services/streamingdiagnostics.h"
-#include "services/streamingmanager.h"
+#include "services/streamingservice.h"
 #include "services/videorecordingservice.h"
 #include "services/videostreamreceiver.h"
 #include "utils/logging.h"
@@ -132,7 +132,7 @@ void ViewPanel::setupUi()
     }
 }
 
-void ViewPanel::setStreamingManager(StreamingManager *manager)
+void ViewPanel::setStreamingManager(StreamingService *manager)
 {
     streamingManager_ = manager;
 
@@ -146,14 +146,14 @@ void ViewPanel::setStreamingManager(StreamingManager *manager)
                 videoDisplayWidget_, &VideoDisplayWidget::displayFrame);
     }
 
-    connect(streamingManager_, &StreamingManager::streamingStarted, this,
+    connect(streamingManager_, &StreamingService::streamingStarted, this,
             &ViewPanel::onStreamingStarted);
-    connect(streamingManager_, &StreamingManager::streamingStopped, this,
+    connect(streamingManager_, &StreamingService::streamingStopped, this,
             &ViewPanel::onStreamingStopped);
-    connect(streamingManager_, &StreamingManager::videoFormatDetected, this,
+    connect(streamingManager_, &StreamingService::videoFormatDetected, this,
             &ViewPanel::onVideoFormatDetected);
-    connect(streamingManager_, &StreamingManager::error, this, &ViewPanel::onStreamingError);
-    connect(streamingManager_, &StreamingManager::statusMessage, this, &ViewPanel::statusMessage);
+    connect(streamingManager_, &StreamingService::error, this, &ViewPanel::onStreamingError);
+    connect(streamingManager_, &StreamingService::statusMessage, this, &ViewPanel::statusMessage);
 
     // Connect video display keyboard events to keyboard service
     if (videoDisplayWidget_) {
@@ -271,7 +271,7 @@ void ViewPanel::onStartStreaming()
     }
 
     if (!streamingManager_ || !streamingManager_->startStreaming()) {
-        // Error already emitted by StreamingManager
+        // Error already emitted by StreamingService
         updateActions();
     }
 }

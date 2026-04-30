@@ -1,9 +1,9 @@
 /**
- * @file streamingmanager.cpp
- * @brief Implementation of the StreamingManager service.
+ * @file streamingservice.cpp
+ * @brief Implementation of the StreamingService service.
  */
 
-#include "streamingmanager.h"
+#include "streamingservice.h"
 
 #include "audioplaybackservice.h"
 #include "audiostreamreceiver.h"
@@ -25,7 +25,7 @@
 #include <QHostAddress>
 #include <QUrl>
 
-StreamingManager::StreamingManager(DeviceConnection *connection,
+StreamingService::StreamingService(DeviceConnection *connection,
                                    IStreamControlClient *streamControl,
                                    IVideoStreamReceiver *videoReceiver,
                                    IAudioStreamReceiver *audioReceiver,
@@ -52,12 +52,12 @@ StreamingManager::StreamingManager(DeviceConnection *connection,
 
     // Connect stream control signals
     connect(streamControl_, &IStreamControlClient::commandSucceeded, this,
-            &StreamingManager::onStreamCommandSucceeded);
+            &StreamingService::onStreamCommandSucceeded);
     connect(streamControl_, &IStreamControlClient::commandFailed, this,
-            &StreamingManager::onStreamCommandFailed);
+            &StreamingService::onStreamCommandFailed);
 }
 
-StreamingManager *StreamingManager::createDefault(DeviceConnection *connection, QObject *parent)
+StreamingService *StreamingService::createDefault(DeviceConnection *connection, QObject *parent)
 {
     // Create owned streaming services (parented to manager)
     auto *streamControl = new StreamControlClient(nullptr);
@@ -68,7 +68,7 @@ StreamingManager *StreamingManager::createDefault(DeviceConnection *connection, 
     auto *keyboardInput = new KeyboardInputService(restClient, nullptr);
     auto *networkProvider = new NetworkInterfaceProvider();
 
-    auto *manager = new StreamingManager(connection, streamControl, videoReceiver, audioReceiver,
+    auto *manager = new StreamingService(connection, streamControl, videoReceiver, audioReceiver,
                                          audioPlayback, keyboardInput, networkProvider, parent);
 
     // Transfer ownership of all services to the manager
@@ -98,7 +98,7 @@ StreamingManager *StreamingManager::createDefault(DeviceConnection *connection, 
     return manager;
 }
 
-StreamingManager::~StreamingManager()
+StreamingService::~StreamingService()
 {
     if (isStreaming_) {
         stopStreaming();
@@ -106,10 +106,10 @@ StreamingManager::~StreamingManager()
     delete networkProvider_;
 }
 
-bool StreamingManager::startStreaming()
+bool StreamingService::startStreaming()
 {
     if (isStreaming_) {
-        LOG_VERBOSE() << "StreamingManager::startStreaming: Already streaming";
+        LOG_VERBOSE() << "StreamingService::startStreaming: Already streaming";
         return false;
     }
 
@@ -133,12 +133,12 @@ bool StreamingManager::startStreaming()
 
     // Extract device host from REST client URL
     QString deviceUrl = deviceConnection_->restClient()->host();
-    LOG_VERBOSE() << "StreamingManager::startStreaming: deviceUrl from restClient:" << deviceUrl;
+    LOG_VERBOSE() << "StreamingService::startStreaming: deviceUrl from restClient:" << deviceUrl;
     QString deviceHost = QUrl(deviceUrl).host();
     if (deviceHost.isEmpty()) {
         deviceHost = deviceUrl;
     }
-    LOG_VERBOSE() << "StreamingManager::startStreaming: extracted deviceHost:" << deviceHost;
+    LOG_VERBOSE() << "StreamingService::startStreaming: extracted deviceHost:" << deviceHost;
     streamControl_->setHost(deviceHost);
 
     // Find local IP that can reach the device
@@ -151,7 +151,7 @@ bool StreamingManager::startStreaming()
         return false;
     }
 
-    LOG_VERBOSE() << "StreamingManager::startStreaming: Local IP for streaming:" << targetHost;
+    LOG_VERBOSE() << "StreamingService::startStreaming: Local IP for streaming:" << targetHost;
 
     // Start UDP receivers
     if (!videoReceiver_->bind()) {
@@ -174,7 +174,7 @@ bool StreamingManager::startStreaming()
     }
 
     // Send stream start commands to the device
-    LOG_VERBOSE() << "StreamingManager::startStreaming: Sending stream commands to device"
+    LOG_VERBOSE() << "StreamingService::startStreaming: Sending stream commands to device"
                   << deviceHost << "- target:" << targetHost
                   << "video port:" << VideoStreamReceiver::DefaultPort
                   << "audio port:" << AudioStreamReceiver::DefaultPort;
@@ -194,7 +194,7 @@ bool StreamingManager::startStreaming()
     return true;
 }
 
-void StreamingManager::stopStreaming()
+void StreamingService::stopStreaming()
 {
     if (!isStreaming_) {
         return;
@@ -218,7 +218,7 @@ void StreamingManager::stopStreaming()
     emit streamingStopped();
 }
 
-void StreamingManager::onVideoFormatDetected(int format)
+void StreamingService::onVideoFormatDetected(int format)
 {
     auto videoFormat = static_cast<IVideoStreamReceiver::VideoFormat>(format);
     switch (videoFormat) {
@@ -235,12 +235,12 @@ void StreamingManager::onVideoFormatDetected(int format)
     emit videoFormatDetected(format);
 }
 
-void StreamingManager::onStreamCommandSucceeded(const QString &command)
+void StreamingService::onStreamCommandSucceeded(const QString &command)
 {
     emit statusMessage(tr("Stream: %1").arg(command), 2000);
 }
 
-void StreamingManager::onStreamCommandFailed(const QString &command, const QString &errorMsg)
+void StreamingService::onStreamCommandFailed(const QString &command, const QString &errorMsg)
 {
     emit statusMessage(tr("Stream failed: %1 - %2").arg(command, errorMsg), 5000);
 
@@ -250,7 +250,7 @@ void StreamingManager::onStreamCommandFailed(const QString &command, const QStri
     }
 }
 
-QString StreamingManager::findLocalHostForDevice() const
+QString StreamingService::findLocalHostForDevice() const
 {
     if (!deviceConnection_ || !deviceConnection_->restClient()) {
         return {};
@@ -264,11 +264,11 @@ QString StreamingManager::findLocalHostForDevice() const
 
     QHostAddress deviceAddr(deviceHost);
     if (deviceAddr.isNull() || deviceAddr.protocol() != QAbstractSocket::IPv4Protocol) {
-        LOG_VERBOSE() << "StreamingManager::findLocalHostForDevice: Invalid device IP - isNull:"
+        LOG_VERBOSE() << "StreamingService::findLocalHostForDevice: Invalid device IP - isNull:"
                       << deviceAddr.isNull() << "protocol:" << deviceAddr.protocol();
         return {};
     }
-    LOG_VERBOSE() << "StreamingManager::findLocalHostForDevice: device IP address:"
+    LOG_VERBOSE() << "StreamingService::findLocalHostForDevice: device IP address:"
                   << deviceAddr.toString();
 
     QString targetHost;
@@ -298,7 +298,7 @@ QString StreamingManager::findLocalHostForDevice() const
     }
 
     if (targetHost.isEmpty()) {
-        LOG_VERBOSE() << "StreamingManager::findLocalHostForDevice: Could not find local IP on "
+        LOG_VERBOSE() << "StreamingService::findLocalHostForDevice: Could not find local IP on "
                          "same subnet as device";
     }
 

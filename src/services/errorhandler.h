@@ -145,7 +145,7 @@ public:
      * @brief Handles a streaming error (warning severity).
      * @param message The error message.
      *
-     * Used for errors from StreamingManager and VideoRecordingService.
+     * Used for errors from StreamingService and VideoRecordingService.
      */
     void handleStreamingError(const QString &message);
 

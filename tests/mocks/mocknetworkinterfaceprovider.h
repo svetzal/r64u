@@ -1,6 +1,6 @@
 /**
  * @file mocknetworkinterfaceprovider.h
- * @brief Mock network interface provider for testing StreamingManager.
+ * @brief Mock network interface provider for testing StreamingService.
  */
 
 #ifndef MOCKNETWORKINTERFACEPROVIDER_H

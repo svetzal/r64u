@@ -1,9 +1,9 @@
-#include "credentialstore.h"
+#include "platformkeychain.h"
 
 #import <Foundation/Foundation.h>
 #import <Security/Security.h>
 
-bool CredentialStore::storePassword(const QString &service, const QString &account,
+bool PlatformKeychain::storePassword(const QString &service, const QString &account,
                                     const QString &password)
 {
     if (password.isEmpty()) {
@@ -36,7 +36,7 @@ bool CredentialStore::storePassword(const QString &service, const QString &accou
     return status == errSecSuccess;
 }
 
-QString CredentialStore::retrievePassword(const QString &service, const QString &account)
+QString PlatformKeychain::retrievePassword(const QString &service, const QString &account)
 {
     NSString *serviceStr = service.toNSString();
     NSString *accountStr = account.toNSString();
@@ -64,7 +64,7 @@ QString CredentialStore::retrievePassword(const QString &service, const QString 
     return QString();
 }
 
-bool CredentialStore::deletePassword(const QString &service, const QString &account)
+bool PlatformKeychain::deletePassword(const QString &service, const QString &account)
 {
     NSString *serviceStr = service.toNSString();
     NSString *accountStr = account.toNSString();

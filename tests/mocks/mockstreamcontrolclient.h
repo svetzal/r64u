@@ -1,6 +1,6 @@
 /**
  * @file mockstreamcontrolclient.h
- * @brief Mock stream control client for testing StreamingManager.
+ * @brief Mock stream control client for testing StreamingService.
  */
 
 #ifndef MOCKSTREAMCONTROLCLIENT_H

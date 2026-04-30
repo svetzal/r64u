@@ -1,12 +1,12 @@
-#ifndef FILEPREVIEWSTRATEGY_H
-#define FILEPREVIEWSTRATEGY_H
+#ifndef IFILEPREVIEW_H
+#define IFILEPREVIEW_H
 
 #include <QByteArray>
 #include <QString>
 #include <QWidget>
 
 /**
- * @brief Abstract interface for file preview strategies.
+ * @brief Abstract interface for file preview implementations.
  *
  * Each strategy handles a specific file type (text, HTML, disk images, SID files)
  * and provides methods to:
@@ -15,10 +15,10 @@
  * - Render the content into the widget
  * - Clear the widget state
  */
-class FilePreviewStrategy
+class IFilePreview
 {
 public:
-    virtual ~FilePreviewStrategy() = default;
+    virtual ~IFilePreview() = default;
 
     /**
      * @brief Returns whether this strategy can handle the given file.
@@ -59,4 +59,4 @@ public:
     virtual void clear() = 0;
 };
 
-#endif  // FILEPREVIEWSTRATEGY_H
+#endif  // IFILEPREVIEW_H

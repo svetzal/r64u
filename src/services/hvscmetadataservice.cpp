@@ -5,7 +5,7 @@
 
 #include "hvscmetadataservice.h"
 
-#include "cacheddownloadmanager.h"
+#include "cacheddownloadservice.h"
 #include "hvscparser.h"
 
 #include <QFile>
@@ -14,7 +14,7 @@ HVSCMetadataService::HVSCMetadataService(IFileDownloader *stilDownloader,
                                          IFileDownloader *buglistDownloader, QObject *parent)
     : QObject(parent)
 {
-    stilManager_ = new CachedDownloadManager(
+    stilManager_ = new CachedDownloadService(
         stilDownloader, QStringLiteral("STIL.txt"), QUrl(QString::fromLatin1(StilUrl)),
         [this](const QByteArray &data) -> int {
             stilDatabase_ = hvsc::parseStilData(data);
@@ -22,7 +22,7 @@ HVSCMetadataService::HVSCMetadataService(IFileDownloader *stilDownloader,
         },
         this);
 
-    buglistManager_ = new CachedDownloadManager(
+    buglistManager_ = new CachedDownloadService(
         buglistDownloader, QStringLiteral("BUGlist.txt"), QUrl(QString::fromLatin1(BuglistUrl)),
         [this](const QByteArray &data) -> int {
             buglistDatabase_ = hvsc::parseBuglistData(data);
@@ -30,21 +30,21 @@ HVSCMetadataService::HVSCMetadataService(IFileDownloader *stilDownloader,
         },
         this);
 
-    connect(stilManager_, &CachedDownloadManager::downloadProgress, this,
+    connect(stilManager_, &CachedDownloadService::downloadProgress, this,
             &HVSCMetadataService::stilDownloadProgress);
-    connect(stilManager_, &CachedDownloadManager::downloadFinished, this,
+    connect(stilManager_, &CachedDownloadService::downloadFinished, this,
             &HVSCMetadataService::stilDownloadFinished);
-    connect(stilManager_, &CachedDownloadManager::downloadFailed, this,
+    connect(stilManager_, &CachedDownloadService::downloadFailed, this,
             &HVSCMetadataService::stilDownloadFailed);
-    connect(stilManager_, &CachedDownloadManager::loaded, this, &HVSCMetadataService::stilLoaded);
+    connect(stilManager_, &CachedDownloadService::loaded, this, &HVSCMetadataService::stilLoaded);
 
-    connect(buglistManager_, &CachedDownloadManager::downloadProgress, this,
+    connect(buglistManager_, &CachedDownloadService::downloadProgress, this,
             &HVSCMetadataService::buglistDownloadProgress);
-    connect(buglistManager_, &CachedDownloadManager::downloadFinished, this,
+    connect(buglistManager_, &CachedDownloadService::downloadFinished, this,
             &HVSCMetadataService::buglistDownloadFinished);
-    connect(buglistManager_, &CachedDownloadManager::downloadFailed, this,
+    connect(buglistManager_, &CachedDownloadService::downloadFailed, this,
             &HVSCMetadataService::buglistDownloadFailed);
-    connect(buglistManager_, &CachedDownloadManager::loaded, this,
+    connect(buglistManager_, &CachedDownloadService::loaded, this,
             &HVSCMetadataService::buglistLoaded);
 }
 

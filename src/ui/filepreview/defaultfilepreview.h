@@ -1,7 +1,7 @@
 #ifndef DEFAULTFILEPREVIEW_H
 #define DEFAULTFILEPREVIEW_H
 
-#include "filepreviewstrategy.h"
+#include "ifilepreview.h"
 
 #include <QLabel>
 #include <QObject>
@@ -13,7 +13,7 @@
  * Shows basic file metadata for files without specialized
  * preview support.
  */
-class DefaultFilePreview : public QObject, public FilePreviewStrategy
+class DefaultFilePreview : public QObject, public IFilePreview
 {
     Q_OBJECT
 

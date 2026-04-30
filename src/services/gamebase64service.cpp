@@ -1,6 +1,6 @@
 #include "gamebase64service.h"
 
-#include "cacheddownloadmanager.h"
+#include "cacheddownloadservice.h"
 
 #include <QDir>
 #include <QFile>
@@ -16,11 +16,11 @@
 GameBase64Service::GameBase64Service(IFileDownloader *downloader, QObject *parent)
     : QObject(parent), connectionName_(QUuid::createUuid().toString())
 {
-    manager_ = new CachedDownloadManager(
+    manager_ = new CachedDownloadService(
         downloader, QStringLiteral("gamebase64.db.gz"), QUrl(QString::fromLatin1(DatabaseUrl)),
         [this](const QByteArray & /*data*/) -> int {
             // The gz file has already been saved to manager_->cacheFilePath() by the
-            // CachedDownloadManager before this callback is invoked.  Decompress it
+            // CachedDownloadService before this callback is invoked.  Decompress it
             // to the database path, then remove the temporary gz file.
             const QString gzipPath = manager_->cacheFilePath();
             const QString dbPath = databaseCacheFilePath();
@@ -37,11 +37,11 @@ GameBase64Service::GameBase64Service(IFileDownloader *downloader, QObject *paren
         },
         this);
 
-    connect(manager_, &CachedDownloadManager::downloadProgress, this,
+    connect(manager_, &CachedDownloadService::downloadProgress, this,
             &GameBase64Service::downloadProgress);
-    connect(manager_, &CachedDownloadManager::downloadFinished, this,
+    connect(manager_, &CachedDownloadService::downloadFinished, this,
             &GameBase64Service::downloadFinished);
-    connect(manager_, &CachedDownloadManager::downloadFailed, this,
+    connect(manager_, &CachedDownloadService::downloadFailed, this,
             &GameBase64Service::downloadFailed);
     // manager_->loaded() is not forwarded here: GameBase64Service emits databaseLoaded(int)
     // from openDatabase(), which is invoked inside the parse callback above.

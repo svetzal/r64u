@@ -96,7 +96,7 @@ set(SOURCES
     src/services/iaudiostreamreceiver.cpp
     src/services/iaudioplaybackservice.cpp
     src/services/streamcontrolclient.cpp
-    src/services/streamingmanager.cpp
+    src/services/streamingservice.cpp
     src/services/videostreamreceiver.cpp
     src/services/audiostreamreceiver.cpp
     src/services/audioplaybackservice.cpp
@@ -104,7 +104,7 @@ set(SOURCES
     src/services/diskimagereader.cpp
     src/services/petsciiconverter.cpp
     src/services/sidfileparser.cpp
-    src/services/favoritesmanager.cpp
+    src/services/favoritesservice.cpp
     src/services/favoritescore.cpp
     src/services/favoritesuicore.cpp
     src/services/filebrowsercore.cpp
@@ -126,14 +126,14 @@ set(SOURCES
     src/services/screenshotservice.cpp
     src/services/vic2frameconverter.cpp
     src/services/remotefileoperations.cpp
-    src/services/playlistmanager.cpp
+    src/services/playlistservice.cpp
     src/services/playlistcore.cpp
     src/services/transfercore.cpp
     src/services/ilocalfilesystem.cpp
     src/services/localfilesystem.cpp
     src/services/ifiledownloader.cpp
     src/services/httpfiledownloader.cpp
-    src/services/cacheddownloadmanager.cpp
+    src/services/cacheddownloadservice.cpp
     src/services/songlengthsparser.cpp
     src/services/songlengthsdatabase.cpp
     src/services/hvscparser.cpp
@@ -196,7 +196,7 @@ set(HEADERS
     src/ui/viewpanel.h
     src/ui/configpanel.h
     src/ui/playlistwidget.h
-    src/ui/filepreview/filepreviewstrategy.h
+    src/ui/filepreview/ifilepreview.h
     src/ui/filepreview/c64previewbase.h
     src/ui/filepreview/textfilepreview.h
     src/ui/filepreview/diskimagepreview.h
@@ -211,7 +211,7 @@ set(HEADERS
     src/services/transferservice.h
     src/services/errorhandler.h
     src/services/statusmessageservice.h
-    src/services/credentialstore.h
+    src/services/platformkeychain.h
     src/services/icredentialstore.h
     src/services/systemcredentialstore.h
     src/services/istreamcontrolclient.h
@@ -221,7 +221,7 @@ set(HEADERS
     src/services/inetworkinterfaceprovider.h
     src/services/networkinterfaceprovider.h
     src/services/streamcontrolclient.h
-    src/services/streamingmanager.h
+    src/services/streamingservice.h
     src/services/videostreamreceiver.h
     src/services/audiostreamreceiver.h
     src/services/audioplaybackservice.h
@@ -229,7 +229,7 @@ set(HEADERS
     src/services/diskimagereader.h
     src/services/petsciiconverter.h
     src/services/sidfileparser.h
-    src/services/favoritesmanager.h
+    src/services/favoritesservice.h
     src/services/favoritescore.h
     src/services/favoritesuicore.h
     src/services/filebrowsercore.h
@@ -249,14 +249,14 @@ set(HEADERS
     src/services/videorecordingservice.h
     src/services/vic2frameconverter.h
     src/services/remotefileoperations.h
-    src/services/playlistmanager.h
+    src/services/playlistservice.h
     src/services/playlistcore.h
     src/services/transfercore.h
     src/services/ilocalfilesystem.h
     src/services/localfilesystem.h
     src/services/ifiledownloader.h
     src/services/httpfiledownloader.h
-    src/services/cacheddownloadmanager.h
+    src/services/cacheddownloadservice.h
     src/services/songlengthsdatabase.h
     src/services/hvscmetadataservice.h
     src/services/gamebase64service.h
@@ -282,10 +282,10 @@ set(HEADERS
 
 # Platform-specific credential storage
 if(APPLE)
-    list(APPEND SOURCES src/services/credentialstore_mac.mm)
+    list(APPEND SOURCES src/services/platformkeychain_mac.mm)
 else()
     # Stub implementation for Windows/Linux (secure storage not yet implemented)
-    list(APPEND SOURCES src/services/credentialstore_stub.cpp)
+    list(APPEND SOURCES src/services/platformkeychain_stub.cpp)
 endif()
 
 set(RESOURCES

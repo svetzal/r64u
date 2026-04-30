@@ -11,8 +11,8 @@
 class DeviceConnection;
 class ConfigFileLoader;
 class DiskBootSequenceService;
-class PlaylistManager;
-class StreamingManager;
+class PlaylistService;
+class StreamingService;
 class QAction;
 
 class FileActionController : public QObject
@@ -23,8 +23,8 @@ public:
     explicit FileActionController(DeviceConnection *connection, ConfigFileLoader *configLoader,
                                   QObject *parent = nullptr);
 
-    void setStreamingManager(StreamingManager *manager);
-    void setPlaylistManager(PlaylistManager *manager);
+    void setStreamingManager(StreamingService *manager);
+    void setPlaylistManager(PlaylistService *manager);
     void setActions(QAction *play, QAction *run, QAction *mount);
 
     void updateActionStates(filetype::FileType type, bool canOperate);
@@ -46,8 +46,8 @@ private:
 
     DeviceConnection *deviceConnection_ = nullptr;
     ConfigFileLoader *configFileLoader_ = nullptr;
-    StreamingManager *streamingManager_ = nullptr;
-    PlaylistManager *playlistManager_ = nullptr;
+    StreamingService *streamingManager_ = nullptr;
+    PlaylistService *playlistManager_ = nullptr;
     DiskBootSequenceService *bootService_ = nullptr;
 
     QAction *playAction_ = nullptr;

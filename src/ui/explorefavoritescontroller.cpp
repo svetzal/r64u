@@ -1,6 +1,6 @@
 #include "explorefavoritescontroller.h"
 
-#include "services/favoritesmanager.h"
+#include "services/favoritesservice.h"
 #include "services/favoritesuicore.h"
 #include "utils/logging.h"
 
@@ -8,12 +8,12 @@
 #include <QFileInfo>
 #include <QMenu>
 
-ExploreFavoritesController::ExploreFavoritesController(FavoritesManager *favoritesManager,
+ExploreFavoritesController::ExploreFavoritesController(FavoritesService *favoritesManager,
                                                        QObject *parent)
     : QObject(parent), favoritesManager_(favoritesManager)
 {
     if (favoritesManager_) {
-        connect(favoritesManager_, &FavoritesManager::favoritesChanged, this,
+        connect(favoritesManager_, &FavoritesService::favoritesChanged, this,
                 &ExploreFavoritesController::onFavoritesChanged);
     }
 }

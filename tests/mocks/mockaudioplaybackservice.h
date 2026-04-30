@@ -1,6 +1,6 @@
 /**
  * @file mockaudioplaybackservice.h
- * @brief Mock audio playback service for testing StreamingManager.
+ * @brief Mock audio playback service for testing StreamingService.
  */
 
 #ifndef MOCKAUDIOPLAYBACKSERVICE_H

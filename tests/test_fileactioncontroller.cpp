@@ -2,7 +2,7 @@
 #include "mocks/mockrestclient.h"
 #include "services/deviceconnection.h"
 #include "services/filetypecore.h"
-#include "services/playlistmanager.h"
+#include "services/playlistservice.h"
 #include "ui/fileactioncontroller.h"
 
 #include <QAction>
@@ -175,7 +175,7 @@ private slots:
 
     void testAddToPlaylist_MixedItems_OnlySidPassesFilter()
     {
-        auto *playlistManager = new PlaylistManager(nullptr, this);
+        auto *playlistManager = new PlaylistService(nullptr, this);
         auto *controller = new FileActionController(nullptr, nullptr, this);
         controller->setPlaylistManager(playlistManager);
 
@@ -195,7 +195,7 @@ private slots:
 
     void testAddToPlaylist_NoSidItems_EmitsNoSidMusicFilesMessage()
     {
-        auto *playlistManager = new PlaylistManager(nullptr, this);
+        auto *playlistManager = new PlaylistService(nullptr, this);
         auto *controller = new FileActionController(nullptr, nullptr, this);
         controller->setPlaylistManager(playlistManager);
 
@@ -211,7 +211,7 @@ private slots:
         QVERIFY(spy.at(0).at(0).toString().contains("No SID music files"));
     }
 
-    void testAddToPlaylist_NullPlaylistManager_IsNoOp()
+    void testAddToPlaylist_NullPlaylistService_IsNoOp()
     {
         // No playlist manager set — must not crash and must not emit statusMessage
         auto *controller = new FileActionController(nullptr, nullptr, this);

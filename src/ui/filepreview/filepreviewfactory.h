@@ -1,7 +1,7 @@
 #ifndef FILEPREVIEWFACTORY_H
 #define FILEPREVIEWFACTORY_H
 
-#include "filepreviewstrategy.h"
+#include "ifilepreview.h"
 
 #include <QString>
 
@@ -24,7 +24,7 @@ public:
      * @param path The file path (used for extension checking).
      * @return Unique pointer to the selected strategy.
      */
-    [[nodiscard]] static std::unique_ptr<FilePreviewStrategy> createStrategy(const QString &path);
+    [[nodiscard]] static std::unique_ptr<IFilePreview> createStrategy(const QString &path);
 };
 
 #endif  // FILEPREVIEWFACTORY_H

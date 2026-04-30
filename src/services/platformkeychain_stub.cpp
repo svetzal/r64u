@@ -1,9 +1,9 @@
-#include "credentialstore.h"
+#include "platformkeychain.h"
 
 // Stub implementation for platforms without native credential storage
 // Passwords will not be stored securely - falls back to no storage
 
-bool CredentialStore::storePassword(const QString &service, const QString &account,
+bool PlatformKeychain::storePassword(const QString &service, const QString &account,
                                     const QString &password)
 {
     Q_UNUSED(service)
@@ -13,7 +13,7 @@ bool CredentialStore::storePassword(const QString &service, const QString &accou
     return false;
 }
 
-QString CredentialStore::retrievePassword(const QString &service, const QString &account)
+QString PlatformKeychain::retrievePassword(const QString &service, const QString &account)
 {
     Q_UNUSED(service)
     Q_UNUSED(account)
@@ -21,7 +21,7 @@ QString CredentialStore::retrievePassword(const QString &service, const QString 
     return QString();
 }
 
-bool CredentialStore::deletePassword(const QString &service, const QString &account)
+bool PlatformKeychain::deletePassword(const QString &service, const QString &account)
 {
     Q_UNUSED(service)
     Q_UNUSED(account)

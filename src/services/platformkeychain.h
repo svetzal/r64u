@@ -1,9 +1,9 @@
-#ifndef CREDENTIALSTORE_H
-#define CREDENTIALSTORE_H
+#ifndef PLATFORMKEYCHAIN_H
+#define PLATFORMKEYCHAIN_H
 
 #include <QString>
 
-class CredentialStore
+class PlatformKeychain
 {
 public:
     static bool storePassword(const QString &service, const QString &account,
@@ -12,7 +12,7 @@ public:
     static bool deletePassword(const QString &service, const QString &account);
 
 private:
-    CredentialStore() = default;
+    PlatformKeychain() = default;
 };
 
-#endif  // CREDENTIALSTORE_H
+#endif  // PLATFORMKEYCHAIN_H

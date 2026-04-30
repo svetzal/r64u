@@ -1,5 +1,5 @@
-#ifndef PLAYLISTMANAGER_H
-#define PLAYLISTMANAGER_H
+#ifndef PLAYLISTSERVICE_H
+#define PLAYLISTSERVICE_H
 
 #include "playlistcore.h"
 
@@ -11,7 +11,7 @@
 
 class DeviceConnection;
 class SonglengthsDatabase;
-class StreamingManager;
+class StreamingService;
 
 /**
  * @brief Manages SID music playlists with playback control.
@@ -26,7 +26,7 @@ class StreamingManager;
  * Playback logic is delegated to pure functions in the playlist namespace
  * (playlistcore.h); this class owns I/O: REST calls, QSettings, and QTimer.
  */
-class PlaylistManager : public QObject
+class PlaylistService : public QObject
 {
     Q_OBJECT
 
@@ -43,20 +43,20 @@ public:
      */
     using RepeatMode = playlist::RepeatMode;
 
-    explicit PlaylistManager(DeviceConnection *connection, QObject *parent = nullptr);
-    ~PlaylistManager() override = default;
+    explicit PlaylistService(DeviceConnection *connection, QObject *parent = nullptr);
+    ~PlaylistService() override = default;
 
     /**
      * @brief Sets the songlengths database for duration lookup.
-     * @param database The database (not owned by PlaylistManager).
+     * @param database The database (not owned by PlaylistService).
      */
     void setSonglengthsDatabase(SonglengthsDatabase *database);
 
     /**
-     * @brief Sets the streaming manager for automatic stream start/stop.
-     * @param manager The streaming manager (not owned by PlaylistManager).
+     * @brief Sets the streaming service for automatic stream start/stop.
+     * @param manager The streaming service (not owned by PlaylistService).
      */
-    void setStreamingManager(StreamingManager *manager);
+    void setStreamingManager(StreamingService *manager);
 
     /// @name Playlist Management
     /// @{
@@ -286,7 +286,7 @@ private:
 
     DeviceConnection *deviceConnection_ = nullptr;
     SonglengthsDatabase *songlengthsDatabase_ = nullptr;
-    StreamingManager *streamingManager_ = nullptr;
+    StreamingService *streamingManager_ = nullptr;
 
     playlist::State state_;
     bool playing_ = false;
@@ -297,4 +297,4 @@ private:
     QSet<QString> pendingDurationLookups_;
 };
 
-#endif  // PLAYLISTMANAGER_H
+#endif  // PLAYLISTSERVICE_H

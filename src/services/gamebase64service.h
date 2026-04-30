@@ -1,7 +1,7 @@
 #ifndef GAMEBASE64SERVICE_H
 #define GAMEBASE64SERVICE_H
 
-#include "cacheddownloadmanager.h"
+#include "cacheddownloadservice.h"
 
 #include <QHash>
 #include <QObject>
@@ -117,7 +117,7 @@ private:
     [[nodiscard]] GameInfo buildGameInfoFromQuery(const QSqlQuery &query) const;
     [[nodiscard]] static bool decompressGzip(const QString &gzipPath, const QString &outputPath);
 
-    CachedDownloadManager *manager_;
+    CachedDownloadService *manager_;
     QSqlDatabase database_;
     QString connectionName_;
 

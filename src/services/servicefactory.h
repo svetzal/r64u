@@ -14,8 +14,8 @@ class FilePreviewService;
 class TransferService;
 class ErrorHandler;
 class StatusMessageService;
-class FavoritesManager;
-class PlaylistManager;
+class FavoritesService;
+class PlaylistService;
 class HttpFileDownloader;
 class SonglengthsDatabase;
 class HVSCMetadataService;
@@ -55,10 +55,10 @@ public:
     [[nodiscard]] ErrorHandler *errorHandler() const;
     /// @brief Returns the status message service.
     [[nodiscard]] StatusMessageService *statusMessageService() const;
-    /// @brief Returns the favorites manager.
-    [[nodiscard]] FavoritesManager *favoritesManager() const;
-    /// @brief Returns the playlist manager.
-    [[nodiscard]] PlaylistManager *playlistManager() const;
+    /// @brief Returns the favorites service.
+    [[nodiscard]] FavoritesService *favoritesManager() const;
+    /// @brief Returns the playlist service.
+    [[nodiscard]] PlaylistService *playlistManager() const;
     /// @brief Returns the HTTP downloader used for HVSC song lengths.
     [[nodiscard]] HttpFileDownloader *songlengthsDownloader() const;
     /// @brief Returns the song lengths database.
@@ -86,8 +86,8 @@ private:
     TransferService *transferService_ = nullptr;
     ErrorHandler *errorHandler_ = nullptr;
     StatusMessageService *statusMessageService_ = nullptr;
-    FavoritesManager *favoritesManager_ = nullptr;
-    PlaylistManager *playlistManager_ = nullptr;
+    FavoritesService *favoritesManager_ = nullptr;
+    PlaylistService *playlistManager_ = nullptr;
     HttpFileDownloader *songlengthsDownloader_ = nullptr;
     SonglengthsDatabase *songlengthsDatabase_ = nullptr;
     HttpFileDownloader *stilDownloader_ = nullptr;

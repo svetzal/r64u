@@ -6,7 +6,7 @@
 #include "videorecordingservice.h"
 
 #include "audiostreamreceiver.h"
-#include "streamingmanager.h"
+#include "streamingservice.h"
 #include "vic2frameconverter.h"
 #include "videostreamreceiver.h"
 
@@ -15,7 +15,7 @@
 
 VideoRecordingService::VideoRecordingService(QObject *parent) : QObject(parent) {}
 
-void VideoRecordingService::connectToStreaming(StreamingManager *manager)
+void VideoRecordingService::connectToStreaming(StreamingService *manager)
 {
     if (manager && manager->videoReceiver()) {
         connect(manager->videoReceiver(), &VideoStreamReceiver::frameReady, this,

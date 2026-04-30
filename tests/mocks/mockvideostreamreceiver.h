@@ -1,6 +1,6 @@
 /**
  * @file mockvideostreamreceiver.h
- * @brief Mock video stream receiver for testing StreamingManager.
+ * @brief Mock video stream receiver for testing StreamingService.
  */
 
 #ifndef MOCKVIDEOSTREAMRECEIVER_H

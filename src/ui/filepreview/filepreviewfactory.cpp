@@ -5,7 +5,7 @@
 #include "sidfilepreview.h"
 #include "textfilepreview.h"
 
-std::unique_ptr<FilePreviewStrategy> FilePreviewFactory::createStrategy(const QString &path)
+std::unique_ptr<IFilePreview> FilePreviewFactory::createStrategy(const QString &path)
 {
     // Check strategies in priority order
     // Note: We use temporary instances to check canHandle()

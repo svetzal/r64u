@@ -15,11 +15,11 @@
 #include "models/remotefilemodel.h"
 #include "services/configfileloader.h"
 #include "services/deviceconnection.h"
-#include "services/favoritesmanager.h"
+#include "services/favoritesservice.h"
 #include "services/filebrowsercore.h"
 #include "services/filepreviewservice.h"
 #include "services/metadataservicebundle.h"
-#include "services/playlistmanager.h"
+#include "services/playlistservice.h"
 #include "utils/logging.h"
 
 #include <QHeaderView>
@@ -32,7 +32,7 @@
 
 ExplorePanel::ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
                            ConfigFileLoader *configLoader, FilePreviewService *previewService,
-                           FavoritesManager *favoritesManager, PlaylistManager *playlistManager,
+                           FavoritesService *favoritesManager, PlaylistService *playlistManager,
                            QWidget *parent)
     : QWidget(parent), deviceConnection_(connection), remoteFileModel_(model),
       playlistManager_(playlistManager)
@@ -41,8 +41,8 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
     Q_ASSERT(remoteFileModel_ && "RemoteFileModel is required");
     Q_ASSERT(configLoader && "ConfigFileLoader is required");
     Q_ASSERT(previewService && "FilePreviewService is required");
-    Q_ASSERT(favoritesManager && "FavoritesManager is required");
-    Q_ASSERT(playlistManager_ && "PlaylistManager is required");
+    Q_ASSERT(favoritesManager && "FavoritesService is required");
+    Q_ASSERT(playlistManager_ && "PlaylistService is required");
 
     actionController_ = new FileActionController(deviceConnection_, configLoader, this);
     actionController_->setPlaylistManager(playlistManager_);
@@ -344,7 +344,7 @@ void ExplorePanel::setMetadataServices(const MetadataServiceBundle &bundle)
     }
 }
 
-void ExplorePanel::setStreamingManager(StreamingManager *manager)
+void ExplorePanel::setStreamingManager(StreamingService *manager)
 {
     actionController_->setStreamingManager(manager);
 }

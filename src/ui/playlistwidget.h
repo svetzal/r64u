@@ -10,7 +10,7 @@
 #include <QTreeWidget>
 #include <QWidget>
 
-class PlaylistManager;
+class PlaylistService;
 
 /**
  * @brief Widget for displaying and controlling a SID music playlist.
@@ -28,7 +28,7 @@ class PlaylistWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit PlaylistWidget(PlaylistManager *manager, QWidget *parent = nullptr);
+    explicit PlaylistWidget(PlaylistService *manager, QWidget *parent = nullptr);
     ~PlaylistWidget() override = default;
 
 signals:
@@ -82,7 +82,7 @@ private:
     void updateElapsedTimeDisplay();
     [[nodiscard]] static QString formatTime(int seconds);
 
-    PlaylistManager *manager_ = nullptr;
+    PlaylistService *manager_ = nullptr;
 
     // UI Components
     QLabel *headerLabel_ = nullptr;

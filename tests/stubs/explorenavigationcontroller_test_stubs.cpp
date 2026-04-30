@@ -147,7 +147,7 @@ void DeviceConnection::onReconnectTimer() {}
 // ExploreFavoritesController stubs
 // ---------------------------------------------------------------------------
 
-ExploreFavoritesController::ExploreFavoritesController(FavoritesManager * /*favoritesManager*/,
+ExploreFavoritesController::ExploreFavoritesController(FavoritesService * /*favoritesManager*/,
                                                        QObject *parent)
     : QObject(parent)
 {

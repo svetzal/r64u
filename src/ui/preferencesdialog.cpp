@@ -4,7 +4,7 @@
 #include "databasedownloadcontroller.h"
 
 #include "../services/c64urestclient.h"
-#include "../services/credentialstore.h"
+#include "../services/platformkeychain.h"
 
 #include <QDialogButtonBox>
 #include <QFileDialog>
@@ -143,7 +143,7 @@ void PreferencesDialog::loadSettings()
     hostEdit_->setText(host);
 
     if (!host.isEmpty()) {
-        QString password = CredentialStore::retrievePassword("r64u", host);
+        QString password = PlatformKeychain::retrievePassword("r64u", host);
         passwordEdit_->setText(password);
     }
 
@@ -178,7 +178,7 @@ void PreferencesDialog::saveSettings()
     settings.setValue("device/host", host);
 
     if (!host.isEmpty()) {
-        CredentialStore::storePassword("r64u", host, passwordEdit_->text());
+        PlatformKeychain::storePassword("r64u", host, passwordEdit_->text());
     }
 
     settings.remove("device/password");

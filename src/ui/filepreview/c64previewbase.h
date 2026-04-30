@@ -1,7 +1,7 @@
 #ifndef C64PREVIEWBASE_H
 #define C64PREVIEWBASE_H
 
-#include "filepreviewstrategy.h"
+#include "ifilepreview.h"
 
 #include <QLabel>
 #include <QObject>
@@ -16,7 +16,7 @@
  * preview types. Subclasses only need to implement canHandle(),
  * showPreview(), and showLoading().
  */
-class C64PreviewBase : public QObject, public FilePreviewStrategy
+class C64PreviewBase : public QObject, public IFilePreview
 {
     Q_OBJECT
 

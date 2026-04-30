@@ -6,7 +6,7 @@
 
 class FilePreviewService;
 class IDetailsDisplay;
-class PlaylistManager;
+class PlaylistService;
 
 class PreviewCoordinator : public QObject
 {
@@ -14,7 +14,7 @@ class PreviewCoordinator : public QObject
 
 public:
     explicit PreviewCoordinator(FilePreviewService *previewService, IDetailsDisplay *detailsPanel,
-                                PlaylistManager *playlistManager, QObject *parent = nullptr);
+                                PlaylistService *playlistManager, QObject *parent = nullptr);
 
 public slots:
     void onFileContentRequested(const QString &path);
@@ -31,7 +31,7 @@ private slots:
 private:
     FilePreviewService *previewService_ = nullptr;
     IDetailsDisplay *detailsPanel_ = nullptr;
-    PlaylistManager *playlistManager_ = nullptr;
+    PlaylistService *playlistManager_ = nullptr;
 };
 
 #endif  // PREVIEWCOORDINATOR_H

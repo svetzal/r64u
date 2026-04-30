@@ -1,7 +1,7 @@
 #ifndef SONGLENGTHSDATABASE_H
 #define SONGLENGTHSDATABASE_H
 
-#include "cacheddownloadmanager.h"
+#include "cacheddownloadservice.h"
 #include "songlengthsparser.h"
 
 #include <QList>
@@ -145,7 +145,7 @@ private:
     bool parseDatabaseData(const QByteArray &data);
     bool parseDatabaseFile(const QString &filePath);
 
-    CachedDownloadManager *manager_;
+    CachedDownloadService *manager_;
     songlengths::ParsedDatabase parsedDb_;
 };
 

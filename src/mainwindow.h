@@ -17,8 +17,8 @@ class FilePreviewService;
 class TransferService;
 class ErrorHandler;
 class StatusMessageService;
-class FavoritesManager;
-class PlaylistManager;
+class FavoritesService;
+class PlaylistService;
 class ConnectionStatusWidget;
 class ExplorePanel;
 class TransferPanel;
@@ -76,8 +76,8 @@ private:
     TransferService *transferService_ = nullptr;
     ErrorHandler *errorHandler_ = nullptr;
     StatusMessageService *statusMessageService_ = nullptr;
-    FavoritesManager *favoritesManager_ = nullptr;
-    PlaylistManager *playlistManager_ = nullptr;
+    FavoritesService *favoritesManager_ = nullptr;
+    PlaylistService *playlistManager_ = nullptr;
     MetadataServiceBundle metadataBundle_;
 
     SystemCommandController *systemCommandController_ = nullptr;

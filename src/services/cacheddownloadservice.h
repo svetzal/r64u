@@ -9,7 +9,7 @@
 #include <functional>
 
 /**
- * @brief Manages the download-cache-parse lifecycle for a single file.
+ * @brief Service managing the download-cache-parse lifecycle for a single file.
  *
  * Wraps IFileDownloader to provide: cache path resolution, guard against
  * concurrent downloads, save-to-cache on success, parse callback invocation,
@@ -21,7 +21,7 @@
  * The ParseCallback receives the raw bytes and returns an entry count (>= 0)
  * on success or -1 on failure.
  */
-class CachedDownloadManager : public QObject
+class CachedDownloadService : public QObject
 {
     Q_OBJECT
 
@@ -46,11 +46,11 @@ public:
      * @param parseCallback Called with raw bytes; returns entry count or -1.
      * @param parent        Qt parent object.
      */
-    explicit CachedDownloadManager(IFileDownloader *downloader, const QString &cacheFilename,
+    explicit CachedDownloadService(IFileDownloader *downloader, const QString &cacheFilename,
                                    const QUrl &downloadUrl, ParseCallback parseCallback,
                                    QObject *parent = nullptr);
 
-    ~CachedDownloadManager() override = default;
+    ~CachedDownloadService() override = default;
 
     /**
      * @brief Returns the full path where the cached file is stored.

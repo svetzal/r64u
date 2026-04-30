@@ -1,19 +1,19 @@
 /**
- * @file test_favoritesmanager.cpp
- * @brief Unit tests for FavoritesManager — the imperative shell around favorites:: core functions.
+ * @file test_favoritesservice.cpp
+ * @brief Unit tests for FavoritesService — the imperative shell around favorites:: core functions.
  *
  * Tests cover signal emissions, QSettings round-trip persistence, and all
  * public slot operations.  Each test uses an isolated QSettings key to avoid
  * polluting user settings.
  */
 
-#include "services/favoritesmanager.h"
+#include "services/favoritesservice.h"
 
 #include <QSettings>
 #include <QSignalSpy>
 #include <QtTest>
 
-class TestFavoritesManager : public QObject
+class TestFavoritesService : public QObject
 {
     Q_OBJECT
 
@@ -28,7 +28,7 @@ private slots:
         QSettings settings;
         settings.remove("bookmarks/paths");
 
-        manager_ = new FavoritesManager(this);
+        manager_ = new FavoritesService(this);
     }
 
     void cleanup()
@@ -69,7 +69,7 @@ private slots:
 
     void testAddFavorite_EmitsFavoriteAdded()
     {
-        QSignalSpy spy(manager_, &FavoritesManager::favoriteAdded);
+        QSignalSpy spy(manager_, &FavoritesService::favoriteAdded);
 
         manager_->addFavorite("/SD/games/test.sid");
 
@@ -79,7 +79,7 @@ private slots:
 
     void testAddFavorite_EmitsFavoritesChanged()
     {
-        QSignalSpy spy(manager_, &FavoritesManager::favoritesChanged);
+        QSignalSpy spy(manager_, &FavoritesService::favoritesChanged);
 
         manager_->addFavorite("/SD/games/test.sid");
 
@@ -98,8 +98,8 @@ private slots:
     {
         manager_->addFavorite("/SD/games/test.sid");
 
-        QSignalSpy addedSpy(manager_, &FavoritesManager::favoriteAdded);
-        QSignalSpy changedSpy(manager_, &FavoritesManager::favoritesChanged);
+        QSignalSpy addedSpy(manager_, &FavoritesService::favoriteAdded);
+        QSignalSpy changedSpy(manager_, &FavoritesService::favoritesChanged);
 
         manager_->addFavorite("/SD/games/test.sid");
 
@@ -132,7 +132,7 @@ private slots:
     void testRemoveFavorite_EmitsFavoriteRemoved()
     {
         manager_->addFavorite("/SD/games/test.sid");
-        QSignalSpy spy(manager_, &FavoritesManager::favoriteRemoved);
+        QSignalSpy spy(manager_, &FavoritesService::favoriteRemoved);
 
         manager_->removeFavorite("/SD/games/test.sid");
 
@@ -143,7 +143,7 @@ private slots:
     void testRemoveFavorite_EmitsFavoritesChanged()
     {
         manager_->addFavorite("/SD/games/test.sid");
-        QSignalSpy spy(manager_, &FavoritesManager::favoritesChanged);
+        QSignalSpy spy(manager_, &FavoritesService::favoritesChanged);
 
         manager_->removeFavorite("/SD/games/test.sid");
 
@@ -152,8 +152,8 @@ private slots:
 
     void testRemoveFavorite_NonExistent_DoesNotEmitSignals()
     {
-        QSignalSpy removedSpy(manager_, &FavoritesManager::favoriteRemoved);
-        QSignalSpy changedSpy(manager_, &FavoritesManager::favoritesChanged);
+        QSignalSpy removedSpy(manager_, &FavoritesService::favoriteRemoved);
+        QSignalSpy changedSpy(manager_, &FavoritesService::favoritesChanged);
 
         manager_->removeFavorite("/SD/games/nonexistent.sid");
 
@@ -185,7 +185,7 @@ private slots:
 
     void testToggleFavorite_EmitsFavoriteAddedWhenAdding()
     {
-        QSignalSpy spy(manager_, &FavoritesManager::favoriteAdded);
+        QSignalSpy spy(manager_, &FavoritesService::favoriteAdded);
 
         manager_->toggleFavorite("/SD/games/test.sid");
 
@@ -195,7 +195,7 @@ private slots:
     void testToggleFavorite_EmitsFavoriteRemovedWhenRemoving()
     {
         manager_->addFavorite("/SD/games/test.sid");
-        QSignalSpy spy(manager_, &FavoritesManager::favoriteRemoved);
+        QSignalSpy spy(manager_, &FavoritesService::favoriteRemoved);
 
         manager_->toggleFavorite("/SD/games/test.sid");
 
@@ -228,7 +228,7 @@ private slots:
     {
         manager_->addFavorite("/SD/games/a.sid");
         manager_->addFavorite("/SD/games/b.sid");
-        QSignalSpy spy(manager_, &FavoritesManager::favoritesChanged);
+        QSignalSpy spy(manager_, &FavoritesService::favoritesChanged);
 
         manager_->moveFavorite(0, 1);
 
@@ -239,7 +239,7 @@ private slots:
     {
         manager_->addFavorite("/SD/games/a.sid");
         manager_->addFavorite("/SD/games/b.sid");
-        QSignalSpy spy(manager_, &FavoritesManager::favoritesChanged);
+        QSignalSpy spy(manager_, &FavoritesService::favoritesChanged);
 
         manager_->moveFavorite(0, 0);
 
@@ -264,7 +264,7 @@ private slots:
     void testClearAll_EmitsFavoritesChanged()
     {
         manager_->addFavorite("/SD/games/a.sid");
-        QSignalSpy spy(manager_, &FavoritesManager::favoritesChanged);
+        QSignalSpy spy(manager_, &FavoritesService::favoritesChanged);
 
         manager_->clearAll();
 
@@ -273,7 +273,7 @@ private slots:
 
     void testClearAll_WhenEmpty_DoesNotEmitSignal()
     {
-        QSignalSpy spy(manager_, &FavoritesManager::favoritesChanged);
+        QSignalSpy spy(manager_, &FavoritesService::favoritesChanged);
 
         manager_->clearAll();
 
@@ -308,7 +308,7 @@ private slots:
         manager_->saveSettings();
 
         // Create a second manager that loads the saved settings
-        auto *manager2 = new FavoritesManager(this);
+        auto *manager2 = new FavoritesService(this);
 
         QCOMPARE(manager2->count(), 2);
         QVERIFY(manager2->isFavorite("/SD/games/a.sid"));
@@ -324,8 +324,8 @@ private slots:
     }
 
 private:
-    FavoritesManager *manager_ = nullptr;
+    FavoritesService *manager_ = nullptr;
 };
 
-QTEST_MAIN(TestFavoritesManager)
-#include "test_favoritesmanager.moc"
+QTEST_MAIN(TestFavoritesService)
+#include "test_favoritesservice.moc"

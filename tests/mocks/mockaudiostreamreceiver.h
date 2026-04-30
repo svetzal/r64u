@@ -1,6 +1,6 @@
 /**
  * @file mockaudiostreamreceiver.h
- * @brief Mock audio stream receiver for testing StreamingManager.
+ * @brief Mock audio stream receiver for testing StreamingService.
  */
 
 #ifndef MOCKAUDIOSTREAMRECEIVER_H

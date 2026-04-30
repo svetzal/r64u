@@ -14,9 +14,9 @@ class DeviceConnection;
 class RemoteFileModel;
 class ConfigFileLoader;
 class FilePreviewService;
-class FavoritesManager;
-class PlaylistManager;
-class StreamingManager;
+class FavoritesService;
+class PlaylistService;
+class StreamingService;
 class FileDetailsPanel;
 class PathNavigationWidget;
 class DriveStatusWidget;
@@ -38,7 +38,7 @@ public:
 
     explicit ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
                           ConfigFileLoader *configLoader, FilePreviewService *previewService,
-                          FavoritesManager *favoritesManager, PlaylistManager *playlistManager,
+                          FavoritesService *favoritesManager, PlaylistService *playlistManager,
                           QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
@@ -56,7 +56,7 @@ public:
     void setMetadataServices(const MetadataServiceBundle &bundle);
 
     // Streaming manager injection (for auto-start on play/run)
-    void setStreamingManager(StreamingManager *manager);
+    void setStreamingManager(StreamingService *manager);
 
     // Selection info for MainWindow
     QString selectedPath() const;
@@ -85,7 +85,7 @@ private:
     // Dependencies (not owned)
     DeviceConnection *deviceConnection_ = nullptr;
     RemoteFileModel *remoteFileModel_ = nullptr;
-    PlaylistManager *playlistManager_ = nullptr;
+    PlaylistService *playlistManager_ = nullptr;
 
     // Owned controllers (Qt parent ownership)
     FileActionController *actionController_ = nullptr;

@@ -100,7 +100,7 @@ using PreviewAction = std::variant<ShowDiskDirectory, ShowSidDetails, ShowTextCo
  *
  * @param remotePath Remote path of the file that was previewed.
  * @param data Raw file content bytes.
- * @param hasPlaylistManager True if a PlaylistManager is available for SID duration updates.
+ * @param hasPlaylistManager True if a PlaylistService is available for SID duration updates.
  * @return The action the shell should take to display the content.
  */
 [[nodiscard]] PreviewAction routePreviewData(const QString &remotePath, const QByteArray &data,

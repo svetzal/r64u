@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QString>
 
-class FavoritesManager;
+class FavoritesService;
 class QAction;
 class QMenu;
 
@@ -13,7 +13,7 @@ class ExploreFavoritesController : public QObject
     Q_OBJECT
 
 public:
-    explicit ExploreFavoritesController(FavoritesManager *favoritesManager,
+    explicit ExploreFavoritesController(FavoritesService *favoritesManager,
                                         QObject *parent = nullptr);
 
     void setToggleAction(QAction *action);
@@ -32,7 +32,7 @@ signals:
     void statusMessage(const QString &message, int timeout = 0);
 
 private:
-    FavoritesManager *favoritesManager_ = nullptr;
+    FavoritesService *favoritesManager_ = nullptr;
     QAction *toggleFavoriteAction_ = nullptr;
     QMenu *favoritesMenu_ = nullptr;
 };

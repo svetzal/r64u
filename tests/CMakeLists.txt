@@ -593,7 +593,7 @@ add_executable(test_errorsourceconnector
     ${CMAKE_SOURCE_DIR}/src/services/configfileloader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
@@ -957,7 +957,7 @@ add_executable(test_hvscmetadataservice
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
 )
@@ -1026,7 +1026,7 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_songlengthsparser)
 endif()
 
-# StreamingManager tests - coordination logic using mock streaming services
+# StreamingService tests - coordination logic using mock streaming services
 add_executable(test_streamingmanager
     test_streamingmanager.cpp
     ${MOCK_FTP_SOURCES}
@@ -1050,7 +1050,7 @@ add_executable(test_streamingmanager
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/streamingmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/streamingservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamcontrolclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamprotocolcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
@@ -1074,7 +1074,7 @@ target_link_libraries(test_streamingmanager PRIVATE
     Qt6::Multimedia
 )
 
-add_test(NAME StreamingManagerTest COMMAND test_streamingmanager)
+add_test(NAME StreamingServiceTest COMMAND test_streamingmanager)
 
 if(BUILD_COVERAGE)
     add_coverage_target(streamingmanager test_streamingmanager)
@@ -1286,7 +1286,7 @@ add_executable(test_filemetadatacore
     ${CMAKE_SOURCE_DIR}/src/services/filemetadatacore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/sidfileparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
@@ -1361,35 +1361,35 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_playlistcore)
 endif()
 
-# PlaylistManager tests - tests signal emissions and state orchestration with null device
-add_executable(test_playlistmanager
-    test_playlistmanager.cpp
-    stubs/playlistmanager_test_stubs.cpp
+# PlaylistService tests - tests signal emissions and state orchestration with null device
+add_executable(test_playlistservice
+    test_playlistservice.cpp
+    stubs/playlistservice_test_stubs.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/playlistmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
     # Headers listed here so AUTOMOC generates moc files needed by stubs
-    ${CMAKE_SOURCE_DIR}/src/services/streamingmanager.h
+    ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
 )
 
-target_include_directories(test_playlistmanager PRIVATE
+target_include_directories(test_playlistservice PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(test_playlistmanager PRIVATE
+target_link_libraries(test_playlistservice PRIVATE
     Qt6::Core
     Qt6::Test
 )
 
-add_test(NAME PlaylistManagerTest COMMAND test_playlistmanager)
+add_test(NAME PlaylistServiceTest COMMAND test_playlistservice)
 
 if(BUILD_COVERAGE)
-    add_coverage_target(playlistmanager test_playlistmanager)
-    add_dependencies(coverage coverage_playlistmanager)
+    add_coverage_target(playlistservice test_playlistservice)
+    add_dependencies(coverage coverage_playlistservice)
 endif()
 
 # Vic2FrameConverter tests - pure data conversion, no I/O dependencies
@@ -1446,7 +1446,7 @@ add_executable(test_gamebase64service
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
 )
 
@@ -1472,33 +1472,33 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_gamebase64service)
 endif()
 
-# CachedDownloadManager tests - download-cache-parse lifecycle logic
-add_executable(test_cacheddownloadmanager
-    test_cacheddownloadmanager.cpp
+# CachedDownloadService tests - download-cache-parse lifecycle logic
+add_executable(test_cacheddownloadservice
+    test_cacheddownloadservice.cpp
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
 )
 
-target_include_directories(test_cacheddownloadmanager PRIVATE
+target_include_directories(test_cacheddownloadservice PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(test_cacheddownloadmanager PRIVATE
+target_link_libraries(test_cacheddownloadservice PRIVATE
     Qt6::Core
     Qt6::Test
     Qt6::Network
 )
 
 # Register test with CTest
-add_test(NAME CachedDownloadManagerTest COMMAND test_cacheddownloadmanager)
+add_test(NAME CachedDownloadServiceTest COMMAND test_cacheddownloadservice)
 
 # Add coverage target if coverage is enabled
 if(BUILD_COVERAGE)
-    add_coverage_target(cacheddownloadmanager test_cacheddownloadmanager)
-    add_dependencies(coverage coverage_cacheddownloadmanager)
+    add_coverage_target(cacheddownloadservice test_cacheddownloadservice)
+    add_dependencies(coverage coverage_cacheddownloadservice)
 endif()
 
 # SonglengthsDatabase tests
@@ -1507,7 +1507,7 @@ add_executable(test_songlengthsdatabase
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
 )
@@ -1532,27 +1532,27 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_songlengthsdatabase)
 endif()
 
-# FavoritesManager tests - imperative shell around favorites:: core, QSettings I/O
-add_executable(test_favoritesmanager
-    test_favoritesmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/favoritesmanager.cpp
+# FavoritesService tests - imperative shell around favorites:: core, QSettings I/O
+add_executable(test_favoritesservice
+    test_favoritesservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/favoritesservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/favoritescore.cpp
 )
 
-target_include_directories(test_favoritesmanager PRIVATE
+target_include_directories(test_favoritesservice PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(test_favoritesmanager PRIVATE
+target_link_libraries(test_favoritesservice PRIVATE
     Qt6::Core
     Qt6::Test
 )
 
-add_test(NAME FavoritesManagerTest COMMAND test_favoritesmanager)
+add_test(NAME FavoritesServiceTest COMMAND test_favoritesservice)
 
 if(BUILD_COVERAGE)
-    add_coverage_target(favoritesmanager test_favoritesmanager)
-    add_dependencies(coverage coverage_favoritesmanager)
+    add_coverage_target(favoritesservice test_favoritesservice)
+    add_dependencies(coverage coverage_favoritesservice)
 endif()
 
 # DiskBootSequenceService tests - imperative shell around diskboot:: state machine
@@ -1862,7 +1862,7 @@ endif()
 # FileActionController tests - dispatch logic, guard conditions, action state management
 add_executable(test_fileactioncontroller
     test_fileactioncontroller.cpp
-    stubs/playlistmanager_test_stubs.cpp
+    stubs/playlistservice_test_stubs.cpp
     mocks/mockrestclient.cpp
     mocks/mockftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -1878,14 +1878,14 @@ add_executable(test_fileactioncontroller
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filebrowsercore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/playlistmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/diskbootsequenceservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/diskbootsequencecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/configfileloader.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/fileactioncontroller.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
-    ${CMAKE_SOURCE_DIR}/src/services/streamingmanager.h
+    ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
 )
 
@@ -1942,7 +1942,7 @@ endif()
 # PreviewCoordinator tests - routing logic via IDetailsDisplay mock
 add_executable(test_previewcoordinator
     test_previewcoordinator.cpp
-    stubs/playlistmanager_test_stubs.cpp
+    stubs/playlistservice_test_stubs.cpp
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -1950,11 +1950,11 @@ add_executable(test_previewcoordinator
     ${CMAKE_SOURCE_DIR}/src/services/filepreviewservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/playlistmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/previewcoordinator.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
-    ${CMAKE_SOURCE_DIR}/src/services/streamingmanager.h
+    ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
 )
 
@@ -2017,7 +2017,7 @@ add_executable(test_databasedownloadcontroller
     test_databasedownloadcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadview.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
@@ -2098,7 +2098,7 @@ endif()
 add_executable(test_servicefactory
     test_servicefactory.cpp
     stubs/errorsourceconnector_stub.cpp
-    stubs/streamingmanager_stub.cpp
+    stubs/streamingservice_stub.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/servicefactory.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
@@ -2116,13 +2116,13 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/favoritesmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/favoritesservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/favoritescore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/playlistmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/httpfiledownloader.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
@@ -2143,7 +2143,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
-    ${CMAKE_SOURCE_DIR}/src/services/streamingmanager.h
+    ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
 )
 

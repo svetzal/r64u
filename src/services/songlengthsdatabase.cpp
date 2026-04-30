@@ -5,7 +5,7 @@
 
 #include "songlengthsdatabase.h"
 
-#include "cacheddownloadmanager.h"
+#include "cacheddownloadservice.h"
 #include "songlengthsparser.h"
 
 #include <QCryptographicHash>
@@ -14,7 +14,7 @@
 SonglengthsDatabase::SonglengthsDatabase(IFileDownloader *downloader, QObject *parent)
     : QObject(parent)
 {
-    manager_ = new CachedDownloadManager(
+    manager_ = new CachedDownloadService(
         downloader, QStringLiteral("Songlengths.md5"), QUrl(QString::fromLatin1(DatabaseUrl)),
         [this](const QByteArray &data) -> int {
             parsedDb_ = songlengths::parseDatabase(data);
@@ -22,13 +22,13 @@ SonglengthsDatabase::SonglengthsDatabase(IFileDownloader *downloader, QObject *p
         },
         this);
 
-    connect(manager_, &CachedDownloadManager::downloadProgress, this,
+    connect(manager_, &CachedDownloadService::downloadProgress, this,
             &SonglengthsDatabase::downloadProgress);
-    connect(manager_, &CachedDownloadManager::downloadFinished, this,
+    connect(manager_, &CachedDownloadService::downloadFinished, this,
             &SonglengthsDatabase::downloadFinished);
-    connect(manager_, &CachedDownloadManager::downloadFailed, this,
+    connect(manager_, &CachedDownloadService::downloadFailed, this,
             &SonglengthsDatabase::downloadFailed);
-    connect(manager_, &CachedDownloadManager::loaded, this, &SonglengthsDatabase::databaseLoaded);
+    connect(manager_, &CachedDownloadService::loaded, this, &SonglengthsDatabase::databaseLoaded);
 }
 
 QString SonglengthsDatabase::cacheFilePath() const

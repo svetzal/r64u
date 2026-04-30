@@ -5,7 +5,7 @@
 
 #include "playlistwidget.h"
 
-#include "services/playlistmanager.h"
+#include "services/playlistservice.h"
 
 #include <QFileDialog>
 #include <QFileInfo>
@@ -16,10 +16,10 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-PlaylistWidget::PlaylistWidget(PlaylistManager *manager, QWidget *parent)
+PlaylistWidget::PlaylistWidget(PlaylistService *manager, QWidget *parent)
     : QWidget(parent), manager_(manager), elapsedTimer_(new QTimer(this))
 {
-    Q_ASSERT(manager_ && "PlaylistManager is required");
+    Q_ASSERT(manager_ && "PlaylistService is required");
 
     elapsedTimer_->setInterval(1000);  // 1 second updates
     connect(elapsedTimer_, &QTimer::timeout, this, &PlaylistWidget::onElapsedTimerTick);
@@ -147,15 +147,15 @@ void PlaylistWidget::setupUi()
 void PlaylistWidget::setupConnections()
 {
     // Connect to manager signals
-    connect(manager_, &PlaylistManager::playlistChanged, this, &PlaylistWidget::onPlaylistChanged);
-    connect(manager_, &PlaylistManager::currentIndexChanged, this,
+    connect(manager_, &PlaylistService::playlistChanged, this, &PlaylistWidget::onPlaylistChanged);
+    connect(manager_, &PlaylistService::currentIndexChanged, this,
             &PlaylistWidget::onCurrentIndexChanged);
-    connect(manager_, &PlaylistManager::playbackStarted, this, &PlaylistWidget::onPlaybackStarted);
-    connect(manager_, &PlaylistManager::playbackStopped, this, &PlaylistWidget::onPlaybackStopped);
-    connect(manager_, &PlaylistManager::shuffleChanged, this, &PlaylistWidget::onShuffleChanged);
-    connect(manager_, &PlaylistManager::repeatModeChanged, this,
+    connect(manager_, &PlaylistService::playbackStarted, this, &PlaylistWidget::onPlaybackStarted);
+    connect(manager_, &PlaylistService::playbackStopped, this, &PlaylistWidget::onPlaybackStopped);
+    connect(manager_, &PlaylistService::shuffleChanged, this, &PlaylistWidget::onShuffleChanged);
+    connect(manager_, &PlaylistService::repeatModeChanged, this,
             &PlaylistWidget::onRepeatModeChanged);
-    connect(manager_, &PlaylistManager::statusMessage, this, &PlaylistWidget::statusMessage);
+    connect(manager_, &PlaylistService::statusMessage, this, &PlaylistWidget::statusMessage);
 
     // Duration spinner
     connect(durationSpinBox_, QOverload<int>::of(&QSpinBox::valueChanged), this,
@@ -237,14 +237,14 @@ void PlaylistWidget::onRepeatCycle()
 {
     // Cycle: Off -> All -> One -> Off
     switch (manager_->repeatMode()) {
-    case PlaylistManager::RepeatMode::Off:
-        manager_->setRepeatMode(PlaylistManager::RepeatMode::All);
+    case PlaylistService::RepeatMode::Off:
+        manager_->setRepeatMode(PlaylistService::RepeatMode::All);
         break;
-    case PlaylistManager::RepeatMode::All:
-        manager_->setRepeatMode(PlaylistManager::RepeatMode::One);
+    case PlaylistService::RepeatMode::All:
+        manager_->setRepeatMode(PlaylistService::RepeatMode::One);
         break;
-    case PlaylistManager::RepeatMode::One:
-        manager_->setRepeatMode(PlaylistManager::RepeatMode::Off);
+    case PlaylistService::RepeatMode::One:
+        manager_->setRepeatMode(PlaylistService::RepeatMode::Off);
         break;
     }
 }
@@ -423,15 +423,15 @@ void PlaylistWidget::updateShuffleButton()
 void PlaylistWidget::updateRepeatButton()
 {
     switch (manager_->repeatMode()) {
-    case PlaylistManager::RepeatMode::Off:
+    case PlaylistService::RepeatMode::Off:
         repeatAction_->setText(QString::fromUtf8("\U0001F501"));  // Normal repeat icon
         repeatAction_->setToolTip(tr("Repeat: OFF"));
         break;
-    case PlaylistManager::RepeatMode::All:
+    case PlaylistService::RepeatMode::All:
         repeatAction_->setText(QString::fromUtf8("\U0001F501"));  // Repeat icon
         repeatAction_->setToolTip(tr("Repeat: ALL"));
         break;
-    case PlaylistManager::RepeatMode::One:
+    case PlaylistService::RepeatMode::One:
         repeatAction_->setText(QString::fromUtf8("\U0001F502"));  // Repeat one icon
         repeatAction_->setToolTip(tr("Repeat: ONE"));
         break;

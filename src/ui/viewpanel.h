@@ -11,7 +11,7 @@
 
 class DeviceConnection;
 class VideoDisplayWidget;
-class StreamingManager;
+class StreamingService;
 class VideoRecordingService;
 class ScreenshotService;
 class StreamingDiagnosticsWidget;
@@ -34,13 +34,13 @@ public:
      * @brief Returns the streaming manager for external control.
      * @return Pointer to the streaming manager.
      */
-    [[nodiscard]] StreamingManager *streamingManager() const { return streamingManager_; }
+    [[nodiscard]] StreamingService *streamingManager() const { return streamingManager_; }
 
     /**
      * @brief Injects the streaming manager. Wires all streaming-related connections.
      * @param manager Owned by the caller; must outlive this ViewPanel.
      */
-    void setStreamingManager(StreamingManager *manager);
+    void setStreamingManager(StreamingService *manager);
 
     /**
      * @brief Injects the video recording service. Wires recording-related connections.
@@ -89,7 +89,7 @@ private:
     DeviceConnection *deviceConnection_ = nullptr;
 
     // Injected services (not owned)
-    StreamingManager *streamingManager_ = nullptr;
+    StreamingService *streamingManager_ = nullptr;
     VideoRecordingService *recordingService_ = nullptr;
     ScreenshotService *screenshotService_ = nullptr;
 

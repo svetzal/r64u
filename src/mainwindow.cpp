@@ -3,20 +3,20 @@
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 #include "services/configfileloader.h"
-#include "services/credentialstore.h"
+#include "services/platformkeychain.h"
 #include "services/deviceconnection.h"
 #include "services/errorhandler.h"
-#include "services/favoritesmanager.h"
+#include "services/favoritesservice.h"
 #include "services/filepreviewservice.h"
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
 #include "services/irestclient.h"
-#include "services/playlistmanager.h"
+#include "services/playlistservice.h"
 #include "services/screenshotservice.h"
 #include "services/servicefactory.h"
 #include "services/songlengthsdatabase.h"
 #include "services/statusmessageservice.h"
-#include "services/streamingmanager.h"
+#include "services/streamingservice.h"
 #include "services/systemcommandcontroller.h"
 #include "services/transferservice.h"
 #include "services/videorecordingservice.h"
@@ -157,7 +157,7 @@ void MainWindow::setupPanels()
     viewPanel_ = new ViewPanel(deviceConnection_);
 
     // Create and inject streaming services into ViewPanel
-    auto *streamingManager = StreamingManager::createDefault(deviceConnection_, viewPanel_);
+    auto *streamingManager = StreamingService::createDefault(deviceConnection_, viewPanel_);
     auto *recordingService = new VideoRecordingService(viewPanel_);
     recordingService->connectToStreaming(streamingManager);
     viewPanel_->setStreamingManager(streamingManager);
@@ -165,7 +165,7 @@ void MainWindow::setupPanels()
     viewPanel_->setScreenshotService(new ScreenshotService(viewPanel_));
 
     // Route streaming errors through centralized error handler
-    connect(streamingManager, &StreamingManager::error, errorHandler_,
+    connect(streamingManager, &StreamingService::error, errorHandler_,
             &ErrorHandler::handleStreamingError);
     connect(recordingService, &VideoRecordingService::error, errorHandler_,
             &ErrorHandler::handleStreamingError);
@@ -292,7 +292,7 @@ void MainWindow::loadSettings()
 
     if (!host.isEmpty()) {
         // Load password from secure storage
-        QString password = CredentialStore::retrievePassword("r64u", host);
+        QString password = PlatformKeychain::retrievePassword("r64u", host);
 
         deviceConnection_->setHost(host);
         deviceConnection_->setPassword(password);

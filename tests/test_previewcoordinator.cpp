@@ -169,12 +169,12 @@ private slots:
     }
 
     // =========================================================
-    // onPreviewReady with PlaylistManager — null playlist no crash
+    // onPreviewReady with PlaylistService — null playlist no crash
     // =========================================================
 
     void testOnPreviewReady_WithNullPlaylistManager_NoCrash()
     {
-        // coord_ already has null PlaylistManager — SID preview must not crash
+        // coord_ already has null PlaylistService — SID preview must not crash
         QByteArray sidData("SIDDATA");
         previewService_->emitPreviewReady("/tune.sid", sidData);
 

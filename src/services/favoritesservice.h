@@ -1,23 +1,23 @@
-#ifndef FAVORITESMANAGER_H
-#define FAVORITESMANAGER_H
+#ifndef FAVORITESSERVICE_H
+#define FAVORITESSERVICE_H
 
 #include <QObject>
 #include <QString>
 #include <QStringList>
 
 /**
- * @brief Manages a list of favorite/bookmarked remote file paths.
+ * @brief Service managing a list of favorite/bookmarked remote file paths.
  *
  * Favorites are persisted using QSettings and loaded at startup.
  * This allows users to quickly access frequently-used files and directories.
  */
-class FavoritesManager : public QObject
+class FavoritesService : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit FavoritesManager(QObject *parent = nullptr);
-    ~FavoritesManager() override = default;
+    explicit FavoritesService(QObject *parent = nullptr);
+    ~FavoritesService() override = default;
 
     /**
      * @brief Returns all favorite paths sorted alphabetically.
@@ -104,4 +104,4 @@ private:
     QStringList favorites_;
 };
 
-#endif  // FAVORITESMANAGER_H
+#endif  // FAVORITESSERVICE_H

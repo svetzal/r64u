@@ -2,7 +2,7 @@
 
 #include "services/fileactioncore.h"
 #include "services/filepreviewservice.h"
-#include "services/playlistmanager.h"
+#include "services/playlistservice.h"
 #include "ui/idetailsdisplay.h"
 #include "utils/logging.h"
 
@@ -11,7 +11,7 @@
 
 PreviewCoordinator::PreviewCoordinator(FilePreviewService *previewService,
                                        IDetailsDisplay *detailsPanel,
-                                       PlaylistManager *playlistManager, QObject *parent)
+                                       PlaylistService *playlistManager, QObject *parent)
     : QObject(parent), previewService_(previewService), detailsPanel_(detailsPanel),
       playlistManager_(playlistManager)
 {

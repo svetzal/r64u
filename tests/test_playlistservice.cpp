@@ -1,17 +1,17 @@
-#include "services/playlistmanager.h"
+#include "services/playlistservice.h"
 
 #include <QSignalSpy>
 #include <QTemporaryFile>
 #include <QtTest>
 
-class TestPlaylistManager : public QObject
+class TestPlaylistService : public QObject
 {
     Q_OBJECT
 
 private:
-    PlaylistManager *manager = nullptr;
+    PlaylistService *manager = nullptr;
 
-    static void addTestItem(PlaylistManager *m, const QString &path)
+    static void addTestItem(PlaylistService *m, const QString &path)
     {
         playlist::PlaylistItem item;
         item.path = path;
@@ -31,7 +31,7 @@ private slots:
         QSettings settings;
         settings.remove("playlist");
 
-        manager = new PlaylistManager(nullptr);
+        manager = new PlaylistService(nullptr);
     }
 
     void cleanup()
@@ -49,7 +49,7 @@ private slots:
 
     void testAddItemByPath_EmitsPlaylistChanged()
     {
-        QSignalSpy spy(manager, &PlaylistManager::playlistChanged);
+        QSignalSpy spy(manager, &PlaylistService::playlistChanged);
         manager->addItem("/SD/test.sid");
         QCOMPARE(spy.count(), 1);
     }
@@ -62,7 +62,7 @@ private slots:
 
     void testAddItemByItem_EmitsPlaylistChanged()
     {
-        QSignalSpy spy(manager, &PlaylistManager::playlistChanged);
+        QSignalSpy spy(manager, &PlaylistService::playlistChanged);
         addTestItem(manager, "/SD/music.sid");
         QCOMPARE(spy.count(), 1);
     }
@@ -76,7 +76,7 @@ private slots:
     void testRemoveItem_EmitsPlaylistChanged()
     {
         addTestItem(manager, "/SD/a.sid");
-        QSignalSpy spy(manager, &PlaylistManager::playlistChanged);
+        QSignalSpy spy(manager, &PlaylistService::playlistChanged);
         manager->removeItem(0);
         QCOMPARE(spy.count(), 1);
     }
@@ -92,7 +92,7 @@ private slots:
     {
         addTestItem(manager, "/SD/a.sid");
         addTestItem(manager, "/SD/b.sid");
-        QSignalSpy spy(manager, &PlaylistManager::playlistChanged);
+        QSignalSpy spy(manager, &PlaylistService::playlistChanged);
         manager->moveItem(0, 1);
         QCOMPARE(spy.count(), 1);
     }
@@ -100,7 +100,7 @@ private slots:
     void testClear_EmitsPlaylistChanged()
     {
         addTestItem(manager, "/SD/a.sid");
-        QSignalSpy spy(manager, &PlaylistManager::playlistChanged);
+        QSignalSpy spy(manager, &PlaylistService::playlistChanged);
         manager->clear();
         QCOMPARE(spy.count(), 1);
     }
@@ -120,7 +120,7 @@ private slots:
 
     void testItemAt_InvalidIndex_ReturnsDefaultItem()
     {
-        PlaylistManager::PlaylistItem item = manager->itemAt(99);
+        PlaylistService::PlaylistItem item = manager->itemAt(99);
         QVERIFY(item.path.isEmpty());
     }
 
@@ -131,7 +131,7 @@ private slots:
     void testPlay_WithOneItem_EmitsPlaybackStarted()
     {
         addTestItem(manager, "/SD/a.sid");
-        QSignalSpy spy(manager, &PlaylistManager::playbackStarted);
+        QSignalSpy spy(manager, &PlaylistService::playbackStarted);
         manager->play(0);
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.first().first().toInt(), 0);
@@ -140,7 +140,7 @@ private slots:
     void testPlay_WithOneItem_EmitsCurrentIndexChanged()
     {
         addTestItem(manager, "/SD/a.sid");
-        QSignalSpy spy(manager, &PlaylistManager::currentIndexChanged);
+        QSignalSpy spy(manager, &PlaylistService::currentIndexChanged);
         manager->play(0);
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.first().first().toInt(), 0);
@@ -148,7 +148,7 @@ private slots:
 
     void testPlay_EmptyPlaylist_DoesNotEmitPlaybackStarted()
     {
-        QSignalSpy spy(manager, &PlaylistManager::playbackStarted);
+        QSignalSpy spy(manager, &PlaylistService::playbackStarted);
         manager->play();
         QCOMPARE(spy.count(), 0);
     }
@@ -157,7 +157,7 @@ private slots:
     {
         addTestItem(manager, "/SD/a.sid");
         manager->play(0);
-        QSignalSpy spy(manager, &PlaylistManager::playbackStopped);
+        QSignalSpy spy(manager, &PlaylistService::playbackStopped);
         manager->stop();
         QCOMPARE(spy.count(), 1);
     }
@@ -175,7 +175,7 @@ private slots:
         addTestItem(manager, "/SD/a.sid");
         addTestItem(manager, "/SD/b.sid");
         manager->play(0);
-        QSignalSpy spy(manager, &PlaylistManager::currentIndexChanged);
+        QSignalSpy spy(manager, &PlaylistService::currentIndexChanged);
         manager->next();
         QVERIFY(spy.count() >= 1);
         QCOMPARE(manager->currentIndex(), 1);
@@ -187,7 +187,7 @@ private slots:
         addTestItem(manager, "/SD/b.sid");
         manager->play(0);
         manager->next();  // advance to index 1
-        QSignalSpy spy(manager, &PlaylistManager::currentIndexChanged);
+        QSignalSpy spy(manager, &PlaylistService::currentIndexChanged);
         manager->previous();
         QVERIFY(spy.count() >= 1);
         QCOMPARE(manager->currentIndex(), 0);
@@ -195,7 +195,7 @@ private slots:
 
     void testNext_EmptyPlaylist_NoCrash()
     {
-        QSignalSpy spy(manager, &PlaylistManager::playbackStarted);
+        QSignalSpy spy(manager, &PlaylistService::playbackStarted);
         // Should not crash; no signal should be emitted
         manager->next();
         QCOMPARE(spy.count(), 0);
@@ -207,7 +207,7 @@ private slots:
 
     void testSetShuffle_True_EmitsShuffleChanged()
     {
-        QSignalSpy spy(manager, &PlaylistManager::shuffleChanged);
+        QSignalSpy spy(manager, &PlaylistService::shuffleChanged);
         manager->setShuffle(true);
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.first().first().toBool(), true);
@@ -216,23 +216,23 @@ private slots:
     void testSetShuffle_TwiceWithSameValue_OnlyEmitsOnce()
     {
         manager->setShuffle(true);
-        QSignalSpy spy(manager, &PlaylistManager::shuffleChanged);
+        QSignalSpy spy(manager, &PlaylistService::shuffleChanged);
         manager->setShuffle(true);  // second call with same value — should be no-op
         QCOMPARE(spy.count(), 0);
     }
 
     void testSetRepeatMode_All_EmitsRepeatModeChanged()
     {
-        QSignalSpy spy(manager, &PlaylistManager::repeatModeChanged);
-        manager->setRepeatMode(PlaylistManager::RepeatMode::All);
+        QSignalSpy spy(manager, &PlaylistService::repeatModeChanged);
+        manager->setRepeatMode(PlaylistService::RepeatMode::All);
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(spy.first().first().value<PlaylistManager::RepeatMode>(),
-                 PlaylistManager::RepeatMode::All);
+        QCOMPARE(spy.first().first().value<PlaylistService::RepeatMode>(),
+                 PlaylistService::RepeatMode::All);
     }
 
     void testSetDefaultDuration_ValidValue_EmitsDefaultDurationChanged()
     {
-        QSignalSpy spy(manager, &PlaylistManager::defaultDurationChanged);
+        QSignalSpy spy(manager, &PlaylistService::defaultDurationChanged);
         manager->setDefaultDuration(60);
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.first().first().toInt(), 60);
@@ -240,7 +240,7 @@ private slots:
 
     void testSetDefaultDuration_BelowMinimum_ClampsTo10()
     {
-        QSignalSpy spy(manager, &PlaylistManager::defaultDurationChanged);
+        QSignalSpy spy(manager, &PlaylistService::defaultDurationChanged);
         manager->setDefaultDuration(5);  // below minimum of 10
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.first().first().toInt(), 10);
@@ -249,7 +249,7 @@ private slots:
 
     void testSetDefaultDuration_AboveMaximum_ClampsTo3600()
     {
-        QSignalSpy spy(manager, &PlaylistManager::defaultDurationChanged);
+        QSignalSpy spy(manager, &PlaylistService::defaultDurationChanged);
         manager->setDefaultDuration(7200);  // above maximum of 3600
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.first().first().toInt(), 3600);
@@ -275,7 +275,7 @@ private slots:
         // Create a fresh manager and load the playlist
         QSettings settings;
         settings.remove("playlist");
-        PlaylistManager loader(nullptr);
+        PlaylistService loader(nullptr);
         QVERIFY(loader.loadPlaylist(filePath));
 
         QCOMPARE(loader.count(), 2);
@@ -284,5 +284,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(TestPlaylistManager)
-#include "test_playlistmanager.moc"
+QTEST_MAIN(TestPlaylistService)
+#include "test_playlistservice.moc"

@@ -5,12 +5,12 @@
 #include "services/configfileloader.h"
 #include "services/deviceconnection.h"
 #include "services/errorhandler.h"
-#include "services/favoritesmanager.h"
+#include "services/favoritesservice.h"
 #include "services/filepreviewservice.h"
 #include "services/gamebase64service.h"
 #include "services/httpfiledownloader.h"
 #include "services/hvscmetadataservice.h"
-#include "services/playlistmanager.h"
+#include "services/playlistservice.h"
 #include "services/songlengthsdatabase.h"
 #include "services/statusmessageservice.h"
 #include "services/transferservice.h"
@@ -30,8 +30,8 @@ ServiceFactory::ServiceFactory(QWidget *owner, QObject *parent) : QObject(parent
     transferService_ = new TransferService(deviceConnection_, transferQueue_, this);
     errorHandler_ = new ErrorHandler(owner, this);
     statusMessageService_ = new StatusMessageService(this);
-    favoritesManager_ = new FavoritesManager(this);
-    playlistManager_ = new PlaylistManager(deviceConnection_, this);
+    favoritesManager_ = new FavoritesService(this);
+    playlistManager_ = new PlaylistService(deviceConnection_, this);
     songlengthsDownloader_ = new HttpFileDownloader(this);
     songlengthsDatabase_ = new SonglengthsDatabase(songlengthsDownloader_, this);
     stilDownloader_ = new HttpFileDownloader(this);
@@ -84,12 +84,12 @@ StatusMessageService *ServiceFactory::statusMessageService() const
     return statusMessageService_;
 }
 
-FavoritesManager *ServiceFactory::favoritesManager() const
+FavoritesService *ServiceFactory::favoritesManager() const
 {
     return favoritesManager_;
 }
 
-PlaylistManager *ServiceFactory::playlistManager() const
+PlaylistService *ServiceFactory::playlistManager() const
 {
     return playlistManager_;
 }

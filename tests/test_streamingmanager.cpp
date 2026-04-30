@@ -1,6 +1,6 @@
 /**
  * @file test_streamingmanager.cpp
- * @brief Unit tests for StreamingManager coordination logic.
+ * @brief Unit tests for StreamingService coordination logic.
  *
  * Tests verify the streaming lifecycle management: preconditions, start/stop
  * coordination, video format detection, and stream command handling.
@@ -17,7 +17,7 @@
 #include "services/deviceconnection.h"
 #include "services/devicetypes.h"
 #include "services/keyboardinputservice.h"
-#include "services/streamingmanager.h"
+#include "services/streamingservice.h"
 
 #include <QHostAddress>
 #include <QNetworkAddressEntry>
@@ -25,7 +25,7 @@
 #include <QSignalSpy>
 #include <QtTest>
 
-class TestStreamingManager : public QObject
+class TestStreamingService : public QObject
 {
     Q_OBJECT
 
@@ -39,7 +39,7 @@ private:
     MockAudioPlaybackService *mockPlayback_ = nullptr;
     MockNetworkInterfaceProvider *mockNetwork_ = nullptr;
     KeyboardInputService *keyboardService_ = nullptr;
-    StreamingManager *manager_ = nullptr;
+    StreamingService *manager_ = nullptr;
 
     /// Helper: set up DeviceConnection in Connected state
     void makeConnected()
@@ -80,7 +80,7 @@ private slots:
         mockNetwork_ = new MockNetworkInterfaceProvider();
         keyboardService_ = new KeyboardInputService(mockRest_);
 
-        manager_ = new StreamingManager(conn_, mockControl_, mockVideo_, mockAudio_, mockPlayback_,
+        manager_ = new StreamingService(conn_, mockControl_, mockVideo_, mockAudio_, mockPlayback_,
                                         keyboardService_, mockNetwork_, this);
 
         // Transfer ownership of mocks to manager (Qt parent)
@@ -113,7 +113,7 @@ private slots:
 
     void testStartStreaming_notConnected_emitsError()
     {
-        QSignalSpy errorSpy(manager_, &StreamingManager::error);
+        QSignalSpy errorSpy(manager_, &StreamingService::error);
         bool result = manager_->startStreaming();
 
         QVERIFY(!result);
@@ -179,7 +179,7 @@ private slots:
 
     void testStreamCommandSucceeded_emitsStatusMessage()
     {
-        QSignalSpy statusSpy(manager_, &StreamingManager::statusMessage);
+        QSignalSpy statusSpy(manager_, &StreamingService::statusMessage);
         mockControl_->mockEmitCommandSucceeded("startVideo");
         QCOMPARE(statusSpy.count(), 1);
         QString msg = statusSpy.first().first().toString();
@@ -188,7 +188,7 @@ private slots:
 
     void testStreamCommandFailed_emitsStatusMessage()
     {
-        QSignalSpy statusSpy(manager_, &StreamingManager::statusMessage);
+        QSignalSpy statusSpy(manager_, &StreamingService::statusMessage);
         mockControl_->mockEmitCommandFailed("startAudio", "connection refused");
         QCOMPARE(statusSpy.count(), 1);
         QString msg = statusSpy.first().first().toString();
@@ -222,7 +222,7 @@ private slots:
 
     void testVideoFormatDetected_emitsVideoFormatDetectedSignal()
     {
-        QSignalSpy formatSpy(manager_, &StreamingManager::videoFormatDetected);
+        QSignalSpy formatSpy(manager_, &StreamingService::videoFormatDetected);
         mockVideo_->mockEmitFormatDetected(IVideoStreamReceiver::VideoFormat::PAL);
         QCOMPARE(formatSpy.count(), 1);
         QCOMPARE(formatSpy.first().first().toInt(),
@@ -263,7 +263,7 @@ private slots:
         auto *keyboard = new KeyboardInputService(mockRest_);
         auto *network = new MockNetworkInterfaceProvider();
 
-        auto *mgr = new StreamingManager(conn_, control, video, audio, playback, keyboard, network);
+        auto *mgr = new StreamingService(conn_, control, video, audio, playback, keyboard, network);
         control->setParent(mgr);
         video->setParent(mgr);
         audio->setParent(mgr);
@@ -278,5 +278,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(TestStreamingManager)
+QTEST_MAIN(TestStreamingService)
 #include "test_streamingmanager.moc"

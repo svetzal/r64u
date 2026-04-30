@@ -1,5 +1,5 @@
-#ifndef STREAMINGMANAGER_H
-#define STREAMINGMANAGER_H
+#ifndef STREAMINGSERVICE_H
+#define STREAMINGSERVICE_H
 
 #include <QObject>
 #include <QString>
@@ -33,15 +33,15 @@ class StreamingDiagnostics;
  *
  * @par Example usage (production):
  * @code
- * StreamingManager *manager = StreamingManager::createDefault(deviceConnection, this);
+ * StreamingService *manager = StreamingService::createDefault(deviceConnection, this);
  *
- * connect(manager, &StreamingManager::streamingStarted,
+ * connect(manager, &StreamingService::streamingStarted,
  *         this, &MyClass::onStreamingStarted);
  *
  * manager->startStreaming();
  * @endcode
  */
-class StreamingManager : public QObject
+class StreamingService : public QObject
 {
     Q_OBJECT
 
@@ -63,7 +63,7 @@ public:
      * @param networkProvider Network interface provider (owned by caller).
      * @param parent Optional parent QObject for memory management.
      */
-    explicit StreamingManager(DeviceConnection *connection, IStreamControlClient *streamControl,
+    explicit StreamingService(DeviceConnection *connection, IStreamControlClient *streamControl,
                               IVideoStreamReceiver *videoReceiver,
                               IAudioStreamReceiver *audioReceiver,
                               IAudioPlaybackService *audioPlayback,
@@ -72,22 +72,22 @@ public:
                               QObject *parent = nullptr);
 
     /**
-     * @brief Factory method that creates a StreamingManager with production dependencies.
+     * @brief Factory method that creates a StreamingService with production dependencies.
      *
      * Creates concrete implementations (StreamControlClient, VideoStreamReceiver, etc.)
-     * and wires them together. This is the preferred way to create a StreamingManager
+     * and wires them together. This is the preferred way to create a StreamingService
      * in production code.
      *
      * @param connection Device connection for network and REST client access.
      * @param parent Optional parent QObject for memory management.
-     * @return A fully configured StreamingManager owning its dependencies.
+     * @return A fully configured StreamingService owning its dependencies.
      */
-    static StreamingManager *createDefault(DeviceConnection *connection, QObject *parent = nullptr);
+    static StreamingService *createDefault(DeviceConnection *connection, QObject *parent = nullptr);
 
     /**
      * @brief Destructor. Stops streaming and cleans up resources.
      */
-    ~StreamingManager() override;
+    ~StreamingService() override;
 
     /**
      * @brief Returns whether streaming is currently active.
@@ -198,4 +198,4 @@ private:
     QString currentTargetHost_;
 };
 
-#endif  // STREAMINGMANAGER_H
+#endif  // STREAMINGSERVICE_H
