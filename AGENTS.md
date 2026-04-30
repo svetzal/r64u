@@ -241,6 +241,26 @@ We use semantic versioning (MAJOR.MINOR.PATCH):
 - **MINOR**: New features, backward compatible
 - **PATCH**: Bug fixes, minor improvements
 
+## Naming Conventions
+
+Each suffix or prefix represents a distinct architectural role. New classes must fit one of these categories:
+
+| Suffix/Prefix | Role | Examples |
+|---------------|------|----------|
+| `I*` prefix | Abstract interface/gateway for dependency injection | `IFtpClient`, `IRestClient`, `ICredentialStore` |
+| `*Core` (namespace) | Pure functions and data types, no I/O or state | `ftpcore`, `transfercore` |
+| `*Service` | Stateful capability provider with signals, timers, external I/O | `StatusMessageService`, `TransferService`, `StreamingService` |
+| `*Manager` | Internal lifecycle/state manager for a subsystem (not user-facing) | `BatchManager`, `TransferTimeoutManager` |
+| `*Controller` | Mediates between UI and business logic | `FileActionController`, `ConnectionUIController` |
+| `*Coordinator` | Orchestrates multi-step operations across components | `RecursiveScanCoordinator`, `PanelCoordinator` |
+| `*Handler` | Translates/processes events from one layer to another | `TransferFtpHandler`, `FtpResponseHandler`, `ErrorHandler` |
+| `*Strategy` | Pluggable algorithm (always behind an `I*` or abstract base) | *(none — use `I*` prefix for abstract contracts instead)* |
+
+**Key distinctions:**
+- `*Service` vs `*Manager`: Services are user-facing capability providers; Managers are internal lifecycle helpers for a subsystem.
+- `I*` vs abstract class: All abstract contracts used for dependency injection use the `I*` prefix (no `*Strategy` suffix).
+- `PlatformKeychain`: The platform-specific static keychain utility (distinct from `ICredentialStore` interface and `SystemCredentialStore` adapter).
+
 ## Error Handling Strategy
 
 All error conditions must reach the user through the signal chain:
