@@ -76,8 +76,8 @@ private:
     TransferService *transferService_ = nullptr;
     ErrorHandler *errorHandler_ = nullptr;
     StatusMessageService *statusMessageService_ = nullptr;
-    FavoritesService *favoritesManager_ = nullptr;
-    PlaylistService *playlistManager_ = nullptr;
+    FavoritesService *favoritesService_ = nullptr;
+    PlaylistService *playlistService_ = nullptr;
     MetadataServiceBundle metadataBundle_;
 
     SystemCommandController *systemCommandController_ = nullptr;

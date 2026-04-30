@@ -16,7 +16,7 @@ class KeyboardInputService;
 class StreamingDiagnostics;
 
 /**
- * @brief Manager for C64 Ultimate streaming services.
+ * @brief Service for C64 Ultimate streaming.
  *
  * This class coordinates all streaming-related services:
  * - Stream control (start/stop commands)

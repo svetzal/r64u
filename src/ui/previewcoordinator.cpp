@@ -11,9 +11,9 @@
 
 PreviewCoordinator::PreviewCoordinator(FilePreviewService *previewService,
                                        IDetailsDisplay *detailsPanel,
-                                       PlaylistService *playlistManager, QObject *parent)
+                                       PlaylistService *playlistService, QObject *parent)
     : QObject(parent), previewService_(previewService), detailsPanel_(detailsPanel),
-      playlistManager_(playlistManager)
+      playlistService_(playlistService)
 {
     if (previewService_) {
         connect(previewService_, &FilePreviewService::previewReady, this,
@@ -39,7 +39,7 @@ void PreviewCoordinator::onPreviewReady(const QString &remotePath, const QByteAr
     }
 
     fileaction::PreviewAction action =
-        fileaction::routePreviewData(remotePath, data, playlistManager_ != nullptr);
+        fileaction::routePreviewData(remotePath, data, playlistService_ != nullptr);
 
     std::visit(
         [this](auto &&act) {
@@ -49,8 +49,8 @@ void PreviewCoordinator::onPreviewReady(const QString &remotePath, const QByteAr
                 detailsPanel_->showDiskDirectory(act.data, act.path);
             } else if constexpr (std::is_same_v<T, fileaction::ShowSidDetails>) {
                 detailsPanel_->showSidDetails(act.data, act.path);
-                if (act.updatePlaylist && playlistManager_ != nullptr) {
-                    playlistManager_->updateDurationFromData(act.path, act.data);
+                if (act.updatePlaylist && playlistService_ != nullptr) {
+                    playlistService_->updateDurationFromData(act.path, act.data);
                 }
             } else if constexpr (std::is_same_v<T, fileaction::ShowTextContent>) {
                 detailsPanel_->showTextContent(act.content);

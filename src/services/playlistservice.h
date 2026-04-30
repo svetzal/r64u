@@ -56,7 +56,7 @@ public:
      * @brief Sets the streaming service for automatic stream start/stop.
      * @param manager The streaming service (not owned by PlaylistService).
      */
-    void setStreamingManager(StreamingService *manager);
+    void setStreamingService(StreamingService *manager);
 
     /// @name Playlist Management
     /// @{
@@ -286,7 +286,7 @@ private:
 
     DeviceConnection *deviceConnection_ = nullptr;
     SonglengthsDatabase *songlengthsDatabase_ = nullptr;
-    StreamingService *streamingManager_ = nullptr;
+    StreamingService *streamingService_ = nullptr;
 
     playlist::State state_;
     bool playing_ = false;

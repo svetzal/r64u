@@ -42,7 +42,7 @@ bool requiresContentFetch(PreviewContentType type)
 }
 
 PreviewAction routePreviewData(const QString &remotePath, const QByteArray &data,
-                               bool hasPlaylistManager)
+                               bool hasPlaylistService)
 {
     PreviewContentType type = detectPreviewType(remotePath);
 
@@ -51,7 +51,7 @@ PreviewAction routePreviewData(const QString &remotePath, const QByteArray &data
         return ShowDiskDirectory{data, remotePath};
 
     case PreviewContentType::SidMusic:
-        return ShowSidDetails{data, remotePath, hasPlaylistManager};
+        return ShowSidDetails{data, remotePath, hasPlaylistService};
 
     case PreviewContentType::Html:
     case PreviewContentType::Text:

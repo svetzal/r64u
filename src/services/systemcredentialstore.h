@@ -1,8 +1,8 @@
 #ifndef SYSTEMCREDENTIALSTORE_H
 #define SYSTEMCREDENTIALSTORE_H
 
-#include "platformkeychain.h"
 #include "icredentialstore.h"
+#include "platformkeychain.h"
 
 /**
  * @brief Production credential store backed by the platform keychain.

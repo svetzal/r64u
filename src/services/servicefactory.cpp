@@ -30,8 +30,8 @@ ServiceFactory::ServiceFactory(QWidget *owner, QObject *parent) : QObject(parent
     transferService_ = new TransferService(deviceConnection_, transferQueue_, this);
     errorHandler_ = new ErrorHandler(owner, this);
     statusMessageService_ = new StatusMessageService(this);
-    favoritesManager_ = new FavoritesService(this);
-    playlistManager_ = new PlaylistService(deviceConnection_, this);
+    favoritesService_ = new FavoritesService(this);
+    playlistService_ = new PlaylistService(deviceConnection_, this);
     songlengthsDownloader_ = new HttpFileDownloader(this);
     songlengthsDatabase_ = new SonglengthsDatabase(songlengthsDownloader_, this);
     stilDownloader_ = new HttpFileDownloader(this);
@@ -39,7 +39,7 @@ ServiceFactory::ServiceFactory(QWidget *owner, QObject *parent) : QObject(parent
     hvscMetadataService_ = new HVSCMetadataService(stilDownloader_, buglistDownloader_, this);
     gameBase64Downloader_ = new HttpFileDownloader(this);
     gameBase64Service_ = new GameBase64Service(gameBase64Downloader_, this);
-    playlistManager_->setSonglengthsDatabase(songlengthsDatabase_);
+    playlistService_->setSonglengthsDatabase(songlengthsDatabase_);
     configFileLoader_->setFtpClient(deviceConnection_->ftpClient());
     configFileLoader_->setRestClient(deviceConnection_->restClient());
 }
@@ -84,14 +84,14 @@ StatusMessageService *ServiceFactory::statusMessageService() const
     return statusMessageService_;
 }
 
-FavoritesService *ServiceFactory::favoritesManager() const
+FavoritesService *ServiceFactory::favoritesService() const
 {
-    return favoritesManager_;
+    return favoritesService_;
 }
 
-PlaylistService *ServiceFactory::playlistManager() const
+PlaylistService *ServiceFactory::playlistService() const
 {
-    return playlistManager_;
+    return playlistService_;
 }
 
 HttpFileDownloader *ServiceFactory::songlengthsDownloader() const

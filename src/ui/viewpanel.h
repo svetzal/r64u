@@ -31,16 +31,16 @@ public:
     void stopStreamingIfActive();
 
     /**
-     * @brief Returns the streaming manager for external control.
-     * @return Pointer to the streaming manager.
+     * @brief Returns the streaming service for external control.
+     * @return Pointer to the streaming service.
      */
-    [[nodiscard]] StreamingService *streamingManager() const { return streamingManager_; }
+    [[nodiscard]] StreamingService *streamingService() const { return streamingService_; }
 
     /**
-     * @brief Injects the streaming manager. Wires all streaming-related connections.
+     * @brief Injects the streaming service. Wires all streaming-related connections.
      * @param manager Owned by the caller; must outlive this ViewPanel.
      */
-    void setStreamingManager(StreamingService *manager);
+    void setStreamingService(StreamingService *manager);
 
     /**
      * @brief Injects the video recording service. Wires recording-related connections.
@@ -89,7 +89,7 @@ private:
     DeviceConnection *deviceConnection_ = nullptr;
 
     // Injected services (not owned)
-    StreamingService *streamingManager_ = nullptr;
+    StreamingService *streamingService_ = nullptr;
     VideoRecordingService *recordingService_ = nullptr;
     ScreenshotService *screenshotService_ = nullptr;
 

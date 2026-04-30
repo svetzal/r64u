@@ -8,12 +8,12 @@
 #include <QFileInfo>
 #include <QMenu>
 
-ExploreFavoritesController::ExploreFavoritesController(FavoritesService *favoritesManager,
+ExploreFavoritesController::ExploreFavoritesController(FavoritesService *favoritesService,
                                                        QObject *parent)
-    : QObject(parent), favoritesManager_(favoritesManager)
+    : QObject(parent), favoritesService_(favoritesService)
 {
-    if (favoritesManager_) {
-        connect(favoritesManager_, &FavoritesService::favoritesChanged, this,
+    if (favoritesService_) {
+        connect(favoritesService_, &FavoritesService::favoritesChanged, this,
                 &ExploreFavoritesController::onFavoritesChanged);
     }
 }
@@ -31,29 +31,29 @@ void ExploreFavoritesController::setFavoritesMenu(QMenu *menu)
 
 void ExploreFavoritesController::updateForPath(const QString &path)
 {
-    if (!toggleFavoriteAction_ || !favoritesManager_) {
+    if (!toggleFavoriteAction_ || !favoritesService_) {
         qCDebug(LogUi)
-            << "updateForPath: toggleFavoriteAction_ or favoritesManager_ is null, skipping for"
+            << "updateForPath: toggleFavoriteAction_ or favoritesService_ is null, skipping for"
             << path;
         return;
     }
-    bool fav = favoritesManager_->isFavorite(path);
+    bool fav = favoritesService_->isFavorite(path);
     toggleFavoriteAction_->setChecked(fav);
     toggleFavoriteAction_->setText(fav ? QString::fromUtf8("⭐") : QString::fromUtf8("☆"));
 }
 
 bool ExploreFavoritesController::isFavorite(const QString &path) const
 {
-    return favoritesManager_ && favoritesManager_->isFavorite(path);
+    return favoritesService_ && favoritesService_->isFavorite(path);
 }
 
 void ExploreFavoritesController::onToggleFavorite(const QString &path)
 {
-    if (!favoritesManager_ || path.isEmpty()) {
+    if (!favoritesService_ || path.isEmpty()) {
         return;
     }
 
-    bool isNowFavorite = favoritesManager_->toggleFavorite(path);
+    bool isNowFavorite = favoritesService_->toggleFavorite(path);
     if (isNowFavorite) {
         emit statusMessage(tr("Added to favorites: %1").arg(path), 3000);
     } else {
@@ -94,15 +94,15 @@ void ExploreFavoritesController::onFavoriteSelected(QAction *action)
 
 void ExploreFavoritesController::onFavoritesChanged()
 {
-    if (!favoritesMenu_ || !favoritesManager_) {
+    if (!favoritesMenu_ || !favoritesService_) {
         qCDebug(LogUi)
-            << "onFavoritesChanged: favoritesMenu_ or favoritesManager_ is null, skipping";
+            << "onFavoritesChanged: favoritesMenu_ or favoritesService_ is null, skipping";
         return;
     }
 
     favoritesMenu_->clear();
 
-    QStringList favorites = favoritesManager_->favorites();
+    QStringList favorites = favoritesService_->favorites();
     auto entries = favoritesui::buildMenuEntries(favorites);
     for (const auto &entry : entries) {
         QAction *action = favoritesMenu_->addAction(entry.displayName);

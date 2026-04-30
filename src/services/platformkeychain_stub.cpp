@@ -4,7 +4,7 @@
 // Passwords will not be stored securely - falls back to no storage
 
 bool PlatformKeychain::storePassword(const QString &service, const QString &account,
-                                    const QString &password)
+                                     const QString &password)
 {
     Q_UNUSED(service)
     Q_UNUSED(account)

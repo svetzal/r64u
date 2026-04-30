@@ -56,9 +56,9 @@ public:
     /// @brief Returns the status message service.
     [[nodiscard]] StatusMessageService *statusMessageService() const;
     /// @brief Returns the favorites service.
-    [[nodiscard]] FavoritesService *favoritesManager() const;
+    [[nodiscard]] FavoritesService *favoritesService() const;
     /// @brief Returns the playlist service.
-    [[nodiscard]] PlaylistService *playlistManager() const;
+    [[nodiscard]] PlaylistService *playlistService() const;
     /// @brief Returns the HTTP downloader used for HVSC song lengths.
     [[nodiscard]] HttpFileDownloader *songlengthsDownloader() const;
     /// @brief Returns the song lengths database.
@@ -86,8 +86,8 @@ private:
     TransferService *transferService_ = nullptr;
     ErrorHandler *errorHandler_ = nullptr;
     StatusMessageService *statusMessageService_ = nullptr;
-    FavoritesService *favoritesManager_ = nullptr;
-    PlaylistService *playlistManager_ = nullptr;
+    FavoritesService *favoritesService_ = nullptr;
+    PlaylistService *playlistService_ = nullptr;
     HttpFileDownloader *songlengthsDownloader_ = nullptr;
     SonglengthsDatabase *songlengthsDatabase_ = nullptr;
     HttpFileDownloader *stilDownloader_ = nullptr;

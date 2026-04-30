@@ -61,8 +61,8 @@ private slots:
     void testRoutePreviewData_diskImage_containsCorrectDataAndPath();
 
     void testRoutePreviewData_sid_returnsShowSidDetails();
-    void testRoutePreviewData_sid_withPlaylistManager_setsUpdatePlaylistTrue();
-    void testRoutePreviewData_sid_withoutPlaylistManager_setsUpdatePlaylistFalse();
+    void testRoutePreviewData_sid_withPlaylistService_setsUpdatePlaylistTrue();
+    void testRoutePreviewData_sid_withoutPlaylistService_setsUpdatePlaylistFalse();
 
     void testRoutePreviewData_text_returnsShowTextContent();
     void testRoutePreviewData_text_decodesUtf8();
@@ -248,19 +248,19 @@ void TestFileActionCore::testRoutePreviewData_sid_returnsShowSidDetails()
     QVERIFY(std::holds_alternative<fileaction::ShowSidDetails>(action));
 }
 
-void TestFileActionCore::testRoutePreviewData_sid_withPlaylistManager_setsUpdatePlaylistTrue()
+void TestFileActionCore::testRoutePreviewData_sid_withPlaylistService_setsUpdatePlaylistTrue()
 {
     const QByteArray data{"PSID", 4};
-    auto action = fileaction::routePreviewData("/HVSC/tune.sid", data, /*hasPlaylistManager=*/true);
+    auto action = fileaction::routePreviewData("/HVSC/tune.sid", data, /*hasPlaylistService=*/true);
     const auto &show = std::get<fileaction::ShowSidDetails>(action);
     QVERIFY(show.updatePlaylist);
 }
 
-void TestFileActionCore::testRoutePreviewData_sid_withoutPlaylistManager_setsUpdatePlaylistFalse()
+void TestFileActionCore::testRoutePreviewData_sid_withoutPlaylistService_setsUpdatePlaylistFalse()
 {
     const QByteArray data{"PSID", 4};
     auto action =
-        fileaction::routePreviewData("/HVSC/tune.sid", data, /*hasPlaylistManager=*/false);
+        fileaction::routePreviewData("/HVSC/tune.sid", data, /*hasPlaylistService=*/false);
     const auto &show = std::get<fileaction::ShowSidDetails>(action);
     QVERIFY(!show.updatePlaylist);
 }

@@ -172,7 +172,7 @@ private slots:
     // onPreviewReady with PlaylistService — null playlist no crash
     // =========================================================
 
-    void testOnPreviewReady_WithNullPlaylistManager_NoCrash()
+    void testOnPreviewReady_WithNullPlaylistService_NoCrash()
     {
         // coord_ already has null PlaylistService — SID preview must not crash
         QByteArray sidData("SIDDATA");

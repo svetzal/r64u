@@ -32,21 +32,21 @@
 
 ExplorePanel::ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
                            ConfigFileLoader *configLoader, FilePreviewService *previewService,
-                           FavoritesService *favoritesManager, PlaylistService *playlistManager,
+                           FavoritesService *favoritesService, PlaylistService *playlistService,
                            QWidget *parent)
     : QWidget(parent), deviceConnection_(connection), remoteFileModel_(model),
-      playlistManager_(playlistManager)
+      playlistService_(playlistService)
 {
     Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
     Q_ASSERT(remoteFileModel_ && "RemoteFileModel is required");
     Q_ASSERT(configLoader && "ConfigFileLoader is required");
     Q_ASSERT(previewService && "FilePreviewService is required");
-    Q_ASSERT(favoritesManager && "FavoritesService is required");
-    Q_ASSERT(playlistManager_ && "PlaylistService is required");
+    Q_ASSERT(favoritesService && "FavoritesService is required");
+    Q_ASSERT(playlistService_ && "PlaylistService is required");
 
     actionController_ = new FileActionController(deviceConnection_, configLoader, this);
-    actionController_->setPlaylistManager(playlistManager_);
-    favoritesController_ = new ExploreFavoritesController(favoritesManager, this);
+    actionController_->setPlaylistService(playlistService_);
+    favoritesController_ = new ExploreFavoritesController(favoritesService, this);
     contextMenu_ = new ExploreContextMenu(this);
 
     setupUi();
@@ -58,7 +58,7 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
                                                      navViewAdapter_, favoritesController_, this);
 
     previewCoordinator_ =
-        new PreviewCoordinator(previewService, fileDetailsPanel_, playlistManager_, this);
+        new PreviewCoordinator(previewService, fileDetailsPanel_, playlistService_, this);
 
     setupConnections();
 
@@ -183,7 +183,7 @@ void ExplorePanel::setupUi()
     fileDetailsPanel_ = new FileDetailsPanel();
     rightSplitter_->addWidget(fileDetailsPanel_);
 
-    playlistWidget_ = new PlaylistWidget(playlistManager_);
+    playlistWidget_ = new PlaylistWidget(playlistService_);
     connect(playlistWidget_, &PlaylistWidget::statusMessage, this, &ExplorePanel::statusMessage);
     rightSplitter_->addWidget(playlistWidget_);
 
@@ -344,9 +344,9 @@ void ExplorePanel::setMetadataServices(const MetadataServiceBundle &bundle)
     }
 }
 
-void ExplorePanel::setStreamingManager(StreamingService *manager)
+void ExplorePanel::setStreamingService(StreamingService *manager)
 {
-    actionController_->setStreamingManager(manager);
+    actionController_->setStreamingService(manager);
 }
 
 // ============================================================================

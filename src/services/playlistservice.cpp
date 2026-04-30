@@ -42,9 +42,9 @@ void PlaylistService::setSonglengthsDatabase(SonglengthsDatabase *database)
     songlengthsDatabase_ = database;
 }
 
-void PlaylistService::setStreamingManager(StreamingService *manager)
+void PlaylistService::setStreamingService(StreamingService *manager)
 {
-    streamingManager_ = manager;
+    streamingService_ = manager;
 }
 
 void PlaylistService::addItem(const QString &path, int subsong)
@@ -151,8 +151,8 @@ void PlaylistService::stop()
     }
 
     // Stop streaming if active
-    if (streamingManager_ != nullptr && streamingManager_->isStreaming()) {
-        streamingManager_->stopStreaming();
+    if (streamingService_ != nullptr && streamingService_->isStreaming()) {
+        streamingService_->stopStreaming();
     }
 
     emit playbackStopped();
@@ -368,8 +368,8 @@ void PlaylistService::onAdvanceTimer()
 
 void PlaylistService::ensureStreamingStarted()
 {
-    if (streamingManager_ != nullptr && !streamingManager_->isStreaming()) {
-        streamingManager_->startStreaming();
+    if (streamingService_ != nullptr && !streamingService_->isStreaming()) {
+        streamingService_->startStreaming();
     }
 }
 

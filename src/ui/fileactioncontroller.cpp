@@ -24,14 +24,14 @@ FileActionController::FileActionController(DeviceConnection *connection,
             &FileActionController::statusMessage);
 }
 
-void FileActionController::setStreamingManager(StreamingService *manager)
+void FileActionController::setStreamingService(StreamingService *manager)
 {
-    streamingManager_ = manager;
+    streamingService_ = manager;
 }
 
-void FileActionController::setPlaylistManager(PlaylistService *manager)
+void FileActionController::setPlaylistService(PlaylistService *manager)
 {
-    playlistManager_ = manager;
+    playlistService_ = manager;
 }
 
 void FileActionController::setActions(QAction *play, QAction *run, QAction *mount)
@@ -123,8 +123,8 @@ void FileActionController::download(const QString &path)
 
 void FileActionController::addToPlaylist(const QList<QPair<QString, filetype::FileType>> &items)
 {
-    if (!playlistManager_) {
-        qCDebug(LogUi) << "addToPlaylist: playlistManager_ is null, skipping";
+    if (!playlistService_) {
+        qCDebug(LogUi) << "addToPlaylist: playlistService_ is null, skipping";
         return;
     }
 
@@ -135,7 +135,7 @@ void FileActionController::addToPlaylist(const QList<QPair<QString, filetype::Fi
     }
 
     for (const auto &candidate : candidates) {
-        playlistManager_->addItem(candidate.path);
+        playlistService_->addItem(candidate.path);
     }
     emit statusMessage(tr("Added %1 item(s) to playlist").arg(candidates.size()), 3000);
 }
@@ -147,7 +147,7 @@ void FileActionController::runDiskImage(const QString &path)
 
 void FileActionController::ensureStreamingStarted()
 {
-    if (streamingManager_ != nullptr && !streamingManager_->isStreaming()) {
-        streamingManager_->startStreaming();
+    if (streamingService_ != nullptr && !streamingService_->isStreaming()) {
+        streamingService_->startStreaming();
     }
 }

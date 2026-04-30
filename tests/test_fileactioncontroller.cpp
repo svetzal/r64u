@@ -175,9 +175,9 @@ private slots:
 
     void testAddToPlaylist_MixedItems_OnlySidPassesFilter()
     {
-        auto *playlistManager = new PlaylistService(nullptr, this);
+        auto *playlistService = new PlaylistService(nullptr, this);
         auto *controller = new FileActionController(nullptr, nullptr, this);
-        controller->setPlaylistManager(playlistManager);
+        controller->setPlaylistService(playlistService);
 
         QSignalSpy spy(controller, &FileActionController::statusMessage);
 
@@ -190,14 +190,14 @@ private slots:
         QCOMPARE(spy.count(), 1);
         // "1 item(s)" — only the SID passed through
         QVERIFY(spy.at(0).at(0).toString().contains("1"));
-        QCOMPARE(playlistManager->count(), 1);
+        QCOMPARE(playlistService->count(), 1);
     }
 
     void testAddToPlaylist_NoSidItems_EmitsNoSidMusicFilesMessage()
     {
-        auto *playlistManager = new PlaylistService(nullptr, this);
+        auto *playlistService = new PlaylistService(nullptr, this);
         auto *controller = new FileActionController(nullptr, nullptr, this);
-        controller->setPlaylistManager(playlistManager);
+        controller->setPlaylistService(playlistService);
 
         QSignalSpy spy(controller, &FileActionController::statusMessage);
 

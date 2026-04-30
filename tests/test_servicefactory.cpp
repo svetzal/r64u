@@ -49,8 +49,8 @@ private slots:
         QVERIFY(factory_->transferService() != nullptr);
         QVERIFY(factory_->errorHandler() != nullptr);
         QVERIFY(factory_->statusMessageService() != nullptr);
-        QVERIFY(factory_->favoritesManager() != nullptr);
-        QVERIFY(factory_->playlistManager() != nullptr);
+        QVERIFY(factory_->favoritesService() != nullptr);
+        QVERIFY(factory_->playlistService() != nullptr);
         QVERIFY(factory_->songlengthsDownloader() != nullptr);
         QVERIFY(factory_->songlengthsDatabase() != nullptr);
         QVERIFY(factory_->stilDownloader() != nullptr);

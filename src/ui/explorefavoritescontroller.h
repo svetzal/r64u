@@ -13,7 +13,7 @@ class ExploreFavoritesController : public QObject
     Q_OBJECT
 
 public:
-    explicit ExploreFavoritesController(FavoritesService *favoritesManager,
+    explicit ExploreFavoritesController(FavoritesService *favoritesService,
                                         QObject *parent = nullptr);
 
     void setToggleAction(QAction *action);
@@ -32,7 +32,7 @@ signals:
     void statusMessage(const QString &message, int timeout = 0);
 
 private:
-    FavoritesService *favoritesManager_ = nullptr;
+    FavoritesService *favoritesService_ = nullptr;
     QAction *toggleFavoriteAction_ = nullptr;
     QMenu *favoritesMenu_ = nullptr;
 };

@@ -3,7 +3,6 @@
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 #include "services/configfileloader.h"
-#include "services/platformkeychain.h"
 #include "services/deviceconnection.h"
 #include "services/errorhandler.h"
 #include "services/favoritesservice.h"
@@ -11,6 +10,7 @@
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
 #include "services/irestclient.h"
+#include "services/platformkeychain.h"
 #include "services/playlistservice.h"
 #include "services/screenshotservice.h"
 #include "services/servicefactory.h"
@@ -53,8 +53,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     transferService_ = services->transferService();
     errorHandler_ = services->errorHandler();
     statusMessageService_ = services->statusMessageService();
-    favoritesManager_ = services->favoritesManager();
-    playlistManager_ = services->playlistManager();
+    favoritesService_ = services->favoritesService();
+    playlistService_ = services->playlistService();
     metadataBundle_ = services->metadataBundle();
 
     systemCommandController_ =
@@ -151,30 +151,30 @@ void MainWindow::setupPanels()
 {
     // Create mode panels with their dependencies
     explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, configFileLoader_,
-                                     filePreviewService_, favoritesManager_, playlistManager_);
+                                     filePreviewService_, favoritesService_, playlistService_);
     explorePanel_->setMetadataServices(metadataBundle_);
     transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferService_);
     viewPanel_ = new ViewPanel(deviceConnection_);
 
     // Create and inject streaming services into ViewPanel
-    auto *streamingManager = StreamingService::createDefault(deviceConnection_, viewPanel_);
+    auto *streamingService = StreamingService::createDefault(deviceConnection_, viewPanel_);
     auto *recordingService = new VideoRecordingService(viewPanel_);
-    recordingService->connectToStreaming(streamingManager);
-    viewPanel_->setStreamingManager(streamingManager);
+    recordingService->connectToStreaming(streamingService);
+    viewPanel_->setStreamingService(streamingService);
     viewPanel_->setRecordingService(recordingService);
     viewPanel_->setScreenshotService(new ScreenshotService(viewPanel_));
 
     // Route streaming errors through centralized error handler
-    connect(streamingManager, &StreamingService::error, errorHandler_,
+    connect(streamingService, &StreamingService::error, errorHandler_,
             &ErrorHandler::handleStreamingError);
     connect(recordingService, &VideoRecordingService::error, errorHandler_,
             &ErrorHandler::handleStreamingError);
 
     configPanel_ = new ConfigPanel(deviceConnection_);
 
-    // Wire up the streaming manager for auto stream start/stop
-    playlistManager_->setStreamingManager(viewPanel_->streamingManager());
-    explorePanel_->setStreamingManager(viewPanel_->streamingManager());
+    // Wire up the streaming service for auto stream start/stop
+    playlistService_->setStreamingService(viewPanel_->streamingService());
+    explorePanel_->setStreamingService(viewPanel_->streamingService());
 
     // Add panels to tab widget
     modeTabWidget_->addTab(explorePanel_, tr("Explore/Run"));

@@ -132,42 +132,42 @@ void ViewPanel::setupUi()
     }
 }
 
-void ViewPanel::setStreamingManager(StreamingService *manager)
+void ViewPanel::setStreamingService(StreamingService *manager)
 {
-    streamingManager_ = manager;
+    streamingService_ = manager;
 
-    if (!streamingManager_) {
+    if (!streamingService_) {
         return;
     }
 
-    // Connect streaming manager to display
-    if (streamingManager_->videoReceiver() && videoDisplayWidget_) {
-        connect(streamingManager_->videoReceiver(), &VideoStreamReceiver::frameReady,
+    // Connect streaming service to display
+    if (streamingService_->videoReceiver() && videoDisplayWidget_) {
+        connect(streamingService_->videoReceiver(), &VideoStreamReceiver::frameReady,
                 videoDisplayWidget_, &VideoDisplayWidget::displayFrame);
     }
 
-    connect(streamingManager_, &StreamingService::streamingStarted, this,
+    connect(streamingService_, &StreamingService::streamingStarted, this,
             &ViewPanel::onStreamingStarted);
-    connect(streamingManager_, &StreamingService::streamingStopped, this,
+    connect(streamingService_, &StreamingService::streamingStopped, this,
             &ViewPanel::onStreamingStopped);
-    connect(streamingManager_, &StreamingService::videoFormatDetected, this,
+    connect(streamingService_, &StreamingService::videoFormatDetected, this,
             &ViewPanel::onVideoFormatDetected);
-    connect(streamingManager_, &StreamingService::error, this, &ViewPanel::onStreamingError);
-    connect(streamingManager_, &StreamingService::statusMessage, this, &ViewPanel::statusMessage);
+    connect(streamingService_, &StreamingService::error, this, &ViewPanel::onStreamingError);
+    connect(streamingService_, &StreamingService::statusMessage, this, &ViewPanel::statusMessage);
 
     // Connect video display keyboard events to keyboard service
     if (videoDisplayWidget_) {
         connect(videoDisplayWidget_, &VideoDisplayWidget::keyPressed, this,
                 [this](QKeyEvent *event) {
-                    if (streamingManager_ && streamingManager_->keyboardInput()) {
-                        streamingManager_->keyboardInput()->handleKeyPress(event);
+                    if (streamingService_ && streamingService_->keyboardInput()) {
+                        streamingService_->keyboardInput()->handleKeyPress(event);
                     }
                 });
     }
 
     // Connect diagnostics service to widget
-    if (streamingManager_->diagnostics() && diagnosticsWidget_) {
-        connect(streamingManager_->diagnostics(), &StreamingDiagnostics::diagnosticsUpdated, this,
+    if (streamingService_->diagnostics() && diagnosticsWidget_) {
+        connect(streamingService_->diagnostics(), &StreamingDiagnostics::diagnosticsUpdated, this,
                 &ViewPanel::onDiagnosticsUpdated);
     }
 }
@@ -201,7 +201,7 @@ void ViewPanel::setupConnections()
 void ViewPanel::updateActions()
 {
     bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
-    bool isStreaming = streamingManager_ && streamingManager_->isStreaming();
+    bool isStreaming = streamingService_ && streamingService_->isStreaming();
     if (startStreamAction_) {
         startStreamAction_->setEnabled(canOperate && !isStreaming);
     }
@@ -215,15 +215,15 @@ void ViewPanel::onConnectionStateChanged()
     updateActions();
 
     bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
-    if (!canOperate && streamingManager_ && streamingManager_->isStreaming()) {
-        streamingManager_->stopStreaming();
+    if (!canOperate && streamingService_ && streamingService_->isStreaming()) {
+        streamingService_->stopStreaming();
     }
 }
 
 void ViewPanel::stopStreamingIfActive()
 {
-    if (streamingManager_ && streamingManager_->isStreaming()) {
-        streamingManager_->stopStreaming();
+    if (streamingService_ && streamingService_->isStreaming()) {
+        streamingService_->stopStreaming();
     }
 }
 
@@ -270,7 +270,7 @@ void ViewPanel::onStartStreaming()
         return;
     }
 
-    if (!streamingManager_ || !streamingManager_->startStreaming()) {
+    if (!streamingService_ || !streamingService_->startStreaming()) {
         // Error already emitted by StreamingService
         updateActions();
     }
@@ -278,8 +278,8 @@ void ViewPanel::onStartStreaming()
 
 void ViewPanel::onStopStreaming()
 {
-    if (streamingManager_) {
-        streamingManager_->stopStreaming();
+    if (streamingService_) {
+        streamingService_->stopStreaming();
     }
 }
 
@@ -476,7 +476,7 @@ void ViewPanel::onRecordingStopped(const QString &filePath, int frameCount)
 {
     if (startRecordingAction_) {
         // Re-enable if still streaming
-        startRecordingAction_->setEnabled(streamingManager_ && streamingManager_->isStreaming());
+        startRecordingAction_->setEnabled(streamingService_ && streamingService_->isStreaming());
     }
     if (stopRecordingAction_) {
         stopRecordingAction_->setEnabled(false);
@@ -491,7 +491,7 @@ void ViewPanel::onRecordingError(const QString & /*error*/)
 {
     // Reset button states
     if (startRecordingAction_) {
-        startRecordingAction_->setEnabled(streamingManager_ && streamingManager_->isStreaming());
+        startRecordingAction_->setEnabled(streamingService_ && streamingService_->isStreaming());
     }
     if (stopRecordingAction_) {
         stopRecordingAction_->setEnabled(false);
