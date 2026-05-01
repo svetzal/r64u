@@ -8,7 +8,11 @@ TransferService::TransferService(DeviceConnection *connection, TransferQueue *qu
                                  QObject *parent)
     : QObject(parent), connection_(connection), queue_(queue)
 {
-    // Forward signals from TransferQueue
+    setupSignalForwarding();
+}
+
+void TransferService::setupSignalForwarding()
+{
     connect(queue_, &TransferQueue::operationStarted, this, &TransferService::operationStarted);
     connect(queue_, &TransferQueue::operationCompleted, this, &TransferService::operationCompleted);
     connect(queue_, &TransferQueue::operationFailed, this, &TransferService::operationFailed);
@@ -28,8 +32,6 @@ TransferService::TransferService(DeviceConnection *connection, TransferQueue *qu
             &TransferService::batchProgressUpdate);
     connect(queue_, &TransferQueue::batchCompleted, this, &TransferService::batchCompleted);
     connect(queue_, &TransferQueue::statusMessage, this, &TransferService::statusMessage);
-
-    // Forward scanning progress signals
     connect(queue_, &TransferQueue::scanningStarted, this, &TransferService::scanningStarted);
     connect(queue_, &TransferQueue::scanningProgress, this, &TransferService::scanningProgress);
     connect(queue_, &TransferQueue::directoryCreationProgress, this,

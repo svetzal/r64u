@@ -392,6 +392,8 @@ signals:
     /// @}
 
 private:
+    void setupSignalForwarding();
+
     DeviceConnection *connection_ = nullptr;
     TransferQueue *queue_ = nullptr;
 };

@@ -18,7 +18,11 @@ TransferQueue::TransferQueue(QObject *parent)
     };
     callbacks.endRemoveRows = [this]() { endRemoveRows(); };
     orchestrator_->setModelCallbacks(callbacks);
+    setupSignalForwarding();
+}
 
+void TransferQueue::setupSignalForwarding()
+{
     connect(orchestrator_, &TransferOrchestrator::operationStarted, this,
             &TransferQueue::operationStarted);
     connect(orchestrator_, &TransferOrchestrator::operationCompleted, this,

@@ -129,6 +129,8 @@ signals:
     void directoryCreationProgress(int created, int total);
 
 private:
+    void setupSignalForwarding();
+
     TransferOrchestrator *orchestrator_ = nullptr;
 };
 

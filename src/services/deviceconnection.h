@@ -131,6 +131,8 @@ private:
      * - Reconnecting -> Connected (when reconnect succeeds)
      * - Reconnecting -> Disconnected (on max attempts or cancel)
      */
+    void setupConnections();
+
     bool tryTransitionTo(ConnectionState newState);
 
     /**

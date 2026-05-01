@@ -19,7 +19,16 @@ TransferOrchestrator::TransferOrchestrator(QObject *parent)
       dirCreator_(new RemoteDirectoryCreator(state_, nullptr, localFs_, this)),
       folderCoordinator_(new FolderOperationCoordinator(state_, nullptr, localFs_, this))
 {
-    // --- BatchManager setup ---
+    setupBatchManager();
+    setupTimeoutManager();
+    setupScanCoordinator();
+    setupDirectoryCreator();
+    setupFolderOperationCoordinator();
+    setupFtpHandler();
+}
+
+void TransferOrchestrator::setupBatchManager()
+{
     batchManager_->setModelResetCallbacks(
         [this]() {
             if (modelCallbacks_.beginResetModel)
@@ -51,12 +60,16 @@ TransferOrchestrator::TransferOrchestrator(QObject *parent)
     connect(batchManager_, &BatchManager::allOperationsCompleted, this,
             &TransferOrchestrator::allOperationsCompleted);
     connect(batchManager_, &BatchManager::queueChanged, this, &TransferOrchestrator::queueChanged);
+}
 
-    // --- TransferTimeoutManager setup ---
+void TransferOrchestrator::setupTimeoutManager()
+{
     connect(timeoutManager_, &TransferTimeoutManager::operationTimedOut, this,
             &TransferOrchestrator::onOperationTimeout);
+}
 
-    // --- RecursiveScanCoordinator connections ---
+void TransferOrchestrator::setupScanCoordinator()
+{
     connect(scanCoordinator_, &RecursiveScanCoordinator::downloadFileDiscovered, this,
             [this](const QString &remotePath, const QString &localPath, int batchId) {
                 enqueueDownload(remotePath, localPath, batchId);
@@ -90,14 +103,18 @@ TransferOrchestrator::TransferOrchestrator(QObject *parent)
             });
     connect(scanCoordinator_, &RecursiveScanCoordinator::uploadCheckNoConflict, this,
             [this]() { scheduleProcessNext(); });
+}
 
-    // --- RemoteDirectoryCreator connections ---
+void TransferOrchestrator::setupDirectoryCreator()
+{
     connect(dirCreator_, &RemoteDirectoryCreator::directoryCreationProgress, this,
             &TransferOrchestrator::directoryCreationProgress);
     connect(dirCreator_, &RemoteDirectoryCreator::allDirectoriesCreated, this,
             [this]() { finishDirectoryCreation(); });
+}
 
-    // --- FolderOperationCoordinator connections ---
+void TransferOrchestrator::setupFolderOperationCoordinator()
+{
     folderCoordinator_->setCreateBatchCallback(
         [this](transfer::OperationType type, const QString &description, const QString &folderName,
                const QString &sourcePath) {
@@ -140,8 +157,10 @@ TransferOrchestrator::TransferOrchestrator(QObject *parent)
             &TransferOrchestrator::operationFailed);
     connect(folderCoordinator_, &FolderOperationCoordinator::scheduleProcessNextRequested, this,
             [this]() { scheduleProcessNext(); });
+}
 
-    // --- TransferFtpHandler setup ---
+void TransferOrchestrator::setupFtpHandler()
+{
     ftpHandler_ = new TransferFtpHandler(state_, this);
     ftpHandler_->setTimeoutManager(timeoutManager_);
     ftpHandler_->setDirCreator(dirCreator_);

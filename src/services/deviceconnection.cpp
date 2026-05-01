@@ -14,11 +14,13 @@ DeviceConnection::DeviceConnection(IRestClient *restClient, IFtpClient *ftpClien
     : QObject(parent), restClient_(restClient), ftpClient_(ftpClient),
       reconnectTimer_(new QTimer(this))
 {
-    // Take ownership of injected clients
     restClient_->setParent(this);
     ftpClient_->setParent(this);
+    setupConnections();
+}
 
-    // REST client signals
+void DeviceConnection::setupConnections()
+{
     connect(restClient_, &IRestClient::infoReceived, this, &DeviceConnection::onRestInfoReceived);
     connect(restClient_, &IRestClient::drivesReceived, this,
             &DeviceConnection::onRestDrivesReceived);
@@ -27,12 +29,10 @@ DeviceConnection::DeviceConnection(IRestClient *restClient, IFtpClient *ftpClien
     connect(restClient_, &IRestClient::operationFailed, this,
             &DeviceConnection::onRestOperationFailed);
 
-    // FTP client signals
     connect(ftpClient_, &IFtpClient::connected, this, &DeviceConnection::onFtpConnected);
     connect(ftpClient_, &IFtpClient::disconnected, this, &DeviceConnection::onFtpDisconnected);
     connect(ftpClient_, &IFtpClient::error, this, &DeviceConnection::onFtpError);
 
-    // Reconnect timer
     reconnectTimer_->setSingleShot(true);
     connect(reconnectTimer_, &QTimer::timeout, this, &DeviceConnection::onReconnectTimer);
 }

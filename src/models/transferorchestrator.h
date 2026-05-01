@@ -149,6 +149,13 @@ private slots:
     void onOperationTimeout();
 
 private:
+    void setupBatchManager();
+    void setupTimeoutManager();
+    void setupScanCoordinator();
+    void setupDirectoryCreator();
+    void setupFolderOperationCoordinator();
+    void setupFtpHandler();
+
     void processNext();
     void scheduleProcessNext();
     void transitionTo(QueueState newState);
