@@ -57,7 +57,12 @@ void FileActionController::updateActionStates(filetype::FileType type, bool canO
 
 void FileActionController::play(const QString &path, filetype::FileType type)
 {
-    if (path.isEmpty() || !deviceConnection_ || !deviceConnection_->restClient()) {
+    if (path.isEmpty()) {
+        emit statusMessage(tr("No file selected"), 3000);
+        return;
+    }
+    if (!deviceConnection_ || !deviceConnection_->restClient()) {
+        emit statusMessage(tr("Not connected"), 3000);
         return;
     }
     ensureStreamingStarted();
@@ -72,7 +77,12 @@ void FileActionController::play(const QString &path, filetype::FileType type)
 
 void FileActionController::run(const QString &path, filetype::FileType type)
 {
-    if (path.isEmpty() || !deviceConnection_ || !deviceConnection_->restClient()) {
+    if (path.isEmpty()) {
+        emit statusMessage(tr("No file selected"), 3000);
+        return;
+    }
+    if (!deviceConnection_ || !deviceConnection_->restClient()) {
+        emit statusMessage(tr("Not connected"), 3000);
         return;
     }
     ensureStreamingStarted();
@@ -89,7 +99,12 @@ void FileActionController::run(const QString &path, filetype::FileType type)
 
 void FileActionController::mountToDrive(const QString &path, const QString &drive)
 {
-    if (path.isEmpty() || !deviceConnection_ || !deviceConnection_->restClient()) {
+    if (path.isEmpty()) {
+        emit statusMessage(tr("No file selected"), 3000);
+        return;
+    }
+    if (!deviceConnection_ || !deviceConnection_->restClient()) {
+        emit statusMessage(tr("Not connected"), 3000);
         return;
     }
     deviceConnection_->restClient()->mountImage(drive, path);
@@ -99,6 +114,7 @@ void FileActionController::mountToDrive(const QString &path, const QString &driv
 void FileActionController::loadConfig(const QString &path, filetype::FileType type)
 {
     if (path.isEmpty()) {
+        emit statusMessage(tr("No file selected"), 3000);
         return;
     }
     if (type != filetype::FileType::Config) {
@@ -124,7 +140,7 @@ void FileActionController::download(const QString &path)
 void FileActionController::addToPlaylist(const QList<QPair<QString, filetype::FileType>> &items)
 {
     if (!playlistService_) {
-        qCDebug(LogUi) << "addToPlaylist: playlistService_ is null, skipping";
+        emit statusMessage(tr("Playlist not available"), 3000);
         return;
     }
 

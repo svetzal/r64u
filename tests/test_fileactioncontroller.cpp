@@ -53,7 +53,7 @@ private slots:
         QVERIFY(spy.at(0).at(0).toString().contains("Playing MOD"));
     }
 
-    void testPlay_EmptyPath_EmitsNoStatusMessage()
+    void testPlay_EmptyPath_EmitsNoFileSelectedMessage()
     {
         auto *connection = makeConnection();
         auto *controller = new FileActionController(connection, nullptr, this);
@@ -61,17 +61,19 @@ private slots:
 
         controller->play(QString(), filetype::FileType::SidMusic);
 
-        QCOMPARE(spy.count(), 0);
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("No file selected"));
     }
 
-    void testPlay_NullDeviceConnection_EmitsNoStatusMessage()
+    void testPlay_NullDeviceConnection_EmitsNotConnectedMessage()
     {
         auto *controller = new FileActionController(nullptr, nullptr, this);
         QSignalSpy spy(controller, &FileActionController::statusMessage);
 
         controller->play("/song.sid", filetype::FileType::SidMusic);
 
-        QCOMPARE(spy.count(), 0);
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("Not connected"));
     }
 
     // ==========================================================================
@@ -102,7 +104,7 @@ private slots:
         QVERIFY(spy.at(0).at(0).toString().contains("Running CRT"));
     }
 
-    void testRun_EmptyPath_EmitsNoStatusMessage()
+    void testRun_EmptyPath_EmitsNoFileSelectedMessage()
     {
         auto *connection = makeConnection();
         auto *controller = new FileActionController(connection, nullptr, this);
@@ -110,7 +112,19 @@ private slots:
 
         controller->run(QString(), filetype::FileType::Program);
 
-        QCOMPARE(spy.count(), 0);
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("No file selected"));
+    }
+
+    void testRun_NullDeviceConnection_EmitsNotConnectedMessage()
+    {
+        auto *controller = new FileActionController(nullptr, nullptr, this);
+        QSignalSpy spy(controller, &FileActionController::statusMessage);
+
+        controller->run("/game.prg", filetype::FileType::Program);
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("Not connected"));
     }
 
     void testRun_DiskImage_DoesNotEmitRunningPrgOrCrtStatusMessage()
@@ -133,17 +147,45 @@ private slots:
     }
 
     // ==========================================================================
+    // mountToDrive() — guard clauses
+    // ==========================================================================
+
+    void testMountToDrive_EmptyPath_EmitsNoFileSelectedMessage()
+    {
+        auto *connection = makeConnection();
+        auto *controller = new FileActionController(connection, nullptr, this);
+        QSignalSpy spy(controller, &FileActionController::statusMessage);
+
+        controller->mountToDrive(QString(), "a");
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("No file selected"));
+    }
+
+    void testMountToDrive_NullDeviceConnection_EmitsNotConnectedMessage()
+    {
+        auto *controller = new FileActionController(nullptr, nullptr, this);
+        QSignalSpy spy(controller, &FileActionController::statusMessage);
+
+        controller->mountToDrive("/disk.d64", "a");
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("Not connected"));
+    }
+
+    // ==========================================================================
     // loadConfig() — validation
     // ==========================================================================
 
-    void testLoadConfig_EmptyPath_EmitsNoStatusMessage()
+    void testLoadConfig_EmptyPath_EmitsNoFileSelectedMessage()
     {
         auto *controller = new FileActionController(nullptr, nullptr, this);
         QSignalSpy spy(controller, &FileActionController::statusMessage);
 
         controller->loadConfig(QString(), filetype::FileType::Config);
 
-        QCOMPARE(spy.count(), 0);
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("No file selected"));
     }
 
     void testLoadConfig_WrongFileType_EmitsNotAConfigurationFileMessage()
@@ -211,9 +253,8 @@ private slots:
         QVERIFY(spy.at(0).at(0).toString().contains("No SID music files"));
     }
 
-    void testAddToPlaylist_NullPlaylistService_IsNoOp()
+    void testAddToPlaylist_NullPlaylistService_EmitsPlaylistNotAvailableMessage()
     {
-        // No playlist manager set — must not crash and must not emit statusMessage
         auto *controller = new FileActionController(nullptr, nullptr, this);
         QSignalSpy spy(controller, &FileActionController::statusMessage);
 
@@ -222,7 +263,8 @@ private slots:
 
         controller->addToPlaylist(items);
 
-        QCOMPARE(spy.count(), 0);
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("Playlist not available"));
     }
 
     // ==========================================================================

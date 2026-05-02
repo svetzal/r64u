@@ -153,6 +153,23 @@ private slots:
         QCOMPARE(spy.count(), 0);
     }
 
+    void testPlay_EmptyPlaylist_EmitsPlaylistIsEmptyStatusMessage()
+    {
+        QSignalSpy spy(manager, &PlaylistService::statusMessage);
+        manager->play();
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("Playlist is empty"));
+    }
+
+    void testPlay_OutOfBoundsIndex_EmitsInvalidTrackIndexStatusMessage()
+    {
+        addTestItem(manager, "/SD/a.sid");
+        QSignalSpy spy(manager, &PlaylistService::statusMessage);
+        manager->play(99);
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("Invalid track index"));
+    }
+
     void testStop_EmitsPlaybackStopped()
     {
         addTestItem(manager, "/SD/a.sid");
@@ -181,6 +198,22 @@ private slots:
         QCOMPARE(manager->currentIndex(), 1);
     }
 
+    void testNext_EmptyPlaylist_EmitsPlaylistIsEmptyStatusMessage()
+    {
+        QSignalSpy spy(manager, &PlaylistService::statusMessage);
+        manager->next();
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("Playlist is empty"));
+    }
+
+    void testNext_EmptyPlaylist_NoCrash()
+    {
+        QSignalSpy spy(manager, &PlaylistService::playbackStarted);
+        // Should not crash; no playback signal should be emitted
+        manager->next();
+        QCOMPARE(spy.count(), 0);
+    }
+
     void testPrevious_WithTwoItemsAtIndex1_GoesBackToIndex0()
     {
         addTestItem(manager, "/SD/a.sid");
@@ -193,12 +226,44 @@ private slots:
         QCOMPARE(manager->currentIndex(), 0);
     }
 
-    void testNext_EmptyPlaylist_NoCrash()
+    void testPrevious_EmptyPlaylist_EmitsPlaylistIsEmptyStatusMessage()
     {
-        QSignalSpy spy(manager, &PlaylistService::playbackStarted);
-        // Should not crash; no signal should be emitted
-        manager->next();
-        QCOMPARE(spy.count(), 0);
+        QSignalSpy spy(manager, &PlaylistService::statusMessage);
+        manager->previous();
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("Playlist is empty"));
+    }
+
+    void testPrevious_AtFirstTrack_EmitsAlreadyAtFirstTrackStatusMessage()
+    {
+        // Add one item and play it (at index 0); previous() has nowhere to go
+        addTestItem(manager, "/SD/a.sid");
+        manager->play(0);
+        // Consume the statusMessage from play() (device not connected)
+        QSignalSpy spy(manager, &PlaylistService::statusMessage);
+        manager->previous();
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("Already at first track"));
+    }
+
+    // =========================================================
+    // setItemDuration() — guard clause
+    // =========================================================
+
+    void testSetItemDuration_InvalidIndex_EmitsInvalidTrackIndexStatusMessage()
+    {
+        QSignalSpy spy(manager, &PlaylistService::statusMessage);
+        manager->setItemDuration(99, 60);
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("Invalid track index"));
+    }
+
+    void testSetItemDuration_ValidIndex_EmitsPlaylistChanged()
+    {
+        addTestItem(manager, "/SD/a.sid");
+        QSignalSpy spy(manager, &PlaylistService::playlistChanged);
+        manager->setItemDuration(0, 60);
+        QCOMPARE(spy.count(), 1);
     }
 
     // =========================================================
