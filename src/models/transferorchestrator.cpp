@@ -529,7 +529,7 @@ void TransferOrchestrator::enqueueRecursiveDelete(const QString &remotePath)
         qCDebug(LogTransfer) << "TransferOrchestrator: Ignoring duplicate delete request for"
                              << normalizedPath;
         emit statusMessage(
-            tr("'%1' is already being deleted").arg(QFileInfo(normalizedPath).fileName()), 3000);
+            tr("'%1' is already being deleted").arg(QFileInfo(normalizedPath).fileName()));
         return;
     }
 

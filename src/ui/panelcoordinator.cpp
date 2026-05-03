@@ -104,7 +104,7 @@ void PanelCoordinator::onModeChanged(int index)
 
 void PanelCoordinator::onOperationSucceeded(const QString &operation)
 {
-    statusMessageService_->showInfo(tr("%1 succeeded").arg(operation), 3000);
+    statusMessageService_->showInfo(tr("%1 succeeded").arg(operation));
 
     if (operation == "mount" || operation == "unmount") {
         deviceConnection_->refreshDriveInfo();

@@ -142,7 +142,7 @@ void TransferProgressWidget::onAllOperationsCompleted()
 
     // Clear any queued status messages before showing the final message
     emit clearStatusMessages();
-    emit statusMessage(tr("All operations completed"), 3000);
+    emit statusMessage(tr("All operations completed"));
 }
 
 void TransferProgressWidget::onOperationsCancelled()
@@ -158,7 +158,7 @@ void TransferProgressWidget::onOperationsCancelled()
 
     // Clear any queued status messages before showing the cancellation message
     emit clearStatusMessages();
-    emit statusMessage(tr("Operations cancelled"), 3000);
+    emit statusMessage(tr("Operations cancelled"));
 }
 
 void TransferProgressWidget::onShowProgress()

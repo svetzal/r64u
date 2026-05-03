@@ -55,7 +55,7 @@ bool TransferService::uploadFile(const QString &localPath, const QString &remote
     QString remotePath = targetDir + fileInfo.fileName();
 
     queue_->enqueueUpload(localPath, remotePath);
-    emit statusMessage(tr("Queued upload: %1 -> %2").arg(fileInfo.fileName(), remoteDir), 3000);
+    emit statusMessage(tr("Queued upload: %1 -> %2").arg(fileInfo.fileName(), remoteDir));
     return true;
 }
 
@@ -68,8 +68,7 @@ bool TransferService::uploadDirectory(const QString &localDir, const QString &re
 
     QFileInfo fileInfo(localDir);
     queue_->enqueueRecursiveUpload(localDir, remoteDir);
-    emit statusMessage(tr("Queued folder upload: %1 -> %2").arg(fileInfo.fileName(), remoteDir),
-                       3000);
+    emit statusMessage(tr("Queued folder upload: %1 -> %2").arg(fileInfo.fileName(), remoteDir));
     return true;
 }
 
@@ -83,7 +82,7 @@ bool TransferService::downloadFile(const QString &remotePath, const QString &loc
     QString fileName = QFileInfo(remotePath).fileName();
     QString localPath = localDir + "/" + fileName;
     queue_->enqueueDownload(remotePath, localPath);
-    emit statusMessage(tr("Queued download: %1 -> %2").arg(fileName, localDir), 3000);
+    emit statusMessage(tr("Queued download: %1 -> %2").arg(fileName, localDir));
     return true;
 }
 
@@ -96,7 +95,7 @@ bool TransferService::downloadDirectory(const QString &remoteDir, const QString 
 
     QString folderName = QFileInfo(remoteDir).fileName();
     queue_->enqueueRecursiveDownload(remoteDir, localDir);
-    emit statusMessage(tr("Queued folder download: %1 -> %2").arg(folderName, localDir), 3000);
+    emit statusMessage(tr("Queued folder download: %1 -> %2").arg(folderName, localDir));
     return true;
 }
 
@@ -109,7 +108,7 @@ bool TransferService::deleteRemote(const QString &remotePath, bool isDirectory)
 
     QString fileName = QFileInfo(remotePath).fileName();
     queue_->enqueueDelete(remotePath, isDirectory);
-    emit statusMessage(tr("Queued delete: %1").arg(fileName), 3000);
+    emit statusMessage(tr("Queued delete: %1").arg(fileName));
     return true;
 }
 
@@ -122,7 +121,7 @@ bool TransferService::deleteRecursive(const QString &remotePath)
 
     QString fileName = QFileInfo(remotePath).fileName();
     queue_->enqueueRecursiveDelete(remotePath);
-    emit statusMessage(tr("Queued folder delete: %1").arg(fileName), 3000);
+    emit statusMessage(tr("Queued folder delete: %1").arg(fileName));
     return true;
 }
 

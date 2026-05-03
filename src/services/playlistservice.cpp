@@ -116,7 +116,7 @@ void PlaylistService::play(int index)
 {
     if (state_.items.isEmpty()) {
         qCWarning(LogPlaylist) << "Cannot play: playlist is empty";
-        emit statusMessage(tr("Playlist is empty"), 3000);
+        emit statusMessage(tr("Playlist is empty"));
         return;
     }
 
@@ -128,7 +128,7 @@ void PlaylistService::play(int index)
     } else if (index < state_.items.count()) {
         state_.currentIndex = index;
     } else {
-        emit statusMessage(tr("Invalid track index"), 3000);
+        emit statusMessage(tr("Invalid track index"));
         return;
     }
 
@@ -164,7 +164,7 @@ void PlaylistService::next()
 {
     if (state_.items.isEmpty()) {
         qCDebug(LogPlaylist) << "next() called on empty playlist";
-        emit statusMessage(tr("Playlist is empty"), 3000);
+        emit statusMessage(tr("Playlist is empty"));
         return;
     }
 
@@ -187,13 +187,13 @@ void PlaylistService::previous()
 {
     if (state_.items.isEmpty()) {
         qCDebug(LogPlaylist) << "previous() called on empty playlist";
-        emit statusMessage(tr("Playlist is empty"), 3000);
+        emit statusMessage(tr("Playlist is empty"));
         return;
     }
 
     int prevIdx = playlist::previousIndex(state_);
     if (prevIdx < 0) {
-        emit statusMessage(tr("Already at first track"), 3000);
+        emit statusMessage(tr("Already at first track"));
         return;
     }
 
@@ -250,7 +250,7 @@ void PlaylistService::setDefaultDuration(int seconds)
 void PlaylistService::setItemDuration(int index, int seconds)
 {
     if (index < 0 || index >= state_.items.count()) {
-        emit statusMessage(tr("Invalid track index"), 3000);
+        emit statusMessage(tr("Invalid track index"));
         return;
     }
 
@@ -405,7 +405,7 @@ void PlaylistService::playCurrentItem()
     }
 
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected to device"), 3000);
+        emit statusMessage(tr("Not connected to device"));
         return;
     }
 
@@ -420,7 +420,7 @@ void PlaylistService::playCurrentItem()
     if (item.totalSubsongs > 1) {
         msg += QString(" (%1/%2)").arg(item.subsong).arg(item.totalSubsongs);
     }
-    emit statusMessage(tr("Playing: %1").arg(msg), 3000);
+    emit statusMessage(tr("Playing: %1").arg(msg));
 
     // Start auto-advance timer
     startTimer();

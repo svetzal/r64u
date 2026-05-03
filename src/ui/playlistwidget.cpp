@@ -271,9 +271,9 @@ void PlaylistWidget::onSavePlaylist()
     }
 
     if (manager_->savePlaylist(filePath)) {
-        emit statusMessage(tr("Playlist saved: %1").arg(filePath), 3000);
+        emit statusMessage(tr("Playlist saved: %1").arg(filePath));
     } else {
-        emit statusMessage(tr("Failed to save playlist"), 3000);
+        emit statusMessage(tr("Failed to save playlist"));
     }
 }
 
@@ -288,9 +288,9 @@ void PlaylistWidget::onLoadPlaylist()
     }
 
     if (manager_->loadPlaylist(filePath)) {
-        emit statusMessage(tr("Playlist loaded: %1").arg(filePath), 3000);
+        emit statusMessage(tr("Playlist loaded: %1").arg(filePath));
     } else {
-        emit statusMessage(tr("Failed to load playlist"), 3000);
+        emit statusMessage(tr("Failed to load playlist"));
     }
 }
 

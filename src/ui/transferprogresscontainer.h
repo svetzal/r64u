@@ -42,7 +42,7 @@ signals:
      * @param message The message text.
      * @param timeout Display timeout in milliseconds.
      */
-    void statusMessage(const QString &message, int timeout);
+    void statusMessage(const QString &message, int timeout = 0);
 
     /**
      * @brief Emitted when status messages should be cleared.

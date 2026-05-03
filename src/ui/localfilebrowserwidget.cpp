@@ -229,7 +229,7 @@ void LocalFileBrowserWidget::onUpload()
 {
     QStringList paths = selectedPaths();
     if (paths.isEmpty()) {
-        emit statusMessage(tr("No local file selected"), 3000);
+        emit statusMessage(tr("No local file selected"));
         return;
     }
 
@@ -258,7 +258,7 @@ void LocalFileBrowserWidget::onNewFolder()
 
     QDir dir;
     if (dir.mkdir(newPath)) {
-        emit statusMessage(tr("Local folder created: %1").arg(folderName), 3000);
+        emit statusMessage(tr("Local folder created: %1").arg(folderName));
     } else {
         QMessageBox::warning(this, tr("Error"), tr("Failed to create folder: %1").arg(newPath));
     }
@@ -306,7 +306,7 @@ void LocalFileBrowserWidget::onRename()
     bool success = dir.rename(localPath, newPath);
 
     if (success) {
-        emit statusMessage(tr("Renamed: %1 -> %2").arg(oldName).arg(newName), 3000);
+        emit statusMessage(tr("Renamed: %1 -> %2").arg(oldName).arg(newName));
     } else {
         QString errorMessage;
         if (!fileInfo.exists()) {
@@ -320,7 +320,7 @@ void LocalFileBrowserWidget::onRename()
                     .arg(itemType);
         }
         QMessageBox::warning(this, tr("Rename Failed"), errorMessage);
-        emit statusMessage(tr("Failed to rename: %1").arg(oldName), 3000);
+        emit statusMessage(tr("Failed to rename: %1").arg(oldName));
     }
 }
 
@@ -390,18 +390,16 @@ void LocalFileBrowserWidget::onDelete()
     // Show summary status
     if (paths.size() == 1) {
         if (successCount > 0) {
-            emit statusMessage(tr("Moved to trash: %1").arg(QFileInfo(paths.first()).fileName()),
-                               3000);
+            emit statusMessage(tr("Moved to trash: %1").arg(QFileInfo(paths.first()).fileName()));
         } else {
-            emit statusMessage(tr("Failed to delete: %1").arg(QFileInfo(paths.first()).fileName()),
-                               3000);
+            emit statusMessage(tr("Failed to delete: %1").arg(QFileInfo(paths.first()).fileName()));
         }
     } else {
         if (failCount == 0) {
-            emit statusMessage(tr("Moved %1 items to trash").arg(successCount), 3000);
+            emit statusMessage(tr("Moved %1 items to trash").arg(successCount));
         } else {
             emit statusMessage(
-                tr("Moved %1 items to trash, %2 failed").arg(successCount).arg(failCount), 3000);
+                tr("Moved %1 items to trash, %2 failed").arg(successCount).arg(failCount));
         }
     }
 }

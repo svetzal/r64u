@@ -165,7 +165,7 @@ signals:
      * @param message The message text.
      * @param timeout Display timeout in milliseconds (0 for no timeout).
      */
-    void statusMessage(const QString &message, int timeout);
+    void statusMessage(const QString &message, int timeout = 0);
 
     /**
      * @brief Emitted when an error is logged (for debugging/monitoring).

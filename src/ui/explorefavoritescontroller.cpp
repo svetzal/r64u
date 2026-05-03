@@ -55,9 +55,9 @@ void ExploreFavoritesController::onToggleFavorite(const QString &path)
 
     bool isNowFavorite = favoritesService_->toggleFavorite(path);
     if (isNowFavorite) {
-        emit statusMessage(tr("Added to favorites: %1").arg(path), 3000);
+        emit statusMessage(tr("Added to favorites: %1").arg(path));
     } else {
-        emit statusMessage(tr("Removed from favorites: %1").arg(path), 3000);
+        emit statusMessage(tr("Removed from favorites: %1").arg(path));
     }
 
     if (toggleFavoriteAction_) {
@@ -88,7 +88,7 @@ void ExploreFavoritesController::onFavoriteSelected(QAction *action)
             dir = "/";
         }
         emit navigateToPath(dir);
-        emit statusMessage(tr("Navigated to favorite: %1").arg(path), 3000);
+        emit statusMessage(tr("Navigated to favorite: %1").arg(path));
     }
 }
 

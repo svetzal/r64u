@@ -169,7 +169,7 @@ void ConfigPanel::refreshIfEmpty()
 void ConfigPanel::onSaveToFlash()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected"), 3000);
+        emit statusMessage(tr("Not connected"));
         return;
     }
 
@@ -185,7 +185,7 @@ void ConfigPanel::onSaveToFlash()
 void ConfigPanel::onLoadFromFlash()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected"), 3000);
+        emit statusMessage(tr("Not connected"));
         return;
     }
 
@@ -201,7 +201,7 @@ void ConfigPanel::onLoadFromFlash()
 void ConfigPanel::onResetToDefaults()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected"), 3000);
+        emit statusMessage(tr("Not connected"));
         return;
     }
 
@@ -230,7 +230,7 @@ void ConfigPanel::onResetToDefaults()
 void ConfigPanel::onRefresh()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected"), 3000);
+        emit statusMessage(tr("Not connected"));
         return;
     }
 
@@ -248,7 +248,7 @@ void ConfigPanel::onCategoriesReceived(const QStringList &categories)
     if (configModel_) {
         configModel_->setCategories(categories);
     }
-    emit statusMessage(tr("Loaded %1 configuration categories").arg(categories.size()), 3000);
+    emit statusMessage(tr("Loaded %1 configuration categories").arg(categories.size()));
 
     // Load items for each category
     if (deviceConnection_ && deviceConnection_->restClient()) {
@@ -293,21 +293,21 @@ void ConfigPanel::onSavedToFlash()
     if (configModel_) {
         configModel_->clearDirtyFlags();
     }
-    emit statusMessage(tr("Configuration saved to flash"), 3000);
+    emit statusMessage(tr("Configuration saved to flash"));
 }
 
 void ConfigPanel::onLoadedFromFlash()
 {
     // Reload categories to get fresh data
     onRefresh();
-    emit statusMessage(tr("Configuration loaded from flash"), 3000);
+    emit statusMessage(tr("Configuration loaded from flash"));
 }
 
 void ConfigPanel::onResetComplete()
 {
     // Reload categories to get fresh data
     onRefresh();
-    emit statusMessage(tr("Configuration reset to defaults"), 3000);
+    emit statusMessage(tr("Configuration reset to defaults"));
 }
 
 void ConfigPanel::onDirtyStateChanged(bool isDirty)
@@ -346,7 +346,7 @@ void ConfigPanel::onCategorySelected(QListWidgetItem *current, QListWidgetItem *
 void ConfigPanel::onItemEdited(const QString &category, const QString &item, const QVariant &value)
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected - changes are local only"), 3000);
+        emit statusMessage(tr("Not connected - changes are local only"));
         return;
     }
 

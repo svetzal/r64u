@@ -379,7 +379,7 @@ void ViewPanel::onCaptureScreenshot()
 
     QImage frame = videoDisplayWidget_->currentFrame();
     if (frame.isNull()) {
-        emit statusMessage(tr("No frame to capture"), 3000);
+        emit statusMessage(tr("No frame to capture"));
         return;
     }
 
@@ -469,7 +469,7 @@ void ViewPanel::onRecordingStarted(const QString &filePath)
     if (stopRecordingAction_) {
         stopRecordingAction_->setEnabled(true);
     }
-    emit statusMessage(tr("Recording started..."), 3000);
+    emit statusMessage(tr("Recording started..."));
 }
 
 void ViewPanel::onRecordingStopped(const QString &filePath, int frameCount)

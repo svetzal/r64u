@@ -82,7 +82,7 @@ signals:
     /// All queued folder operations were cancelled
     void operationsCancelled();
 
-    void statusMessage(const QString &message, int timeout);
+    void statusMessage(const QString &message, int timeout = 0);
     void scheduleProcessNextRequested();
     void operationFailed(const QString &fileName, const QString &error);
 

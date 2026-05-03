@@ -1,5 +1,6 @@
 #include "c64urestclient.h"
 
+#include "networkerrorutils.h"
 #include "restresponsecore.h"
 
 #include <QJsonDocument>
@@ -342,9 +343,7 @@ void C64URestClient::onReplyFinished(QNetworkReply *reply)
         return;
     }
 
-    if (reply->error() == QNetworkReply::ConnectionRefusedError ||
-        reply->error() == QNetworkReply::HostNotFoundError ||
-        reply->error() == QNetworkReply::TimeoutError) {
+    if (networkerror::isConnectionError(reply->error())) {
         emit connectionError(reply->errorString());
         return;
     }

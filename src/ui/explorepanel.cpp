@@ -98,7 +98,7 @@ void ExplorePanel::setupUi()
     playAction_->setToolTip(tr("Play selected SID/MOD file"));
     connect(playAction_, &QAction::triggered, this, [this]() {
         if (!treeView_ || !remoteFileModel_) {
-            emit statusMessage(tr("File browser not ready"), 3000);
+            emit statusMessage(tr("File browser not ready"));
             return;
         }
         actionController_->play(selectedPath(),
@@ -109,7 +109,7 @@ void ExplorePanel::setupUi()
     runAction_->setToolTip(tr("Run selected PRG/CRT file"));
     connect(runAction_, &QAction::triggered, this, [this]() {
         if (!treeView_ || !remoteFileModel_) {
-            emit statusMessage(tr("File browser not ready"), 3000);
+            emit statusMessage(tr("File browser not ready"));
             return;
         }
         actionController_->run(selectedPath(),
@@ -232,7 +232,7 @@ void ExplorePanel::setupConnections()
 
     connect(contextMenu_, &ExploreContextMenu::playRequested, this, [this]() {
         if (!treeView_ || !remoteFileModel_) {
-            emit statusMessage(tr("File browser not ready"), 3000);
+            emit statusMessage(tr("File browser not ready"));
             return;
         }
         actionController_->play(selectedPath(),
@@ -240,7 +240,7 @@ void ExplorePanel::setupConnections()
     });
     connect(contextMenu_, &ExploreContextMenu::runRequested, this, [this]() {
         if (!treeView_ || !remoteFileModel_) {
-            emit statusMessage(tr("File browser not ready"), 3000);
+            emit statusMessage(tr("File browser not ready"));
             return;
         }
         actionController_->run(selectedPath(),
@@ -254,7 +254,7 @@ void ExplorePanel::setupConnections()
             [this]() { actionController_->download(selectedPath()); });
     connect(contextMenu_, &ExploreContextMenu::loadConfigRequested, this, [this]() {
         if (!treeView_ || !remoteFileModel_) {
-            emit statusMessage(tr("File browser not ready"), 3000);
+            emit statusMessage(tr("File browser not ready"));
             return;
         }
         actionController_->loadConfig(selectedPath(),
@@ -267,12 +267,12 @@ void ExplorePanel::setupConnections()
     });
     connect(contextMenu_, &ExploreContextMenu::addToPlaylistRequested, this, [this]() {
         if (!treeView_ || !remoteFileModel_) {
-            emit statusMessage(tr("File browser not ready"), 3000);
+            emit statusMessage(tr("File browser not ready"));
             return;
         }
         QModelIndexList selectedIndices = treeView_->selectionModel()->selectedRows();
         if (selectedIndices.isEmpty()) {
-            emit statusMessage(tr("No files selected"), 3000);
+            emit statusMessage(tr("No files selected"));
             return;
         }
         QList<QPair<QString, filetype::FileType>> items;

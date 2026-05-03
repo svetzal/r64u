@@ -70,7 +70,7 @@ void RecursiveScanCoordinator::startDownloadScan(const QString &remotePath,
     emit scanningProgress(0, 1, 0);
 
     if (!ftpClient_) {
-        emit statusMessage(tr("Cannot scan: FTP client not configured"), 5000);
+        emit statusMessage(tr("Cannot scan: FTP client not configured"));
         return;
     }
     ftpClient_->list(remotePath);
@@ -92,7 +92,7 @@ void RecursiveScanCoordinator::startDeleteScan(const QString &remotePath)
     emit scanningProgress(0, 1, 0);
 
     if (!ftpClient_) {
-        emit statusMessage(tr("Cannot scan: FTP client not configured"), 5000);
+        emit statusMessage(tr("Cannot scan: FTP client not configured"));
         return;
     }
     ftpClient_->list(remotePath);
@@ -250,8 +250,8 @@ void RecursiveScanCoordinator::finishScanning()
     }
 
     if (!emptyBatchIds.isEmpty()) {
-        emit statusMessage(tr("%n empty folder(s) - nothing to download", "", emptyBatchIds.size()),
-                           3000);
+        emit statusMessage(
+            tr("%n empty folder(s) - nothing to download", "", emptyBatchIds.size()));
     }
 
     emit scheduleProcessNextRequested();

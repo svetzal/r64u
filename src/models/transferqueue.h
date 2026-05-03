@@ -121,7 +121,7 @@ signals:
     void batchCompleted(int batchId);
 
     // Status messages
-    void statusMessage(const QString &message, int timeout);
+    void statusMessage(const QString &message, int timeout = 0);
 
     // Scanning progress signals
     void scanningStarted(const QString &folderName, OperationType type);

@@ -1,5 +1,7 @@
 #include "errorhandler.h"
 
+#include "statusmessageservice.h"
+
 #include <QDebug>
 #include <QMessageBox>
 #include <QPushButton>
@@ -135,13 +137,15 @@ int ErrorHandler::timeoutForSeverity(ErrorSeverity severity)
 {
     switch (severity) {
     case ErrorSeverity::Info:
-        return 3000;  // 3 seconds
+        return StatusMessageService::defaultTimeoutForPriority(
+            StatusMessageService::Priority::Info);
     case ErrorSeverity::Warning:
-        return 5000;  // 5 seconds
+        return StatusMessageService::defaultTimeoutForPriority(
+            StatusMessageService::Priority::Warning);
     case ErrorSeverity::Critical:
-        return 0;  // No timeout - stays until replaced
+        return 0;
     }
-    return 5000;
+    return StatusMessageService::defaultTimeoutForPriority(StatusMessageService::Priority::Warning);
 }
 
 QString ErrorHandler::categoryToString(ErrorCategory category)

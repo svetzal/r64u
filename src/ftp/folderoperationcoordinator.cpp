@@ -50,7 +50,7 @@ void FolderOperationCoordinator::enqueueRecursive(transfer::OperationType type,
         qDebug() << "FolderOperationCoordinator: Ignoring duplicate"
                  << (isUpload ? "upload" : "download") << "request for" << sourcePath;
         emit statusMessage(
-            tr("'%1' is already being %2").arg(QFileInfo(sourcePath).fileName(), verb), 3000);
+            tr("'%1' is already being %2").arg(QFileInfo(sourcePath).fileName(), verb));
         return;
     }
 

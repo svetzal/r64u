@@ -84,7 +84,18 @@ public:
      * @param priority The priority level
      * @return Timeout in milliseconds
      */
-    static int defaultTimeoutForPriority(Priority priority);
+    static int defaultTimeoutForPriority(Priority priority)
+    {
+        switch (priority) {
+        case Priority::Info:
+            return 3000;
+        case Priority::Warning:
+            return 5000;
+        case Priority::Error:
+            return 8000;
+        }
+        return 3000;
+    }
 
     /**
      * @brief Get the minimum display time to prevent flickering

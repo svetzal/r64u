@@ -43,16 +43,7 @@ bool SonglengthsDatabase::hasCachedDatabase() const
 
 bool SonglengthsDatabase::loadFromCache()
 {
-    const QString path = cacheFilePath();
-    if (!QFile::exists(path)) {
-        return false;
-    }
-
-    if (parseDatabaseFile(path)) {
-        emit databaseLoaded();
-        return true;
-    }
-    return false;
+    return manager_->loadFromCache();
 }
 
 QString SonglengthsDatabase::calculateMd5(const QByteArray &sidData)

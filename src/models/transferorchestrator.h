@@ -139,7 +139,7 @@ signals:
     void batchProgressUpdate(int batchId, int completed, int total);
     void batchCompleted(int batchId);
 
-    void statusMessage(const QString &message, int timeout);
+    void statusMessage(const QString &message, int timeout = 0);
 
     void scanningStarted(const QString &folderName, OperationType type);
     void scanningProgress(int directoriesScanned, int directoriesRemaining, int filesDiscovered);

@@ -70,30 +70,12 @@ bool HVSCMetadataService::hasCachedBuglist() const
 
 bool HVSCMetadataService::loadStilFromCache()
 {
-    const QString path = stilCacheFilePath();
-    if (!QFile::exists(path)) {
-        return false;
-    }
-
-    if (parseStilFile(path)) {
-        emit stilLoaded();
-        return true;
-    }
-    return false;
+    return stilManager_->loadFromCache();
 }
 
 bool HVSCMetadataService::loadBuglistFromCache()
 {
-    const QString path = buglistCacheFilePath();
-    if (!QFile::exists(path)) {
-        return false;
-    }
-
-    if (parseBuglistFile(path)) {
-        emit buglistLoaded();
-        return true;
-    }
-    return false;
+    return buglistManager_->loadFromCache();
 }
 
 HVSCMetadataService::StilInfo HVSCMetadataService::lookupStil(const QString &hvscPath) const

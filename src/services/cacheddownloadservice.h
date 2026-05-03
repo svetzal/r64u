@@ -76,6 +76,19 @@ public:
      */
     void cancelDownload();
 
+    /**
+     * @brief Loads data from the local cache file, if it exists.
+     *
+     * Invokes the parse callback on the cached data and emits loaded() on success.
+     * @return True if the cache file existed and parsed successfully.
+     */
+    bool loadFromCache();
+
+    /**
+     * @brief Reads @p filePath, invokes the parse callback, emits loaded() on success.
+     */
+    bool loadFromFile(const QString &filePath);
+
 signals:
     /** @brief Forwarded from the underlying IFileDownloader. */
     void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
@@ -98,9 +111,6 @@ private slots:
     void onDownloaderFailed(const QString &error);
 
 private:
-    /** @brief Reads @p filePath, invokes the parse callback, emits loaded() on success. */
-    bool loadFromFile(const QString &filePath);
-
     IFileDownloader *downloader_;
     QString cacheFilename_;
     QUrl downloadUrl_;

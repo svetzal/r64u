@@ -71,19 +71,6 @@ void StatusMessageService::clearMessages()
     emit queueChanged(0);
 }
 
-int StatusMessageService::defaultTimeoutForPriority(Priority priority)
-{
-    switch (priority) {
-    case Priority::Info:
-        return 3000;  // 3 seconds for info
-    case Priority::Warning:
-        return 5000;  // 5 seconds for warnings
-    case Priority::Error:
-        return 8000;  // 8 seconds for errors - give user time to read
-    }
-    return 3000;
-}
-
 void StatusMessageService::onDisplayTimerTimeout()
 {
     // Minimum display time has passed, now check if message should timeout

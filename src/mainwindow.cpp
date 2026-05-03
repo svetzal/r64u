@@ -420,7 +420,7 @@ void MainWindow::onConnectionStateChanged()
         statusMessageService_->showInfo(tr("Connecting..."));
         break;
     case DeviceConnection::ConnectionState::Connected:
-        statusMessageService_->showInfo(tr("Connected"), 3000);
+        statusMessageService_->showInfo(tr("Connected"));
         // Navigate to saved directory for the currently active panel only
         if (currentMode_ == Mode::ExploreRun) {
             QString dir = explorePanel_->currentDirectory();
@@ -434,7 +434,7 @@ void MainWindow::onConnectionStateChanged()
         statusMessageService_->showWarning(tr("Reconnecting..."));
         break;
     case DeviceConnection::ConnectionState::Disconnected:
-        statusMessageService_->showInfo(tr("Disconnected"), 3000);
+        statusMessageService_->showInfo(tr("Disconnected"));
         remoteFileModel_->clear();
         viewPanel_->stopStreamingIfActive();
         break;

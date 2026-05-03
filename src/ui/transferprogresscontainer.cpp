@@ -225,13 +225,13 @@ void TransferProgressContainer::onOperationFailed(const QString &fileName, const
 void TransferProgressContainer::onAllOperationsCompleted()
 {
     emit clearStatusMessages();
-    emit statusMessage(tr("All operations completed"), 3000);
+    emit statusMessage(tr("All operations completed"));
 }
 
 void TransferProgressContainer::onOperationsCancelled()
 {
     emit clearStatusMessages();
-    emit statusMessage(tr("Operations cancelled"), 3000);
+    emit statusMessage(tr("Operations cancelled"));
 }
 
 void TransferProgressContainer::onScanningStarted(const QString &folderName, OperationType type)

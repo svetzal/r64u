@@ -52,6 +52,14 @@ void CachedDownloadService::cancelDownload()
     downloader_->cancel();
 }
 
+bool CachedDownloadService::loadFromCache()
+{
+    if (!hasCachedFile()) {
+        return false;
+    }
+    return loadFromFile(cacheFilePath());
+}
+
 void CachedDownloadService::onDownloaderProgress(qint64 bytesReceived, qint64 bytesTotal)
 {
     emit downloadProgress(bytesReceived, bytesTotal);

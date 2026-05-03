@@ -58,40 +58,40 @@ void FileActionController::updateActionStates(filetype::FileType type, bool canO
 void FileActionController::play(const QString &path, filetype::FileType type)
 {
     if (path.isEmpty()) {
-        emit statusMessage(tr("No file selected"), 3000);
+        emit statusMessage(tr("No file selected"));
         return;
     }
     if (!deviceConnection_ || !deviceConnection_->restClient()) {
-        emit statusMessage(tr("Not connected"), 3000);
+        emit statusMessage(tr("Not connected"));
         return;
     }
     ensureStreamingStarted();
     if (type == filetype::FileType::SidMusic) {
         deviceConnection_->restClient()->playSid(path);
-        emit statusMessage(tr("Playing SID: %1").arg(path), 3000);
+        emit statusMessage(tr("Playing SID: %1").arg(path));
     } else if (type == filetype::FileType::ModMusic) {
         deviceConnection_->restClient()->playMod(path);
-        emit statusMessage(tr("Playing MOD: %1").arg(path), 3000);
+        emit statusMessage(tr("Playing MOD: %1").arg(path));
     }
 }
 
 void FileActionController::run(const QString &path, filetype::FileType type)
 {
     if (path.isEmpty()) {
-        emit statusMessage(tr("No file selected"), 3000);
+        emit statusMessage(tr("No file selected"));
         return;
     }
     if (!deviceConnection_ || !deviceConnection_->restClient()) {
-        emit statusMessage(tr("Not connected"), 3000);
+        emit statusMessage(tr("Not connected"));
         return;
     }
     ensureStreamingStarted();
     if (type == filetype::FileType::Program) {
         deviceConnection_->restClient()->runPrg(path);
-        emit statusMessage(tr("Running PRG: %1").arg(path), 3000);
+        emit statusMessage(tr("Running PRG: %1").arg(path));
     } else if (type == filetype::FileType::Cartridge) {
         deviceConnection_->restClient()->runCrt(path);
-        emit statusMessage(tr("Running CRT: %1").arg(path), 3000);
+        emit statusMessage(tr("Running CRT: %1").arg(path));
     } else if (type == filetype::FileType::DiskImage) {
         runDiskImage(path);
     }
@@ -100,29 +100,29 @@ void FileActionController::run(const QString &path, filetype::FileType type)
 void FileActionController::mountToDrive(const QString &path, const QString &drive)
 {
     if (path.isEmpty()) {
-        emit statusMessage(tr("No file selected"), 3000);
+        emit statusMessage(tr("No file selected"));
         return;
     }
     if (!deviceConnection_ || !deviceConnection_->restClient()) {
-        emit statusMessage(tr("Not connected"), 3000);
+        emit statusMessage(tr("Not connected"));
         return;
     }
     deviceConnection_->restClient()->mountImage(drive, path);
-    emit statusMessage(tr("Mounting to Drive %1: %2").arg(drive.toUpper()).arg(path), 3000);
+    emit statusMessage(tr("Mounting to Drive %1: %2").arg(drive.toUpper()).arg(path));
 }
 
 void FileActionController::loadConfig(const QString &path, filetype::FileType type)
 {
     if (path.isEmpty()) {
-        emit statusMessage(tr("No file selected"), 3000);
+        emit statusMessage(tr("No file selected"));
         return;
     }
     if (type != filetype::FileType::Config) {
-        emit statusMessage(tr("Selected file is not a configuration file"), 3000);
+        emit statusMessage(tr("Selected file is not a configuration file"));
         return;
     }
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected"), 3000);
+        emit statusMessage(tr("Not connected"));
         return;
     }
     if (configFileLoader_) {
@@ -134,26 +134,26 @@ void FileActionController::loadConfig(const QString &path, filetype::FileType ty
 
 void FileActionController::download(const QString &path)
 {
-    emit statusMessage(tr("Download requested for: %1").arg(path), 3000);
+    emit statusMessage(tr("Download requested for: %1").arg(path));
 }
 
 void FileActionController::addToPlaylist(const QList<QPair<QString, filetype::FileType>> &items)
 {
     if (!playlistService_) {
-        emit statusMessage(tr("Playlist not available"), 3000);
+        emit statusMessage(tr("Playlist not available"));
         return;
     }
 
     QList<filebrowser::PlaylistCandidate> candidates = filebrowser::filterPlaylistCandidates(items);
     if (candidates.isEmpty()) {
-        emit statusMessage(tr("No SID music files in selection"), 3000);
+        emit statusMessage(tr("No SID music files in selection"));
         return;
     }
 
     for (const auto &candidate : candidates) {
         playlistService_->addItem(candidate.path);
     }
-    emit statusMessage(tr("Added %1 item(s) to playlist").arg(candidates.size()), 3000);
+    emit statusMessage(tr("Added %1 item(s) to playlist").arg(candidates.size()));
 }
 
 void FileActionController::runDiskImage(const QString &path)

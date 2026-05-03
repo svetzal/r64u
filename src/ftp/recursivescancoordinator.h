@@ -54,7 +54,7 @@ signals:
     void uploadCheckNoConflict();
     void completeBatchRequested(int batchId);
     void scheduleProcessNextRequested();
-    void statusMessage(const QString &message, int timeout);
+    void statusMessage(const QString &message, int timeout = 0);
     void scanningStarted(const QString &folderName, transfer::OperationType type);
     void scanningProgress(int directoriesScanned, int directoriesRemaining, int filesDiscovered);
 
