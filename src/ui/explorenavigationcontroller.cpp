@@ -64,6 +64,7 @@ void ExploreNavigationController::navigateToParent()
 void ExploreNavigationController::refresh()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
+        emit statusMessage(tr("Not connected to device"));
         return;
     }
 
@@ -85,6 +86,7 @@ void ExploreNavigationController::refresh()
 void ExploreNavigationController::refreshIfStale()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
+        emit statusMessage(tr("Not connected to device"));
         return;
     }
 

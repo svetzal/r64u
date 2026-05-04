@@ -169,7 +169,7 @@ void ConfigPanel::refreshIfEmpty()
 void ConfigPanel::onSaveToFlash()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected"));
+        emit statusMessage(tr("Not connected to device"));
         return;
     }
 
@@ -185,7 +185,7 @@ void ConfigPanel::onSaveToFlash()
 void ConfigPanel::onLoadFromFlash()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected"));
+        emit statusMessage(tr("Not connected to device"));
         return;
     }
 
@@ -201,7 +201,7 @@ void ConfigPanel::onLoadFromFlash()
 void ConfigPanel::onResetToDefaults()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected"));
+        emit statusMessage(tr("Not connected to device"));
         return;
     }
 
@@ -230,7 +230,7 @@ void ConfigPanel::onResetToDefaults()
 void ConfigPanel::onRefresh()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected"));
+        emit statusMessage(tr("Not connected to device"));
         return;
     }
 

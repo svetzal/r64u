@@ -62,7 +62,7 @@ void FileActionController::play(const QString &path, filetype::FileType type)
         return;
     }
     if (!deviceConnection_ || !deviceConnection_->restClient()) {
-        emit statusMessage(tr("Not connected"));
+        emit statusMessage(tr("Not connected to device"));
         return;
     }
     ensureStreamingStarted();
@@ -82,7 +82,7 @@ void FileActionController::run(const QString &path, filetype::FileType type)
         return;
     }
     if (!deviceConnection_ || !deviceConnection_->restClient()) {
-        emit statusMessage(tr("Not connected"));
+        emit statusMessage(tr("Not connected to device"));
         return;
     }
     ensureStreamingStarted();
@@ -104,7 +104,7 @@ void FileActionController::mountToDrive(const QString &path, const QString &driv
         return;
     }
     if (!deviceConnection_ || !deviceConnection_->restClient()) {
-        emit statusMessage(tr("Not connected"));
+        emit statusMessage(tr("Not connected to device"));
         return;
     }
     deviceConnection_->restClient()->mountImage(drive, path);
@@ -122,7 +122,7 @@ void FileActionController::loadConfig(const QString &path, filetype::FileType ty
         return;
     }
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected"));
+        emit statusMessage(tr("Not connected to device"));
         return;
     }
     if (configFileLoader_) {

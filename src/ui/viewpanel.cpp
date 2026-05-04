@@ -16,7 +16,6 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QKeyEvent>
-#include <QMessageBox>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QVBoxLayout>
@@ -265,8 +264,7 @@ int ViewPanel::scalingMode() const
 void ViewPanel::onStartStreaming()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        QMessageBox::warning(this, tr("Not Connected"),
-                             tr("Please connect to a C64 Ultimate device first."));
+        emit statusMessage(tr("Not connected to device"));
         return;
     }
 
