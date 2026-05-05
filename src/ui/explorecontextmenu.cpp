@@ -52,9 +52,8 @@ ExploreContextMenu::ExploreContextMenu(QObject *parent) : QObject(parent)
     connect(refreshAction, &QAction::triggered, this, &ExploreContextMenu::refreshRequested);
 }
 
-void ExploreContextMenu::showForSelection(const QPoint &globalPos,
-                                          const explorepanel::ActionEnablement &enablement,
-                                          bool canAddToPlaylist, bool isFavorite)
+void ExploreContextMenu::prepareMenu(const explorepanel::ActionEnablement &enablement,
+                                     bool canAddToPlaylist, bool isFavorite)
 {
     contextPlayAction_->setEnabled(enablement.canPlay);
     contextAddToPlaylistAction_->setEnabled(canAddToPlaylist);
@@ -65,5 +64,12 @@ void ExploreContextMenu::showForSelection(const QPoint &globalPos,
     contextDownloadAction_->setEnabled(enablement.canDownload);
     contextToggleFavoriteAction_->setText(isFavorite ? tr("Remove from Favorites")
                                                      : tr("Add to Favorites"));
+}
+
+void ExploreContextMenu::showForSelection(const QPoint &globalPos,
+                                          const explorepanel::ActionEnablement &enablement,
+                                          bool canAddToPlaylist, bool isFavorite)
+{
+    prepareMenu(enablement, canAddToPlaylist, isFavorite);
     contextMenu_->exec(globalPos);
 }

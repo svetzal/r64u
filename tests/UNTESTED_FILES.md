@@ -85,16 +85,20 @@ implementation on unsupported platforms.
 
 ## Files That Could Have Unit Tests (future work)
 
-These files contain non-trivial, side-effect-free logic that could be extracted
-into testable functions or tested directly. They are listed here as a TODO for
-future coverage improvement.
+All previously identified candidates have now been addressed — see notes below.
 
-| File | Why it needs tests |
-|------|-------------------|
-| `src/ui/explorepanelcore.cpp` | Contains two pure functions — `calculateActionEnablement()` and `calculateDriveDisplay()` — with conditional logic that would benefit from data-driven unit tests covering connected/disconnected states, empty drive lists, and each capability flag. |
-| `src/ui/explorefavoritescontroller.cpp` | `onFavoriteSelected()` contains path-parsing logic (directory extraction, trailing slash handling) and `onFavoritesChanged()` builds a menu from a favorites list. Both could be tested with a mock `FavoritesManager`. |
-| `src/ui/explorecontextmenu.cpp` | Likely contains action-enablement logic based on file type / connection state. Worth auditing once the widget stabilises. |
-| `src/services/remotefileoperations.cpp` | `createFolder()` and `renameItem()` each guard on a null `ftpClient_` and delegate to it. The guard-clause behaviour (no-op when null, correct FTP call when set) is easily verified with `MockFtpClient`. |
+*(No remaining entries.)*
+
+---
+
+## Previously Addressed
+
+| File | Resolution |
+|------|------------|
+| `src/ui/explorepanelcore.cpp` | **Tested** — `tests/test_explorepanelcore.cpp` covers both pure functions with 28 cases across all connected/disconnected states, all FileTypes, and drive display combinations. |
+| `src/ui/explorefavoritescontroller.cpp` | **Tested** — `tests/test_explorefavoritescontroller.cpp` covers `onFavoriteSelected()`, `onToggleFavorite()`, `updateForPath()`, `onFavoritesChanged()`, and `isFavorite()` using a real `FavoritesService` with isolated QSettings. 21 tests. |
+| `src/ui/explorecontextmenu.cpp` | **Tested** — `showForSelection()` called `QMenu::exec()` (blocking, untestable). A minimal refactor extracted `prepareMenu()` from `showForSelection()`. `tests/test_explorecontextmenu.cpp` tests action enablement state via `prepareMenu()`. 13 tests. |
+| `src/services/remotefileoperations.cpp` | **Tested** — `tests/test_remotefileoperations.cpp` covers guard-clause behaviour for null FTP client. |
 
 ---
 
@@ -106,7 +110,7 @@ future coverage improvement.
 | Thin Builder / Adapter (untested by design) | 3 |
 | Modal Dialog Helper (untested by design) | 1 |
 | Gateway / Stub (untested by design) | 2 |
-| **Files needing future tests** | **4** |
-| **Total untested** | **30** |
-| Tested source files | 84 |
+| **Files needing future tests** | **0** |
+| **Total untested** | **26** |
+| Tested source files | 88 |
 | **Grand total source files** | **114** |

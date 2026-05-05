@@ -2094,6 +2094,81 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_panelcoordinator)
 endif()
 
+# ExplorePanelCore tests - pure action enablement and drive display logic
+add_executable(test_explorepanelcore
+    test_explorepanelcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/explorepanelcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+)
+
+target_include_directories(test_explorepanelcore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_explorepanelcore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME ExplorePanelCoreTest COMMAND test_explorepanelcore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(explorepanelcore test_explorepanelcore)
+    add_dependencies(coverage coverage_explorepanelcore)
+endif()
+
+# ExploreContextMenu tests - action enablement state via prepareMenu()
+add_executable(test_explorecontextmenu
+    test_explorecontextmenu.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/explorecontextmenu.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/explorepanelcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+)
+
+target_include_directories(test_explorecontextmenu PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_explorecontextmenu PRIVATE
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Test
+)
+
+add_test(NAME ExploreContextMenuTest COMMAND test_explorecontextmenu)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(explorecontextmenu test_explorecontextmenu)
+    add_dependencies(coverage coverage_explorecontextmenu)
+endif()
+
+# ExploreFavoritesController tests - signal emissions and menu rebuilding
+add_executable(test_explorefavoritescontroller
+    test_explorefavoritescontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/explorefavoritescontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/favoritesservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/favoritescore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/favoritesuicore.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+)
+
+target_include_directories(test_explorefavoritescontroller PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_explorefavoritescontroller PRIVATE
+    Qt6::Core
+    Qt6::Widgets
+    Qt6::Test
+)
+
+add_test(NAME ExploreFavoritesControllerTest COMMAND test_explorefavoritescontroller)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(explorefavoritescontroller test_explorefavoritescontroller)
+    add_dependencies(coverage coverage_explorefavoritescontroller)
+endif()
+
 # ServiceFactory tests - verifies construction and wiring of all application services
 add_executable(test_servicefactory
     test_servicefactory.cpp

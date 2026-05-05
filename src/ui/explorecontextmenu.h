@@ -18,6 +18,11 @@ class ExploreContextMenu : public QObject
 public:
     explicit ExploreContextMenu(QObject *parent = nullptr);
 
+    /// Apply enablement state to all actions without showing the menu.
+    /// Called by showForSelection(); exposed for unit testing.
+    void prepareMenu(const explorepanel::ActionEnablement &enablement, bool canAddToPlaylist,
+                     bool isFavorite);
+
     /// Show the context menu using a pre-computed ActionEnablement struct.
     void showForSelection(const QPoint &globalPos, const explorepanel::ActionEnablement &enablement,
                           bool canAddToPlaylist, bool isFavorite);
