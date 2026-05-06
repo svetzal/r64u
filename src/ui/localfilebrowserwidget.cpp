@@ -83,8 +83,10 @@ void LocalFileBrowserWidget::setupUi()
                 }
             });
     connect(fileOps_, &LocalFileOperationsService::operationFailed, this,
-            [this](ErrorCategory /*category*/, const QString &message) {
-                QMessageBox::warning(this, tr("Operation Failed"), message);
+            [this](ErrorCategory category, const QString &message) {
+                if (errorHandler_) {
+                    errorHandler_->handleError(category, ErrorSeverity::Warning, message);
+                }
             });
 
     LocalFileBrowserWidget::updateActions();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
