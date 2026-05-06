@@ -7,6 +7,7 @@
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 #include "services/deviceconnection.h"
+#include "services/errorhandler.h"
 #include "services/remotefileoperations.h"
 #include "services/transferservice.h"
 #include "utils/logging.h"
@@ -63,8 +64,6 @@ void TransferPanel::setupConnections()
     if (localBrowser_) {
         connect(localBrowser_, &LocalFileBrowserWidget::uploadRequested, this,
                 &TransferPanel::onUploadRequested);
-        connect(localBrowser_, &LocalFileBrowserWidget::statusMessage, this,
-                &TransferPanel::statusMessage);
         connect(localBrowser_, &LocalFileBrowserWidget::selectionChanged, this,
                 &TransferPanel::selectionChanged);
         connect(localBrowser_, &LocalFileBrowserWidget::selectionChanged, this, [this]() {
@@ -79,8 +78,6 @@ void TransferPanel::setupConnections()
                 &TransferPanel::onDownloadRequested);
         connect(remoteBrowser_, &RemoteFileBrowserWidget::deleteRequested, this,
                 &TransferPanel::onDeleteRequested);
-        connect(remoteBrowser_, &RemoteFileBrowserWidget::statusMessage, this,
-                &TransferPanel::statusMessage);
         connect(remoteBrowser_, &RemoteFileBrowserWidget::selectionChanged, this,
                 &TransferPanel::selectionChanged);
         connect(remoteBrowser_, &RemoteFileBrowserWidget::selectionChanged, this, [this]() {
@@ -117,6 +114,17 @@ void TransferPanel::setupConnections()
                 remoteBrowser_->refresh();
             }
         });
+    }
+}
+
+void TransferPanel::setErrorHandler(ErrorHandler *handler)
+{
+    errorHandler_ = handler;
+    if (localBrowser_) {
+        localBrowser_->setErrorHandler(handler);
+    }
+    if (remoteBrowser_) {
+        remoteBrowser_->setErrorHandler(handler);
     }
 }
 

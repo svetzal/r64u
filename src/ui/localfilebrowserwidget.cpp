@@ -3,6 +3,8 @@
 #include "pathnavigationwidget.h"
 
 #include "models/localfileproxymodel.h"
+#include "services/errorhandler.h"
+#include "services/localfileoperationsservice.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -72,6 +74,18 @@ void LocalFileBrowserWidget::setupUi()
     treeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     treeView_->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     treeView_->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+
+    fileOps_ = new LocalFileOperationsService(this);
+    connect(fileOps_, &LocalFileOperationsService::statusMessage, this,
+            [this](const QString &message, int /*timeout*/) {
+                if (errorHandler_) {
+                    errorHandler_->info(ErrorCategory::FileOperation, message);
+                }
+            });
+    connect(fileOps_, &LocalFileOperationsService::operationFailed, this,
+            [this](ErrorCategory /*category*/, const QString &message) {
+                QMessageBox::warning(this, tr("Operation Failed"), message);
+            });
 
     LocalFileBrowserWidget::updateActions();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
 }
@@ -217,7 +231,10 @@ void LocalFileBrowserWidget::setCurrentDirectory(const QString &path)
 
     navWidget_->setPath(displayPath);
     emit currentDirectoryChanged(path);
-    emit statusMessage(tr("Download destination: %1").arg(displayPath), 2000);
+    if (errorHandler_) {
+        errorHandler_->info(ErrorCategory::FileOperation,
+                            tr("Download destination: %1").arg(displayPath));
+    }
 
     // Enable/disable up button based on whether we can go up
     QDir dir(path);
@@ -229,7 +246,10 @@ void LocalFileBrowserWidget::onUpload()
 {
     QStringList paths = selectedPaths();
     if (paths.isEmpty()) {
-        emit statusMessage(tr("No local file selected"));
+        if (errorHandler_) {
+            errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
+                                       tr("No local file selected"));
+        }
         return;
     }
 
@@ -250,18 +270,7 @@ void LocalFileBrowserWidget::onNewFolder()
         return;
     }
 
-    QString newPath = currentDirectory_;
-    if (!newPath.endsWith('/')) {
-        newPath += '/';
-    }
-    newPath += folderName;
-
-    QDir dir;
-    if (dir.mkdir(newPath)) {
-        emit statusMessage(tr("Local folder created: %1").arg(folderName));
-    } else {
-        QMessageBox::warning(this, tr("Error"), tr("Failed to create folder: %1").arg(newPath));
-    }
+    fileOps_->createFolder(currentDirectory_, folderName);
 }
 
 void LocalFileBrowserWidget::onRename()
@@ -293,35 +302,7 @@ void LocalFileBrowserWidget::onRename()
         return;
     }
 
-    QString newPath = fileInfo.absolutePath() + "/" + newName;
-
-    if (QFileInfo::exists(newPath)) {
-        QMessageBox::warning(
-            this, tr("Rename Failed"),
-            tr("A %1 with the name '%2' already exists.").arg(itemType).arg(newName));
-        return;
-    }
-
-    QDir dir;
-    bool success = dir.rename(localPath, newPath);
-
-    if (success) {
-        emit statusMessage(tr("Renamed: %1 -> %2").arg(oldName).arg(newName));
-    } else {
-        QString errorMessage;
-        if (!fileInfo.exists()) {
-            errorMessage = tr("The %1 no longer exists.").arg(itemType);
-        } else if (!fileInfo.isWritable()) {
-            errorMessage =
-                tr("Permission denied. You don't have permission to rename this %1.").arg(itemType);
-        } else {
-            errorMessage =
-                tr("Failed to rename the %1. Please check that you have the necessary permissions.")
-                    .arg(itemType);
-        }
-        QMessageBox::warning(this, tr("Rename Failed"), errorMessage);
-        emit statusMessage(tr("Failed to rename: %1").arg(oldName));
-    }
+    fileOps_->renameItem(localPath, newName);
 }
 
 void LocalFileBrowserWidget::onDelete()
@@ -358,48 +339,5 @@ void LocalFileBrowserWidget::onDelete()
         return;
     }
 
-    // Delete each selected item
-    int successCount = 0;
-    int failCount = 0;
-    for (const QString &localPath : paths) {
-        QString pathInTrash;
-        bool success = QFile::moveToTrash(localPath, &pathInTrash);
-
-        if (success) {
-            successCount++;
-        } else {
-            failCount++;
-            QFileInfo fileInfo(localPath);
-            QString itemName = fileInfo.fileName();
-            QString itemType = fileInfo.isDir() ? tr("folder") : tr("file");
-            QString errorMessage;
-            if (!fileInfo.exists()) {
-                errorMessage = tr("The %1 no longer exists.").arg(itemType);
-            } else if (!fileInfo.isWritable()) {
-                errorMessage = tr("Permission denied. You don't have permission to delete this %1.")
-                                   .arg(itemType);
-            } else {
-                errorMessage = tr("Failed to move the %1 to trash. The system may not support "
-                                  "trash functionality.")
-                                   .arg(itemType);
-            }
-            QMessageBox::warning(this, tr("Delete Failed"), errorMessage);
-        }
-    }
-
-    // Show summary status
-    if (paths.size() == 1) {
-        if (successCount > 0) {
-            emit statusMessage(tr("Moved to trash: %1").arg(QFileInfo(paths.first()).fileName()));
-        } else {
-            emit statusMessage(tr("Failed to delete: %1").arg(QFileInfo(paths.first()).fileName()));
-        }
-    } else {
-        if (failCount == 0) {
-            emit statusMessage(tr("Moved %1 items to trash").arg(successCount));
-        } else {
-            emit statusMessage(
-                tr("Moved %1 items to trash, %2 failed").arg(successCount).arg(failCount));
-        }
-    }
+    fileOps_->deleteItems(paths);
 }

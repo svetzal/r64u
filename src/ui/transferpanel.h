@@ -10,6 +10,7 @@
 #include <memory>
 
 class DeviceConnection;
+class ErrorHandler;
 class RemoteFileModel;
 class TransferQueue;
 class TransferService;
@@ -28,6 +29,7 @@ public:
                            TransferService *transferService, QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
+    void setErrorHandler(ErrorHandler *handler);
     void setCurrentLocalDir(const QString &path);
     void setCurrentRemoteDir(const QString &path) override;
     QString currentLocalDir() const;
@@ -60,6 +62,7 @@ private:
 
     // Dependencies (not owned)
     DeviceConnection *deviceConnection_ = nullptr;
+    ErrorHandler *errorHandler_ = nullptr;
     TransferService *transferService_ = nullptr;
 
     // UI widgets

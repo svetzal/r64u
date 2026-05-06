@@ -154,7 +154,9 @@ void MainWindow::setupPanels()
                                      filePreviewService_, favoritesService_, playlistService_);
     explorePanel_->setMetadataServices(metadataBundle_);
     transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferService_);
+    transferPanel_->setErrorHandler(errorHandler_);
     viewPanel_ = new ViewPanel(deviceConnection_);
+    viewPanel_->setErrorHandler(errorHandler_);
 
     // Create and inject streaming services into ViewPanel
     auto *streamingService = StreamingService::createDefault(deviceConnection_, viewPanel_);
@@ -171,6 +173,7 @@ void MainWindow::setupPanels()
             &ErrorHandler::handleStreamingError);
 
     configPanel_ = new ConfigPanel(deviceConnection_);
+    configPanel_->setErrorHandler(errorHandler_);
 
     // Wire up the streaming service for auto stream start/stop
     playlistService_->setStreamingService(viewPanel_->streamingService());

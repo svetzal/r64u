@@ -11,6 +11,7 @@ class QAction;
 class PathNavigationWidget;
 class QAbstractItemModel;
 class QModelIndex;
+class ErrorHandler;
 
 /**
  * @brief Abstract base class for file browser widgets.
@@ -44,6 +45,12 @@ public:
     [[nodiscard]] QString currentDirectory() const { return currentDirectory_; }
 
     /**
+     * @brief Sets the error handler for routing status messages.
+     * @param handler The error handler instance (not owned).
+     */
+    void setErrorHandler(ErrorHandler *handler);
+
+    /**
      * @brief Returns the path of the selected item.
      * @return The selected path, or empty string if no selection.
      */
@@ -66,13 +73,6 @@ signals:
      * @brief Emitted when the selection changes.
      */
     void selectionChanged();
-
-    /**
-     * @brief Emitted for status messages.
-     * @param message Status message text.
-     * @param timeout Display timeout in milliseconds (0 = permanent).
-     */
-    void statusMessage(const QString &message, int timeout = 0);
 
 public slots:
     /**
@@ -186,6 +186,9 @@ protected:
 
     // State
     QString currentDirectory_;
+
+    // Error handler (not owned)
+    ErrorHandler *errorHandler_ = nullptr;
 
     // UI widgets (protected so subclasses can access)
     QTreeView *treeView_ = nullptr;

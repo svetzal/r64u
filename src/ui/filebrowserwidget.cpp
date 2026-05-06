@@ -2,6 +2,7 @@
 
 #include "pathnavigationwidget.h"
 
+#include "services/errorhandler.h"
 #include "utils/logging.h"
 
 #include <QAbstractItemModel>
@@ -15,6 +16,11 @@
 #include <QVBoxLayout>
 
 FileBrowserWidget::FileBrowserWidget(QWidget *parent) : QWidget(parent) {}
+
+void FileBrowserWidget::setErrorHandler(ErrorHandler *handler)
+{
+    errorHandler_ = handler;
+}
 
 void FileBrowserWidget::setCurrentDirectory(const QString &path)
 {

@@ -9,6 +9,7 @@
 class RemoteFileModel;
 class RemoteFileOperations;
 class PathNavigationWidget;
+class ErrorHandler;
 
 class RemoteFileBrowserWidget : public QWidget
 {
@@ -24,6 +25,7 @@ public:
     [[nodiscard]] bool isSelectedDirectory() const;
     void setDownloadEnabled(bool enabled);
     void setFileOperations(RemoteFileOperations *ops);
+    void setErrorHandler(ErrorHandler *handler);
     void refresh();
     void refreshIfStale();
 
@@ -57,7 +59,6 @@ signals:
     void renameRequested(const QString &oldPath, const QString &newPath);
     void currentDirectoryChanged(const QString &path);
     void selectionChanged();
-    void statusMessage(const QString &message, int timeout = 0);
 
 private slots:
     void onDoubleClicked(const QModelIndex &index);
@@ -85,6 +86,7 @@ private:
     // Dependencies (not owned)
     RemoteFileModel *remoteFileModel_ = nullptr;
     RemoteFileOperations *fileOperations_ = nullptr;
+    ErrorHandler *errorHandler_ = nullptr;
 
     // State
     QString currentDirectory_;
