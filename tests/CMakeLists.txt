@@ -1883,6 +1883,8 @@ add_executable(test_fileactioncontroller
     ${CMAKE_SOURCE_DIR}/src/services/diskbootsequenceservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/diskbootsequencecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/configfileloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/fileactioncontroller.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h

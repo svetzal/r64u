@@ -13,6 +13,7 @@
 class DeviceConnection;
 class ConfigurationModel;
 class ConfigItemsPanel;
+class ErrorHandler;
 
 class ConfigPanel : public QWidget, public IPanel
 {
@@ -26,8 +27,7 @@ public:
     // Public API for MainWindow coordination
     void refreshIfEmpty() override;
 
-signals:
-    void statusMessage(const QString &message, int timeout = 0);
+    void setErrorHandler(ErrorHandler *handler);
 
 private slots:
     void onConnectionStateChanged();
@@ -53,6 +53,7 @@ private:
 
     // Dependencies (not owned)
     DeviceConnection *deviceConnection_ = nullptr;
+    ErrorHandler *errorHandler_ = nullptr;
 
     // Owned model
     ConfigurationModel *configModel_ = nullptr;

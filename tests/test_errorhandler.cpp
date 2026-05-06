@@ -62,6 +62,7 @@ private slots:
     // New convenience method tests
     void testHandleStreamingError();
     void testHandleDownloadError();
+    void testInfoConvenienceMethod();
 
     // connectSources routing test
     void testConnectSourcesSignalRouting();
@@ -229,6 +230,18 @@ void TestErrorHandler::testHandleDownloadError()
     QCOMPARE(spy.at(0).at(1).value<ErrorSeverity>(), ErrorSeverity::Warning);
     QVERIFY(spy.at(0).at(2).toString().contains("Song lengths database"));
     QCOMPARE(spy.at(0).at(3).toString(), QString("Connection timed out"));
+}
+
+void TestErrorHandler::testInfoConvenienceMethod()
+{
+    QSignalSpy spy(handler_, &ErrorHandler::statusMessage);
+
+    handler_->info(ErrorCategory::FileOperation, "Folder created");
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).toString(), QString("Folder created"));
+    int timeout = spy.at(0).at(1).toInt();
+    QCOMPARE(timeout, 3000);  // Info = 3 seconds
 }
 
 void TestErrorHandler::testConnectSourcesSignalRouting()

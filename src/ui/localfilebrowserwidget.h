@@ -5,6 +5,7 @@
 
 #include <QFileSystemModel>
 
+class LocalFileOperationsService;
 class LocalFileProxyModel;
 
 class LocalFileBrowserWidget : public FileBrowserWidget
@@ -47,6 +48,9 @@ protected:
     void navigateToDirectory(const QString &path) override;
 
 private:
+    // Service
+    LocalFileOperationsService *fileOps_ = nullptr;
+
     // Model
     QFileSystemModel *fileModel_ = nullptr;
     LocalFileProxyModel *proxyModel_ = nullptr;

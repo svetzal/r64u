@@ -4,6 +4,7 @@
 
 #include "models/configurationmodel.h"
 #include "services/deviceconnection.h"
+#include "services/errorhandler.h"
 #include "utils/logging.h"
 
 #include <QMessageBox>
@@ -18,6 +19,11 @@ ConfigPanel::ConfigPanel(DeviceConnection *connection, QWidget *parent)
 
     setupUi();
     setupConnections();
+}
+
+void ConfigPanel::setErrorHandler(ErrorHandler *handler)
+{
+    errorHandler_ = handler;
 }
 
 void ConfigPanel::setupUi()
@@ -169,7 +175,10 @@ void ConfigPanel::refreshIfEmpty()
 void ConfigPanel::onSaveToFlash()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected to device"));
+        if (errorHandler_) {
+            errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
+                                       tr("Not connected to device"));
+        }
         return;
     }
 
@@ -178,14 +187,19 @@ void ConfigPanel::onSaveToFlash()
         return;
     }
 
-    emit statusMessage(tr("Saving configuration to flash..."));
+    if (errorHandler_) {
+        errorHandler_->info(ErrorCategory::FileOperation, tr("Saving configuration to flash..."));
+    }
     deviceConnection_->restClient()->saveConfigToFlash();
 }
 
 void ConfigPanel::onLoadFromFlash()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected to device"));
+        if (errorHandler_) {
+            errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
+                                       tr("Not connected to device"));
+        }
         return;
     }
 
@@ -194,14 +208,20 @@ void ConfigPanel::onLoadFromFlash()
         return;
     }
 
-    emit statusMessage(tr("Loading configuration from flash..."));
+    if (errorHandler_) {
+        errorHandler_->info(ErrorCategory::FileOperation,
+                            tr("Loading configuration from flash..."));
+    }
     deviceConnection_->restClient()->loadConfigFromFlash();
 }
 
 void ConfigPanel::onResetToDefaults()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected to device"));
+        if (errorHandler_) {
+            errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
+                                       tr("Not connected to device"));
+        }
         return;
     }
 
@@ -222,7 +242,10 @@ void ConfigPanel::onResetToDefaults()
     msgBox.exec();
 
     if (msgBox.clickedButton() == resetButton) {
-        emit statusMessage(tr("Resetting configuration to defaults..."));
+        if (errorHandler_) {
+            errorHandler_->info(ErrorCategory::FileOperation,
+                                tr("Resetting configuration to defaults..."));
+        }
         deviceConnection_->restClient()->resetConfigToDefaults();
     }
 }
@@ -230,7 +253,10 @@ void ConfigPanel::onResetToDefaults()
 void ConfigPanel::onRefresh()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected to device"));
+        if (errorHandler_) {
+            errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
+                                       tr("Not connected to device"));
+        }
         return;
     }
 
@@ -239,7 +265,9 @@ void ConfigPanel::onRefresh()
         return;
     }
 
-    emit statusMessage(tr("Refreshing configuration..."));
+    if (errorHandler_) {
+        errorHandler_->info(ErrorCategory::FileOperation, tr("Refreshing configuration..."));
+    }
     deviceConnection_->restClient()->getConfigCategories();
 }
 
@@ -248,7 +276,10 @@ void ConfigPanel::onCategoriesReceived(const QStringList &categories)
     if (configModel_) {
         configModel_->setCategories(categories);
     }
-    emit statusMessage(tr("Loaded %1 configuration categories").arg(categories.size()));
+    if (errorHandler_) {
+        errorHandler_->info(ErrorCategory::FileOperation,
+                            tr("Loaded %1 configuration categories").arg(categories.size()));
+    }
 
     // Load items for each category
     if (deviceConnection_ && deviceConnection_->restClient()) {
@@ -293,21 +324,27 @@ void ConfigPanel::onSavedToFlash()
     if (configModel_) {
         configModel_->clearDirtyFlags();
     }
-    emit statusMessage(tr("Configuration saved to flash"));
+    if (errorHandler_) {
+        errorHandler_->info(ErrorCategory::FileOperation, tr("Configuration saved to flash"));
+    }
 }
 
 void ConfigPanel::onLoadedFromFlash()
 {
     // Reload categories to get fresh data
     onRefresh();
-    emit statusMessage(tr("Configuration loaded from flash"));
+    if (errorHandler_) {
+        errorHandler_->info(ErrorCategory::FileOperation, tr("Configuration loaded from flash"));
+    }
 }
 
 void ConfigPanel::onResetComplete()
 {
     // Reload categories to get fresh data
     onRefresh();
-    emit statusMessage(tr("Configuration reset to defaults"));
+    if (errorHandler_) {
+        errorHandler_->info(ErrorCategory::FileOperation, tr("Configuration reset to defaults"));
+    }
 }
 
 void ConfigPanel::onDirtyStateChanged(bool isDirty)
@@ -346,7 +383,10 @@ void ConfigPanel::onCategorySelected(QListWidgetItem *current, QListWidgetItem *
 void ConfigPanel::onItemEdited(const QString &category, const QString &item, const QVariant &value)
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        emit statusMessage(tr("Not connected - changes are local only"));
+        if (errorHandler_) {
+            errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
+                                       tr("Not connected - changes are local only"));
+        }
         return;
     }
 
@@ -356,12 +396,16 @@ void ConfigPanel::onItemEdited(const QString &category, const QString &item, con
     }
 
     // Send update to device immediately
-    emit statusMessage(tr("Updating %1...").arg(item));
+    if (errorHandler_) {
+        errorHandler_->info(ErrorCategory::FileOperation, tr("Updating %1...").arg(item));
+    }
     deviceConnection_->restClient()->setConfigItem(category, item, value);
 }
 
 void ConfigPanel::onItemSetResult(const QString &category, const QString &item)
 {
     Q_UNUSED(category)
-    emit statusMessage(tr("%1 updated").arg(item), 2000);
+    if (errorHandler_) {
+        errorHandler_->info(ErrorCategory::FileOperation, tr("%1 updated").arg(item));
+    }
 }

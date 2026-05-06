@@ -1,6 +1,7 @@
 #include "mocks/mockftpclient.h"
 #include "mocks/mockrestclient.h"
 #include "services/deviceconnection.h"
+#include "services/errorhandler.h"
 #include "services/filetypecore.h"
 #include "services/playlistservice.h"
 #include "ui/fileactioncontroller.h"
@@ -23,6 +24,16 @@ private:
         return new DeviceConnection(restClient, ftpClient, this);
     }
 
+    // Creates an ErrorHandler suitable for injection into the controller.
+    // The widget is allocated on the heap with no Qt parent; it will be owned by the handler
+    // via the QObject parent chain (errorHandler parent = this).
+    ErrorHandler *makeErrorHandler()
+    {
+        // widget_ is kept as a member so it outlives each test method.
+        // We pass nullptr as the dialog-parent widget since unit tests never show dialogs.
+        return new ErrorHandler(nullptr, this);
+    }
+
 private slots:
 
     // ==========================================================================
@@ -33,7 +44,9 @@ private slots:
     {
         auto *connection = makeConnection();
         auto *controller = new FileActionController(connection, nullptr, this);
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         controller->play("/song.sid", filetype::FileType::SidMusic);
 
@@ -45,7 +58,9 @@ private slots:
     {
         auto *connection = makeConnection();
         auto *controller = new FileActionController(connection, nullptr, this);
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         controller->play("/tune.mod", filetype::FileType::ModMusic);
 
@@ -57,7 +72,9 @@ private slots:
     {
         auto *connection = makeConnection();
         auto *controller = new FileActionController(connection, nullptr, this);
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         controller->play(QString(), filetype::FileType::SidMusic);
 
@@ -68,7 +85,9 @@ private slots:
     void testPlay_NullDeviceConnection_EmitsNotConnectedMessage()
     {
         auto *controller = new FileActionController(nullptr, nullptr, this);
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         controller->play("/song.sid", filetype::FileType::SidMusic);
 
@@ -84,7 +103,9 @@ private slots:
     {
         auto *connection = makeConnection();
         auto *controller = new FileActionController(connection, nullptr, this);
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         controller->run("/game.prg", filetype::FileType::Program);
 
@@ -96,7 +117,9 @@ private slots:
     {
         auto *connection = makeConnection();
         auto *controller = new FileActionController(connection, nullptr, this);
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         controller->run("/game.crt", filetype::FileType::Cartridge);
 
@@ -108,7 +131,9 @@ private slots:
     {
         auto *connection = makeConnection();
         auto *controller = new FileActionController(connection, nullptr, this);
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         controller->run(QString(), filetype::FileType::Program);
 
@@ -119,7 +144,9 @@ private slots:
     void testRun_NullDeviceConnection_EmitsNotConnectedMessage()
     {
         auto *controller = new FileActionController(nullptr, nullptr, this);
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         controller->run("/game.prg", filetype::FileType::Program);
 
@@ -134,8 +161,10 @@ private slots:
         // any status messages that do arrive come from the boot service.
         auto *connection = makeConnection();
         auto *controller = new FileActionController(connection, nullptr, this);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
         QStringList capturedMessages;
-        connect(controller, &FileActionController::statusMessage, this,
+        connect(errorHandler, &ErrorHandler::statusMessage, this,
                 [&capturedMessages](const QString &msg, int) { capturedMessages << msg; });
 
         controller->run("/disk.d64", filetype::FileType::DiskImage);
@@ -154,7 +183,9 @@ private slots:
     {
         auto *connection = makeConnection();
         auto *controller = new FileActionController(connection, nullptr, this);
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         controller->mountToDrive(QString(), "a");
 
@@ -165,7 +196,9 @@ private slots:
     void testMountToDrive_NullDeviceConnection_EmitsNotConnectedMessage()
     {
         auto *controller = new FileActionController(nullptr, nullptr, this);
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         controller->mountToDrive("/disk.d64", "a");
 
@@ -180,7 +213,9 @@ private slots:
     void testLoadConfig_EmptyPath_EmitsNoFileSelectedMessage()
     {
         auto *controller = new FileActionController(nullptr, nullptr, this);
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         controller->loadConfig(QString(), filetype::FileType::Config);
 
@@ -191,7 +226,9 @@ private slots:
     void testLoadConfig_WrongFileType_EmitsNotAConfigurationFileMessage()
     {
         auto *controller = new FileActionController(nullptr, nullptr, this);
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         controller->loadConfig("/song.sid", filetype::FileType::SidMusic);
 
@@ -203,7 +240,9 @@ private slots:
     {
         // Correct type, but no device connection (nullptr) → "Not connected"
         auto *controller = new FileActionController(nullptr, nullptr, this);
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         controller->loadConfig("/settings.cfg", filetype::FileType::Config);
 
@@ -220,8 +259,9 @@ private slots:
         auto *playlistService = new PlaylistService(nullptr, this);
         auto *controller = new FileActionController(nullptr, nullptr, this);
         controller->setPlaylistService(playlistService);
-
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         QList<QPair<QString, filetype::FileType>> items = {
             {"/song.sid", filetype::FileType::SidMusic},
@@ -240,8 +280,9 @@ private slots:
         auto *playlistService = new PlaylistService(nullptr, this);
         auto *controller = new FileActionController(nullptr, nullptr, this);
         controller->setPlaylistService(playlistService);
-
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         QList<QPair<QString, filetype::FileType>> items = {
             {"/game.prg", filetype::FileType::Program},
@@ -256,7 +297,9 @@ private slots:
     void testAddToPlaylist_NullPlaylistService_EmitsPlaylistNotAvailableMessage()
     {
         auto *controller = new FileActionController(nullptr, nullptr, this);
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         QList<QPair<QString, filetype::FileType>> items = {
             {"/song.sid", filetype::FileType::SidMusic}};
@@ -274,7 +317,9 @@ private slots:
     void testDownload_AlwaysEmitsStatusMessage()
     {
         auto *controller = new FileActionController(nullptr, nullptr, this);
-        QSignalSpy spy(controller, &FileActionController::statusMessage);
+        auto *errorHandler = makeErrorHandler();
+        controller->setErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
 
         controller->download("/some/file.txt");
 

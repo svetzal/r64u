@@ -157,6 +157,16 @@ public:
      * Used for metadata database download failures.
      */
     void handleDownloadError(const QString &source, const QString &error);
+
+    /**
+     * @brief Handles an informational message (info severity).
+     * @param category The message category.
+     * @param message The informational message to display.
+     *
+     * Info messages appear in the status bar with a short timeout.
+     * Use for success confirmations and progress notifications.
+     */
+    void info(ErrorCategory category, const QString &message);
     /// @}
 
 signals:

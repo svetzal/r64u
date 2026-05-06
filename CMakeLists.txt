@@ -124,6 +124,7 @@ set(SOURCES
     src/services/avicore.cpp
     src/services/videorecordingservice.cpp
     src/services/screenshotservice.cpp
+    src/services/localfileoperationsservice.cpp
     src/services/vic2frameconverter.cpp
     src/services/remotefileoperations.cpp
     src/services/playlistservice.cpp
@@ -264,6 +265,7 @@ set(HEADERS
     src/services/metadataservicebundle.h
     src/services/systemcommandcontroller.h
     src/services/streamingdiagnostics.h
+    src/services/localfileoperationsservice.h
     src/ui/streamingdiagnosticswidget.h
     src/utils/rollingstats.h
     src/models/remotefilemodel.h

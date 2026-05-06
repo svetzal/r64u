@@ -22,6 +22,18 @@ public:
     /**
      * @brief Captures a single frame as a PNG file.
      *
+     * Reads the output directory from QSettings key "capture/directory",
+     * falling back to the system Pictures location. Creates the directory
+     * if it does not exist.
+     *
+     * @param frame The image to save.
+     * @return The base filename (not the full path) on success, or an empty string on failure.
+     */
+    [[nodiscard]] QString capture(const QImage &frame);
+
+    /**
+     * @brief Captures a single frame as a PNG file into a specific directory.
+     *
      * Creates @p outputDir if it does not exist.
      *
      * @param frame The image to save.

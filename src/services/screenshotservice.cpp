@@ -3,8 +3,21 @@
 #include <QDateTime>
 #include <QDir>
 #include <QImage>
+#include <QSettings>
+#include <QStandardPaths>
 
 ScreenshotService::ScreenshotService(QObject *parent) : QObject(parent) {}
+
+QString ScreenshotService::capture(const QImage &frame)
+{
+    QSettings settings;
+    QString outputDir =
+        settings
+            .value("capture/directory",
+                   QStandardPaths::writableLocation(QStandardPaths::PicturesLocation))
+            .toString();
+    return capture(frame, outputDir);
+}
 
 QString ScreenshotService::capture(const QImage &frame, const QString &outputDir)
 {

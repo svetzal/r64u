@@ -219,9 +219,6 @@ void ExplorePanel::setupConnections()
                 &ExplorePanel::ejectDriveBRequested);
     }
 
-    connect(actionController_, &FileActionController::statusMessage, this,
-            &ExplorePanel::statusMessage);
-
     connect(favoritesController_, &ExploreFavoritesController::navigateToPath, this,
             &ExplorePanel::setCurrentDirectory);
     connect(favoritesController_, &ExploreFavoritesController::statusMessage, this,

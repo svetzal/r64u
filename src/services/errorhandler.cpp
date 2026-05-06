@@ -78,6 +78,11 @@ void ErrorHandler::handleDownloadError(const QString &source, const QString &err
                 tr("%1 download failed").arg(source), error);
 }
 
+void ErrorHandler::info(ErrorCategory category, const QString &message)
+{
+    handleError(category, ErrorSeverity::Info, message);
+}
+
 void ErrorHandler::showErrorDialog(const QString &title, const QString &message)
 {
     QMessageBox::warning(parentWidget_, title, message);

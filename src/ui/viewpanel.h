@@ -10,6 +10,7 @@
 #include <QWidget>
 
 class DeviceConnection;
+class ErrorHandler;
 class VideoDisplayWidget;
 class StreamingService;
 class VideoRecordingService;
@@ -54,13 +55,12 @@ public:
      */
     void setScreenshotService(ScreenshotService *service);
 
+    void setErrorHandler(ErrorHandler *handler);
+
     // Settings
     void loadSettings();
     void saveSettings();
     [[nodiscard]] int scalingMode() const;
-
-signals:
-    void statusMessage(const QString &message, int timeout = 0);
 
 private slots:
     void onConnectionStateChanged();
@@ -87,6 +87,7 @@ private:
 
     // Dependencies (not owned)
     DeviceConnection *deviceConnection_ = nullptr;
+    ErrorHandler *errorHandler_ = nullptr;
 
     // Injected services (not owned)
     StreamingService *streamingService_ = nullptr;

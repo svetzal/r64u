@@ -1,6 +1,7 @@
 #ifndef FILEACTIONCONTROLLER_H
 #define FILEACTIONCONTROLLER_H
 
+#include "services/errorhandler.h"
 #include "services/filetypecore.h"
 
 #include <QList>
@@ -25,6 +26,7 @@ public:
 
     void setStreamingService(StreamingService *manager);
     void setPlaylistService(PlaylistService *manager);
+    void setErrorHandler(ErrorHandler *handler);
     void setActions(QAction *play, QAction *run, QAction *mount);
 
     void updateActionStates(filetype::FileType type, bool canOperate);
@@ -37,9 +39,6 @@ public slots:
     void download(const QString &path);
     void addToPlaylist(const QList<QPair<QString, filetype::FileType>> &items);
 
-signals:
-    void statusMessage(const QString &message, int timeout = 0);
-
 private:
     void runDiskImage(const QString &path);
     void ensureStreamingStarted();
@@ -49,6 +48,7 @@ private:
     StreamingService *streamingService_ = nullptr;
     PlaylistService *playlistService_ = nullptr;
     DiskBootSequenceService *bootService_ = nullptr;
+    ErrorHandler *errorHandler_ = nullptr;
 
     QAction *playAction_ = nullptr;
     QAction *runAction_ = nullptr;
