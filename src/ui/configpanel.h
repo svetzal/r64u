@@ -1,7 +1,7 @@
 #ifndef CONFIGPANEL_H
 #define CONFIGPANEL_H
 
-#include "services/irestclient.h"
+#include "services/devicetypes.h"
 #include "ui/ipanel.h"
 
 #include <QLabel>
@@ -10,7 +10,7 @@
 #include <QToolBar>
 #include <QWidget>
 
-class DeviceConnection;
+class ConfigurationService;
 class ConfigurationModel;
 class ConfigItemsPanel;
 class ErrorHandler;
@@ -20,7 +20,7 @@ class ConfigPanel : public QWidget, public IPanel
     Q_OBJECT
 
 public:
-    explicit ConfigPanel(DeviceConnection *connection, QWidget *parent = nullptr);
+    explicit ConfigPanel(ConfigurationService *configService, QWidget *parent = nullptr);
 
     QObject *asQObject() override { return this; }
 
@@ -30,7 +30,6 @@ public:
     void setErrorHandler(ErrorHandler *handler);
 
 private slots:
-    void onConnectionStateChanged();
     void onSaveToFlash();
     void onLoadFromFlash();
     void onResetToDefaults();
@@ -52,7 +51,7 @@ private:
     void updateActions();
 
     // Dependencies (not owned)
-    DeviceConnection *deviceConnection_ = nullptr;
+    ConfigurationService *configService_ = nullptr;
     ErrorHandler *errorHandler_ = nullptr;
 
     // Owned model

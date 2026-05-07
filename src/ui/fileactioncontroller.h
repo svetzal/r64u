@@ -10,6 +10,7 @@
 #include <QString>
 
 class DeviceConnection;
+class DeviceActionService;
 class ConfigFileLoader;
 class DiskBootSequenceService;
 class PlaylistService;
@@ -21,7 +22,8 @@ class FileActionController : public QObject
     Q_OBJECT
 
 public:
-    explicit FileActionController(DeviceConnection *connection, ConfigFileLoader *configLoader,
+    explicit FileActionController(DeviceActionService *deviceActionService,
+                                  DeviceConnection *connection, ConfigFileLoader *configLoader,
                                   QObject *parent = nullptr);
 
     void setStreamingService(StreamingService *manager);
@@ -43,6 +45,7 @@ private:
     void runDiskImage(const QString &path);
     void ensureStreamingStarted();
 
+    DeviceActionService *deviceActionService_ = nullptr;
     DeviceConnection *deviceConnection_ = nullptr;
     ConfigFileLoader *configFileLoader_ = nullptr;
     StreamingService *streamingService_ = nullptr;

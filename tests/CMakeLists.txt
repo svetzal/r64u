@@ -1867,6 +1867,7 @@ add_executable(test_fileactioncontroller
     mocks/mockftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceactionservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
@@ -2171,6 +2172,125 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_explorefavoritescontroller)
 endif()
 
+# ConfigurationService tests - delegation and signal forwarding via DeviceConnection/IRestClient
+add_executable(test_configurationservice
+    test_configurationservice.cpp
+    mocks/mockrestclient.cpp
+    mocks/mockftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/configurationservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
+)
+
+target_include_directories(test_configurationservice PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_configurationservice PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME ConfigurationServiceTest COMMAND test_configurationservice)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(configurationservice test_configurationservice)
+    add_dependencies(coverage coverage_configurationservice)
+endif()
+
+# DeviceActionService tests - guard clauses and operationNotAvailable signal
+add_executable(test_deviceactionservice
+    test_deviceactionservice.cpp
+    mocks/mockrestclient.cpp
+    mocks/mockftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceactionservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
+)
+
+target_include_directories(test_deviceactionservice PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_deviceactionservice PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME DeviceActionServiceTest COMMAND test_deviceactionservice)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(deviceactionservice test_deviceactionservice)
+    add_dependencies(coverage coverage_deviceactionservice)
+endif()
+
+# ConfigPanel tests - verifies ConfigPanel wiring through ConfigurationService
+add_executable(test_configpanel
+    test_configpanel.cpp
+    mocks/mockrestclient.cpp
+    mocks/mockftpclient.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/configurationservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/configurationmodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/configpanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/configitemspanel.cpp
+)
+
+target_include_directories(test_configpanel PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_configpanel PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+    Qt6::Widgets
+)
+
+add_test(NAME ConfigPanelTest COMMAND test_configpanel)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(configpanel test_configpanel)
+    add_dependencies(coverage coverage_configpanel)
+endif()
+
 # ServiceFactory tests - verifies construction and wiring of all application services
 add_executable(test_servicefactory
     test_servicefactory.cpp
@@ -2178,6 +2298,10 @@ add_executable(test_servicefactory
     stubs/streamingservice_stub.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/servicefactory.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/configurationservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceactionservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/remotefileoperations.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/systemcommandcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp

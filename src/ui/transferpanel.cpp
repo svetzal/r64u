@@ -5,7 +5,6 @@
 #include "transferprogresscontainer.h"
 
 #include "models/remotefilemodel.h"
-#include "models/transferqueue.h"
 #include "services/deviceconnection.h"
 #include "services/errorhandler.h"
 #include "services/remotefileoperations.h"
@@ -19,17 +18,18 @@
 #include <QVBoxLayout>
 
 TransferPanel::TransferPanel(DeviceConnection *connection, RemoteFileModel *model,
-                             TransferService *transferService, QWidget *parent)
-    : QWidget(parent), deviceConnection_(connection), transferService_(transferService)
+                             TransferService *transferService, RemoteFileOperations *fileOperations,
+                             QWidget *parent)
+    : QWidget(parent), deviceConnection_(connection), transferService_(transferService),
+      fileOperations_(fileOperations)
 {
     // These dependencies are required - assert in debug builds
     Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
     Q_ASSERT(model && "RemoteFileModel is required");
     Q_ASSERT(transferService_ && "TransferService is required");
+    Q_ASSERT(fileOperations_ && "RemoteFileOperations is required");
 
-    IFtpClient *ftpClient = deviceConnection_ ? deviceConnection_->ftpClient() : nullptr;
     remoteBrowser_ = new RemoteFileBrowserWidget(model, this);
-    fileOperations_ = new RemoteFileOperations(ftpClient, this);
     remoteBrowser_->setFileOperations(fileOperations_);
     localBrowser_ = new LocalFileBrowserWidget(this);
     progressContainer_ = new TransferProgressContainer(this);

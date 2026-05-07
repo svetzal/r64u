@@ -28,6 +28,8 @@ class SystemCommandController;
 class PanelCoordinator;
 class ConnectionUIController;
 
+class ServiceFactory;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -58,7 +60,7 @@ private:
     void setupMenuBar();
     void setupSystemToolBar();
     void setupStatusBar();
-    void setupPanels();
+    void setupPanels(ServiceFactory *services);
     void setupConnections();
     void switchToMode(Mode mode);
     void updateWindowTitle();

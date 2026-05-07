@@ -141,6 +141,8 @@ set(SOURCES
     src/services/hvscmetadataservice.cpp
     src/services/gamebase64service.cpp
     src/services/servicefactory.cpp
+    src/services/configurationservice.cpp
+    src/services/deviceactionservice.cpp
     src/services/systemcommandcontroller.cpp
     src/services/streamingdiagnostics.cpp
     src/ui/streamingdiagnosticswidget.cpp
@@ -262,6 +264,8 @@ set(HEADERS
     src/services/hvscmetadataservice.h
     src/services/gamebase64service.h
     src/services/servicefactory.h
+    src/services/configurationservice.h
+    src/services/deviceactionservice.h
     src/services/metadataservicebundle.h
     src/services/systemcommandcontroller.h
     src/services/streamingdiagnostics.h

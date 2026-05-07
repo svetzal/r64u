@@ -14,6 +14,7 @@
 
 #include "models/remotefilemodel.h"
 #include "services/configfileloader.h"
+#include "services/deviceactionservice.h"
 #include "services/deviceconnection.h"
 #include "services/favoritesservice.h"
 #include "services/filebrowsercore.h"
@@ -30,21 +31,23 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-ExplorePanel::ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
-                           ConfigFileLoader *configLoader, FilePreviewService *previewService,
-                           FavoritesService *favoritesService, PlaylistService *playlistService,
-                           QWidget *parent)
+ExplorePanel::ExplorePanel(DeviceConnection *connection, DeviceActionService *deviceActionService,
+                           RemoteFileModel *model, ConfigFileLoader *configLoader,
+                           FilePreviewService *previewService, FavoritesService *favoritesService,
+                           PlaylistService *playlistService, QWidget *parent)
     : QWidget(parent), deviceConnection_(connection), remoteFileModel_(model),
       playlistService_(playlistService)
 {
     Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
+    Q_ASSERT(deviceActionService && "DeviceActionService is required");
     Q_ASSERT(remoteFileModel_ && "RemoteFileModel is required");
     Q_ASSERT(configLoader && "ConfigFileLoader is required");
     Q_ASSERT(previewService && "FilePreviewService is required");
     Q_ASSERT(favoritesService && "FavoritesService is required");
     Q_ASSERT(playlistService_ && "PlaylistService is required");
 
-    actionController_ = new FileActionController(deviceConnection_, configLoader, this);
+    actionController_ =
+        new FileActionController(deviceActionService, deviceConnection_, configLoader, this);
     actionController_->setPlaylistService(playlistService_);
     favoritesController_ = new ExploreFavoritesController(favoritesService, this);
     contextMenu_ = new ExploreContextMenu(this);

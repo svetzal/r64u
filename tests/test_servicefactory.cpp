@@ -1,6 +1,8 @@
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 #include "services/configfileloader.h"
+#include "services/configurationservice.h"
+#include "services/deviceactionservice.h"
 #include "services/deviceconnection.h"
 #include "services/errorhandler.h"
 #include "services/favoritesservice.h"
@@ -10,9 +12,11 @@
 #include "services/hvscmetadataservice.h"
 #include "services/metadataservicebundle.h"
 #include "services/playlistservice.h"
+#include "services/remotefileoperations.h"
 #include "services/servicefactory.h"
 #include "services/songlengthsdatabase.h"
 #include "services/statusmessageservice.h"
+#include "services/systemcommandcontroller.h"
 #include "services/transferservice.h"
 
 #include <QtTest>
@@ -58,6 +62,10 @@ private slots:
         QVERIFY(factory_->hvscMetadataService() != nullptr);
         QVERIFY(factory_->gameBase64Downloader() != nullptr);
         QVERIFY(factory_->gameBase64Service() != nullptr);
+        QVERIFY(factory_->configurationService() != nullptr);
+        QVERIFY(factory_->deviceActionService() != nullptr);
+        QVERIFY(factory_->remoteFileOperations() != nullptr);
+        QVERIFY(factory_->systemCommandController() != nullptr);
     }
 
     void testMetadataBundleHasAllComponents()

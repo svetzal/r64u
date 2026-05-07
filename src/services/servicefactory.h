@@ -20,6 +20,10 @@ class HttpFileDownloader;
 class SonglengthsDatabase;
 class HVSCMetadataService;
 class GameBase64Service;
+class ConfigurationService;
+class DeviceActionService;
+class RemoteFileOperations;
+class SystemCommandController;
 
 /**
  * @brief Creates and owns all application services.
@@ -74,6 +78,15 @@ public:
     /// @brief Returns the GameBase64 service.
     [[nodiscard]] GameBase64Service *gameBase64Service() const;
 
+    /// @brief Returns the configuration service.
+    [[nodiscard]] ConfigurationService *configurationService() const;
+    /// @brief Returns the device action service (play/run/mount).
+    [[nodiscard]] DeviceActionService *deviceActionService() const;
+    /// @brief Returns the remote file operations service.
+    [[nodiscard]] RemoteFileOperations *remoteFileOperations() const;
+    /// @brief Returns the system command controller.
+    [[nodiscard]] SystemCommandController *systemCommandController() const;
+
     /// @brief Returns all metadata download services bundled together.
     [[nodiscard]] MetadataServiceBundle metadataBundle() const;
 
@@ -95,6 +108,10 @@ private:
     HVSCMetadataService *hvscMetadataService_ = nullptr;
     HttpFileDownloader *gameBase64Downloader_ = nullptr;
     GameBase64Service *gameBase64Service_ = nullptr;
+    ConfigurationService *configurationService_ = nullptr;
+    DeviceActionService *deviceActionService_ = nullptr;
+    RemoteFileOperations *remoteFileOperations_ = nullptr;
+    SystemCommandController *systemCommandController_ = nullptr;
 };
 
 #endif  // SERVICEFACTORY_H

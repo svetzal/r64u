@@ -11,6 +11,7 @@
 #include <QWidget>
 
 class DeviceConnection;
+class DeviceActionService;
 class RemoteFileModel;
 class ConfigFileLoader;
 class FilePreviewService;
@@ -36,10 +37,10 @@ class ExplorePanel : public QWidget, public IPanel
 public:
     QObject *asQObject() override { return this; }
 
-    explicit ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
-                          ConfigFileLoader *configLoader, FilePreviewService *previewService,
-                          FavoritesService *favoritesService, PlaylistService *playlistService,
-                          QWidget *parent = nullptr);
+    explicit ExplorePanel(DeviceConnection *connection, DeviceActionService *deviceActionService,
+                          RemoteFileModel *model, ConfigFileLoader *configLoader,
+                          FilePreviewService *previewService, FavoritesService *favoritesService,
+                          PlaylistService *playlistService, QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
     void setCurrentDirectory(const QString &path) override;

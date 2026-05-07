@@ -3,6 +3,8 @@
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 #include "services/configfileloader.h"
+#include "services/configurationservice.h"
+#include "services/deviceactionservice.h"
 #include "services/deviceconnection.h"
 #include "services/errorhandler.h"
 #include "services/favoritesservice.h"
@@ -11,8 +13,10 @@
 #include "services/httpfiledownloader.h"
 #include "services/hvscmetadataservice.h"
 #include "services/playlistservice.h"
+#include "services/remotefileoperations.h"
 #include "services/songlengthsdatabase.h"
 #include "services/statusmessageservice.h"
+#include "services/systemcommandcontroller.h"
 #include "services/transferservice.h"
 
 ServiceFactory::ServiceFactory(QWidget *owner, QObject *parent) : QObject(parent)
@@ -42,6 +46,12 @@ ServiceFactory::ServiceFactory(QWidget *owner, QObject *parent) : QObject(parent
     playlistService_->setSonglengthsDatabase(songlengthsDatabase_);
     configFileLoader_->setFtpClient(deviceConnection_->ftpClient());
     configFileLoader_->setRestClient(deviceConnection_->restClient());
+
+    configurationService_ = new ConfigurationService(deviceConnection_, this);
+    deviceActionService_ = new DeviceActionService(deviceConnection_, this);
+    remoteFileOperations_ = new RemoteFileOperations(deviceConnection_->ftpClient(), this);
+    systemCommandController_ =
+        new SystemCommandController(deviceConnection_->restClient(), statusMessageService_, this);
 }
 
 DeviceConnection *ServiceFactory::deviceConnection() const
@@ -127,6 +137,26 @@ HttpFileDownloader *ServiceFactory::gameBase64Downloader() const
 GameBase64Service *ServiceFactory::gameBase64Service() const
 {
     return gameBase64Service_;
+}
+
+ConfigurationService *ServiceFactory::configurationService() const
+{
+    return configurationService_;
+}
+
+DeviceActionService *ServiceFactory::deviceActionService() const
+{
+    return deviceActionService_;
+}
+
+RemoteFileOperations *ServiceFactory::remoteFileOperations() const
+{
+    return remoteFileOperations_;
+}
+
+SystemCommandController *ServiceFactory::systemCommandController() const
+{
+    return systemCommandController_;
 }
 
 MetadataServiceBundle ServiceFactory::metadataBundle() const

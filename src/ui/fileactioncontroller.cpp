@@ -1,20 +1,24 @@
 #include "fileactioncontroller.h"
 
 #include "services/configfileloader.h"
+#include "services/deviceactionservice.h"
 #include "services/deviceconnection.h"
 #include "services/diskbootsequenceservice.h"
 #include "services/errorhandler.h"
 #include "services/filebrowsercore.h"
 #include "services/filetypecore.h"
+#include "services/irestclient.h"
 #include "services/playlistservice.h"
 #include "services/streamingservice.h"
 #include "utils/logging.h"
 
 #include <QAction>
 
-FileActionController::FileActionController(DeviceConnection *connection,
+FileActionController::FileActionController(DeviceActionService *deviceActionService,
+                                           DeviceConnection *connection,
                                            ConfigFileLoader *configLoader, QObject *parent)
-    : QObject(parent), deviceConnection_(connection), configFileLoader_(configLoader)
+    : QObject(parent), deviceActionService_(deviceActionService), deviceConnection_(connection),
+      configFileLoader_(configLoader)
 {
     bootService_ = new DiskBootSequenceService(this);
     if (deviceConnection_) {
@@ -74,7 +78,7 @@ void FileActionController::play(const QString &path, filetype::FileType type)
         }
         return;
     }
-    if (!deviceConnection_ || !deviceConnection_->restClient()) {
+    if (!deviceActionService_ || !deviceActionService_->canPerformOperations()) {
         if (errorHandler_) {
             errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
                                        tr("Not connected to device"));
@@ -83,12 +87,12 @@ void FileActionController::play(const QString &path, filetype::FileType type)
     }
     ensureStreamingStarted();
     if (type == filetype::FileType::SidMusic) {
-        deviceConnection_->restClient()->playSid(path);
+        deviceActionService_->playSid(path);
         if (errorHandler_) {
             errorHandler_->info(ErrorCategory::FileOperation, tr("Playing SID: %1").arg(path));
         }
     } else if (type == filetype::FileType::ModMusic) {
-        deviceConnection_->restClient()->playMod(path);
+        deviceActionService_->playMod(path);
         if (errorHandler_) {
             errorHandler_->info(ErrorCategory::FileOperation, tr("Playing MOD: %1").arg(path));
         }
@@ -104,7 +108,7 @@ void FileActionController::run(const QString &path, filetype::FileType type)
         }
         return;
     }
-    if (!deviceConnection_ || !deviceConnection_->restClient()) {
+    if (!deviceActionService_ || !deviceActionService_->canPerformOperations()) {
         if (errorHandler_) {
             errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
                                        tr("Not connected to device"));
@@ -113,12 +117,12 @@ void FileActionController::run(const QString &path, filetype::FileType type)
     }
     ensureStreamingStarted();
     if (type == filetype::FileType::Program) {
-        deviceConnection_->restClient()->runPrg(path);
+        deviceActionService_->runPrg(path);
         if (errorHandler_) {
             errorHandler_->info(ErrorCategory::FileOperation, tr("Running PRG: %1").arg(path));
         }
     } else if (type == filetype::FileType::Cartridge) {
-        deviceConnection_->restClient()->runCrt(path);
+        deviceActionService_->runCrt(path);
         if (errorHandler_) {
             errorHandler_->info(ErrorCategory::FileOperation, tr("Running CRT: %1").arg(path));
         }
@@ -136,14 +140,14 @@ void FileActionController::mountToDrive(const QString &path, const QString &driv
         }
         return;
     }
-    if (!deviceConnection_ || !deviceConnection_->restClient()) {
+    if (!deviceActionService_ || !deviceActionService_->canPerformOperations()) {
         if (errorHandler_) {
             errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
                                        tr("Not connected to device"));
         }
         return;
     }
-    deviceConnection_->restClient()->mountImage(drive, path);
+    deviceActionService_->mountImage(drive, path);
     if (errorHandler_) {
         errorHandler_->info(ErrorCategory::FileOperation,
                             tr("Mounting to Drive %1: %2").arg(drive.toUpper()).arg(path));

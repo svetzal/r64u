@@ -26,7 +26,8 @@ public:
     QObject *asQObject() override { return this; }
 
     explicit TransferPanel(DeviceConnection *connection, RemoteFileModel *model,
-                           TransferService *transferService, QWidget *parent = nullptr);
+                           TransferService *transferService, RemoteFileOperations *fileOperations,
+                           QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
     void setErrorHandler(ErrorHandler *handler);

@@ -3,15 +3,17 @@
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 #include "services/configfileloader.h"
+#include "services/configurationservice.h"
+#include "services/deviceactionservice.h"
 #include "services/deviceconnection.h"
 #include "services/errorhandler.h"
 #include "services/favoritesservice.h"
 #include "services/filepreviewservice.h"
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
-#include "services/irestclient.h"
 #include "services/platformkeychain.h"
 #include "services/playlistservice.h"
+#include "services/remotefileoperations.h"
 #include "services/screenshotservice.h"
 #include "services/servicefactory.h"
 #include "services/songlengthsdatabase.h"
@@ -56,15 +58,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     favoritesService_ = services->favoritesService();
     playlistService_ = services->playlistService();
     metadataBundle_ = services->metadataBundle();
-
-    systemCommandController_ =
-        new SystemCommandController(deviceConnection_->restClient(), statusMessageService_, this);
+    systemCommandController_ = services->systemCommandController();
 
     setupUi();
     setupMenuBar();
     setupSystemToolBar();
     setupStatusBar();
-    setupPanels();
+    setupPanels(services);
     setupConnections();
 
     switchToMode(Mode::ExploreRun);
@@ -147,13 +147,15 @@ void MainWindow::setupStatusBar()
     statusMessageService_->showInfo(tr("Ready"));
 }
 
-void MainWindow::setupPanels()
+void MainWindow::setupPanels(ServiceFactory *services)
 {
     // Create mode panels with their dependencies
-    explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, configFileLoader_,
-                                     filePreviewService_, favoritesService_, playlistService_);
+    explorePanel_ = new ExplorePanel(deviceConnection_, services->deviceActionService(),
+                                     remoteFileModel_, configFileLoader_, filePreviewService_,
+                                     favoritesService_, playlistService_);
     explorePanel_->setMetadataServices(metadataBundle_);
-    transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferService_);
+    transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferService_,
+                                       services->remoteFileOperations());
     transferPanel_->setErrorHandler(errorHandler_);
     viewPanel_ = new ViewPanel(deviceConnection_);
     viewPanel_->setErrorHandler(errorHandler_);
@@ -172,7 +174,7 @@ void MainWindow::setupPanels()
     connect(recordingService, &VideoRecordingService::error, errorHandler_,
             &ErrorHandler::handleStreamingError);
 
-    configPanel_ = new ConfigPanel(deviceConnection_);
+    configPanel_ = new ConfigPanel(services->configurationService());
     configPanel_->setErrorHandler(errorHandler_);
 
     // Wire up the streaming service for auto stream start/stop
@@ -290,13 +292,11 @@ void MainWindow::updateWindowTitle()
 void MainWindow::loadSettings()
 {
     QSettings settings;
-    QString host = settings.value("device/host").toString();
-    bool autoConnect = settings.value("device/autoConnect", false).toBool();
+    const QString host = settings.value("device/host").toString();
+    const bool autoConnect = settings.value("device/autoConnect", false).toBool();
 
     if (!host.isEmpty()) {
-        // Load password from secure storage
-        QString password = PlatformKeychain::retrievePassword("r64u", host);
-
+        const QString password = PlatformKeychain::retrievePassword("r64u", host);
         deviceConnection_->setHost(host);
         deviceConnection_->setPassword(password);
 
@@ -305,7 +305,7 @@ void MainWindow::loadSettings()
         }
     }
 
-    // Restore window geometry
+    // Restore window geometry (legitimate UI concern)
     restoreGeometry(settings.value("window/geometry").toByteArray());
     restoreState(settings.value("window/state").toByteArray());
 
@@ -340,9 +340,8 @@ void MainWindow::onPreferences()
 
     if (preferencesDialog_->exec() == QDialog::Accepted) {
         QSettings settings;
-        QString host = settings.value("device/host").toString();
-        QString password = settings.value("device/password").toString();
-
+        const QString host = settings.value("device/host").toString();
+        const QString password = settings.value("device/password").toString();
         deviceConnection_->setHost(host);
         deviceConnection_->setPassword(password);
     }
@@ -351,7 +350,7 @@ void MainWindow::onPreferences()
 void MainWindow::onConnect()
 {
     QSettings settings;
-    QString host = settings.value("device/host").toString();
+    const QString host = settings.value("device/host").toString();
 
     if (host.isEmpty()) {
         QMessageBox::warning(

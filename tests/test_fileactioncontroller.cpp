@@ -1,5 +1,6 @@
 #include "mocks/mockftpclient.h"
 #include "mocks/mockrestclient.h"
+#include "services/deviceactionservice.h"
 #include "services/deviceconnection.h"
 #include "services/errorhandler.h"
 #include "services/filetypecore.h"
@@ -24,12 +25,17 @@ private:
         return new DeviceConnection(restClient, ftpClient, this);
     }
 
+    // Creates a DeviceActionService backed by the given connection.
+    DeviceActionService *makeActionService(DeviceConnection *connection)
+    {
+        return new DeviceActionService(connection, this);
+    }
+
     // Creates an ErrorHandler suitable for injection into the controller.
     // The widget is allocated on the heap with no Qt parent; it will be owned by the handler
     // via the QObject parent chain (errorHandler parent = this).
     ErrorHandler *makeErrorHandler()
     {
-        // widget_ is kept as a member so it outlives each test method.
         // We pass nullptr as the dialog-parent widget since unit tests never show dialogs.
         return new ErrorHandler(nullptr, this);
     }
@@ -43,7 +49,8 @@ private slots:
     void testPlay_SidMusic_EmitsStatusMessageContainingPlayingSid()
     {
         auto *connection = makeConnection();
-        auto *controller = new FileActionController(connection, nullptr, this);
+        auto *actionService = makeActionService(connection);
+        auto *controller = new FileActionController(actionService, connection, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
@@ -57,7 +64,8 @@ private slots:
     void testPlay_ModMusic_EmitsStatusMessageContainingPlayingMod()
     {
         auto *connection = makeConnection();
-        auto *controller = new FileActionController(connection, nullptr, this);
+        auto *actionService = makeActionService(connection);
+        auto *controller = new FileActionController(actionService, connection, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
@@ -71,7 +79,8 @@ private slots:
     void testPlay_EmptyPath_EmitsNoFileSelectedMessage()
     {
         auto *connection = makeConnection();
-        auto *controller = new FileActionController(connection, nullptr, this);
+        auto *actionService = makeActionService(connection);
+        auto *controller = new FileActionController(actionService, connection, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
@@ -82,9 +91,9 @@ private slots:
         QVERIFY(spy.at(0).at(0).toString().contains("No file selected"));
     }
 
-    void testPlay_NullDeviceConnection_EmitsNotConnectedMessage()
+    void testPlay_NullDeviceActionService_EmitsNotConnectedMessage()
     {
-        auto *controller = new FileActionController(nullptr, nullptr, this);
+        auto *controller = new FileActionController(nullptr, nullptr, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
@@ -102,7 +111,8 @@ private slots:
     void testRun_Program_EmitsStatusMessageContainingRunningPrg()
     {
         auto *connection = makeConnection();
-        auto *controller = new FileActionController(connection, nullptr, this);
+        auto *actionService = makeActionService(connection);
+        auto *controller = new FileActionController(actionService, connection, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
@@ -116,7 +126,8 @@ private slots:
     void testRun_Cartridge_EmitsStatusMessageContainingRunningCrt()
     {
         auto *connection = makeConnection();
-        auto *controller = new FileActionController(connection, nullptr, this);
+        auto *actionService = makeActionService(connection);
+        auto *controller = new FileActionController(actionService, connection, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
@@ -130,7 +141,8 @@ private slots:
     void testRun_EmptyPath_EmitsNoFileSelectedMessage()
     {
         auto *connection = makeConnection();
-        auto *controller = new FileActionController(connection, nullptr, this);
+        auto *actionService = makeActionService(connection);
+        auto *controller = new FileActionController(actionService, connection, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
@@ -141,9 +153,9 @@ private slots:
         QVERIFY(spy.at(0).at(0).toString().contains("No file selected"));
     }
 
-    void testRun_NullDeviceConnection_EmitsNotConnectedMessage()
+    void testRun_NullDeviceActionService_EmitsNotConnectedMessage()
     {
-        auto *controller = new FileActionController(nullptr, nullptr, this);
+        auto *controller = new FileActionController(nullptr, nullptr, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
@@ -160,7 +172,8 @@ private slots:
         // itself does NOT produce "Running PRG" or "Running CRT" style messages;
         // any status messages that do arrive come from the boot service.
         auto *connection = makeConnection();
-        auto *controller = new FileActionController(connection, nullptr, this);
+        auto *actionService = makeActionService(connection);
+        auto *controller = new FileActionController(actionService, connection, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QStringList capturedMessages;
@@ -182,7 +195,8 @@ private slots:
     void testMountToDrive_EmptyPath_EmitsNoFileSelectedMessage()
     {
         auto *connection = makeConnection();
-        auto *controller = new FileActionController(connection, nullptr, this);
+        auto *actionService = makeActionService(connection);
+        auto *controller = new FileActionController(actionService, connection, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
@@ -193,9 +207,9 @@ private slots:
         QVERIFY(spy.at(0).at(0).toString().contains("No file selected"));
     }
 
-    void testMountToDrive_NullDeviceConnection_EmitsNotConnectedMessage()
+    void testMountToDrive_NullDeviceActionService_EmitsNotConnectedMessage()
     {
-        auto *controller = new FileActionController(nullptr, nullptr, this);
+        auto *controller = new FileActionController(nullptr, nullptr, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
@@ -212,7 +226,7 @@ private slots:
 
     void testLoadConfig_EmptyPath_EmitsNoFileSelectedMessage()
     {
-        auto *controller = new FileActionController(nullptr, nullptr, this);
+        auto *controller = new FileActionController(nullptr, nullptr, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
@@ -225,7 +239,7 @@ private slots:
 
     void testLoadConfig_WrongFileType_EmitsNotAConfigurationFileMessage()
     {
-        auto *controller = new FileActionController(nullptr, nullptr, this);
+        auto *controller = new FileActionController(nullptr, nullptr, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
@@ -238,8 +252,8 @@ private slots:
 
     void testLoadConfig_NoDeviceConnection_EmitsNotConnectedMessage()
     {
-        // Correct type, but no device connection (nullptr) → "Not connected"
-        auto *controller = new FileActionController(nullptr, nullptr, this);
+        // Correct type, but no device connection (nullptr) -> "Not connected"
+        auto *controller = new FileActionController(nullptr, nullptr, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
@@ -257,7 +271,7 @@ private slots:
     void testAddToPlaylist_MixedItems_OnlySidPassesFilter()
     {
         auto *playlistService = new PlaylistService(nullptr, this);
-        auto *controller = new FileActionController(nullptr, nullptr, this);
+        auto *controller = new FileActionController(nullptr, nullptr, nullptr, this);
         controller->setPlaylistService(playlistService);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
@@ -278,7 +292,7 @@ private slots:
     void testAddToPlaylist_NoSidItems_EmitsNoSidMusicFilesMessage()
     {
         auto *playlistService = new PlaylistService(nullptr, this);
-        auto *controller = new FileActionController(nullptr, nullptr, this);
+        auto *controller = new FileActionController(nullptr, nullptr, nullptr, this);
         controller->setPlaylistService(playlistService);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
@@ -296,7 +310,7 @@ private slots:
 
     void testAddToPlaylist_NullPlaylistService_EmitsPlaylistNotAvailableMessage()
     {
-        auto *controller = new FileActionController(nullptr, nullptr, this);
+        auto *controller = new FileActionController(nullptr, nullptr, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
@@ -316,7 +330,7 @@ private slots:
 
     void testDownload_AlwaysEmitsStatusMessage()
     {
-        auto *controller = new FileActionController(nullptr, nullptr, this);
+        auto *controller = new FileActionController(nullptr, nullptr, nullptr, this);
         auto *errorHandler = makeErrorHandler();
         controller->setErrorHandler(errorHandler);
         QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
@@ -333,7 +347,7 @@ private slots:
 
     void testUpdateActionStates_NullActions_DoesNotCrash()
     {
-        auto *controller = new FileActionController(nullptr, nullptr, this);
+        auto *controller = new FileActionController(nullptr, nullptr, nullptr, this);
         // No setActions() call — all action pointers remain nullptr
         // Must not crash when called
         controller->updateActionStates(filetype::FileType::SidMusic, true);
@@ -341,7 +355,7 @@ private slots:
 
     void testUpdateActionStates_SidMusicWithCanOperate_EnablesPlayDisablesRunAndMount()
     {
-        auto *controller = new FileActionController(nullptr, nullptr, this);
+        auto *controller = new FileActionController(nullptr, nullptr, nullptr, this);
 
         auto *playAction = new QAction(this);
         auto *runAction = new QAction(this);
