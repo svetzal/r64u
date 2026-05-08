@@ -109,7 +109,7 @@ StreamingService::~StreamingService()
 bool StreamingService::startStreaming()
 {
     if (isStreaming_) {
-        LOG_VERBOSE() << "StreamingService::startStreaming: Already streaming";
+        emit error(tr("Already streaming"));
         return false;
     }
 
@@ -197,6 +197,7 @@ bool StreamingService::startStreaming()
 void StreamingService::stopStreaming()
 {
     if (!isStreaming_) {
+        qCWarning(LogStreaming) << "stopStreaming called but not currently streaming";
         return;
     }
 

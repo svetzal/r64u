@@ -10,6 +10,8 @@
 #include "vic2frameconverter.h"
 #include "videostreamreceiver.h"
 
+#include "utils/logging.h"
+
 #include <QBuffer>
 #include <QMutexLocker>
 
@@ -81,6 +83,7 @@ bool VideoRecordingService::stopRecording()
     QMutexLocker locker(&mutex_);
 
     if (!recording_) {
+        qCWarning(LogRecording) << "stopRecording called but not currently recording";
         return false;
     }
 

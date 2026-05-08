@@ -162,6 +162,22 @@ private slots:
         QVERIFY(!manager_->isStreaming());
     }
 
+    void testStartStreaming_alreadyStreaming_emitsError()
+    {
+        // Force streaming state to true to trigger the re-entry guard
+        manager_->isStreaming_ = true;
+
+        QSignalSpy errorSpy(manager_, &StreamingService::error);
+        bool result = manager_->startStreaming();
+
+        QVERIFY(!result);
+        QCOMPARE(errorSpy.count(), 1);
+        QCOMPARE(errorSpy.first().first().toString(), QString("Already streaming"));
+
+        // Reset to avoid stopStreaming being called in destructor with mocks in bad state
+        manager_->isStreaming_ = false;
+    }
+
     // -----------------------------------------------------------------------
     // stopStreaming
     // -----------------------------------------------------------------------
@@ -171,6 +187,14 @@ private slots:
         manager_->stopStreaming();
         QCOMPARE(mockControl_->mockStopAllStreamsCallCount(), 0);
         QCOMPARE(mockPlayback_->mockStopCallCount(), 0);
+    }
+
+    void testStopStreaming_whenNotStreaming_doesNotCrash()
+    {
+        // Calling stopStreaming when not streaming should return cleanly without crash
+        QVERIFY(!manager_->isStreaming());
+        manager_->stopStreaming();
+        QVERIFY(!manager_->isStreaming());
     }
 
     // -----------------------------------------------------------------------

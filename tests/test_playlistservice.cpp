@@ -112,6 +112,16 @@ private slots:
         QVERIFY(manager->isEmpty());
     }
 
+    void testClear_WhenAlreadyEmpty_DoesNotEmitPlaylistChanged()
+    {
+        // Playlist starts empty; clear() should be a no-op and not emit playlistChanged
+        QVERIFY(manager->isEmpty());
+        QSignalSpy spy(manager, &PlaylistService::playlistChanged);
+        manager->clear();
+        QCOMPARE(spy.count(), 0);
+        QVERIFY(manager->isEmpty());
+    }
+
     void testItemAt_ValidIndex_ReturnsCorrectItem()
     {
         addTestItem(manager, "/SD/a.sid");

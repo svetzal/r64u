@@ -1688,6 +1688,7 @@ add_executable(test_videorecordingservice
     ${CMAKE_SOURCE_DIR}/src/services/vic2frameconverter.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
 target_include_directories(test_videorecordingservice PRIVATE

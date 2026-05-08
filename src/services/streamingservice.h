@@ -173,6 +173,8 @@ private slots:
     void onStreamCommandFailed(const QString &command, const QString &error);
 
 private:
+    friend class TestStreamingService;
+
     [[nodiscard]] QString findLocalHostForDevice() const;
 
     // Non-owned dependency

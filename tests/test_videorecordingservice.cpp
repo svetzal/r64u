@@ -135,6 +135,14 @@ private slots:
     // stopRecording
     // =========================================================
 
+    void testStopRecording_WhenNotRecording_ReturnsFalse()
+    {
+        bool result = service_->stopRecording();
+
+        QVERIFY(!result);
+        QVERIFY(!service_->isRecording());
+    }
+
     void testStopRecording_ReturnsTrue()
     {
         QTemporaryDir dir;
