@@ -2369,3 +2369,59 @@ if(BUILD_COVERAGE)
     add_coverage_target(servicefactory test_servicefactory)
     add_dependencies(coverage coverage_servicefactory)
 endif()
+
+# LocalFileOperationsService tests - uses QTemporaryDir for real filesystem isolation
+add_executable(test_localfileoperationsservice
+    test_localfileoperationsservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfileoperationsservice.cpp
+)
+
+target_include_directories(test_localfileoperationsservice PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_localfileoperationsservice PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME LocalFileOperationsServiceTest COMMAND test_localfileoperationsservice)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(localfileoperationsservice test_localfileoperationsservice)
+    add_dependencies(coverage coverage_localfileoperationsservice)
+endif()
+
+# PlaylistWidget tests - control-flow and signal forwarding using null DeviceConnection
+add_executable(test_playlistwidget
+    test_playlistwidget.cpp
+    stubs/playlistservice_test_stubs.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/playlistwidget.cpp
+    # Headers listed so AUTOMOC generates moc files for stubs
+    ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
+)
+
+target_include_directories(test_playlistwidget PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_playlistwidget PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+add_test(NAME PlaylistWidgetTest COMMAND test_playlistwidget)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(playlistwidget test_playlistwidget)
+    add_dependencies(coverage coverage_playlistwidget)
+endif()
