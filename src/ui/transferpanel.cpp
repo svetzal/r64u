@@ -7,7 +7,7 @@
 #include "models/remotefilemodel.h"
 #include "services/deviceconnection.h"
 #include "services/errorhandler.h"
-#include "services/remotefileoperations.h"
+#include "services/remotefileoperationsservice.h"
 #include "services/transferservice.h"
 #include "utils/logging.h"
 
@@ -18,8 +18,8 @@
 #include <QVBoxLayout>
 
 TransferPanel::TransferPanel(DeviceConnection *connection, RemoteFileModel *model,
-                             TransferService *transferService, RemoteFileOperations *fileOperations,
-                             QWidget *parent)
+                             TransferService *transferService,
+                             RemoteFileOperationsService *fileOperations, QWidget *parent)
     : QWidget(parent), deviceConnection_(connection), transferService_(transferService),
       fileOperations_(fileOperations)
 {

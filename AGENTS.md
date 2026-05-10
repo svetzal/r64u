@@ -249,17 +249,19 @@ Each suffix or prefix represents a distinct architectural role. New classes must
 |---------------|------|----------|
 | `I*` prefix | Abstract interface/gateway for dependency injection | `IFtpClient`, `IRestClient`, `ICredentialStore` |
 | `*Core` (namespace) | Pure functions and data types, no I/O or state | `ftpcore`, `transfercore` |
-| `*Service` | Stateful capability provider with signals, timers, external I/O | `StatusMessageService`, `TransferService`, `StreamingService` |
+| namespace (no suffix) | Pure-function utility class wrapped in a descriptive namespace | `petscii::PetsciiConverter`, `diskimage::DiskImageReader`, `sidfile::SidFileParser`, `menubar::Builder` |
+| `*Service` | Stateful capability provider with signals, timers, external I/O | `StatusMessageService`, `TransferService`, `StreamingService`, `ConfigFileLoaderService`, `RemoteFileOperationsService` |
 | `*Manager` | Internal lifecycle/state manager for a subsystem (not user-facing) | `BatchManager`, `TransferTimeoutManager` |
 | `*Controller` | Mediates between UI and business logic | `FileActionController`, `ConnectionUIController` |
 | `*Coordinator` | Orchestrates multi-step operations across components | `RecursiveScanCoordinator`, `PanelCoordinator` |
-| `*Handler` | Translates/processes events from one layer to another | `TransferFtpHandler`, `FtpResponseHandler`, `ErrorHandler` |
-| `*Strategy` | Pluggable algorithm (always behind an `I*` or abstract base) | *(none — use `I*` prefix for abstract contracts instead)* |
+| `*Handler` | Translates/processes events from one layer to another | `TransferFtpHandler`, `FtpResponseHandler`, `ErrorHandler`, `ConnectionTestHandler` |
 
 **Key distinctions:**
 - `*Service` vs `*Manager`: Services are user-facing capability providers; Managers are internal lifecycle helpers for a subsystem.
-- `I*` vs abstract class: All abstract contracts used for dependency injection use the `I*` prefix (no `*Strategy` suffix).
+- `I*` vs abstract class: All abstract contracts used for dependency injection use the `I*` prefix.
+- namespace (no class suffix) vs `*Core` namespace: Use a plain namespace for a single utility class (e.g. `petscii::PetsciiConverter`); use `*Core` for a namespace containing multiple free functions and types (e.g. `ftpcore`).
 - `PlatformKeychain`: The platform-specific static keychain utility (distinct from `ICredentialStore` interface and `SystemCredentialStore` adapter).
+- Do not use `*Strategy` suffix — use the `I*` prefix for all abstract contracts.
 
 ## Error Handling Strategy
 

@@ -2,7 +2,7 @@
 
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
-#include "services/configfileloader.h"
+#include "services/configfileloaderservice.h"
 #include "services/configurationservice.h"
 #include "services/deviceactionservice.h"
 #include "services/deviceconnection.h"
@@ -222,10 +222,11 @@ void MainWindow::setupConnections()
             &MainWindow::onDriveInfoUpdated);
 
     // Config file loader loading started notification
-    connect(configFileLoader_, &ConfigFileLoader::loadStarted, this, [this](const QString &path) {
-        statusMessageService_->showInfo(
-            tr("Loading configuration: %1...").arg(QFileInfo(path).fileName()));
-    });
+    connect(configFileLoader_, &ConfigFileLoaderService::loadStarted, this,
+            [this](const QString &path) {
+                statusMessageService_->showInfo(
+                    tr("Loading configuration: %1...").arg(QFileInfo(path).fileName()));
+            });
 }
 
 void MainWindow::switchToMode(Mode mode)

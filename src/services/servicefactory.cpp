@@ -2,7 +2,7 @@
 
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
-#include "services/configfileloader.h"
+#include "services/configfileloaderservice.h"
 #include "services/configurationservice.h"
 #include "services/deviceactionservice.h"
 #include "services/deviceconnection.h"
@@ -13,7 +13,7 @@
 #include "services/httpfiledownloader.h"
 #include "services/hvscmetadataservice.h"
 #include "services/playlistservice.h"
-#include "services/remotefileoperations.h"
+#include "services/remotefileoperationsservice.h"
 #include "services/songlengthsdatabase.h"
 #include "services/statusmessageservice.h"
 #include "services/systemcommandcontroller.h"
@@ -24,7 +24,7 @@ ServiceFactory::ServiceFactory(QWidget *owner, QObject *parent) : QObject(parent
     deviceConnection_ = new DeviceConnection(this);
     remoteFileModel_ = new RemoteFileModel(this);
     transferQueue_ = new TransferQueue(this);
-    configFileLoader_ = new ConfigFileLoader(this);
+    configFileLoader_ = new ConfigFileLoaderService(this);
 
     // Connect the FTP client to the model and queue
     remoteFileModel_->setFtpClient(deviceConnection_->ftpClient());
@@ -49,7 +49,7 @@ ServiceFactory::ServiceFactory(QWidget *owner, QObject *parent) : QObject(parent
 
     configurationService_ = new ConfigurationService(deviceConnection_, this);
     deviceActionService_ = new DeviceActionService(deviceConnection_, this);
-    remoteFileOperations_ = new RemoteFileOperations(deviceConnection_->ftpClient(), this);
+    remoteFileOperations_ = new RemoteFileOperationsService(deviceConnection_->ftpClient(), this);
     systemCommandController_ =
         new SystemCommandController(deviceConnection_->restClient(), statusMessageService_, this);
 }
@@ -69,7 +69,7 @@ TransferQueue *ServiceFactory::transferQueue() const
     return transferQueue_;
 }
 
-ConfigFileLoader *ServiceFactory::configFileLoader() const
+ConfigFileLoaderService *ServiceFactory::configFileLoader() const
 {
     return configFileLoader_;
 }
@@ -149,7 +149,7 @@ DeviceActionService *ServiceFactory::deviceActionService() const
     return deviceActionService_;
 }
 
-RemoteFileOperations *ServiceFactory::remoteFileOperations() const
+RemoteFileOperationsService *ServiceFactory::remoteFileOperations() const
 {
     return remoteFileOperations_;
 }

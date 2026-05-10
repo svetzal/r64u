@@ -1,6 +1,6 @@
 #include "preferencesdialog.h"
 
-#include "connectiontester.h"
+#include "connectiontesthandler.h"
 #include "databasedownloadcontroller.h"
 
 #include "../services/c64urestclient.h"
@@ -19,7 +19,7 @@
 PreferencesDialog::PreferencesDialog(QWidget *parent) : QDialog(parent)
 {
     downloadController_ = new DatabaseDownloadController(this, this);
-    connectionTester_ = new ConnectionTester(this, this);
+    connectionTester_ = new ConnectionTestHandler(this, this);
 
     setWindowTitle(tr("Preferences"));
     setupUi();

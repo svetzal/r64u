@@ -15,7 +15,7 @@ class RemoteFileModel;
 class TransferQueue;
 class TransferService;
 class LocalFileBrowserWidget;
-class RemoteFileOperations;
+class RemoteFileOperationsService;
 class TransferProgressContainer;
 
 class TransferPanel : public QWidget, public IPanel
@@ -26,8 +26,8 @@ public:
     QObject *asQObject() override { return this; }
 
     explicit TransferPanel(DeviceConnection *connection, RemoteFileModel *model,
-                           TransferService *transferService, RemoteFileOperations *fileOperations,
-                           QWidget *parent = nullptr);
+                           TransferService *transferService,
+                           RemoteFileOperationsService *fileOperations, QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
     void setErrorHandler(ErrorHandler *handler);
@@ -35,7 +35,7 @@ public:
     void setCurrentRemoteDir(const QString &path) override;
     QString currentLocalDir() const;
     QString currentRemoteDir() const override;
-    RemoteFileOperations *fileOperations() const { return fileOperations_; }
+    RemoteFileOperationsService *fileOperations() const { return fileOperations_; }
 
     // Settings
     void loadSettings();
@@ -71,7 +71,7 @@ private:
     RemoteFileBrowserWidget *remoteBrowser_ = nullptr;
     LocalFileBrowserWidget *localBrowser_ = nullptr;
     TransferProgressContainer *progressContainer_ = nullptr;
-    RemoteFileOperations *fileOperations_ = nullptr;
+    RemoteFileOperationsService *fileOperations_ = nullptr;
     std::unique_ptr<RemoteFileBrowserWidget::AutoRefreshSuppressor> refreshSuppressor_;
 };
 

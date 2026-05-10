@@ -7,7 +7,7 @@
 #include <QWidget>
 
 class RemoteFileModel;
-class RemoteFileOperations;
+class RemoteFileOperationsService;
 class PathNavigationWidget;
 class ErrorHandler;
 
@@ -24,7 +24,7 @@ public:
     [[nodiscard]] QStringList selectedPaths() const;
     [[nodiscard]] bool isSelectedDirectory() const;
     void setDownloadEnabled(bool enabled);
-    void setFileOperations(RemoteFileOperations *ops);
+    void setFileOperations(RemoteFileOperationsService *ops);
     void setErrorHandler(ErrorHandler *handler);
     void refresh();
     void refreshIfStale();
@@ -85,7 +85,7 @@ private:
 
     // Dependencies (not owned)
     RemoteFileModel *remoteFileModel_ = nullptr;
-    RemoteFileOperations *fileOperations_ = nullptr;
+    RemoteFileOperationsService *fileOperations_ = nullptr;
     ErrorHandler *errorHandler_ = nullptr;
 
     // State

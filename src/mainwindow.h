@@ -12,7 +12,7 @@ class PreferencesDialog;
 class DeviceConnection;
 class RemoteFileModel;
 class TransferQueue;
-class ConfigFileLoader;
+class ConfigFileLoaderService;
 class FilePreviewService;
 class TransferService;
 class ErrorHandler;
@@ -73,7 +73,7 @@ private:
     DeviceConnection *deviceConnection_ = nullptr;
     RemoteFileModel *remoteFileModel_ = nullptr;
     TransferQueue *transferQueue_ = nullptr;
-    ConfigFileLoader *configFileLoader_ = nullptr;
+    ConfigFileLoaderService *configFileLoader_ = nullptr;
     FilePreviewService *filePreviewService_ = nullptr;
     TransferService *transferService_ = nullptr;
     ErrorHandler *errorHandler_ = nullptr;

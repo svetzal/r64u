@@ -1,4 +1,4 @@
-#include "configfileloader.h"
+#include "configfileloaderservice.h"
 #include "deviceconnection.h"
 #include "errorhandler.h"
 #include "filepreviewservice.h"
@@ -6,7 +6,7 @@
 #include "hvscmetadataservice.h"
 #include "iftpclient.h"
 #include "irestclient.h"
-#include "remotefileoperations.h"
+#include "remotefileoperationsservice.h"
 #include "songlengthsdatabase.h"
 #include "transferservice.h"
 
@@ -16,10 +16,10 @@
 
 void ErrorHandler::connectSources(DeviceConnection *dc, IRestClient *restClient,
                                   RemoteFileModel *rfm, IFtpClient *ftpClient,
-                                  FilePreviewService *fps, ConfigFileLoader *cfl,
+                                  FilePreviewService *fps, ConfigFileLoaderService *cfl,
                                   TransferService *ts, SonglengthsDatabase *sld,
                                   HVSCMetadataService *hvsc, GameBase64Service *gb64,
-                                  RemoteFileOperations *rfo)
+                                  RemoteFileOperationsService *rfo)
 {
     if (dc) {
         connect(dc, &DeviceConnection::connectionError, this, &ErrorHandler::handleConnectionError);
@@ -41,7 +41,7 @@ void ErrorHandler::connectSources(DeviceConnection *dc, IRestClient *restClient,
                 });
     }
     if (cfl) {
-        connect(cfl, &ConfigFileLoader::loadFailed, this,
+        connect(cfl, &ConfigFileLoaderService::loadFailed, this,
                 [this](const QString &path, const QString &error) {
                     handleOperationFailed(tr("Loading %1").arg(QFileInfo(path).fileName()), error);
                 });
@@ -65,7 +65,7 @@ void ErrorHandler::connectSources(DeviceConnection *dc, IRestClient *restClient,
                 [this](const QString &error) { handleDownloadError(tr("GameBase64"), error); });
     }
     if (rfo) {
-        connect(rfo, &RemoteFileOperations::operationFailed, this,
+        connect(rfo, &RemoteFileOperationsService::operationFailed, this,
                 &ErrorHandler::handleOperationFailed);
     }
 }

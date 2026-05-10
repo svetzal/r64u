@@ -8,8 +8,8 @@
 #include <QMessageBox>
 #include <QTabWidget>
 
-QAction *MenuBarBuilder::build(QMainWindow *window, SystemCommandController *sysCtrl,
-                               QTabWidget *modeTabWidget)
+QAction *menubar::Builder::build(QMainWindow *window, SystemCommandController *sysCtrl,
+                                 QTabWidget *modeTabWidget)
 {
     // File menu
     auto *fileMenu = window->menuBar()->addMenu(QObject::tr("&File"));

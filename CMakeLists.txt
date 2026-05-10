@@ -66,7 +66,7 @@ set(SOURCES
     src/ui/systemtoolbarbuilder.cpp
     src/ui/databasedownloadcontroller.cpp
     src/ui/databasedownloadview.cpp
-    src/ui/connectiontester.cpp
+    src/ui/connectiontesthandler.cpp
     src/ui/previewcoordinator.cpp
     src/ui/panelcoordinator.cpp
     src/ui/connectionuicontroller.cpp
@@ -79,13 +79,12 @@ set(SOURCES
     src/ui/filepreview/diskimagepreview.cpp
     src/ui/filepreview/sidfilepreview.cpp
     src/ui/filepreview/defaultfilepreview.cpp
-    src/ui/filepreview/filepreviewfactory.cpp
     src/services/irestclient.cpp
     src/services/c64urestclient.cpp
     src/services/iftpclient.cpp
     src/services/c64uftpclient.cpp
     src/services/deviceconnection.cpp
-    src/services/configfileloader.cpp
+    src/services/configfileloaderservice.cpp
     src/services/filepreviewservice.cpp
     src/services/transferservice.cpp
     src/services/errorhandler.cpp
@@ -101,9 +100,9 @@ set(SOURCES
     src/services/audiostreamreceiver.cpp
     src/services/audioplaybackservice.cpp
     src/services/keyboardinputservice.cpp
-    src/services/diskimagereader.cpp
-    src/services/petsciiconverter.cpp
-    src/services/sidfileparser.cpp
+    src/core/petsciiconverter.cpp
+    src/core/diskimagereader.cpp
+    src/core/sidfileparser.cpp
     src/services/favoritesservice.cpp
     src/services/favoritescore.cpp
     src/services/favoritesuicore.cpp
@@ -126,7 +125,7 @@ set(SOURCES
     src/services/screenshotservice.cpp
     src/services/localfileoperationsservice.cpp
     src/services/vic2frameconverter.cpp
-    src/services/remotefileoperations.cpp
+    src/services/remotefileoperationsservice.cpp
     src/services/playlistservice.cpp
     src/services/playlistcore.cpp
     src/services/transfercore.cpp
@@ -188,7 +187,7 @@ set(HEADERS
     src/ui/menubarbuilder.h
     src/ui/systemtoolbarbuilder.h
     src/ui/databasedownloadcontroller.h
-    src/ui/connectiontester.h
+    src/ui/connectiontesthandler.h
     src/ui/idetailsdisplay.h
     src/ui/ipanel.h
     src/ui/previewcoordinator.h
@@ -205,11 +204,10 @@ set(HEADERS
     src/ui/filepreview/diskimagepreview.h
     src/ui/filepreview/sidfilepreview.h
     src/ui/filepreview/defaultfilepreview.h
-    src/ui/filepreview/filepreviewfactory.h
     src/services/c64urestclient.h
     src/services/c64uftpclient.h
     src/services/deviceconnection.h
-    src/services/configfileloader.h
+    src/services/configfileloaderservice.h
     src/services/filepreviewservice.h
     src/services/transferservice.h
     src/services/errorhandler.h
@@ -229,9 +227,9 @@ set(HEADERS
     src/services/audiostreamreceiver.h
     src/services/audioplaybackservice.h
     src/services/keyboardinputservice.h
-    src/services/diskimagereader.h
-    src/services/petsciiconverter.h
-    src/services/sidfileparser.h
+    src/core/petsciiconverter.h
+    src/core/diskimagereader.h
+    src/core/sidfileparser.h
     src/services/favoritesservice.h
     src/services/favoritescore.h
     src/services/favoritesuicore.h
@@ -251,7 +249,7 @@ set(HEADERS
     src/services/avicore.h
     src/services/videorecordingservice.h
     src/services/vic2frameconverter.h
-    src/services/remotefileoperations.h
+    src/services/remotefileoperationsservice.h
     src/services/playlistservice.h
     src/services/playlistcore.h
     src/services/transfercore.h

@@ -13,7 +13,7 @@
 class DeviceConnection;
 class DeviceActionService;
 class RemoteFileModel;
-class ConfigFileLoader;
+class ConfigFileLoaderService;
 class FilePreviewService;
 class FavoritesService;
 class PlaylistService;
@@ -38,7 +38,7 @@ public:
     QObject *asQObject() override { return this; }
 
     explicit ExplorePanel(DeviceConnection *connection, DeviceActionService *deviceActionService,
-                          RemoteFileModel *model, ConfigFileLoader *configLoader,
+                          RemoteFileModel *model, ConfigFileLoaderService *configLoader,
                           FilePreviewService *previewService, FavoritesService *favoritesService,
                           PlaylistService *playlistService, QWidget *parent = nullptr);
 

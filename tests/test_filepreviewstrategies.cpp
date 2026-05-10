@@ -1,17 +1,18 @@
 /**
  * @file test_filepreviewstrategies.cpp
- * @brief Unit tests for file preview strategies and factory.
+ * @brief Unit tests for file preview strategies.
  *
  * Tests verify:
- * - Factory selects correct strategy based on file extension
  * - Each strategy correctly identifies files it can handle
  * - Strategy canHandle() edge cases
  * - Error handling for corrupt/invalid data
+ *
+ * Note: FilePreviewFactory was removed as it was not used in production code.
+ * Strategy selection logic is now tested directly via canHandle().
  */
 
 #include "ui/filepreview/defaultfilepreview.h"
 #include "ui/filepreview/diskimagepreview.h"
-#include "ui/filepreview/filepreviewfactory.h"
 #include "ui/filepreview/sidfilepreview.h"
 #include "ui/filepreview/textfilepreview.h"
 
@@ -23,116 +24,6 @@ class TestFilePreviewStrategies : public QObject
     Q_OBJECT
 
 private slots:
-    // === Factory Strategy Selection Tests ===
-
-    void testFactory_SelectsDiskImagePreview_ForD64()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/disk.d64");
-        QVERIFY(dynamic_cast<DiskImagePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsDiskImagePreview_ForD71()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/disk.D71");
-        QVERIFY(dynamic_cast<DiskImagePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsDiskImagePreview_ForD81()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/disk.d81");
-        QVERIFY(dynamic_cast<DiskImagePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsSidFilePreview_ForSid()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/music.sid");
-        QVERIFY(dynamic_cast<SidFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsSidFilePreview_ForSidUpperCase()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/music.SID");
-        QVERIFY(dynamic_cast<SidFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsTextFilePreview_ForTxt()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/readme.txt");
-        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsTextFilePreview_ForCfg()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/config.cfg");
-        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsTextFilePreview_ForJson()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/data.json");
-        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsTextFilePreview_ForHtml()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/page.html");
-        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsTextFilePreview_ForHtm()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/page.htm");
-        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsTextFilePreview_ForXml()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/data.xml");
-        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsTextFilePreview_ForIni()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/settings.ini");
-        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsTextFilePreview_ForMd()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/readme.md");
-        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsTextFilePreview_ForLog()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/app.log");
-        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsDefaultPreview_ForUnknownType()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/file.xyz");
-        QVERIFY(dynamic_cast<DefaultFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsDefaultPreview_ForPrg()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/game.prg");
-        QVERIFY(dynamic_cast<DefaultFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsDefaultPreview_ForNoExtension()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/filename");
-        QVERIFY(dynamic_cast<DefaultFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_SelectsDefaultPreview_ForEmptyPath()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("");
-        QVERIFY(dynamic_cast<DefaultFilePreview *>(strategy.get()) != nullptr);
-    }
-
     // === DiskImagePreview canHandle Tests ===
 
     void testDiskImagePreview_CanHandle_D64()
@@ -322,38 +213,6 @@ private slots:
         QWidget *widget = strategy.createPreviewWidget(nullptr);
         QVERIFY(widget != nullptr);
         delete widget;
-    }
-
-    // === Edge Case Path Tests ===
-
-    void testFactory_HandlesPathWithSpaces()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/with spaces/file.txt");
-        QVERIFY(dynamic_cast<TextFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_HandlesPathWithSpecialChars()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/with-special_chars/file.d64");
-        QVERIFY(dynamic_cast<DiskImagePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_HandlesDeepPath()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/very/deep/nested/path/to/file.sid");
-        QVERIFY(dynamic_cast<SidFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_HandlesJustFilename()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("music.sid");
-        QVERIFY(dynamic_cast<SidFilePreview *>(strategy.get()) != nullptr);
-    }
-
-    void testFactory_HandlesMultipleDots()
-    {
-        auto strategy = FilePreviewFactory::createStrategy("/path/to/file.backup.d64");
-        QVERIFY(dynamic_cast<DiskImagePreview *>(strategy.get()) != nullptr);
     }
 
     // === Error Handling Tests ===
@@ -556,18 +415,6 @@ private slots:
         QWidget *widget = strategy.createPreviewWidget(nullptr);
         strategy.setFileDetails("/path/to/file.prg", 2500000, "Program");
         delete widget;
-    }
-
-    // === Factory Priority Tests (disk image takes precedence over text) ===
-
-    void testFactory_DiskImageTakesPrecedence()
-    {
-        // .d64.txt would be weird but test priority order
-        // Actually d64 doesn't have .d64.txt so this tests something else
-        // Let's test that factory returns unique instances
-        auto s1 = FilePreviewFactory::createStrategy("/path/to/disk.d64");
-        auto s2 = FilePreviewFactory::createStrategy("/path/to/disk.d64");
-        QVERIFY(s1.get() != s2.get());  // Different instances
     }
 };
 

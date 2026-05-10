@@ -14,7 +14,7 @@ class SonglengthsDatabase;
 class HVSCMetadataService;
 class GameBase64Service;
 class DatabaseDownloadController;
-class ConnectionTester;
+class ConnectionTestHandler;
 
 class PreferencesDialog : public QDialog
 {
@@ -52,7 +52,7 @@ private:
 
     // Extracted controllers (owned via Qt parent)
     DatabaseDownloadController *downloadController_ = nullptr;
-    ConnectionTester *connectionTester_ = nullptr;
+    ConnectionTestHandler *connectionTester_ = nullptr;
 };
 
 #endif  // PREFERENCESDIALOG_H

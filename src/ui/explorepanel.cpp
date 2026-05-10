@@ -13,7 +13,7 @@
 #include "previewcoordinator.h"
 
 #include "models/remotefilemodel.h"
-#include "services/configfileloader.h"
+#include "services/configfileloaderservice.h"
 #include "services/deviceactionservice.h"
 #include "services/deviceconnection.h"
 #include "services/favoritesservice.h"
@@ -32,7 +32,7 @@
 #include <QVBoxLayout>
 
 ExplorePanel::ExplorePanel(DeviceConnection *connection, DeviceActionService *deviceActionService,
-                           RemoteFileModel *model, ConfigFileLoader *configLoader,
+                           RemoteFileModel *model, ConfigFileLoaderService *configLoader,
                            FilePreviewService *previewService, FavoritesService *favoritesService,
                            PlaylistService *playlistService, QWidget *parent)
     : QWidget(parent), deviceConnection_(connection), remoteFileModel_(model),
@@ -41,7 +41,7 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection, DeviceActionService *de
     Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
     Q_ASSERT(deviceActionService && "DeviceActionService is required");
     Q_ASSERT(remoteFileModel_ && "RemoteFileModel is required");
-    Q_ASSERT(configLoader && "ConfigFileLoader is required");
+    Q_ASSERT(configLoader && "ConfigFileLoaderService is required");
     Q_ASSERT(previewService && "FilePreviewService is required");
     Q_ASSERT(favoritesService && "FavoritesService is required");
     Q_ASSERT(playlistService_ && "PlaylistService is required");
@@ -65,9 +65,9 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection, DeviceActionService *de
 
     setupConnections();
 
-    connect(configLoader, &ConfigFileLoader::loadFinished, previewCoordinator_,
+    connect(configLoader, &ConfigFileLoaderService::loadFinished, previewCoordinator_,
             &PreviewCoordinator::onConfigLoadFinished);
-    connect(configLoader, &ConfigFileLoader::loadFailed, previewCoordinator_,
+    connect(configLoader, &ConfigFileLoaderService::loadFailed, previewCoordinator_,
             &PreviewCoordinator::onConfigLoadFailed);
 }
 

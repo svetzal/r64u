@@ -310,7 +310,7 @@ endif()
 # PetsciiConverter tests
 add_executable(test_petsciiconverter
     test_petsciiconverter.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/petsciiconverter.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/petsciiconverter.cpp
 )
 
 target_include_directories(test_petsciiconverter PRIVATE
@@ -334,7 +334,7 @@ endif()
 # SidFileParser tests
 add_executable(test_sidfileparser
     test_sidfileparser.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/sidfileparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/sidfileparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
 )
 
@@ -356,40 +356,40 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_sidfileparser)
 endif()
 
-# ConfigFileLoader tests - uses IFtpClient/IRestClient interfaces
-add_executable(test_configfileloader
-    test_configfileloader.cpp
+# ConfigFileLoaderService tests - uses IFtpClient/IRestClient interfaces
+add_executable(test_configfileloaderservice
+    test_configfileloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/configfileloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/configfileloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
 )
 
-target_include_directories(test_configfileloader PRIVATE
+target_include_directories(test_configfileloaderservice PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(test_configfileloader PRIVATE
+target_link_libraries(test_configfileloaderservice PRIVATE
     Qt6::Core
     Qt6::Test
     Qt6::Network
 )
 
 # Register test with CTest
-add_test(NAME ConfigFileLoaderTest COMMAND test_configfileloader)
+add_test(NAME ConfigFileLoaderServiceTest COMMAND test_configfileloaderservice)
 
 # Add coverage target if coverage is enabled
 if(BUILD_COVERAGE)
-    add_coverage_target(configfileloader test_configfileloader)
-    add_dependencies(coverage coverage_configfileloader)
+    add_coverage_target(configfileloaderservice test_configfileloaderservice)
+    add_dependencies(coverage coverage_configfileloaderservice)
 endif()
 
 # DiskImageReader tests
 add_executable(test_diskimagereader
     test_diskimagereader.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/diskimagereader.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/petsciiconverter.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/diskimagereader.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/petsciiconverter.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
 )
 
@@ -590,7 +590,7 @@ add_executable(test_errorsourceconnector
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filepreviewservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/configfileloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/configfileloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
@@ -599,7 +599,7 @@ add_executable(test_errorsourceconnector
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/remotefileoperations.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
     # Headers for AUTOMOC to generate signal implementations for stubbed classes
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.h
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.h
@@ -626,28 +626,28 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_errorsourceconnector)
 endif()
 
-# RemoteFileOperations tests - signal emission for null FTP client guard clauses
-add_executable(test_remotefileoperations
-    test_remotefileoperations.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/remotefileoperations.cpp
+# RemoteFileOperationsService tests - signal emission for null FTP client guard clauses
+add_executable(test_remotefileoperationsservice
+    test_remotefileoperationsservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
-target_include_directories(test_remotefileoperations PRIVATE
+target_include_directories(test_remotefileoperationsservice PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(test_remotefileoperations PRIVATE
+target_link_libraries(test_remotefileoperationsservice PRIVATE
     Qt6::Core
     Qt6::Test
 )
 
-add_test(NAME RemoteFileOperationsTest COMMAND test_remotefileoperations)
+add_test(NAME RemoteFileOperationsServiceTest COMMAND test_remotefileoperationsservice)
 
 if(BUILD_COVERAGE)
-    add_coverage_target(remotefileoperations test_remotefileoperations)
-    add_dependencies(coverage coverage_remotefileoperations)
+    add_coverage_target(remotefileoperationsservice test_remotefileoperationsservice)
+    add_dependencies(coverage coverage_remotefileoperationsservice)
 endif()
 
 # StatusMessageService tests
@@ -709,14 +709,13 @@ add_executable(test_filepreviewstrategies
     test_filepreviewstrategies.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filepreview/c64previewbase.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/filepreviewfactory.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filepreview/textfilepreview.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filepreview/diskimagepreview.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filepreview/sidfilepreview.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filepreview/defaultfilepreview.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/diskimagereader.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/sidfileparser.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/petsciiconverter.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/diskimagereader.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/sidfileparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/petsciiconverter.cpp
     ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
 )
@@ -1284,7 +1283,7 @@ endif()
 add_executable(test_filemetadatacore
     test_filemetadatacore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filemetadatacore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/sidfileparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/sidfileparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
@@ -1884,7 +1883,7 @@ add_executable(test_fileactioncontroller
     ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/diskbootsequenceservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/diskbootsequencecore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/configfileloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/configfileloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/fileactioncontroller.cpp
@@ -2301,7 +2300,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/services/servicefactory.cpp
     ${CMAKE_SOURCE_DIR}/src/services/configurationservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceactionservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/remotefileoperations.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/systemcommandcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
@@ -2313,7 +2312,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/configfileloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/configfileloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filepreviewservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp

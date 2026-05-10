@@ -8,7 +8,7 @@
 
 class QWidget;
 
-class ConfigFileLoader;
+class ConfigFileLoaderService;
 class DeviceConnection;
 class FilePreviewService;
 class GameBase64Service;
@@ -16,7 +16,7 @@ class HVSCMetadataService;
 class IFtpClient;
 class IRestClient;
 class RemoteFileModel;
-class RemoteFileOperations;
+class RemoteFileOperationsService;
 class SonglengthsDatabase;
 class TransferService;
 
@@ -87,9 +87,10 @@ public:
     ~ErrorHandler() override = default;
 
     void connectSources(DeviceConnection *dc, IRestClient *restClient, RemoteFileModel *rfm,
-                        IFtpClient *ftpClient, FilePreviewService *fps, ConfigFileLoader *cfl,
-                        TransferService *ts, SonglengthsDatabase *sld, HVSCMetadataService *hvsc,
-                        GameBase64Service *gb64, RemoteFileOperations *rfo = nullptr);
+                        IFtpClient *ftpClient, FilePreviewService *fps,
+                        ConfigFileLoaderService *cfl, TransferService *ts, SonglengthsDatabase *sld,
+                        HVSCMetadataService *hvsc, GameBase64Service *gb64,
+                        RemoteFileOperationsService *rfo = nullptr);
 
     /// @name Generic Error Handling
     /// @{

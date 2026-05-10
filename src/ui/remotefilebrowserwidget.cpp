@@ -4,7 +4,7 @@
 
 #include "models/remotefilemodel.h"
 #include "services/errorhandler.h"
-#include "services/remotefileoperations.h"
+#include "services/remotefileoperationsservice.h"
 #include "utils/logging.h"
 
 #include <QFileInfo>
@@ -128,21 +128,21 @@ void RemoteFileBrowserWidget::setupContextMenu()
 
 void RemoteFileBrowserWidget::setupConnections() {}
 
-void RemoteFileBrowserWidget::setFileOperations(RemoteFileOperations *ops)
+void RemoteFileBrowserWidget::setFileOperations(RemoteFileOperationsService *ops)
 {
     fileOperations_ = ops;
     if (fileOperations_) {
         connect(this, &RemoteFileBrowserWidget::createFolderRequested, fileOperations_,
-                &RemoteFileOperations::createFolder);
+                &RemoteFileOperationsService::createFolder);
         connect(this, &RemoteFileBrowserWidget::renameRequested, fileOperations_,
-                &RemoteFileOperations::renameItem);
-        connect(fileOperations_, &RemoteFileOperations::folderCreated, this,
+                &RemoteFileOperationsService::renameItem);
+        connect(fileOperations_, &RemoteFileOperationsService::folderCreated, this,
                 &RemoteFileBrowserWidget::onDirectoryCreated);
-        connect(fileOperations_, &RemoteFileOperations::itemRenamed, this,
+        connect(fileOperations_, &RemoteFileOperationsService::itemRenamed, this,
                 &RemoteFileBrowserWidget::onFileRenamed);
-        connect(fileOperations_, &RemoteFileOperations::itemRemoved, this,
+        connect(fileOperations_, &RemoteFileOperationsService::itemRemoved, this,
                 &RemoteFileBrowserWidget::onFileRemoved);
-        connect(fileOperations_, &RemoteFileOperations::statusMessage, this,
+        connect(fileOperations_, &RemoteFileOperationsService::statusMessage, this,
                 [this](const QString &message, int /*timeout*/) {
                     if (errorHandler_) {
                         errorHandler_->info(ErrorCategory::FileOperation, message);

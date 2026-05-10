@@ -9,7 +9,7 @@
 class DeviceConnection;
 class RemoteFileModel;
 class TransferQueue;
-class ConfigFileLoader;
+class ConfigFileLoaderService;
 class FilePreviewService;
 class TransferService;
 class ErrorHandler;
@@ -22,7 +22,7 @@ class HVSCMetadataService;
 class GameBase64Service;
 class ConfigurationService;
 class DeviceActionService;
-class RemoteFileOperations;
+class RemoteFileOperationsService;
 class SystemCommandController;
 
 /**
@@ -49,8 +49,8 @@ public:
     [[nodiscard]] RemoteFileModel *remoteFileModel() const;
     /// @brief Returns the transfer queue.
     [[nodiscard]] TransferQueue *transferQueue() const;
-    /// @brief Returns the config file loader.
-    [[nodiscard]] ConfigFileLoader *configFileLoader() const;
+    /// @brief Returns the config file loader service.
+    [[nodiscard]] ConfigFileLoaderService *configFileLoader() const;
     /// @brief Returns the file preview service.
     [[nodiscard]] FilePreviewService *filePreviewService() const;
     /// @brief Returns the transfer service.
@@ -83,7 +83,7 @@ public:
     /// @brief Returns the device action service (play/run/mount).
     [[nodiscard]] DeviceActionService *deviceActionService() const;
     /// @brief Returns the remote file operations service.
-    [[nodiscard]] RemoteFileOperations *remoteFileOperations() const;
+    [[nodiscard]] RemoteFileOperationsService *remoteFileOperations() const;
     /// @brief Returns the system command controller.
     [[nodiscard]] SystemCommandController *systemCommandController() const;
 
@@ -94,7 +94,7 @@ private:
     DeviceConnection *deviceConnection_ = nullptr;
     RemoteFileModel *remoteFileModel_ = nullptr;
     TransferQueue *transferQueue_ = nullptr;
-    ConfigFileLoader *configFileLoader_ = nullptr;
+    ConfigFileLoaderService *configFileLoader_ = nullptr;
     FilePreviewService *filePreviewService_ = nullptr;
     TransferService *transferService_ = nullptr;
     ErrorHandler *errorHandler_ = nullptr;
@@ -110,7 +110,7 @@ private:
     GameBase64Service *gameBase64Service_ = nullptr;
     ConfigurationService *configurationService_ = nullptr;
     DeviceActionService *deviceActionService_ = nullptr;
-    RemoteFileOperations *remoteFileOperations_ = nullptr;
+    RemoteFileOperationsService *remoteFileOperations_ = nullptr;
     SystemCommandController *systemCommandController_ = nullptr;
 };
 

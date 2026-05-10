@@ -1,6 +1,6 @@
 #include "fileactioncontroller.h"
 
-#include "services/configfileloader.h"
+#include "services/configfileloaderservice.h"
 #include "services/deviceactionservice.h"
 #include "services/deviceconnection.h"
 #include "services/diskbootsequenceservice.h"
@@ -16,7 +16,7 @@
 
 FileActionController::FileActionController(DeviceActionService *deviceActionService,
                                            DeviceConnection *connection,
-                                           ConfigFileLoader *configLoader, QObject *parent)
+                                           ConfigFileLoaderService *configLoader, QObject *parent)
     : QObject(parent), deviceActionService_(deviceActionService), deviceConnection_(connection),
       configFileLoader_(configLoader)
 {
