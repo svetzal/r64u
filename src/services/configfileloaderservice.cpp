@@ -59,6 +59,8 @@ void ConfigFileLoaderService::setRestClient(IRestClient *client)
 void ConfigFileLoaderService::loadConfigFile(const QString &remotePath)
 {
     if (!ftpClient_ || !restClient_) {
+        qCWarning(LogConfig) << "loadConfigFile skipped: FTP or REST client not configured for"
+                             << remotePath;
         emit loadFailed(remotePath, tr("FTP or REST client not configured"));
         return;
     }

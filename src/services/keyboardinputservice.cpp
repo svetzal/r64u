@@ -27,7 +27,8 @@ bool KeyboardInputService::handleKeyPress(QKeyEvent *event)
 void KeyboardInputService::sendPetscii(quint8 petscii)
 {
     if (!restClient_) {
-        emit errorOccurred("No REST client configured");
+        qCWarning(LogDevice) << "sendPetscii skipped: REST client not configured";
+        emit errorOccurred(tr("No REST client configured"));
         return;
     }
 

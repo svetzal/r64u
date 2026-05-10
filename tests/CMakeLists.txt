@@ -874,6 +874,7 @@ add_executable(test_keyboardinputservice
     mocks/mockrestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
 target_include_directories(test_keyboardinputservice PRIVATE
@@ -1561,6 +1562,7 @@ add_executable(test_diskbootsequenceservice
     ${CMAKE_SOURCE_DIR}/src/services/diskbootsequenceservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/diskbootsequencecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
 target_include_directories(test_diskbootsequenceservice PRIVATE

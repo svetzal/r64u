@@ -6,6 +6,7 @@
 #include "diskbootsequenceservice.h"
 
 #include "services/irestclient.h"
+#include "utils/logging.h"
 
 DiskBootSequenceService::DiskBootSequenceService(QObject *parent)
     : QObject(parent), stepTimer_(new QTimer(this))
@@ -81,16 +82,25 @@ void DiskBootSequenceService::executeCurrentStep()
             if constexpr (std::is_same_v<T, diskboot::MountDiskCall>) {
                 if (restClient_) {
                     restClient_->mountImage(act.drive, act.path);
+                } else {
+                    qCWarning(LogDevice)
+                        << "DiskBootSequenceService: mountImage skipped, no REST client";
                 }
                 executeCurrentStep();
             } else if constexpr (std::is_same_v<T, diskboot::ResetMachineCall>) {
                 if (restClient_) {
                     restClient_->resetMachine();
+                } else {
+                    qCWarning(LogDevice)
+                        << "DiskBootSequenceService: resetMachine skipped, no REST client";
                 }
                 executeCurrentStep();
             } else if constexpr (std::is_same_v<T, diskboot::TypeTextCall>) {
                 if (restClient_) {
                     restClient_->typeText(act.text);
+                } else {
+                    qCWarning(LogDevice)
+                        << "DiskBootSequenceService: typeText skipped, no REST client";
                 }
                 executeCurrentStep();
             } else if constexpr (std::is_same_v<T, diskboot::WaitMs>) {
