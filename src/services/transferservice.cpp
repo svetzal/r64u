@@ -40,12 +40,19 @@ void TransferService::setupSignalForwarding()
 
 TransferService::~TransferService() = default;
 
-bool TransferService::uploadFile(const QString &localPath, const QString &remoteDir)
+bool TransferService::requiresConnection(const QString &path)
 {
     if (!connection_->isConnected()) {
-        emit operationFailed(QFileInfo(localPath).fileName(), tr("Not connected to device"));
+        emit operationFailed(QFileInfo(path).fileName(), tr("Not connected to device"));
         return false;
     }
+    return true;
+}
+
+bool TransferService::uploadFile(const QString &localPath, const QString &remoteDir)
+{
+    if (!requiresConnection(localPath))
+        return false;
 
     QFileInfo fileInfo(localPath);
     QString targetDir = remoteDir;
@@ -61,10 +68,8 @@ bool TransferService::uploadFile(const QString &localPath, const QString &remote
 
 bool TransferService::uploadDirectory(const QString &localDir, const QString &remoteDir)
 {
-    if (!connection_->isConnected()) {
-        emit operationFailed(QFileInfo(localDir).fileName(), tr("Not connected to device"));
+    if (!requiresConnection(localDir))
         return false;
-    }
 
     QFileInfo fileInfo(localDir);
     queue_->enqueueRecursiveUpload(localDir, remoteDir);
@@ -74,10 +79,8 @@ bool TransferService::uploadDirectory(const QString &localDir, const QString &re
 
 bool TransferService::downloadFile(const QString &remotePath, const QString &localDir)
 {
-    if (!connection_->isConnected()) {
-        emit operationFailed(QFileInfo(remotePath).fileName(), tr("Not connected to device"));
+    if (!requiresConnection(remotePath))
         return false;
-    }
 
     QString fileName = QFileInfo(remotePath).fileName();
     QString localPath = localDir + "/" + fileName;
@@ -88,10 +91,8 @@ bool TransferService::downloadFile(const QString &remotePath, const QString &loc
 
 bool TransferService::downloadDirectory(const QString &remoteDir, const QString &localDir)
 {
-    if (!connection_->isConnected()) {
-        emit operationFailed(QFileInfo(remoteDir).fileName(), tr("Not connected to device"));
+    if (!requiresConnection(remoteDir))
         return false;
-    }
 
     QString folderName = QFileInfo(remoteDir).fileName();
     queue_->enqueueRecursiveDownload(remoteDir, localDir);
@@ -101,10 +102,8 @@ bool TransferService::downloadDirectory(const QString &remoteDir, const QString 
 
 bool TransferService::deleteRemote(const QString &remotePath, bool isDirectory)
 {
-    if (!connection_->isConnected()) {
-        emit operationFailed(QFileInfo(remotePath).fileName(), tr("Not connected to device"));
+    if (!requiresConnection(remotePath))
         return false;
-    }
 
     QString fileName = QFileInfo(remotePath).fileName();
     queue_->enqueueDelete(remotePath, isDirectory);
@@ -114,10 +113,8 @@ bool TransferService::deleteRemote(const QString &remotePath, bool isDirectory)
 
 bool TransferService::deleteRecursive(const QString &remotePath)
 {
-    if (!connection_->isConnected()) {
-        emit operationFailed(QFileInfo(remotePath).fileName(), tr("Not connected to device"));
+    if (!requiresConnection(remotePath))
         return false;
-    }
 
     QString fileName = QFileInfo(remotePath).fileName();
     queue_->enqueueRecursiveDelete(remotePath);

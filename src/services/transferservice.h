@@ -394,6 +394,13 @@ signals:
 private:
     void setupSignalForwarding();
 
+    /**
+     * @brief Checks connection and emits operationFailed if not connected.
+     * @param path The path whose filename is included in the failure signal.
+     * @return True if connected and the operation may proceed, false otherwise.
+     */
+    [[nodiscard]] bool requiresConnection(const QString &path);
+
     DeviceConnection *connection_ = nullptr;
     TransferQueue *queue_ = nullptr;
 };
