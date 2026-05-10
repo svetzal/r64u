@@ -42,6 +42,7 @@ public slots:
     void addToPlaylist(const QList<QPair<QString, filetype::FileType>> &items);
 
 private:
+    [[nodiscard]] bool validateFileOperation(const QString &path);
     void runDiskImage(const QString &path);
     void ensureStreamingStarted();
 

@@ -60,7 +60,8 @@ public:
      * @param audioReceiver Audio stream receiver (owned by caller or Qt parent).
      * @param audioPlayback Audio playback service (owned by caller or Qt parent).
      * @param keyboardInput Keyboard input service (owned by caller or Qt parent).
-     * @param networkProvider Network interface provider (owned by caller).
+     * @param networkProvider Network interface provider (owned by StreamingService when created via
+     * createDefault; caller-owned when injected directly).
      * @param parent Optional parent QObject for memory management.
      */
     explicit StreamingService(DeviceConnection *connection, IStreamControlClient *streamControl,
@@ -180,12 +181,14 @@ private:
     // Non-owned dependency
     DeviceConnection *deviceConnection_ = nullptr;
 
-    // Injected streaming service interfaces (not owned)
+    // Injected streaming service interfaces (lifetime managed via Qt parent/child)
     IStreamControlClient *streamControl_ = nullptr;
     IVideoStreamReceiver *videoReceiver_ = nullptr;
     IAudioStreamReceiver *audioReceiver_ = nullptr;
     IAudioPlaybackService *audioPlayback_ = nullptr;
     KeyboardInputService *keyboardInput_ = nullptr;
+
+    // Owned network provider (not a QObject; deleted explicitly in destructor)
     INetworkInterfaceProvider *networkProvider_ = nullptr;
 
     // Concrete typed pointers (may be nullptr when using mocks in tests)

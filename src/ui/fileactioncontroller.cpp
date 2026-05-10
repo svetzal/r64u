@@ -71,20 +71,8 @@ void FileActionController::updateActionStates(filetype::FileType type, bool canO
 
 void FileActionController::play(const QString &path, filetype::FileType type)
 {
-    if (path.isEmpty()) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
-                                       tr("No file selected"));
-        }
+    if (!validateFileOperation(path))
         return;
-    }
-    if (!deviceActionService_ || !deviceActionService_->canPerformOperations()) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
-                                       tr("Not connected to device"));
-        }
-        return;
-    }
     ensureStreamingStarted();
     if (type == filetype::FileType::SidMusic) {
         deviceActionService_->playSid(path);
@@ -101,20 +89,8 @@ void FileActionController::play(const QString &path, filetype::FileType type)
 
 void FileActionController::run(const QString &path, filetype::FileType type)
 {
-    if (path.isEmpty()) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
-                                       tr("No file selected"));
-        }
+    if (!validateFileOperation(path))
         return;
-    }
-    if (!deviceActionService_ || !deviceActionService_->canPerformOperations()) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
-                                       tr("Not connected to device"));
-        }
-        return;
-    }
     ensureStreamingStarted();
     if (type == filetype::FileType::Program) {
         deviceActionService_->runPrg(path);
@@ -133,20 +109,8 @@ void FileActionController::run(const QString &path, filetype::FileType type)
 
 void FileActionController::mountToDrive(const QString &path, const QString &drive)
 {
-    if (path.isEmpty()) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
-                                       tr("No file selected"));
-        }
+    if (!validateFileOperation(path))
         return;
-    }
-    if (!deviceActionService_ || !deviceActionService_->canPerformOperations()) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
-                                       tr("Not connected to device"));
-        }
-        return;
-    }
     deviceActionService_->mountImage(drive, path);
     if (errorHandler_) {
         errorHandler_->info(ErrorCategory::FileOperation,
@@ -218,6 +182,25 @@ void FileActionController::addToPlaylist(const QList<QPair<QString, filetype::Fi
         errorHandler_->info(ErrorCategory::FileOperation,
                             tr("Added %1 item(s) to playlist").arg(candidates.size()));
     }
+}
+
+bool FileActionController::validateFileOperation(const QString &path)
+{
+    if (path.isEmpty()) {
+        if (errorHandler_) {
+            errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
+                                       tr("No file selected"));
+        }
+        return false;
+    }
+    if (!deviceActionService_ || !deviceActionService_->canPerformOperations()) {
+        if (errorHandler_) {
+            errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
+                                       tr("Not connected to device"));
+        }
+        return false;
+    }
+    return true;
 }
 
 void FileActionController::runDiskImage(const QString &path)
