@@ -145,16 +145,18 @@ private slots:
         QVERIFY(downloader_->isDownloading());
     }
 
-    void testDownload_WhileActive_IsNoOp()
+    void testDownload_WhileActive_EmitsDownloadFailed()
     {
         server_->setResponse(200, QByteArray("data"));
+        QSignalSpy failedSpy(downloader_, &HttpFileDownloader::downloadFailed);
 
         downloader_->download(server_->url());
         QVERIFY(downloader_->isDownloading());
 
-        // Second call while active — should not crash or emit an extra signal
+        // Second call while active — must emit downloadFailed and stay downloading
         downloader_->download(server_->url("/other.sid"));
         QVERIFY(downloader_->isDownloading());
+        QCOMPARE(failedSpy.count(), 1);
     }
 
     // =========================================================

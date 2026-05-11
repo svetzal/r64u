@@ -1,5 +1,7 @@
 #include "httpfiledownloader.h"
 
+#include "utils/logging.h"
+
 #include <QNetworkReply>
 #include <QNetworkRequest>
 
@@ -11,6 +13,8 @@ HttpFileDownloader::HttpFileDownloader(QObject *parent)
 void HttpFileDownloader::download(const QUrl &url)
 {
     if (currentReply_ != nullptr) {
+        qCWarning(LogMetadata) << "download() called while already downloading, ignoring";
+        emit downloadFailed(tr("Download already in progress"));
         return;
     }
 

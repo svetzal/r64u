@@ -44,6 +44,12 @@ public:
     void setStreamingService(StreamingService *manager);
 
     /**
+     * @brief Returns the recording service.
+     * @return Pointer to the recording service.
+     */
+    [[nodiscard]] VideoRecordingService *recordingService() const { return recordingService_; }
+
+    /**
      * @brief Injects the video recording service. Wires recording-related connections.
      * @param service Owned by the caller; must outlive this ViewPanel.
      */

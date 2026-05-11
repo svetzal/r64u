@@ -86,7 +86,6 @@ public slots:
     void writeSamples(const QByteArray &samples, int sampleCount) override;
 
 signals:
-    void errorOccurred(const QString &error);
     void playbackStateChanged(bool playing);
     void bufferUnderrun();
 

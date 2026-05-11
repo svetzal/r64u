@@ -600,9 +600,13 @@ add_executable(test_errorsourceconnector
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
     ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
     # Headers for AUTOMOC to generate signal implementations for stubbed classes
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.h
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.h
+    ${CMAKE_SOURCE_DIR}/src/services/iaudioplaybackservice.h
 )
 
 target_include_directories(test_errorsourceconnector PRIVATE
@@ -960,6 +964,7 @@ add_executable(test_hvscmetadataservice
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
 target_include_directories(test_hvscmetadataservice PRIVATE
@@ -1293,6 +1298,7 @@ add_executable(test_filemetadatacore
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
 )
@@ -1448,6 +1454,7 @@ add_executable(test_gamebase64service
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
 target_include_directories(test_gamebase64service PRIVATE
@@ -1479,6 +1486,7 @@ add_executable(test_cacheddownloadservice
     ${MOCK_FILE_DOWNLOADER_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
 target_include_directories(test_cacheddownloadservice PRIVATE
@@ -1510,6 +1518,7 @@ add_executable(test_songlengthsdatabase
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
 target_include_directories(test_songlengthsdatabase PRIVATE
@@ -1588,6 +1597,7 @@ add_executable(test_httpfiledownloader
     test_httpfiledownloader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
     ${CMAKE_SOURCE_DIR}/src/services/httpfiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
 target_include_directories(test_httpfiledownloader PRIVATE
@@ -1662,6 +1672,7 @@ add_executable(test_audioplaybackservice
     test_audioplaybackservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iaudioplaybackservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audioplaybackservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
 target_include_directories(test_audioplaybackservice PRIVATE
@@ -2029,6 +2040,7 @@ add_executable(test_databasedownloadcontroller
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
 target_include_directories(test_databasedownloadcontroller PRIVATE

@@ -5,6 +5,8 @@
 
 #include "cacheddownloadservice.h"
 
+#include "utils/logging.h"
+
 #include <QDir>
 #include <QFile>
 #include <QStandardPaths>
@@ -42,6 +44,7 @@ bool CachedDownloadService::hasCachedFile() const
 void CachedDownloadService::download()
 {
     if (downloader_->isDownloading()) {
+        qCWarning(LogMetadata) << "download() called while already downloading, ignoring";
         return;
     }
     downloader_->download(downloadUrl_);
@@ -93,6 +96,7 @@ bool CachedDownloadService::loadFromFile(const QString &filePath)
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
+        qCWarning(LogMetadata) << "Failed to open cache file for reading:" << filePath;
         return false;
     }
 

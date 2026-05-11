@@ -39,6 +39,13 @@ public slots:
      * @param sampleCount Number of stereo sample pairs.
      */
     virtual void writeSamples(const QByteArray &samples, int sampleCount) = 0;
+
+signals:
+    /**
+     * @brief Emitted when an audio error occurs.
+     * @param error Error description.
+     */
+    void errorOccurred(const QString &error);
 };
 
 #endif  // IAUDIOPLAYBACKSERVICE_H

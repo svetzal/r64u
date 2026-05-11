@@ -114,6 +114,18 @@ public:
     void stopStreaming();
 
     /**
+     * @brief Returns the stream control client.
+     * @return Pointer to the stream control client interface.
+     */
+    [[nodiscard]] IStreamControlClient *streamControl() const { return streamControl_; }
+
+    /**
+     * @brief Returns the audio playback service.
+     * @return Pointer to the audio playback service interface.
+     */
+    [[nodiscard]] IAudioPlaybackService *audioPlayback() const { return audioPlayback_; }
+
+    /**
      * @brief Returns the video receiver for UI signal connections.
      * @return Pointer to the concrete VideoStreamReceiver (may be nullptr in tests).
      */

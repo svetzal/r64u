@@ -168,11 +168,7 @@ void MainWindow::setupPanels(ServiceFactory *services)
     viewPanel_->setRecordingService(recordingService);
     viewPanel_->setScreenshotService(new ScreenshotService(viewPanel_));
 
-    // Route streaming errors through centralized error handler
-    connect(streamingService, &StreamingService::error, errorHandler_,
-            &ErrorHandler::handleStreamingError);
-    connect(recordingService, &VideoRecordingService::error, errorHandler_,
-            &ErrorHandler::handleStreamingError);
+    // Streaming error routing is handled via ErrorHandler::connectSources() in setupConnections()
 
     configPanel_ = new ConfigPanel(services->configurationService());
     configPanel_->setErrorHandler(errorHandler_);
@@ -209,11 +205,14 @@ void MainWindow::setupPanels(ServiceFactory *services)
 void MainWindow::setupConnections()
 {
     // Route all error signals through the centralized error handler
+    StreamingService *ss = viewPanel_->streamingService();
     errorHandler_->connectSources(
         deviceConnection_, deviceConnection_->restClient(), remoteFileModel_,
         deviceConnection_->ftpClient(), filePreviewService_, configFileLoader_, transferService_,
         metadataBundle_.songlengthsDatabase, metadataBundle_.hvscMetadataService,
-        metadataBundle_.gameBase64Service, transferPanel_->fileOperations());
+        metadataBundle_.gameBase64Service, transferPanel_->fileOperations(), ss,
+        ss ? ss->audioPlayback() : nullptr, viewPanel_->recordingService(),
+        ss ? ss->keyboardInput() : nullptr);
 
     // Connection lifecycle signals (navigation / model management)
     connect(deviceConnection_, &DeviceConnection::stateChanged, this,

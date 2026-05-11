@@ -6,9 +6,12 @@
 #include "services/filepreviewservice.h"
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
+#include "services/iaudioplaybackservice.h"
 #include "services/iftpclient.h"
+#include "services/keyboardinputservice.h"
 #include "services/remotefileoperations.h"
 #include "services/songlengthsdatabase.h"
+#include "services/videorecordingservice.h"
 
 #include <QSignalSpy>
 #include <QWidget>
@@ -118,6 +121,22 @@ public:
     void emitDownloadFailed(const QString &err) { emit downloadFailed(err); }
 };
 
+class MinimalAudioPlaybackSource : public IAudioPlaybackService
+{
+    Q_OBJECT
+
+public:
+    explicit MinimalAudioPlaybackSource(QObject *parent = nullptr) : IAudioPlaybackService(parent)
+    {
+    }
+    bool start() override { return true; }
+    void stop() override {}
+    [[nodiscard]] bool isPlaying() const override { return false; }
+    void writeSamples(const QByteArray & /*samples*/, int /*sampleCount*/) override {}
+
+    void emitError(const QString &msg) { emit errorOccurred(msg); }
+};
+
 // ---------------------------------------------------------------------------
 // Test class
 // ---------------------------------------------------------------------------
@@ -150,6 +169,9 @@ private slots:
     void testHvscMetadataService_BuglistDownloadFailedRoutedToDownloadError();
     void testGameBase64Service_DownloadFailedRoutedToDownloadError();
     void testRemoteFileOperations_OperationFailedRoutedToOperationFailed();
+    void testAudioPlaybackService_ErrorOccurredRoutedToStreamingError();
+    void testVideoRecordingService_ErrorRoutedToStreamingError();
+    void testKeyboardInputService_ErrorOccurredRoutedToDataError();
 };
 
 void TestErrorSourceConnector::init()
@@ -179,7 +201,7 @@ void TestErrorSourceConnector::testNullSafety_AllNullSources()
 {
     // connectSources() with all nulls must not crash
     handler_->connectSources(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-                             nullptr, nullptr, nullptr);
+                             nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
     // If we reach here without crashing, the null guard works
     QVERIFY(true);
 }
@@ -354,6 +376,56 @@ void TestErrorSourceConnector::testRemoteFileOperations_OperationFailedRoutedToO
     QCOMPARE(spy.count(), 1);
     const QString msg = spy.at(0).at(0).toString();
     QVERIFY(msg.contains("Create folder") || msg.contains("FTP client not configured"));
+}
+
+void TestErrorSourceConnector::testAudioPlaybackService_ErrorOccurredRoutedToStreamingError()
+{
+    QSignalSpy spy(handler_, &ErrorHandler::errorLogged);
+
+    MinimalAudioPlaybackSource apb;
+    handler_->connectSources(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                             nullptr, nullptr, nullptr, nullptr, &apb);
+
+    apb.emitError("No audio output device available");
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).value<ErrorCategory>(), ErrorCategory::System);
+    QCOMPARE(spy.at(0).at(1).value<ErrorSeverity>(), ErrorSeverity::Warning);
+    QVERIFY(spy.at(0).at(2).toString().contains("Streaming Error"));
+    QCOMPARE(spy.at(0).at(3).toString(), QString("No audio output device available"));
+}
+
+void TestErrorSourceConnector::testVideoRecordingService_ErrorRoutedToStreamingError()
+{
+    QSignalSpy spy(handler_, &ErrorHandler::errorLogged);
+
+    VideoRecordingService vrs;
+    handler_->connectSources(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                             nullptr, nullptr, nullptr, nullptr, nullptr, &vrs);
+
+    emit vrs.error("Failed to write AVI frame");
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).value<ErrorCategory>(), ErrorCategory::System);
+    QCOMPARE(spy.at(0).at(1).value<ErrorSeverity>(), ErrorSeverity::Warning);
+    QVERIFY(spy.at(0).at(2).toString().contains("Streaming Error"));
+    QCOMPARE(spy.at(0).at(3).toString(), QString("Failed to write AVI frame"));
+}
+
+void TestErrorSourceConnector::testKeyboardInputService_ErrorOccurredRoutedToDataError()
+{
+    QSignalSpy spy(handler_, &ErrorHandler::errorLogged);
+
+    KeyboardInputService kis(nullptr);
+    handler_->connectSources(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                             nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, &kis);
+
+    emit kis.errorOccurred("Failed to send PETSCII key");
+
+    QCOMPARE(spy.count(), 1);
+    QCOMPARE(spy.at(0).at(0).value<ErrorCategory>(), ErrorCategory::FileOperation);
+    QCOMPARE(spy.at(0).at(1).value<ErrorSeverity>(), ErrorSeverity::Warning);
+    QCOMPARE(spy.at(0).at(3).toString(), QString("Failed to send PETSCII key"));
 }
 
 QTEST_MAIN(TestErrorSourceConnector)

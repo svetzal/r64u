@@ -13,12 +13,16 @@ class DeviceConnection;
 class FilePreviewService;
 class GameBase64Service;
 class HVSCMetadataService;
+class IAudioPlaybackService;
 class IFtpClient;
 class IRestClient;
+class KeyboardInputService;
 class RemoteFileModel;
 class RemoteFileOperationsService;
 class SonglengthsDatabase;
+class StreamingService;
 class TransferService;
+class VideoRecordingService;
 
 /**
  * @brief Categories of errors for appropriate handling.
@@ -90,7 +94,9 @@ public:
                         IFtpClient *ftpClient, FilePreviewService *fps,
                         ConfigFileLoaderService *cfl, TransferService *ts, SonglengthsDatabase *sld,
                         HVSCMetadataService *hvsc, GameBase64Service *gb64,
-                        RemoteFileOperationsService *rfo = nullptr);
+                        RemoteFileOperationsService *rfo = nullptr, StreamingService *ss = nullptr,
+                        IAudioPlaybackService *apb = nullptr, VideoRecordingService *vrs = nullptr,
+                        KeyboardInputService *kis = nullptr);
 
     /// @name Generic Error Handling
     /// @{
@@ -222,6 +228,17 @@ private:
      * @return Timeout in milliseconds.
      */
     [[nodiscard]] static int timeoutForSeverity(ErrorSeverity severity);
+
+    /**
+     * @brief Wires streaming-layer error signals from a StreamingService.
+     *
+     * Isolated from connectSources() so tests can link without the heavy
+     * streaming infrastructure (AudioStreamReceiver, VideoStreamReceiver,
+     * StreamControlClient).
+     *
+     * @param ss StreamingService whose child receivers and control client to wire.
+     */
+    void connectStreamingServiceSources(StreamingService *ss);
 
     /**
      * @brief Converts category to string for logging.

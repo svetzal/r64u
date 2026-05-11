@@ -89,6 +89,7 @@ set(SOURCES
     src/services/transferservice.cpp
     src/services/errorhandler.cpp
     src/services/errorsourceconnector.cpp
+    src/services/errorsourceconnector_streaming.cpp
     src/services/statusmessageservice.cpp
     src/services/istreamcontrolclient.cpp
     src/services/ivideostreamreceiver.cpp

@@ -4,11 +4,14 @@
 #include "filepreviewservice.h"
 #include "gamebase64service.h"
 #include "hvscmetadataservice.h"
+#include "iaudioplaybackservice.h"
 #include "iftpclient.h"
 #include "irestclient.h"
+#include "keyboardinputservice.h"
 #include "remotefileoperationsservice.h"
 #include "songlengthsdatabase.h"
 #include "transferservice.h"
+#include "videorecordingservice.h"
 
 #include "models/remotefilemodel.h"
 
@@ -19,7 +22,9 @@ void ErrorHandler::connectSources(DeviceConnection *dc, IRestClient *restClient,
                                   FilePreviewService *fps, ConfigFileLoaderService *cfl,
                                   TransferService *ts, SonglengthsDatabase *sld,
                                   HVSCMetadataService *hvsc, GameBase64Service *gb64,
-                                  RemoteFileOperationsService *rfo)
+                                  RemoteFileOperationsService *rfo, StreamingService *ss,
+                                  IAudioPlaybackService *apb, VideoRecordingService *vrs,
+                                  KeyboardInputService *kis)
 {
     if (dc) {
         connect(dc, &DeviceConnection::connectionError, this, &ErrorHandler::handleConnectionError);
@@ -67,5 +72,18 @@ void ErrorHandler::connectSources(DeviceConnection *dc, IRestClient *restClient,
     if (rfo) {
         connect(rfo, &RemoteFileOperationsService::operationFailed, this,
                 &ErrorHandler::handleOperationFailed);
+    }
+    if (ss) {
+        connectStreamingServiceSources(ss);
+    }
+    if (apb) {
+        connect(apb, &IAudioPlaybackService::errorOccurred, this,
+                &ErrorHandler::handleStreamingError);
+    }
+    if (vrs) {
+        connect(vrs, &VideoRecordingService::error, this, &ErrorHandler::handleStreamingError);
+    }
+    if (kis) {
+        connect(kis, &KeyboardInputService::errorOccurred, this, &ErrorHandler::handleDataError);
     }
 }

@@ -164,7 +164,7 @@ void PlaylistService::stop()
 void PlaylistService::next()
 {
     if (state_.items.isEmpty()) {
-        qCDebug(LogPlaylist) << "next() called on empty playlist";
+        qCWarning(LogPlaylist) << "next() called on empty playlist";
         emit statusMessage(tr("Playlist is empty"));
         return;
     }
@@ -187,7 +187,7 @@ void PlaylistService::next()
 void PlaylistService::previous()
 {
     if (state_.items.isEmpty()) {
-        qCDebug(LogPlaylist) << "previous() called on empty playlist";
+        qCWarning(LogPlaylist) << "previous() called on empty playlist";
         emit statusMessage(tr("Playlist is empty"));
         return;
     }
@@ -300,6 +300,7 @@ bool PlaylistService::savePlaylist(const QString &filePath) const
     QJsonDocument doc(json);
     QFile file(filePath);
     if (!file.open(QIODevice::WriteOnly)) {
+        qCWarning(LogPlaylist) << "Failed to open playlist file for writing:" << filePath;
         return false;
     }
 
@@ -311,16 +312,20 @@ bool PlaylistService::loadPlaylist(const QString &filePath)
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
+        qCWarning(LogPlaylist) << "Failed to open playlist file for reading:" << filePath;
         return false;
     }
 
     QJsonParseError error;
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &error);
     if (error.error != QJsonParseError::NoError) {
+        qCWarning(LogPlaylist) << "Failed to parse playlist JSON from" << filePath << ":"
+                               << error.errorString();
         return false;
     }
 
     if (!doc.isObject()) {
+        qCWarning(LogPlaylist) << "Playlist file does not contain a JSON object:" << filePath;
         return false;
     }
 

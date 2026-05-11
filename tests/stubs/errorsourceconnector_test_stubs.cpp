@@ -1,10 +1,38 @@
 #include "services/deviceconnection.h"
+#include "services/errorhandler.h"
+#include "services/ivideostreamreceiver.h"
 #include "services/transferservice.h"
+#include "services/videorecordingservice.h"
 
 // Minimal stub implementations to provide signal metadata for the linker.
 // DeviceConnection and TransferService are QSKIP-ed in test_errorsourceconnector
 // because they require heavy dependency chains or show blocking dialogs.
+// VideoRecordingService is stubbed here to avoid pulling in StreamingService and
+// AudioStreamReceiver/VideoStreamReceiver chains.
 // These stubs supply just enough to satisfy link-time symbol resolution.
+
+class StreamingService;
+
+void ErrorHandler::connectStreamingServiceSources(StreamingService * /*ss*/) {}
+
+VideoRecordingService::VideoRecordingService(QObject *parent) : QObject(parent) {}
+VideoRecordingService::~VideoRecordingService() = default;
+void VideoRecordingService::connectToStreaming(StreamingService * /*manager*/) {}
+bool VideoRecordingService::startRecording(const QString & /*filePath*/)
+{
+    return false;
+}
+bool VideoRecordingService::stopRecording()
+{
+    return false;
+}
+void VideoRecordingService::addFrame(const QImage & /*frame*/) {}
+void VideoRecordingService::addAudioSamples(const QByteArray & /*samples*/, int /*sampleCount*/) {}
+void VideoRecordingService::onRawFrameReady(const QByteArray & /*frameData*/,
+                                            quint16 /*frameNumber*/,
+                                            IVideoStreamReceiver::VideoFormat /*format*/)
+{
+}
 
 DeviceConnection::DeviceConnection(QObject *parent) : QObject(parent) {}
 
