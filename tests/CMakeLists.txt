@@ -2438,3 +2438,401 @@ if(BUILD_COVERAGE)
     add_coverage_target(playlistwidget test_playlistwidget)
     add_dependencies(coverage coverage_playlistwidget)
 endif()
+
+# ViewPanel tests - control-flow and guard clause tests using stub services
+add_executable(test_viewpanel
+    test_viewpanel.cpp
+    stubs/viewpanel_test_stubs.cpp
+    mocks/mockrestclient.cpp
+    mocks/mockftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/screenshotservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/viewpanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/videodisplaywidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/streamingdiagnosticswidget.cpp
+    # Headers for AUTOMOC (stubs provide bodies for these Q_OBJECT classes)
+    ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.h
+)
+
+target_include_directories(test_viewpanel PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_viewpanel PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME ViewPanelTest COMMAND test_viewpanel)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(viewpanel test_viewpanel)
+    add_dependencies(coverage coverage_viewpanel)
+endif()
+
+# TransferPanel tests - settings round-trip and state propagation
+add_executable(test_transferpanel
+    test_transferpanel.cpp
+    mocks/mockrestclient.cpp
+    mocks/mockftpclient.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/localfileproxymodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfileoperationsservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/transferpanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowserwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/localfilebrowserwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filebrowserwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/transferprogresscontainer.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/batchprogresswidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/transferqueuewidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/transferconfirmationdialogs.cpp
+)
+
+target_include_directories(test_transferpanel PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_transferpanel PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME TransferPanelTest COMMAND test_transferpanel)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(transferpanel test_transferpanel)
+    add_dependencies(coverage coverage_transferpanel)
+endif()
+
+# RemoteFileBrowserWidget tests - directory navigation and guard clauses
+add_executable(test_remotefilebrowserwidget
+    test_remotefilebrowserwidget.cpp
+    mocks/mockrestclient.cpp
+    mocks/mockftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowserwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
+)
+
+target_include_directories(test_remotefilebrowserwidget PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_remotefilebrowserwidget PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME RemoteFileBrowserWidgetTest COMMAND test_remotefilebrowserwidget)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(remotefilebrowserwidget test_remotefilebrowserwidget)
+    add_dependencies(coverage coverage_remotefilebrowserwidget)
+endif()
+
+# LocalFileBrowserWidget tests - selectedPath guards, setCurrentDirectory
+add_executable(test_localfilebrowserwidget
+    test_localfilebrowserwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfileoperationsservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/localfileproxymodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/localfilebrowserwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filebrowserwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
+)
+
+target_include_directories(test_localfilebrowserwidget PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_localfilebrowserwidget PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+add_test(NAME LocalFileBrowserWidgetTest COMMAND test_localfilebrowserwidget)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(localfilebrowserwidget test_localfilebrowserwidget)
+    add_dependencies(coverage coverage_localfilebrowserwidget)
+endif()
+
+# FileDetailsPanel tests - file type detection and stacked widget dispatch
+add_executable(test_filedetailspanel
+    test_filedetailspanel.cpp
+    stubs/filedetailspanel_test_stubs.cpp
+    # Headers listed so AUTOMOC generates moc files for Q_OBJECT stubs
+    ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.h
+    ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filemetadatacore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/diskimagereader.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/sidfileparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/petsciiconverter.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filedetailspanel.cpp
+)
+
+target_include_directories(test_filedetailspanel PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_filedetailspanel PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Sql
+)
+
+add_test(NAME FileDetailsPanelTest COMMAND test_filedetailspanel)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(filedetailspanel test_filedetailspanel)
+    add_dependencies(coverage coverage_filedetailspanel)
+endif()
+
+# FilePreviewFactory tests - strategy selection by file extension
+add_executable(test_filepreviewfactory
+    test_filepreviewfactory.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/c64previewbase.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/filepreviewfactory.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/textfilepreview.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/diskimagepreview.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/sidfilepreview.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/defaultfilepreview.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/diskimagereader.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/sidfileparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/petsciiconverter.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+)
+
+target_include_directories(test_filepreviewfactory BEFORE PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_filepreviewfactory PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Widgets
+)
+
+add_test(NAME FilePreviewFactoryTest COMMAND test_filepreviewfactory)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(filepreviewfactory test_filepreviewfactory)
+    add_dependencies(coverage coverage_filepreviewfactory)
+endif()
+
+# TransferQueueWidget tests - null guard and button state management
+add_executable(test_transferqueuewidget
+    test_transferqueuewidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/transferqueuewidget.cpp
+)
+
+target_include_directories(test_transferqueuewidget PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_transferqueuewidget PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME TransferQueueWidgetTest COMMAND test_transferqueuewidget)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(transferqueuewidget test_transferqueuewidget)
+    add_dependencies(coverage coverage_transferqueuewidget)
+endif()
+
+# ConnectionTestHandler tests - injectable IRestClient for guard clause testing
+add_executable(test_connectiontesthandler
+    test_connectiontesthandler.cpp
+    mocks/mockrestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/connectiontesthandler.cpp
+)
+
+target_include_directories(test_connectiontesthandler PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_connectiontesthandler PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME ConnectionTestHandlerTest COMMAND test_connectiontesthandler)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(connectiontesthandler test_connectiontesthandler)
+    add_dependencies(coverage coverage_connectiontesthandler)
+endif()
+
+# BatchProgressWidget tests - state transitions and progress updates
+add_executable(test_batchprogresswidget
+    test_batchprogresswidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/batchprogresswidget.cpp
+)
+
+target_include_directories(test_batchprogresswidget PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_batchprogresswidget PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME BatchProgressWidgetTest COMMAND test_batchprogresswidget)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(batchprogresswidget test_batchprogresswidget)
+    add_dependencies(coverage coverage_batchprogresswidget)
+endif()
+
+# ConfigItemsPanel tests - category switching and item display
+add_executable(test_configitemspanel
+    test_configitemspanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/configurationmodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/configitemspanel.cpp
+)
+
+target_include_directories(test_configitemspanel PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_configitemspanel PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+add_test(NAME ConfigItemsPanelTest COMMAND test_configitemspanel)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(configitemspanel test_configitemspanel)
+    add_dependencies(coverage coverage_configitemspanel)
+endif()

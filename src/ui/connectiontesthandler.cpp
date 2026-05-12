@@ -5,8 +5,9 @@
 #include <QApplication>
 #include <QMessageBox>
 
-ConnectionTestHandler::ConnectionTestHandler(QWidget *parentWidget, QObject *parent)
-    : QObject(parent), parentWidget_(parentWidget)
+ConnectionTestHandler::ConnectionTestHandler(QWidget *parentWidget, IRestClient *injectedClient,
+                                             QObject *parent)
+    : QObject(parent), parentWidget_(parentWidget), injectedClient_(injectedClient)
 {
 }
 
@@ -18,13 +19,19 @@ void ConnectionTestHandler::startTest(const QString &host, const QString &passwo
         return;
     }
 
-    if (testClient_) {
-        testClient_->deleteLater();
+    // Use injected client for testing; otherwise create a production client.
+    if (injectedClient_) {
+        testClient_ = injectedClient_;
+        testClient_->setHost(host);
+        testClient_->setPassword(password);
+    } else {
+        if (testClient_) {
+            testClient_->deleteLater();
+        }
+        testClient_ = new C64URestClient(parentWidget_);
+        testClient_->setHost(host);
+        testClient_->setPassword(password);
     }
-
-    testClient_ = new C64URestClient(parentWidget_);
-    testClient_->setHost(host);
-    testClient_->setPassword(password);
 
     connect(testClient_, &IRestClient::infoReceived, this,
             &ConnectionTestHandler::onTestConnectionSuccess);
@@ -49,10 +56,10 @@ void ConnectionTestHandler::onTestConnectionSuccess(const DeviceInfo &info)
 
     QMessageBox::information(parentWidget_, tr("Test Connection"), message);
 
-    if (testClient_) {
+    if (testClient_ && testClient_ != injectedClient_) {
         testClient_->deleteLater();
-        testClient_ = nullptr;
     }
+    testClient_ = nullptr;
 }
 
 void ConnectionTestHandler::onTestConnectionError(const QString &error)
@@ -62,8 +69,8 @@ void ConnectionTestHandler::onTestConnectionError(const QString &error)
     QMessageBox::critical(parentWidget_, tr("Test Connection"),
                           tr("Connection failed:\n%1").arg(error));
 
-    if (testClient_) {
+    if (testClient_ && testClient_ != injectedClient_) {
         testClient_->deleteLater();
-        testClient_ = nullptr;
     }
+    testClient_ = nullptr;
 }
