@@ -19,7 +19,7 @@
 PreferencesDialog::PreferencesDialog(QWidget *parent) : QDialog(parent)
 {
     downloadController_ = new DatabaseDownloadController(this, this);
-    connectionTester_ = new ConnectionTestHandler(this, this);
+    connectionTester_ = new ConnectionTestHandler(this, nullptr, this);
 
     setWindowTitle(tr("Preferences"));
     setupUi();
