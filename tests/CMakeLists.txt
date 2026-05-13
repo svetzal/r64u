@@ -2836,3 +2836,419 @@ if(BUILD_COVERAGE)
     add_coverage_target(configitemspanel test_configitemspanel)
     add_dependencies(coverage coverage_configitemspanel)
 endif()
+
+# ConnectionStatusWidget tests - display state and label visibility
+add_executable(test_connectionstatuswidget
+    test_connectionstatuswidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/connectionstatuswidget.cpp
+)
+
+target_include_directories(test_connectionstatuswidget PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_connectionstatuswidget PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+add_test(NAME ConnectionStatusWidgetTest COMMAND test_connectionstatuswidget)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(connectionstatuswidget test_connectionstatuswidget)
+    add_dependencies(coverage coverage_connectionstatuswidget)
+endif()
+
+# DriveStatusWidget tests - mount state and signal emission
+add_executable(test_drivestatuswidget
+    test_drivestatuswidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/drivestatuswidget.cpp
+)
+
+target_include_directories(test_drivestatuswidget PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_drivestatuswidget PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+add_test(NAME DriveStatusWidgetTest COMMAND test_drivestatuswidget)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(drivestatuswidget test_drivestatuswidget)
+    add_dependencies(coverage coverage_drivestatuswidget)
+endif()
+
+# PathNavigationWidget tests - path tracking and up-click signal
+add_executable(test_pathnavigationwidget
+    test_pathnavigationwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
+)
+
+target_include_directories(test_pathnavigationwidget PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_pathnavigationwidget PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+add_test(NAME PathNavigationWidgetTest COMMAND test_pathnavigationwidget)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(pathnavigationwidget test_pathnavigationwidget)
+    add_dependencies(coverage coverage_pathnavigationwidget)
+endif()
+
+# VideoDisplayWidget tests - scaling mode, frame pacing, sizeHint
+add_executable(test_videodisplaywidget
+    test_videodisplaywidget.cpp
+    stubs/viewpanel_test_stubs.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/videodisplaywidget.cpp
+    # Headers for AUTOMOC (stubs provide bodies for these Q_OBJECT classes)
+    ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.h
+)
+
+target_include_directories(test_videodisplaywidget PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_videodisplaywidget PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME VideoDisplayWidgetTest COMMAND test_videodisplaywidget)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(videodisplaywidget test_videodisplaywidget)
+    add_dependencies(coverage coverage_videodisplaywidget)
+endif()
+
+# StreamingDiagnosticsWidget tests - display mode switching
+add_executable(test_streamingdiagnosticswidget
+    test_streamingdiagnosticswidget.cpp
+    stubs/viewpanel_test_stubs.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/streamingdiagnosticswidget.cpp
+    # Headers for AUTOMOC (stubs provide bodies for these Q_OBJECT classes)
+    ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.h
+)
+
+target_include_directories(test_streamingdiagnosticswidget PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_streamingdiagnosticswidget PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME StreamingDiagnosticsWidgetTest COMMAND test_streamingdiagnosticswidget)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(streamingdiagnosticswidget test_streamingdiagnosticswidget)
+    add_dependencies(coverage coverage_streamingdiagnosticswidget)
+endif()
+
+# C64PreviewBase and DefaultFilePreview tests - widget creation and file detail formatting
+add_executable(test_c64previewbase
+    test_c64previewbase.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/c64previewbase.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/defaultfilepreview.cpp
+)
+
+target_include_directories(test_c64previewbase PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_c64previewbase PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+add_test(NAME C64PreviewBaseTest COMMAND test_c64previewbase)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(c64previewbase test_c64previewbase)
+    add_dependencies(coverage coverage_c64previewbase)
+endif()
+
+# TransferProgressWidget tests - visibility transitions and signal emission
+add_executable(test_transferprogresswidget
+    test_transferprogresswidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/transferprogresswidget.cpp
+)
+
+target_include_directories(test_transferprogresswidget PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_transferprogresswidget PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME TransferProgressWidgetTest COMMAND test_transferprogresswidget)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(transferprogresswidget test_transferprogresswidget)
+    add_dependencies(coverage coverage_transferprogresswidget)
+endif()
+
+# TransferProgressContainer tests - construction and service wiring
+add_executable(test_transferprogresscontainer
+    test_transferprogresscontainer.cpp
+    mocks/mockrestclient.cpp
+    mocks/mockftpclient.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/transferprogresscontainer.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/batchprogresswidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/transferconfirmationdialogs.cpp
+)
+
+target_include_directories(test_transferprogresscontainer PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_transferprogresscontainer PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME TransferProgressContainerTest COMMAND test_transferprogresscontainer)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(transferprogresscontainer test_transferprogresscontainer)
+    add_dependencies(coverage coverage_transferprogresscontainer)
+endif()
+
+# PreferencesDialog tests - construction and widget state with empty settings
+add_executable(test_preferencesdialog
+    test_preferencesdialog.cpp
+    stubs/viewpanel_test_stubs.cpp
+    stubs/filedetailspanel_test_stubs.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/videodisplaywidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/preferencesdialog.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/connectiontesthandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadcontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadview.cpp
+    # Headers for AUTOMOC (stubs provide bodies for these Q_OBJECT classes)
+    ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.h
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
+    ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.h
+)
+
+if(APPLE)
+    target_sources(test_preferencesdialog PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/services/platformkeychain_mac.mm
+    )
+else()
+    target_sources(test_preferencesdialog PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/services/platformkeychain_stub.cpp
+    )
+endif()
+
+target_include_directories(test_preferencesdialog PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_preferencesdialog PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+    Qt6::Sql
+)
+
+if(APPLE)
+    target_link_libraries(test_preferencesdialog PRIVATE
+        "-framework Security"
+        "-framework Foundation"
+    )
+endif()
+
+add_test(NAME PreferencesDialogTest COMMAND test_preferencesdialog)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(preferencesdialog test_preferencesdialog)
+    add_dependencies(coverage coverage_preferencesdialog)
+endif()
+
+# MenuBarBuilder tests - menu construction and refresh action
+add_executable(test_menubarbuilder
+    test_menubarbuilder.cpp
+    mocks/mockrestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/systemcommandcontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/menubarbuilder.cpp
+)
+
+target_include_directories(test_menubarbuilder PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_menubarbuilder PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME MenuBarBuilderTest COMMAND test_menubarbuilder)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(menubarbuilder test_menubarbuilder)
+    add_dependencies(coverage coverage_menubarbuilder)
+endif()
+
+# SystemToolBarBuilder tests - toolbar construction and result object population
+add_executable(test_systemtoolbarbuilder
+    test_systemtoolbarbuilder.cpp
+    mocks/mockrestclient.cpp
+    mocks/mockftpclient.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/systemcommandcontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/connectionstatuswidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/connectionuicontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/systemtoolbarbuilder.cpp
+)
+
+target_include_directories(test_systemtoolbarbuilder PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_systemtoolbarbuilder PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME SystemToolBarBuilderTest COMMAND test_systemtoolbarbuilder)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(systemtoolbarbuilder test_systemtoolbarbuilder)
+    add_dependencies(coverage coverage_systemtoolbarbuilder)
+endif()
