@@ -240,6 +240,13 @@ private:
      */
     void connectStreamingServiceSources(StreamingService *ss);
 
+    void connectDeviceSources(DeviceConnection *dc, IRestClient *restClient,
+                              ConfigFileLoaderService *cfl);
+    void connectTransferSources(IFtpClient *ftpClient, TransferService *ts);
+    void connectModelSources(RemoteFileModel *rfm, FilePreviewService *fps);
+    void connectMetadataSources(SonglengthsDatabase *sld, HVSCMetadataService *hvsc,
+                                GameBase64Service *gb64);
+
     /**
      * @brief Converts category to string for logging.
      * @param category The error category.

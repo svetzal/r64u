@@ -26,49 +26,10 @@ void ErrorHandler::connectSources(DeviceConnection *dc, IRestClient *restClient,
                                   IAudioPlaybackService *apb, VideoRecordingService *vrs,
                                   KeyboardInputService *kis)
 {
-    if (dc) {
-        connect(dc, &DeviceConnection::connectionError, this, &ErrorHandler::handleConnectionError);
-    }
-    if (restClient) {
-        connect(restClient, &IRestClient::operationFailed, this,
-                &ErrorHandler::handleOperationFailed);
-    }
-    if (rfm) {
-        connect(rfm, &RemoteFileModel::errorOccurred, this, &ErrorHandler::handleDataError);
-    }
-    if (ftpClient) {
-        connect(ftpClient, &IFtpClient::error, this, &ErrorHandler::handleDataError);
-    }
-    if (fps) {
-        connect(fps, &FilePreviewService::previewFailed, this,
-                [this](const QString &path, const QString &error) {
-                    handleOperationFailed(tr("Preview of %1").arg(path), error);
-                });
-    }
-    if (cfl) {
-        connect(cfl, &ConfigFileLoaderService::loadFailed, this,
-                [this](const QString &path, const QString &error) {
-                    handleOperationFailed(tr("Loading %1").arg(QFileInfo(path).fileName()), error);
-                });
-    }
-    if (ts) {
-        connect(ts, &TransferService::operationFailed, this, &ErrorHandler::handleOperationFailed);
-    }
-    if (sld) {
-        connect(sld, &SonglengthsDatabase::downloadFailed, this, [this](const QString &error) {
-            handleDownloadError(tr("Song lengths database"), error);
-        });
-    }
-    if (hvsc) {
-        connect(hvsc, &HVSCMetadataService::stilDownloadFailed, this,
-                [this](const QString &error) { handleDownloadError(tr("HVSC STIL"), error); });
-        connect(hvsc, &HVSCMetadataService::buglistDownloadFailed, this,
-                [this](const QString &error) { handleDownloadError(tr("HVSC BUGlist"), error); });
-    }
-    if (gb64) {
-        connect(gb64, &GameBase64Service::downloadFailed, this,
-                [this](const QString &error) { handleDownloadError(tr("GameBase64"), error); });
-    }
+    connectDeviceSources(dc, restClient, cfl);
+    connectTransferSources(ftpClient, ts);
+    connectModelSources(rfm, fps);
+    connectMetadataSources(sld, hvsc, gb64);
     if (rfo) {
         connect(rfo, &RemoteFileOperationsService::operationFailed, this,
                 &ErrorHandler::handleOperationFailed);
@@ -85,5 +46,66 @@ void ErrorHandler::connectSources(DeviceConnection *dc, IRestClient *restClient,
     }
     if (kis) {
         connect(kis, &KeyboardInputService::errorOccurred, this, &ErrorHandler::handleDataError);
+    }
+}
+
+void ErrorHandler::connectDeviceSources(DeviceConnection *dc, IRestClient *restClient,
+                                        ConfigFileLoaderService *cfl)
+{
+    if (dc) {
+        connect(dc, &DeviceConnection::connectionError, this, &ErrorHandler::handleConnectionError);
+    }
+    if (restClient) {
+        connect(restClient, &IRestClient::operationFailed, this,
+                &ErrorHandler::handleOperationFailed);
+    }
+    if (cfl) {
+        connect(cfl, &ConfigFileLoaderService::loadFailed, this,
+                [this](const QString &path, const QString &error) {
+                    handleOperationFailed(tr("Loading %1").arg(QFileInfo(path).fileName()), error);
+                });
+    }
+}
+
+void ErrorHandler::connectTransferSources(IFtpClient *ftpClient, TransferService *ts)
+{
+    if (ftpClient) {
+        connect(ftpClient, &IFtpClient::error, this, &ErrorHandler::handleDataError);
+    }
+    if (ts) {
+        connect(ts, &TransferService::operationFailed, this, &ErrorHandler::handleOperationFailed);
+    }
+}
+
+void ErrorHandler::connectModelSources(RemoteFileModel *rfm, FilePreviewService *fps)
+{
+    if (rfm) {
+        connect(rfm, &RemoteFileModel::errorOccurred, this, &ErrorHandler::handleDataError);
+    }
+    if (fps) {
+        connect(fps, &FilePreviewService::previewFailed, this,
+                [this](const QString &path, const QString &error) {
+                    handleOperationFailed(tr("Preview of %1").arg(path), error);
+                });
+    }
+}
+
+void ErrorHandler::connectMetadataSources(SonglengthsDatabase *sld, HVSCMetadataService *hvsc,
+                                          GameBase64Service *gb64)
+{
+    if (sld) {
+        connect(sld, &SonglengthsDatabase::downloadFailed, this, [this](const QString &error) {
+            handleDownloadError(tr("Song lengths database"), error);
+        });
+    }
+    if (hvsc) {
+        connect(hvsc, &HVSCMetadataService::stilDownloadFailed, this,
+                [this](const QString &error) { handleDownloadError(tr("HVSC STIL"), error); });
+        connect(hvsc, &HVSCMetadataService::buglistDownloadFailed, this,
+                [this](const QString &error) { handleDownloadError(tr("HVSC BUGlist"), error); });
+    }
+    if (gb64) {
+        connect(gb64, &GameBase64Service::downloadFailed, this,
+                [this](const QString &error) { handleDownloadError(tr("GameBase64"), error); });
     }
 }

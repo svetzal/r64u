@@ -156,6 +156,12 @@ private:
     void setupFolderOperationCoordinator();
     void setupFtpHandler();
 
+    void notifyBeginInsert(int first, int last);
+    void notifyEndInsert();
+    void notifyDataChanged(int row);
+    void notifyBeginReset();
+    void notifyEndReset();
+
     void processNext();
     void scheduleProcessNext();
     void transitionTo(QueueState newState);

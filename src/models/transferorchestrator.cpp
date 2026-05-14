@@ -166,10 +166,8 @@ void TransferOrchestrator::setupFtpHandler()
     ftpHandler_->setDirCreator(dirCreator_);
     ftpHandler_->setScanCoordinator(scanCoordinator_);
 
-    connect(ftpHandler_, &TransferFtpHandler::itemDataChanged, this, [this](int row) {
-        if (modelCallbacks_.dataChangedRow)
-            modelCallbacks_.dataChangedRow(row);
-    });
+    connect(ftpHandler_, &TransferFtpHandler::itemDataChanged, this,
+            [this](int row) { notifyDataChanged(row); });
     connect(ftpHandler_, &TransferFtpHandler::operationCompleted, this,
             &TransferOrchestrator::operationCompleted);
     connect(ftpHandler_, &TransferFtpHandler::operationFailed, this,
@@ -193,6 +191,40 @@ void TransferOrchestrator::setupFtpHandler()
 TransferOrchestrator::~TransferOrchestrator()
 {
     disconnectFtpClient(ftpClient_, this);
+}
+
+// ============================================================================
+// Model notification helpers
+// ============================================================================
+
+void TransferOrchestrator::notifyBeginInsert(int first, int last)
+{
+    if (modelCallbacks_.beginInsertRows)
+        modelCallbacks_.beginInsertRows(first, last);
+}
+
+void TransferOrchestrator::notifyEndInsert()
+{
+    if (modelCallbacks_.endInsertRows)
+        modelCallbacks_.endInsertRows();
+}
+
+void TransferOrchestrator::notifyDataChanged(int row)
+{
+    if (modelCallbacks_.dataChangedRow)
+        modelCallbacks_.dataChangedRow(row);
+}
+
+void TransferOrchestrator::notifyBeginReset()
+{
+    if (modelCallbacks_.beginResetModel)
+        modelCallbacks_.beginResetModel();
+}
+
+void TransferOrchestrator::notifyEndReset()
+{
+    if (modelCallbacks_.endResetModel)
+        modelCallbacks_.endResetModel();
 }
 
 void TransferOrchestrator::setModelCallbacks(const ModelCallbacks &callbacks)
@@ -317,13 +349,11 @@ void TransferOrchestrator::enqueueUpload(const QString &localPath, const QString
     item.totalBytes = localFs_->fileSize(localPath);
     item.batchId = state_.batches[batchIdx].batchId;
 
-    if (modelCallbacks_.beginInsertRows)
-        modelCallbacks_.beginInsertRows(state_.items.size(), state_.items.size());
-    state_.items.append(item);
-    if (modelCallbacks_.endInsertRows)
-        modelCallbacks_.endInsertRows();
-
-    state_.batches[batchIdx].items.append(item);
+    notifyBeginInsert(state_.items.size(), state_.items.size());
+    auto enqResult = transfer::enqueueItem(state_, item, batchIdx);
+    state_ = enqResult.newState;
+    batchIdx = enqResult.batchIdx;
+    notifyEndInsert();
     activateAndSchedule(batchIdx);
 }
 
@@ -359,13 +389,11 @@ void TransferOrchestrator::enqueueDownload(const QString &remotePath, const QStr
     item.status = TransferItem::Status::Pending;
     item.batchId = state_.batches[batchIdx].batchId;
 
-    if (modelCallbacks_.beginInsertRows)
-        modelCallbacks_.beginInsertRows(state_.items.size(), state_.items.size());
-    state_.items.append(item);
-    if (modelCallbacks_.endInsertRows)
-        modelCallbacks_.endInsertRows();
-
-    state_.batches[batchIdx].items.append(item);
+    notifyBeginInsert(state_.items.size(), state_.items.size());
+    auto enqResult = transfer::enqueueItem(state_, item, batchIdx);
+    state_ = enqResult.newState;
+    batchIdx = enqResult.batchIdx;
+    notifyEndInsert();
     activateAndSchedule(batchIdx);
 }
 
@@ -490,13 +518,11 @@ void TransferOrchestrator::enqueueDelete(const QString &remotePath, bool isDirec
     item.isDirectory = isDirectory;
     item.batchId = state_.batches[batchIdx].batchId;
 
-    if (modelCallbacks_.beginInsertRows)
-        modelCallbacks_.beginInsertRows(state_.items.size(), state_.items.size());
-    state_.items.append(item);
-    if (modelCallbacks_.endInsertRows)
-        modelCallbacks_.endInsertRows();
-
-    state_.batches[batchIdx].items.append(item);
+    notifyBeginInsert(state_.items.size(), state_.items.size());
+    auto enqResult = transfer::enqueueItem(state_, item, batchIdx);
+    state_ = enqResult.newState;
+    batchIdx = enqResult.batchIdx;
+    notifyEndInsert();
 
     if (state_.activeBatchIndex < 0) {
         state_.activeBatchIndex = batchIdx;
@@ -551,41 +577,46 @@ void TransferOrchestrator::processNextDelete()
         return;
     }
 
-    if (state_.deletedCount >= state_.deleteQueue.size()) {
+    auto decision = transfer::decideNextDeleteAction(state_);
+
+    switch (decision.action) {
+    case transfer::NextDeleteAction::AllDone:
         qCDebug(LogTransfer) << "TransferOrchestrator: All deletes complete";
         transitionTo(QueueState::Idle);
         state_.deleteQueue.clear();
         state_.recursiveDeleteBase.clear();
-        emit operationCompleted(tr("Deleted %1 items").arg(state_.deletedCount));
+        emit operationCompleted(tr("Deleted %1 items").arg(decision.completedCount));
+        emit allOperationsCompleted();
+        return;
 
-        if (state_.pendingUploadAfterDelete) {
-            qCDebug(LogTransfer)
-                << "TransferOrchestrator: Delete completed, starting pending upload";
-            state_.pendingUploadAfterDelete = false;
-
-            dirCreator_->queueDirectoriesForUpload(state_.currentFolderOp.sourcePath,
-                                                   state_.currentFolderOp.targetPath);
-
-            if (!state_.pendingMkdirs.isEmpty()) {
-                transitionTo(QueueState::CreatingDirectories);
-                dirCreator_->createNextDirectory();
-            } else {
-                finishDirectoryCreation();
-            }
+    case transfer::NextDeleteAction::PendingUploadReady:
+        qCDebug(LogTransfer) << "TransferOrchestrator: Delete completed, starting pending upload";
+        transitionTo(QueueState::Idle);
+        state_.deleteQueue.clear();
+        state_.recursiveDeleteBase.clear();
+        emit operationCompleted(tr("Deleted %1 items").arg(decision.completedCount));
+        state_.pendingUploadAfterDelete = false;
+        dirCreator_->queueDirectoriesForUpload(state_.currentFolderOp.sourcePath,
+                                               state_.currentFolderOp.targetPath);
+        if (!state_.pendingMkdirs.isEmpty()) {
+            transitionTo(QueueState::CreatingDirectories);
+            dirCreator_->createNextDirectory();
         } else {
-            emit allOperationsCompleted();
+            finishDirectoryCreation();
+        }
+        return;
+
+    case transfer::NextDeleteAction::DispatchNext: {
+        const DeleteItem &item = decision.nextItem;
+        qCDebug(LogTransfer) << "TransferOrchestrator: Deleting" << (state_.deletedCount + 1)
+                             << "of" << state_.deleteQueue.size() << ":" << item.path;
+        if (item.isDirectory) {
+            ftpClient_->removeDirectory(item.path);
+        } else {
+            ftpClient_->remove(item.path);
         }
         return;
     }
-
-    const DeleteItem &item = state_.deleteQueue[state_.deletedCount];
-    qCDebug(LogTransfer) << "TransferOrchestrator: Deleting" << (state_.deletedCount + 1) << "of"
-                         << state_.deleteQueue.size() << ":" << item.path;
-
-    if (item.isDirectory) {
-        ftpClient_->removeDirectory(item.path);
-    } else {
-        ftpClient_->remove(item.path);
     }
 }
 
@@ -638,8 +669,7 @@ void TransferOrchestrator::processNext()
         state_.items[i].status = TransferItem::Status::InProgress;
         transitionTo(QueueState::Transferring);
 
-        if (modelCallbacks_.dataChangedRow)
-            modelCallbacks_.dataChangedRow(i);
+        notifyDataChanged(i);
         emit operationStarted(decision.fileNameForSignal, state_.items[i].operationType);
 
         startOperationTimeout();
@@ -693,8 +723,7 @@ void TransferOrchestrator::respondToOverwrite(OverwriteResponse response)
 
     if (!state_.items.isEmpty()) {
         for (int i = 0; i < state_.items.size(); ++i) {
-            if (modelCallbacks_.dataChangedRow)
-                modelCallbacks_.dataChangedRow(i);
+            notifyDataChanged(i);
         }
     }
 
@@ -756,8 +785,7 @@ void TransferOrchestrator::markCurrentComplete(TransferItem::Status status)
     auto result = transfer::markItemComplete(state_, completedIndex, status);
     state_ = result.newState;
 
-    if (modelCallbacks_.dataChangedRow)
-        modelCallbacks_.dataChangedRow(completedIndex);
+    notifyDataChanged(completedIndex);
 
     if (result.batchId >= 0) {
         emitBatchProgressAndComplete(result.batchId, result.batchIsComplete);
@@ -790,11 +818,9 @@ int TransferOrchestrator::findItemIndex(const QString &localPath, const QString 
 
 void TransferOrchestrator::clear()
 {
-    if (modelCallbacks_.beginResetModel)
-        modelCallbacks_.beginResetModel();
+    notifyBeginReset();
     state_ = transfer::clearAll(state_);
-    if (modelCallbacks_.endResetModel)
-        modelCallbacks_.endResetModel();
+    notifyEndReset();
 
     folderCoordinator_->stopDebounce();
     emit queueChanged();
@@ -812,8 +838,7 @@ void TransferOrchestrator::cancelAll()
     folderCoordinator_->stopDebounce();
 
     for (int i = 0; i < state_.items.size(); ++i) {
-        if (modelCallbacks_.dataChangedRow)
-            modelCallbacks_.dataChangedRow(i);
+        notifyDataChanged(i);
     }
     emit queueChanged();
     emit operationsCancelled();
@@ -838,8 +863,7 @@ void TransferOrchestrator::cancelBatch(int batchId)
     state_ = result.newState;
 
     for (int i = 0; i < state_.items.size(); ++i) {
-        if (modelCallbacks_.dataChangedRow)
-            modelCallbacks_.dataChangedRow(i);
+        notifyDataChanged(i);
     }
     emit queueChanged();
 
@@ -936,8 +960,7 @@ void TransferOrchestrator::onOperationTimeout()
                                          ? state_.items[originalIndex].remotePath
                                          : state_.items[originalIndex].localPath)
                                .fileName();
-        if (modelCallbacks_.dataChangedRow)
-            modelCallbacks_.dataChangedRow(originalIndex);
+        notifyDataChanged(originalIndex);
         emit operationFailed(fileName, errorMessage);
     }
 

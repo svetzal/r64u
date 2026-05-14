@@ -1016,4 +1016,35 @@ FindDeleteItemResult findInProgressDeleteItem(const State &state, const QString 
     return result;
 }
 
+// ---------------------------------------------------------------------------
+// Enqueue item helpers
+// ---------------------------------------------------------------------------
+
+EnqueueItemResult enqueueItem(const State &state, const TransferItem &item, int batchIdx)
+{
+    State newState = state;
+    int insertedRow = newState.items.size();
+    newState.items.append(item);
+    newState.batches[batchIdx].items.append(item);
+    return {newState, batchIdx, insertedRow};
+}
+
+// ---------------------------------------------------------------------------
+// Delete decision helpers
+// ---------------------------------------------------------------------------
+
+NextDeleteDecision decideNextDeleteAction(const State &state)
+{
+    NextDeleteDecision decision;
+    if (state.deletedCount >= state.deleteQueue.size()) {
+        decision.completedCount = state.deletedCount;
+        decision.action = state.pendingUploadAfterDelete ? NextDeleteAction::PendingUploadReady
+                                                         : NextDeleteAction::AllDone;
+        return decision;
+    }
+    decision.action = NextDeleteAction::DispatchNext;
+    decision.nextItem = state.deleteQueue[state.deletedCount];
+    return decision;
+}
+
 }  // namespace transfer

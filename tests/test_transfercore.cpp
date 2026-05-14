@@ -257,6 +257,19 @@ private slots:
     void testFindInProgressDeleteItem_noMatch_whenPending();
     void testFindInProgressDeleteItem_noMatch_whenDifferentPath();
     void testFindInProgressDeleteItem_noMatch_whenUpload();
+
+    // enqueueItem tests
+    void testEnqueueItem_appendsToItems();
+    void testEnqueueItem_appendsToBatch();
+    void testEnqueueItem_returnsCorrectInsertedRow();
+    void testEnqueueItem_doesNotMutateOtherBatches();
+
+    // decideNextDeleteAction tests
+    void testDecideNextDeleteAction_dispatchNext_whenItemsRemain();
+    void testDecideNextDeleteAction_allDone_whenQueueExhausted();
+    void testDecideNextDeleteAction_pendingUploadReady_whenFlagSet();
+    void testDecideNextDeleteAction_completedCount_matches();
+    void testDecideNextDeleteAction_nextItemPath_isCorrect();
 };
 
 void TestTransferCore::testQueueStateToString_idle()
@@ -2218,6 +2231,158 @@ void TestTransferCore::testFindInProgressDeleteItem_noMatch_whenUpload()
 
     auto result = transfer::findInProgressDeleteItem(state, QStringLiteral("/remote/game.prg"));
     QVERIFY(!result.found);
+}
+
+// ---------------------------------------------------------------------------
+// enqueueItem tests
+// ---------------------------------------------------------------------------
+
+void TestTransferCore::testEnqueueItem_appendsToItems()
+{
+    transfer::State state;
+    transfer::TransferBatch batch;
+    batch.batchId = 1;
+    state.batches.append(batch);
+    state.nextBatchId = 2;
+
+    transfer::TransferItem item;
+    item.remotePath = QStringLiteral("/remote/file.prg");
+    item.operationType = transfer::OperationType::Download;
+    item.status = transfer::TransferItem::Status::Pending;
+    item.batchId = 1;
+
+    auto result = transfer::enqueueItem(state, item, 0);
+    QCOMPARE(result.newState.items.size(), 1);
+    QCOMPARE(result.newState.items[0].remotePath, QStringLiteral("/remote/file.prg"));
+}
+
+void TestTransferCore::testEnqueueItem_appendsToBatch()
+{
+    transfer::State state;
+    transfer::TransferBatch batch;
+    batch.batchId = 1;
+    state.batches.append(batch);
+
+    transfer::TransferItem item;
+    item.remotePath = QStringLiteral("/remote/file.prg");
+    item.operationType = transfer::OperationType::Download;
+    item.status = transfer::TransferItem::Status::Pending;
+    item.batchId = 1;
+
+    auto result = transfer::enqueueItem(state, item, 0);
+    QCOMPARE(result.newState.batches[0].items.size(), 1);
+    QCOMPARE(result.newState.batches[0].items[0].remotePath, QStringLiteral("/remote/file.prg"));
+}
+
+void TestTransferCore::testEnqueueItem_returnsCorrectInsertedRow()
+{
+    transfer::State state;
+    transfer::TransferItem existingItem;
+    existingItem.remotePath = QStringLiteral("/remote/existing.prg");
+    state.items.append(existingItem);
+
+    transfer::TransferBatch batch;
+    batch.batchId = 1;
+    state.batches.append(batch);
+
+    transfer::TransferItem item;
+    item.remotePath = QStringLiteral("/remote/new.prg");
+    item.batchId = 1;
+
+    auto result = transfer::enqueueItem(state, item, 0);
+    QCOMPARE(result.insertedRow, 1);
+    QCOMPARE(result.batchIdx, 0);
+}
+
+void TestTransferCore::testEnqueueItem_doesNotMutateOtherBatches()
+{
+    transfer::State state;
+    transfer::TransferBatch batch0;
+    batch0.batchId = 1;
+    transfer::TransferBatch batch1;
+    batch1.batchId = 2;
+    state.batches.append(batch0);
+    state.batches.append(batch1);
+
+    transfer::TransferItem item;
+    item.remotePath = QStringLiteral("/remote/file.prg");
+    item.batchId = 1;
+
+    auto result = transfer::enqueueItem(state, item, 0);
+    QCOMPARE(result.newState.batches[1].items.size(), 0);
+}
+
+// ---------------------------------------------------------------------------
+// decideNextDeleteAction tests
+// ---------------------------------------------------------------------------
+
+void TestTransferCore::testDecideNextDeleteAction_dispatchNext_whenItemsRemain()
+{
+    transfer::State state;
+    transfer::DeleteItem di;
+    di.path = QStringLiteral("/remote/file.prg");
+    state.deleteQueue.append(di);
+    state.deletedCount = 0;
+
+    auto decision = transfer::decideNextDeleteAction(state);
+    QCOMPARE(decision.action, transfer::NextDeleteAction::DispatchNext);
+}
+
+void TestTransferCore::testDecideNextDeleteAction_allDone_whenQueueExhausted()
+{
+    transfer::State state;
+    transfer::DeleteItem di;
+    di.path = QStringLiteral("/remote/file.prg");
+    state.deleteQueue.append(di);
+    state.deletedCount = 1;
+    state.pendingUploadAfterDelete = false;
+
+    auto decision = transfer::decideNextDeleteAction(state);
+    QCOMPARE(decision.action, transfer::NextDeleteAction::AllDone);
+}
+
+void TestTransferCore::testDecideNextDeleteAction_pendingUploadReady_whenFlagSet()
+{
+    transfer::State state;
+    transfer::DeleteItem di;
+    di.path = QStringLiteral("/remote/file.prg");
+    state.deleteQueue.append(di);
+    state.deletedCount = 1;
+    state.pendingUploadAfterDelete = true;
+
+    auto decision = transfer::decideNextDeleteAction(state);
+    QCOMPARE(decision.action, transfer::NextDeleteAction::PendingUploadReady);
+}
+
+void TestTransferCore::testDecideNextDeleteAction_completedCount_matches()
+{
+    transfer::State state;
+    for (int i = 0; i < 3; ++i) {
+        transfer::DeleteItem di;
+        di.path = QString("/remote/file%1.prg").arg(i);
+        state.deleteQueue.append(di);
+    }
+    state.deletedCount = 3;
+    state.pendingUploadAfterDelete = false;
+
+    auto decision = transfer::decideNextDeleteAction(state);
+    QCOMPARE(decision.completedCount, 3);
+}
+
+void TestTransferCore::testDecideNextDeleteAction_nextItemPath_isCorrect()
+{
+    transfer::State state;
+    transfer::DeleteItem di0;
+    di0.path = QStringLiteral("/remote/first.prg");
+    transfer::DeleteItem di1;
+    di1.path = QStringLiteral("/remote/second.prg");
+    state.deleteQueue.append(di0);
+    state.deleteQueue.append(di1);
+    state.deletedCount = 1;
+
+    auto decision = transfer::decideNextDeleteAction(state);
+    QCOMPARE(decision.action, transfer::NextDeleteAction::DispatchNext);
+    QCOMPARE(decision.nextItem.path, QStringLiteral("/remote/second.prg"));
 }
 
 QTEST_MAIN(TestTransferCore)

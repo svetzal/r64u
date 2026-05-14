@@ -26,9 +26,27 @@ void ErrorHandler::connectSources(DeviceConnection * /*dc*/, IRestClient * /*res
                                   IAudioPlaybackService * /*apb*/, VideoRecordingService * /*vrs*/,
                                   KeyboardInputService * /*kis*/)
 {
+    connectTransferSources(ftpClient, nullptr);
+}
+
+void ErrorHandler::connectStreamingServiceSources(StreamingService * /*ss*/) {}
+
+void ErrorHandler::connectDeviceSources(DeviceConnection * /*dc*/, IRestClient * /*restClient*/,
+                                        ConfigFileLoaderService * /*cfl*/)
+{
+}
+
+void ErrorHandler::connectTransferSources(IFtpClient *ftpClient, TransferService * /*ts*/)
+{
     if (ftpClient) {
         connect(ftpClient, &IFtpClient::error, this, &ErrorHandler::handleDataError);
     }
 }
 
-void ErrorHandler::connectStreamingServiceSources(StreamingService * /*ss*/) {}
+void ErrorHandler::connectModelSources(RemoteFileModel * /*rfm*/, FilePreviewService * /*fps*/) {}
+
+void ErrorHandler::connectMetadataSources(SonglengthsDatabase * /*sld*/,
+                                          HVSCMetadataService * /*hvsc*/,
+                                          GameBase64Service * /*gb64*/)
+{
+}

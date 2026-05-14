@@ -696,6 +696,46 @@ struct FindDeleteItemResult
 [[nodiscard]] FindDeleteItemResult findInProgressDeleteItem(const State &state,
                                                             const QString &path);
 
+// ---------------------------------------------------------------------------
+// Enqueue item helpers
+// ---------------------------------------------------------------------------
+
+/// @brief Result of enqueueing an item into the transfer state.
+struct EnqueueItemResult
+{
+    State newState;
+    int batchIdx = -1;     ///< The batch index the item was added to
+    int insertedRow = -1;  ///< Row index in state.items where item was inserted
+};
+
+/// @brief Append a transfer item to state.items and to the batch at batchIdx.
+/// Does NOT activate, schedule, or emit signals — caller handles those side effects.
+[[nodiscard]] EnqueueItemResult enqueueItem(const State &state, const TransferItem &item,
+                                            int batchIdx);
+
+// ---------------------------------------------------------------------------
+// Delete decision helpers
+// ---------------------------------------------------------------------------
+
+/// @brief Describes what processNextDelete() should do next.
+enum class NextDeleteAction {
+    AllDone,             ///< All deletes complete, no pending upload
+    PendingUploadReady,  ///< All deletes complete, pending upload should start
+    DispatchNext         ///< Dispatch the next delete item to the FTP client
+};
+
+/// @brief Decision produced by decideNextDeleteAction().
+struct NextDeleteDecision
+{
+    NextDeleteAction action = NextDeleteAction::DispatchNext;
+    int completedCount = 0;  ///< For "Deleted N items" message (AllDone/PendingUploadReady)
+    DeleteItem nextItem;     ///< Valid when action == DispatchNext
+};
+
+/// @brief Decide what processNextDelete() should do given the current delete queue state.
+/// Does NOT check FTP connectivity — caller must verify before dispatching.
+[[nodiscard]] NextDeleteDecision decideNextDeleteAction(const State &state);
+
 }  // namespace transfer
 
 #endif  // TRANSFERCORE_H
