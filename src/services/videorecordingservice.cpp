@@ -13,9 +13,31 @@
 #include "utils/logging.h"
 
 #include <QBuffer>
+#include <QDateTime>
+#include <QDir>
 #include <QMutexLocker>
+#include <QSettings>
+#include <QStandardPaths>
 
 VideoRecordingService::VideoRecordingService(QObject *parent) : QObject(parent) {}
+
+QString VideoRecordingService::prepareRecordingPath()
+{
+    QSettings settings;
+    QString captureDir =
+        settings
+            .value("capture/directory",
+                   QStandardPaths::writableLocation(QStandardPaths::MoviesLocation))
+            .toString();
+
+    QDir dir(captureDir);
+    if (!dir.exists()) {
+        dir.mkpath(".");
+    }
+
+    QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+    return dir.filePath(QString("r64u_recording_%1.avi").arg(timestamp));
+}
 
 void VideoRecordingService::connectToStreaming(StreamingService *manager)
 {

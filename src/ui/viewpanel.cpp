@@ -13,12 +13,9 @@
 #include "services/videostreamreceiver.h"
 #include "utils/logging.h"
 
-#include <QDateTime>
-#include <QDir>
 #include <QFileInfo>
 #include <QKeyEvent>
 #include <QSettings>
-#include <QStandardPaths>
 #include <QVBoxLayout>
 
 ViewPanel::ViewPanel(DeviceConnection *connection, QWidget *parent)
@@ -398,47 +395,13 @@ void ViewPanel::onCaptureScreenshot()
         return;
     }
 
-    if (screenshotService_) {
-        QSettings settings;
-        QString captureDir =
-            settings
-                .value("capture/directory",
-                       QStandardPaths::writableLocation(QStandardPaths::PicturesLocation))
-                .toString();
-
-        QString filename = screenshotService_->capture(frame, captureDir);
-        if (!filename.isEmpty()) {
-            if (errorHandler_) {
-                errorHandler_->info(ErrorCategory::FileOperation,
-                                    tr("Screenshot saved: %1").arg(filename));
-            }
-        } else {
-            if (errorHandler_) {
-                errorHandler_->handleError(ErrorCategory::FileOperation, ErrorSeverity::Warning,
-                                           tr("Failed to save screenshot"));
-            }
-        }
+    if (!screenshotService_) {
+        qCDebug(LogUi) << "onCaptureScreenshot: screenshotService_ is null, skipping";
         return;
     }
 
-    // Fallback: inline screenshot when no service is injected
-    QSettings settings;
-    QString captureDir =
-        settings
-            .value("capture/directory",
-                   QStandardPaths::writableLocation(QStandardPaths::PicturesLocation))
-            .toString();
-
-    QDir dir(captureDir);
-    if (!dir.exists()) {
-        dir.mkpath(".");
-    }
-
-    QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss_zzz");
-    QString filename = QString("r64u_screenshot_%1.png").arg(timestamp);
-    QString filePath = dir.filePath(filename);
-
-    if (frame.save(filePath, "PNG")) {
+    QString filename = screenshotService_->capture(frame);
+    if (!filename.isEmpty()) {
         if (errorHandler_) {
             errorHandler_->info(ErrorCategory::FileOperation,
                                 tr("Screenshot saved: %1").arg(filename));
@@ -458,26 +421,7 @@ void ViewPanel::onStartRecording()
         return;
     }
 
-    // Get the capture directory from settings or use Videos folder
-    QSettings settings;
-    QString captureDir =
-        settings
-            .value("capture/directory",
-                   QStandardPaths::writableLocation(QStandardPaths::MoviesLocation))
-            .toString();
-
-    // Ensure the directory exists
-    QDir dir(captureDir);
-    if (!dir.exists()) {
-        dir.mkpath(".");
-    }
-
-    // Generate a timestamp-based filename
-    QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
-    QString filename = QString("r64u_recording_%1.avi").arg(timestamp);
-    QString filePath = dir.filePath(filename);
-
-    recordingService_->startRecording(filePath);
+    recordingService_->startRecording(VideoRecordingService::prepareRecordingPath());
 }
 
 void ViewPanel::onStopRecording()

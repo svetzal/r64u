@@ -35,13 +35,13 @@ public:
      */
     void setGameBase64Service(GameBase64Service *service);
 
-    void showFileDetails(const QString &path, qint64 size, const QString &type);
+    void clear() override;
+    void showFileDetails(const QString &path, qint64 size, const QString &type) override;
     void showTextContent(const QString &content) override;
     void showDiskDirectory(const QByteArray &diskImageData, const QString &filename) override;
     void showSidDetails(const QByteArray &sidData, const QString &filename) override;
     void showLoading(const QString &path);
     void showError(const QString &message) override;
-    void clear();
 
     // File type detection — delegates to fileaction::detectPreviewType()
     bool isTextFile(const QString &path) const;

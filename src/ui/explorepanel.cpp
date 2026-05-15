@@ -49,6 +49,7 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection, DeviceActionService *de
     actionController_ =
         new FileActionController(deviceActionService, deviceConnection_, configLoader, this);
     actionController_->setPlaylistService(playlistService_);
+    // selectionView_ and treeView_ are wired after setupUi() via setSelectionSource
     favoritesController_ = new ExploreFavoritesController(favoritesService, this);
     contextMenu_ = new ExploreContextMenu(this);
 
@@ -62,6 +63,9 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection, DeviceActionService *de
 
     previewCoordinator_ =
         new PreviewCoordinator(previewService, fileDetailsPanel_, playlistService_, this);
+    previewCoordinator_->setRemoteFileModel(remoteFileModel_);
+
+    actionController_->setSelectionSource(treeView_, remoteFileModel_);
 
     setupConnections();
 
@@ -230,59 +234,28 @@ void ExplorePanel::setupConnections()
     connect(navController_, &ExploreNavigationController::statusMessage, this,
             &ExplorePanel::statusMessage);
 
-    connect(contextMenu_, &ExploreContextMenu::playRequested, this, [this]() {
-        if (!treeView_ || !remoteFileModel_) {
-            emit statusMessage(tr("File browser not ready"));
-            return;
-        }
-        actionController_->play(selectedPath(),
-                                remoteFileModel_->fileType(treeView_->currentIndex()));
-    });
-    connect(contextMenu_, &ExploreContextMenu::runRequested, this, [this]() {
-        if (!treeView_ || !remoteFileModel_) {
-            emit statusMessage(tr("File browser not ready"));
-            return;
-        }
-        actionController_->run(selectedPath(),
-                               remoteFileModel_->fileType(treeView_->currentIndex()));
-    });
+    connect(contextMenu_, &ExploreContextMenu::playRequested, actionController_,
+            &FileActionController::playSelection);
+    connect(contextMenu_, &ExploreContextMenu::runRequested, actionController_,
+            &FileActionController::runSelection);
     connect(contextMenu_, &ExploreContextMenu::mountARequested, this,
             [this]() { actionController_->mountToDrive(selectedPath(), "a"); });
     connect(contextMenu_, &ExploreContextMenu::mountBRequested, this,
             [this]() { actionController_->mountToDrive(selectedPath(), "b"); });
     connect(contextMenu_, &ExploreContextMenu::downloadRequested, this,
             [this]() { actionController_->download(selectedPath()); });
-    connect(contextMenu_, &ExploreContextMenu::loadConfigRequested, this, [this]() {
-        if (!treeView_ || !remoteFileModel_) {
-            emit statusMessage(tr("File browser not ready"));
-            return;
-        }
-        actionController_->loadConfig(selectedPath(),
-                                      remoteFileModel_->fileType(treeView_->currentIndex()));
-    });
+    connect(contextMenu_, &ExploreContextMenu::loadConfigRequested, actionController_,
+            &FileActionController::loadConfigSelection);
     connect(contextMenu_, &ExploreContextMenu::toggleFavoriteRequested, this, [this]() {
         QString path =
             selectedPath().isEmpty() ? navController_->currentDirectory() : selectedPath();
         favoritesController_->onToggleFavorite(path);
     });
-    connect(contextMenu_, &ExploreContextMenu::addToPlaylistRequested, this, [this]() {
-        if (!treeView_ || !remoteFileModel_) {
-            emit statusMessage(tr("File browser not ready"));
-            return;
-        }
-        QModelIndexList selectedIndices = treeView_->selectionModel()->selectedRows();
-        if (selectedIndices.isEmpty()) {
-            emit statusMessage(tr("No files selected"));
-            return;
-        }
-        QList<QPair<QString, filetype::FileType>> items;
-        items.reserve(selectedIndices.size());
-        for (const QModelIndex &idx : selectedIndices) {
-            items.append({remoteFileModel_->filePath(idx), remoteFileModel_->fileType(idx)});
-        }
-        actionController_->addToPlaylist(items);
-    });
+    connect(contextMenu_, &ExploreContextMenu::addToPlaylistRequested, actionController_,
+            &FileActionController::addToPlaylistSelection);
     connect(contextMenu_, &ExploreContextMenu::refreshRequested, this, [this]() { refresh(); });
+    connect(actionController_, &FileActionController::statusMessage, this,
+            &ExplorePanel::statusMessage);
 
     connect(fileDetailsPanel_, &FileDetailsPanel::contentRequested, previewCoordinator_,
             &PreviewCoordinator::onFileContentRequested);
@@ -421,39 +394,17 @@ void ExplorePanel::onSelectionChanged()
     bool hasSelection = !selected.isEmpty();
     bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
 
-    filetype::FileType fileType = filetype::FileType::Unknown;
-    if (hasSelection && treeView_ && remoteFileModel_) {
-        QModelIndex index = treeView_->currentIndex();
-        fileType = remoteFileModel_->fileType(index);
-    }
+    filetype::FileType fileType = (hasSelection && treeView_ && remoteFileModel_)
+                                      ? remoteFileModel_->fileType(treeView_->currentIndex())
+                                      : filetype::FileType::Unknown;
 
     actionController_->updateActionStates(fileType, canOperate && hasSelection);
 
     QString pathToCheck = hasSelection ? selected : navController_->currentDirectory();
     favoritesController_->updateForPath(pathToCheck);
 
-    if (!treeView_ || !remoteFileModel_ || !fileDetailsPanel_) {
-        qCDebug(LogUi) << "onSelectionChanged: null treeView, remoteFileModel, or fileDetailsPanel";
-        return;
-    }
-
-    QModelIndex index = treeView_->currentIndex();
-    if (!index.isValid()) {
-        qCDebug(LogUi) << "onSelectionChanged: no valid current index";
-        fileDetailsPanel_->clear();
-        return;
-    }
-
-    if (remoteFileModel_->isDirectory(index)) {
-        fileDetailsPanel_->clear();
-        return;
-    }
-
-    QString path = remoteFileModel_->filePath(index);
-    qint64 size = remoteFileModel_->fileSize(index);
-    QString typeStr = RemoteFileModel::fileTypeString(fileType);
-
-    fileDetailsPanel_->showFileDetails(path, size, typeStr);
+    QModelIndex index = treeView_ ? treeView_->currentIndex() : QModelIndex();
+    previewCoordinator_->onSelectionChanged(index);
 }
 
 void ExplorePanel::onDoubleClicked(const QModelIndex &index)

@@ -15,6 +15,13 @@
 class MockDetailsDisplay : public IDetailsDisplay
 {
 public:
+    void clear() override { clearCount++; }
+
+    void showFileDetails(const QString &path, qint64 size, const QString &type) override
+    {
+        fileDetailsCalls.append({path, QString::number(size) + "|" + type});
+    }
+
     void showDiskDirectory(const QByteArray &data, const QString &path) override
     {
         diskDirectoryCalls.append({path, data});
@@ -31,12 +38,16 @@ public:
 
     void reset()
     {
+        clearCount = 0;
+        fileDetailsCalls.clear();
         diskDirectoryCalls.clear();
         sidDetailsCalls.clear();
         textContentCalls.clear();
         errorCalls.clear();
     }
 
+    int clearCount = 0;
+    QList<QPair<QString, QString>> fileDetailsCalls;
     QList<QPair<QString, QByteArray>> diskDirectoryCalls;
     QList<QPair<QString, QByteArray>> sidDetailsCalls;
     QList<QString> textContentCalls;

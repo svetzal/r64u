@@ -14,8 +14,10 @@ class DeviceActionService;
 class ConfigFileLoaderService;
 class DiskBootSequenceService;
 class PlaylistService;
+class RemoteFileModel;
 class StreamingService;
 class QAction;
+class QTreeView;
 
 class FileActionController : public QObject
 {
@@ -31,6 +33,14 @@ public:
     void setErrorHandler(ErrorHandler *handler);
     void setActions(QAction *play, QAction *run, QAction *mount);
 
+    /**
+     * @brief Provides the selection source so actions can query the current
+     *        path and file type without the caller re-querying the model.
+     * @param view   The tree view (may be null).
+     * @param model  The remote file model (may be null).
+     */
+    void setSelectionSource(QTreeView *view, RemoteFileModel *model);
+
     void updateActionStates(filetype::FileType type, bool canOperate);
 
 public slots:
@@ -41,10 +51,29 @@ public slots:
     void download(const QString &path);
     void addToPlaylist(const QList<QPair<QString, filetype::FileType>> &items);
 
+    /**
+     * @brief Selection-source variants — query treeView_/remoteFileModel_ internally.
+     *
+     * These slots emit statusMessage(tr("File browser not ready")) if the selection
+     * source has not been configured or is null.  They allow connections in
+     * ExplorePanel::setupConnections() to be written as single-line delegates.
+     */
+    void playSelection();
+    void runSelection();
+    void loadConfigSelection();
+    void addToPlaylistSelection();
+
+signals:
+    void statusMessage(const QString &message, int timeout = 0);
+
 private:
     [[nodiscard]] bool validateFileOperation(const QString &path);
     void runDiskImage(const QString &path);
     void ensureStreamingStarted();
+
+    [[nodiscard]] bool hasSelectionSource() const;
+    [[nodiscard]] QString selectionPath() const;
+    [[nodiscard]] filetype::FileType selectionFileType() const;
 
     DeviceActionService *deviceActionService_ = nullptr;
     DeviceConnection *deviceConnection_ = nullptr;
@@ -53,6 +82,10 @@ private:
     PlaylistService *playlistService_ = nullptr;
     DiskBootSequenceService *bootService_ = nullptr;
     ErrorHandler *errorHandler_ = nullptr;
+
+    // Selection source (not owned)
+    QTreeView *selectionView_ = nullptr;
+    RemoteFileModel *selectionModel_ = nullptr;
 
     QAction *playAction_ = nullptr;
     QAction *runAction_ = nullptr;

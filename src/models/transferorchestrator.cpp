@@ -19,12 +19,15 @@ TransferOrchestrator::TransferOrchestrator(QObject *parent)
       dirCreator_(new RemoteDirectoryCreator(state_, nullptr, localFs_, this)),
       folderCoordinator_(new FolderOperationCoordinator(state_, nullptr, localFs_, this))
 {
+    deleteHandler_ = new TransferDeleteHandler(state_, this);
+
     setupBatchManager();
     setupTimeoutManager();
     setupScanCoordinator();
     setupDirectoryCreator();
     setupFolderOperationCoordinator();
     setupFtpHandler();
+    setupDeleteHandler();
 }
 
 void TransferOrchestrator::setupBatchManager()
@@ -93,7 +96,7 @@ void TransferOrchestrator::setupScanCoordinator()
     connect(scanCoordinator_, &RecursiveScanCoordinator::deleteScanComplete, this, [this]() {
         transitionTo(QueueState::Deleting);
         emit queueChanged();
-        processNextDelete();
+        deleteHandler_->processNextDelete();
     });
     connect(scanCoordinator_, &RecursiveScanCoordinator::folderCheckComplete, this,
             [this](const QString & /*path*/) { folderCoordinator_->resumeAfterFolderCheck(); });
@@ -179,12 +182,52 @@ void TransferOrchestrator::setupFtpHandler()
     connect(ftpHandler_, &TransferFtpHandler::scheduleProcessNextRequested, this,
             [this]() { scheduleProcessNext(); });
     connect(ftpHandler_, &TransferFtpHandler::processNextDeleteRequested, this,
-            [this]() { processNextDelete(); });
+            [this]() { deleteHandler_->processNextDelete(); });
     connect(ftpHandler_, &TransferFtpHandler::completeBatchRequested, this,
             [this](int batchId) { completeBatch(batchId); });
     connect(ftpHandler_, &TransferFtpHandler::batchProgressRequested, this,
             [this](int batchId, bool isComplete, bool includeFailed) {
                 emitBatchProgressAndComplete(batchId, isComplete, includeFailed);
+            });
+}
+
+void TransferOrchestrator::setupDeleteHandler()
+{
+    deleteHandler_->setScanCoordinator(scanCoordinator_);
+    deleteHandler_->setDirCreator(dirCreator_);
+    deleteHandler_->setCreateBatchCallback([this](OperationType type, const QString &description,
+                                                  const QString &folderName,
+                                                  const QString &sourcePath) {
+        return createBatch(type, description, folderName, sourcePath);
+    });
+    deleteHandler_->setBeginInsertCallback(
+        [this](int first, int last) { notifyBeginInsert(first, last); });
+    deleteHandler_->setEndInsertCallback([this]() { notifyEndInsert(); });
+    deleteHandler_->setTransitionToCallback([this](QueueState s) { transitionTo(s); });
+    deleteHandler_->setScheduleProcessNextCallback([this]() { scheduleProcessNext(); });
+
+    connect(deleteHandler_, &TransferDeleteHandler::operationFailed, this,
+            &TransferOrchestrator::operationFailed);
+    connect(deleteHandler_, &TransferDeleteHandler::operationCompleted, this,
+            &TransferOrchestrator::operationCompleted);
+    connect(deleteHandler_, &TransferDeleteHandler::allOperationsCompleted, this,
+            &TransferOrchestrator::allOperationsCompleted);
+    connect(deleteHandler_, &TransferDeleteHandler::statusMessage, this,
+            &TransferOrchestrator::statusMessage);
+    connect(deleteHandler_, &TransferDeleteHandler::queueChanged, this,
+            &TransferOrchestrator::queueChanged);
+    connect(deleteHandler_, &TransferDeleteHandler::batchStarted, this,
+            &TransferOrchestrator::batchStarted);
+    connect(deleteHandler_, &TransferDeleteHandler::startDirectoryCreationAfterDeleteRequested,
+            this, [this]() {
+                dirCreator_->queueDirectoriesForUpload(state_.currentFolderOp.sourcePath,
+                                                       state_.currentFolderOp.targetPath);
+                if (!state_.pendingMkdirs.isEmpty()) {
+                    transitionTo(QueueState::CreatingDirectories);
+                    dirCreator_->createNextDirectory();
+                } else {
+                    finishDirectoryCreation();
+                }
             });
 }
 
@@ -285,6 +328,7 @@ void TransferOrchestrator::setFtpClient(IFtpClient *client)
     dirCreator_->setFtpClient(client);
     folderCoordinator_->setFtpClient(client);
     ftpHandler_->setFtpClient(client);
+    deleteHandler_->setFtpClient(client);
 }
 
 // ============================================================================
@@ -485,139 +529,17 @@ void TransferOrchestrator::finishDirectoryCreation()
 }
 
 // ============================================================================
-// Delete operations
+// Delete operations (delegated to deleteHandler_)
 // ============================================================================
 
 void TransferOrchestrator::enqueueDelete(const QString &remotePath, bool isDirectory)
 {
-    int batchIdx = state_.activeBatchIndex;
-    if (batchIdx < 0 || state_.batches[batchIdx].operationType != OperationType::Delete) {
-        QString fileName = QFileInfo(remotePath).fileName();
-        QString sourcePath =
-            !state_.recursiveDeleteBase.isEmpty() ? state_.recursiveDeleteBase : QString();
-        int batchId = createBatch(OperationType::Delete, tr("Deleting %1").arg(fileName), fileName,
-                                  sourcePath);
-        for (int i = 0; i < state_.batches.size(); ++i) {
-            if (state_.batches[i].batchId == batchId) {
-                batchIdx = i;
-                break;
-            }
-        }
-    }
-
-    if (batchIdx < 0 || batchIdx >= state_.batches.size()) {
-        qCWarning(LogTransfer) << "TransferOrchestrator::enqueueDelete - no valid batch";
-        emit operationFailed(QFileInfo(remotePath).fileName(), tr("Failed to create delete batch"));
-        return;
-    }
-
-    TransferItem item;
-    item.remotePath = remotePath;
-    item.operationType = OperationType::Delete;
-    item.status = TransferItem::Status::Pending;
-    item.isDirectory = isDirectory;
-    item.batchId = state_.batches[batchIdx].batchId;
-
-    notifyBeginInsert(state_.items.size(), state_.items.size());
-    auto enqResult = transfer::enqueueItem(state_, item, batchIdx);
-    state_ = enqResult.newState;
-    batchIdx = enqResult.batchIdx;
-    notifyEndInsert();
-
-    if (state_.activeBatchIndex < 0) {
-        state_.activeBatchIndex = batchIdx;
-        state_.batches[batchIdx].scanned = true;
-        state_.batches[batchIdx].folderConfirmed = true;
-        emit batchStarted(state_.batches[batchIdx].batchId);
-    }
-
-    emit queueChanged();
-
-    if (state_.queueState == QueueState::Idle) {
-        scheduleProcessNext();
-    }
+    deleteHandler_->enqueueDelete(remotePath, isDirectory);
 }
 
 void TransferOrchestrator::enqueueRecursiveDelete(const QString &remotePath)
 {
-    if (!ftpClient_ || !ftpClient_->isConnected()) {
-        qCWarning(LogTransfer) << "enqueueRecursiveDelete skipped: FTP not connected";
-        emit operationFailed(QFileInfo(remotePath).fileName(), tr("Not connected to device"));
-        return;
-    }
-
-    QString normalizedPath = remotePath;
-    while (normalizedPath.endsWith('/') && normalizedPath.length() > 1) {
-        normalizedPath.chop(1);
-    }
-
-    if (isPathBeingTransferred(normalizedPath, OperationType::Delete)) {
-        qCDebug(LogTransfer) << "TransferOrchestrator: Ignoring duplicate delete request for"
-                             << normalizedPath;
-        emit statusMessage(
-            tr("'%1' is already being deleted").arg(QFileInfo(normalizedPath).fileName()));
-        return;
-    }
-
-    state_.deleteQueue.clear();
-    state_.deletedCount = 0;
-    state_.recursiveDeleteBase = normalizedPath;
-
-    emit queueChanged();
-
-    transitionTo(QueueState::Scanning);
-    scanCoordinator_->startDeleteScan(normalizedPath);
-}
-
-void TransferOrchestrator::processNextDelete()
-{
-    if (!ftpClient_ || !ftpClient_->isConnected()) {
-        qCWarning(LogTransfer) << "processNextDelete: FTP disconnected, resetting to Idle";
-        transitionTo(QueueState::Idle);
-        return;
-    }
-
-    auto decision = transfer::decideNextDeleteAction(state_);
-
-    switch (decision.action) {
-    case transfer::NextDeleteAction::AllDone:
-        qCDebug(LogTransfer) << "TransferOrchestrator: All deletes complete";
-        transitionTo(QueueState::Idle);
-        state_.deleteQueue.clear();
-        state_.recursiveDeleteBase.clear();
-        emit operationCompleted(tr("Deleted %1 items").arg(decision.completedCount));
-        emit allOperationsCompleted();
-        return;
-
-    case transfer::NextDeleteAction::PendingUploadReady:
-        qCDebug(LogTransfer) << "TransferOrchestrator: Delete completed, starting pending upload";
-        transitionTo(QueueState::Idle);
-        state_.deleteQueue.clear();
-        state_.recursiveDeleteBase.clear();
-        emit operationCompleted(tr("Deleted %1 items").arg(decision.completedCount));
-        state_.pendingUploadAfterDelete = false;
-        dirCreator_->queueDirectoriesForUpload(state_.currentFolderOp.sourcePath,
-                                               state_.currentFolderOp.targetPath);
-        if (!state_.pendingMkdirs.isEmpty()) {
-            transitionTo(QueueState::CreatingDirectories);
-            dirCreator_->createNextDirectory();
-        } else {
-            finishDirectoryCreation();
-        }
-        return;
-
-    case transfer::NextDeleteAction::DispatchNext: {
-        const DeleteItem &item = decision.nextItem;
-        qCDebug(LogTransfer) << "TransferOrchestrator: Deleting" << (state_.deletedCount + 1)
-                             << "of" << state_.deleteQueue.size() << ":" << item.path;
-        if (item.isDirectory) {
-            ftpClient_->removeDirectory(item.path);
-        } else {
-            ftpClient_->remove(item.path);
-        }
-        return;
-    }
-    }
+    deleteHandler_->enqueueRecursiveDelete(remotePath);
 }
 
 // ============================================================================

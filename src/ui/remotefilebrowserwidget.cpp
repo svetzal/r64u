@@ -1,6 +1,8 @@
 #include "remotefilebrowserwidget.h"
 
 #include "pathnavigationwidget.h"
+#include "refreshpolicy.h"
+#include "remotefilebrowsercontroller.h"
 
 #include "models/remotefilemodel.h"
 #include "services/errorhandler.h"
@@ -18,9 +20,12 @@
 #include <QVBoxLayout>
 
 RemoteFileBrowserWidget::RemoteFileBrowserWidget(RemoteFileModel *model, QWidget *parent)
-    : QWidget(parent), remoteFileModel_(model), currentDirectory_("/")
+    : QWidget(parent), remoteFileModel_(model), currentDirectory_("/"),
+      controller_(new RemoteFileBrowserController(this)), refreshPolicy_(new RefreshPolicy(this))
 {
     Q_ASSERT(remoteFileModel_ && "RemoteFileModel is required");
+    refreshPolicy_->setModel(remoteFileModel_);
+    refreshPolicy_->setConnected(false);
 
     setupUi();
     setupContextMenu();
@@ -200,6 +205,7 @@ void RemoteFileBrowserWidget::setDownloadEnabled(bool enabled)
 void RemoteFileBrowserWidget::onConnectionStateChanged(bool connected)
 {
     connected_ = connected;
+    refreshPolicy_->setConnected(connected);
     updateActions();
 
     bool canGoUp = (currentDirectory_ != "/" && !currentDirectory_.isEmpty());
@@ -265,15 +271,7 @@ void RemoteFileBrowserWidget::refresh()
 
 void RemoteFileBrowserWidget::refreshIfStale()
 {
-    if (!connected_ || suppressAutoRefresh_) {
-        qCDebug(LogUi) << "refreshIfStale: skipped (connected=" << connected_
-                       << "suppress=" << suppressAutoRefresh_ << ")";
-        return;
-    }
-
-    if (remoteFileModel_) {
-        remoteFileModel_->refreshIfStale();
-    }
+    refreshPolicy_->refreshIfStale();
 }
 
 void RemoteFileBrowserWidget::showEvent(QShowEvent *event)
@@ -366,11 +364,6 @@ void RemoteFileBrowserWidget::onNewFolder()
         return;
     }
 
-    QString remoteDir = currentDirectory_;
-    if (remoteDir.isEmpty()) {
-        remoteDir = "/";
-    }
-
     bool ok;
     QString folderName = QInputDialog::getText(this, tr("New Remote Folder"), tr("Folder name:"),
                                                QLineEdit::Normal, "", &ok);
@@ -379,13 +372,17 @@ void RemoteFileBrowserWidget::onNewFolder()
         return;
     }
 
-    if (!remoteDir.endsWith('/')) {
-        remoteDir += '/';
+    QString newPath = controller_->buildNewFolderPath(currentDirectory_, folderName);
+    if (newPath.isEmpty()) {
+        return;
     }
 
-    QString newPath = remoteDir + folderName;
     emit createFolderRequested(newPath);
     if (errorHandler_) {
+        QString remoteDir = currentDirectory_.isEmpty() ? QStringLiteral("/") : currentDirectory_;
+        if (!remoteDir.endsWith('/')) {
+            remoteDir += '/';
+        }
         errorHandler_->info(ErrorCategory::FileOperation,
                             tr("Creating folder %1 in %2...").arg(folderName).arg(remoteDir));
     }
@@ -403,33 +400,27 @@ void RemoteFileBrowserWidget::onRename()
         return;
     }
 
-    QFileInfo fileInfo(remotePath);
-    QString oldName = fileInfo.fileName();
+    QString oldName = QFileInfo(remotePath).fileName();
     QString itemType = isSelectedDirectory() ? tr("folder") : tr("file");
 
     bool ok;
     QString newName = QInputDialog::getText(this, tr("Rename Remote %1").arg(itemType),
                                             tr("New name:"), QLineEdit::Normal, oldName, &ok);
 
-    if (!ok || newName.isEmpty()) {
+    if (!ok || newName.isEmpty() || newName == oldName) {
         return;
     }
 
-    if (newName == oldName) {
-        return;
-    }
-
-    if (newName.contains('/') || newName.contains('\\')) {
+    if (!controller_->isValidName(newName)) {
         QMessageBox::warning(this, tr("Invalid Name"),
                              tr("The name cannot contain '/' or '\\' characters."));
         return;
     }
 
-    QString parentPath = fileInfo.path();
-    if (!parentPath.endsWith('/')) {
-        parentPath += '/';
+    QString newPath = controller_->buildRenamePath(remotePath, newName);
+    if (newPath.isEmpty()) {
+        return;
     }
-    QString newPath = parentPath + newName;
 
     emit renameRequested(remotePath, newPath);
     if (errorHandler_) {
@@ -448,23 +439,7 @@ void RemoteFileBrowserWidget::onDelete()
         return;
     }
 
-    // Build confirmation message based on selection count
-    QString confirmMessage;
-    if (paths.size() == 1) {
-        QString fileName = QFileInfo(paths.first()).fileName();
-        bool isDir = isSelectedDirectory();
-        confirmMessage =
-            isDir
-                ? tr("Are you sure you want to permanently delete the folder '%1' and all its "
-                     "contents?\n\nThis cannot be undone.")
-                      .arg(fileName)
-                : tr("Are you sure you want to permanently delete '%1'?\n\nThis cannot be undone.")
-                      .arg(fileName);
-    } else {
-        confirmMessage =
-            tr("Are you sure you want to permanently delete %1 items?\n\nThis cannot be undone.")
-                .arg(paths.size());
-    }
+    QString confirmMessage = controller_->buildDeleteConfirmMessage(paths, isSelectedDirectory());
 
     QMessageBox msgBox(this);
     msgBox.setWindowTitle(tr("Delete"));
@@ -519,7 +494,19 @@ void RemoteFileBrowserWidget::onRefresh()
 
 void RemoteFileBrowserWidget::setSuppressAutoRefresh(bool suppress)
 {
-    suppressAutoRefresh_ = suppress;
+    refreshPolicy_->setSuppressed(suppress);
+}
+
+RemoteFileBrowserWidget::AutoRefreshSuppressor::AutoRefreshSuppressor(
+    RemoteFileBrowserWidget *widget)
+    : widget_(widget)
+{
+    widget_->setSuppressAutoRefresh(true);
+}
+
+RemoteFileBrowserWidget::AutoRefreshSuppressor::~AutoRefreshSuppressor()
+{
+    widget_->setSuppressAutoRefresh(false);
 }
 
 RemoteFileBrowserWidget::AutoRefreshSuppressor RemoteFileBrowserWidget::suppressRefresh()
@@ -533,7 +520,7 @@ void RemoteFileBrowserWidget::onDirectoryCreated(const QString &path)
         errorHandler_->info(ErrorCategory::FileOperation,
                             tr("Folder created: %1").arg(QFileInfo(path).fileName()));
     }
-    if (!suppressAutoRefresh_ && remoteFileModel_) {
+    if (!refreshPolicy_->isSuppressed() && remoteFileModel_) {
         remoteFileModel_->refresh();
     }
 }
@@ -541,7 +528,7 @@ void RemoteFileBrowserWidget::onDirectoryCreated(const QString &path)
 void RemoteFileBrowserWidget::onFileRemoved(const QString &path)
 {
     // Don't emit status messages or refresh during bulk delete operations
-    if (!suppressAutoRefresh_ && remoteFileModel_) {
+    if (!refreshPolicy_->isSuppressed() && remoteFileModel_) {
         if (errorHandler_) {
             errorHandler_->info(ErrorCategory::FileOperation,
                                 tr("Deleted: %1").arg(QFileInfo(path).fileName()));
@@ -558,7 +545,7 @@ void RemoteFileBrowserWidget::onFileRenamed(const QString &oldPath, const QStrin
         errorHandler_->info(ErrorCategory::FileOperation,
                             tr("Renamed: %1 -> %2").arg(oldName).arg(newName));
     }
-    if (!suppressAutoRefresh_ && remoteFileModel_) {
+    if (!refreshPolicy_->isSuppressed() && remoteFileModel_) {
         remoteFileModel_->refresh();
     }
 }

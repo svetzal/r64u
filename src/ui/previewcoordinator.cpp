@@ -1,5 +1,6 @@
 #include "previewcoordinator.h"
 
+#include "models/remotefilemodel.h"
 #include "services/fileactioncore.h"
 #include "services/filepreviewservice.h"
 #include "services/playlistservice.h"
@@ -21,6 +22,36 @@ PreviewCoordinator::PreviewCoordinator(FilePreviewService *previewService,
         connect(previewService_, &FilePreviewService::previewFailed, this,
                 &PreviewCoordinator::onPreviewFailed);
     }
+}
+
+void PreviewCoordinator::setRemoteFileModel(RemoteFileModel *model)
+{
+    remoteFileModel_ = model;
+}
+
+void PreviewCoordinator::onSelectionChanged(const QModelIndex &index)
+{
+    if (!detailsPanel_) {
+        qCDebug(LogUi) << "onSelectionChanged: detailsPanel_ is null";
+        return;
+    }
+
+    if (!index.isValid() || !remoteFileModel_) {
+        detailsPanel_->clear();
+        return;
+    }
+
+    if (remoteFileModel_->isDirectory(index)) {
+        detailsPanel_->clear();
+        return;
+    }
+
+    QString path = remoteFileModel_->filePath(index);
+    qint64 size = remoteFileModel_->fileSize(index);
+    filetype::FileType fileType = remoteFileModel_->fileType(index);
+    QString typeStr = RemoteFileModel::fileTypeString(fileType);
+
+    detailsPanel_->showFileDetails(path, size, typeStr);
 }
 
 void PreviewCoordinator::onFileContentRequested(const QString &path)

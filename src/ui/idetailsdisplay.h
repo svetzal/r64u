@@ -14,6 +14,19 @@ public:
     virtual ~IDetailsDisplay() = default;
 
     /**
+     * @brief Clears the details panel to an empty state.
+     */
+    virtual void clear() = 0;
+
+    /**
+     * @brief Displays basic file metadata (name, size, type).
+     * @param path  Remote path of the file.
+     * @param size  File size in bytes.
+     * @param type  Human-readable file type string.
+     */
+    virtual void showFileDetails(const QString &path, qint64 size, const QString &type) = 0;
+
+    /**
      * @brief Displays a C64 disk directory listing from raw disk image data.
      * @param data Raw disk image bytes.
      * @param path Remote path of the disk image file.

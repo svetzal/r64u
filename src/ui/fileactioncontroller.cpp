@@ -1,5 +1,6 @@
 #include "fileactioncontroller.h"
 
+#include "models/remotefilemodel.h"
 #include "services/configfileloaderservice.h"
 #include "services/deviceactionservice.h"
 #include "services/deviceconnection.h"
@@ -13,6 +14,7 @@
 #include "utils/logging.h"
 
 #include <QAction>
+#include <QTreeView>
 
 FileActionController::FileActionController(DeviceActionService *deviceActionService,
                                            DeviceConnection *connection,
@@ -53,6 +55,89 @@ void FileActionController::setActions(QAction *play, QAction *run, QAction *moun
     playAction_ = play;
     runAction_ = run;
     mountAction_ = mount;
+}
+
+void FileActionController::setSelectionSource(QTreeView *view, RemoteFileModel *model)
+{
+    selectionView_ = view;
+    selectionModel_ = model;
+}
+
+bool FileActionController::hasSelectionSource() const
+{
+    return selectionView_ != nullptr && selectionModel_ != nullptr;
+}
+
+QString FileActionController::selectionPath() const
+{
+    if (!hasSelectionSource()) {
+        return {};
+    }
+    QModelIndex index = selectionView_->currentIndex();
+    if (index.isValid()) {
+        return selectionModel_->filePath(index);
+    }
+    return {};
+}
+
+filetype::FileType FileActionController::selectionFileType() const
+{
+    if (!hasSelectionSource()) {
+        return filetype::FileType::Unknown;
+    }
+    QModelIndex index = selectionView_->currentIndex();
+    if (index.isValid()) {
+        return selectionModel_->fileType(index);
+    }
+    return filetype::FileType::Unknown;
+}
+
+void FileActionController::playSelection()
+{
+    if (!hasSelectionSource()) {
+        emit statusMessage(tr("File browser not ready"));
+        return;
+    }
+    play(selectionPath(), selectionFileType());
+}
+
+void FileActionController::runSelection()
+{
+    if (!hasSelectionSource()) {
+        emit statusMessage(tr("File browser not ready"));
+        return;
+    }
+    run(selectionPath(), selectionFileType());
+}
+
+void FileActionController::loadConfigSelection()
+{
+    if (!hasSelectionSource()) {
+        emit statusMessage(tr("File browser not ready"));
+        return;
+    }
+    loadConfig(selectionPath(), selectionFileType());
+}
+
+void FileActionController::addToPlaylistSelection()
+{
+    if (!hasSelectionSource()) {
+        emit statusMessage(tr("File browser not ready"));
+        return;
+    }
+
+    QModelIndexList selectedIndices = selectionView_->selectionModel()->selectedRows();
+    if (selectedIndices.isEmpty()) {
+        emit statusMessage(tr("No files selected"));
+        return;
+    }
+
+    QList<QPair<QString, filetype::FileType>> items;
+    items.reserve(selectedIndices.size());
+    for (const QModelIndex &idx : selectedIndices) {
+        items.append({selectionModel_->filePath(idx), selectionModel_->fileType(idx)});
+    }
+    addToPlaylist(items);
 }
 
 void FileActionController::updateActionStates(filetype::FileType type, bool canOperate)

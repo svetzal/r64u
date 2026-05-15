@@ -51,6 +51,8 @@ set(SOURCES
     src/ui/filebrowserwidget.cpp
     src/ui/localfilebrowserwidget.cpp
     src/ui/remotefilebrowserwidget.cpp
+    src/ui/remotefilebrowsercontroller.cpp
+    src/ui/refreshpolicy.cpp
     src/ui/transferprogresswidget.cpp
     src/ui/batchprogresswidget.cpp
     src/ui/transferprogresscontainer.cpp
@@ -150,6 +152,7 @@ set(SOURCES
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
     src/models/transferorchestrator.cpp
+    src/models/transferdeletehandler.cpp
     src/models/transferftphandler.cpp
     src/models/batchmanager.cpp
     src/models/transfertimeoutmanager.cpp
@@ -173,6 +176,8 @@ set(HEADERS
     src/ui/filebrowserwidget.h
     src/ui/localfilebrowserwidget.h
     src/ui/remotefilebrowserwidget.h
+    src/ui/remotefilebrowsercontroller.h
+    src/ui/refreshpolicy.h
     src/ui/transferprogresswidget.h
     src/ui/batchprogresswidget.h
     src/ui/transferprogresscontainer.h
@@ -275,6 +280,7 @@ set(HEADERS
     src/models/localfileproxymodel.h
     src/models/transferqueue.h
     src/models/transferorchestrator.h
+    src/models/transferdeletehandler.h
     src/models/transferftphandler.h
     src/models/batchmanager.h
     src/models/transfertimeoutmanager.h

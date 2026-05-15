@@ -172,12 +172,12 @@ bool TransferQueue::isScanningForDelete() const
 
 bool TransferQueue::hasActiveBatch() const
 {
-    return orchestrator_->hasActiveBatch();
+    return orchestrator_->batchManager()->hasActiveBatch();
 }
 
 int TransferQueue::queuedBatchCount() const
 {
-    return orchestrator_->queuedBatchCount();
+    return orchestrator_->batchManager()->queuedBatchCount();
 }
 
 bool TransferQueue::isPathBeingTransferred(const QString &path, OperationType type) const
@@ -219,15 +219,15 @@ QHash<int, QByteArray> TransferQueue::roleNames() const
 
 BatchProgress TransferQueue::activeBatchProgress() const
 {
-    return orchestrator_->activeBatchProgress();
+    return orchestrator_->batchManager()->activeBatchProgress();
 }
 
 BatchProgress TransferQueue::batchProgress(int batchId) const
 {
-    return orchestrator_->batchProgress(batchId);
+    return orchestrator_->batchManager()->batchProgress(batchId);
 }
 
 QList<int> TransferQueue::allBatchIds() const
 {
-    return orchestrator_->allBatchIds();
+    return orchestrator_->batchManager()->allBatchIds();
 }

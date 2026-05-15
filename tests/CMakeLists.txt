@@ -113,6 +113,7 @@ add_executable(test_transferqueue
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
@@ -153,6 +154,7 @@ add_executable(test_transferorchestrator
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
@@ -515,6 +517,7 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
@@ -815,6 +818,7 @@ if(BUILD_INTEGRATION_TESTS)
         ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+        ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
         ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
@@ -1900,6 +1904,7 @@ add_executable(test_fileactioncontroller
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/fileactioncontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
@@ -1969,6 +1974,7 @@ add_executable(test_previewcoordinator
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/previewcoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
@@ -2350,6 +2356,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
@@ -2520,6 +2527,7 @@ add_executable(test_transferpanel
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
@@ -2531,6 +2539,8 @@ add_executable(test_transferpanel
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/transferpanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowserwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowsercontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/refreshpolicy.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/localfilebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
@@ -2574,6 +2584,8 @@ add_executable(test_remotefilebrowserwidget
     ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowserwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowsercontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/refreshpolicy.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
 )
 
@@ -2712,6 +2724,7 @@ add_executable(test_transferqueuewidget
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
@@ -2782,6 +2795,7 @@ add_executable(test_batchprogresswidget
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
@@ -3023,6 +3037,7 @@ add_executable(test_transferprogresswidget
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
@@ -3078,6 +3093,7 @@ add_executable(test_transferprogresscontainer
     ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp

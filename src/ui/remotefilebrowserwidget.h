@@ -8,6 +8,8 @@
 
 class RemoteFileModel;
 class RemoteFileOperationsService;
+class RemoteFileBrowserController;
+class RefreshPolicy;
 class PathNavigationWidget;
 class ErrorHandler;
 
@@ -29,14 +31,20 @@ public:
     void refresh();
     void refreshIfStale();
 
+    /**
+     * @brief RAII guard that suppresses auto-refresh for its lifetime.
+     *
+     * Delegates to RefreshPolicy internally. Callers can write:
+     * @code
+     *   auto suppressor = widget->suppressRefresh();
+     *   // ... operations that should not trigger refresh ...
+     * @endcode
+     */
     class AutoRefreshSuppressor
     {
     public:
-        explicit AutoRefreshSuppressor(RemoteFileBrowserWidget *widget) : widget_(widget)
-        {
-            widget_->setSuppressAutoRefresh(true);
-        }
-        ~AutoRefreshSuppressor() { widget_->setSuppressAutoRefresh(false); }
+        explicit AutoRefreshSuppressor(RemoteFileBrowserWidget *widget);
+        ~AutoRefreshSuppressor();
         AutoRefreshSuppressor(const AutoRefreshSuppressor &) = delete;
         AutoRefreshSuppressor &operator=(const AutoRefreshSuppressor &) = delete;
 
@@ -88,10 +96,13 @@ private:
     RemoteFileOperationsService *fileOperations_ = nullptr;
     ErrorHandler *errorHandler_ = nullptr;
 
+    // Owned controller and policy (Qt parent ownership)
+    RemoteFileBrowserController *controller_ = nullptr;
+    RefreshPolicy *refreshPolicy_ = nullptr;
+
     // State
     QString currentDirectory_;
     bool connected_ = false;
-    bool suppressAutoRefresh_ = false;
 
     // UI widgets
     QTreeView *treeView_ = nullptr;

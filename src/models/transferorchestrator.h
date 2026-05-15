@@ -2,6 +2,7 @@
 #define TRANSFERORCHESTRATOR_H
 
 #include "batchmanager.h"
+#include "transferdeletehandler.h"
 #include "transfereventprocessor.h"
 #include "transferftphandler.h"
 #include "transfertimeoutmanager.h"
@@ -93,6 +94,13 @@ public:
 
     [[nodiscard]] const transfer::State &state() const { return state_; }
 
+    /**
+     * @brief Provides direct access to the BatchManager for callers that need
+     *        batch queries without going through TransferOrchestrator pass-throughs.
+     * @return Non-owning pointer to the batch manager (never null after construction).
+     */
+    [[nodiscard]] const BatchManager *batchManager() const { return batchManager_; }
+
     [[nodiscard]] int pendingCount() const;
     [[nodiscard]] int activeCount() const;
     [[nodiscard]] int activeAndPendingCount() const;
@@ -155,6 +163,7 @@ private:
     void setupDirectoryCreator();
     void setupFolderOperationCoordinator();
     void setupFtpHandler();
+    void setupDeleteHandler();
 
     void notifyBeginInsert(int first, int last);
     void notifyEndInsert();
@@ -183,7 +192,6 @@ private:
                                       bool includeFailed = false);
 
     void finishDirectoryCreation();
-    void processNextDelete();
     void markCurrentComplete(TransferItem::Status status);
 
     QPointer<IFtpClient> ftpClient_;
@@ -201,6 +209,7 @@ private:
     RemoteDirectoryCreator *dirCreator_ = nullptr;
     FolderOperationCoordinator *folderCoordinator_ = nullptr;
     TransferFtpHandler *ftpHandler_ = nullptr;
+    TransferDeleteHandler *deleteHandler_ = nullptr;
 };
 
 #endif  // TRANSFERORCHESTRATOR_H

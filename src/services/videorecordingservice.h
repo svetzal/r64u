@@ -52,6 +52,18 @@ public:
      */
     [[nodiscard]] int frameCount() const { return frameCount_; }
 
+public:
+    /**
+     * @brief Prepares a timestamped AVI file path in the configured capture directory.
+     *
+     * Reads the output directory from QSettings key "capture/directory",
+     * falling back to the system Movies location. Creates the directory if it
+     * does not exist.
+     *
+     * @return Absolute path to the new (not-yet-created) AVI file.
+     */
+    [[nodiscard]] static QString prepareRecordingPath();
+
 public slots:
     void connectToStreaming(StreamingService *manager);
 

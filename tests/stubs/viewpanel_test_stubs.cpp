@@ -77,6 +77,11 @@ void VideoRecordingService::onRawFrameReady(const QByteArray & /*frameData*/,
 {
 }
 
+QString VideoRecordingService::prepareRecordingPath()
+{
+    return QString();
+}
+
 // ---------------------------------------------------------------------------
 // Vic2 frame converter stub (used by VideoDisplayWidget)
 // ---------------------------------------------------------------------------
