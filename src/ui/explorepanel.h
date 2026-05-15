@@ -1,6 +1,7 @@
 #ifndef EXPLOREPANEL_H
 #define EXPLOREPANEL_H
 
+#include "services/explorepanelservices.h"
 #include "services/filetypecore.h"
 #include "services/metadataservicebundle.h"
 #include "ui/ipanel.h"
@@ -11,12 +12,7 @@
 #include <QWidget>
 
 class DeviceConnection;
-class DeviceActionService;
 class RemoteFileModel;
-class ConfigFileLoaderService;
-class FilePreviewService;
-class FavoritesService;
-class PlaylistService;
 class StreamingService;
 class FileDetailsPanel;
 class PathNavigationWidget;
@@ -37,10 +33,8 @@ class ExplorePanel : public QWidget, public IPanel
 public:
     QObject *asQObject() override { return this; }
 
-    explicit ExplorePanel(DeviceConnection *connection, DeviceActionService *deviceActionService,
-                          RemoteFileModel *model, ConfigFileLoaderService *configLoader,
-                          FilePreviewService *previewService, FavoritesService *favoritesService,
-                          PlaylistService *playlistService, QWidget *parent = nullptr);
+    explicit ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
+                          const ExplorePanelServices &services, QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
     void setCurrentDirectory(const QString &path) override;

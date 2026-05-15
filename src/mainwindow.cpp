@@ -7,6 +7,7 @@
 #include "services/deviceactionservice.h"
 #include "services/deviceconnection.h"
 #include "services/errorhandler.h"
+#include "services/explorepanelservices.h"
 #include "services/favoritesservice.h"
 #include "services/filepreviewservice.h"
 #include "services/gamebase64service.h"
@@ -150,9 +151,13 @@ void MainWindow::setupStatusBar()
 void MainWindow::setupPanels(ServiceFactory *services)
 {
     // Create mode panels with their dependencies
-    explorePanel_ = new ExplorePanel(deviceConnection_, services->deviceActionService(),
-                                     remoteFileModel_, configFileLoader_, filePreviewService_,
-                                     favoritesService_, playlistService_);
+    ExplorePanelServices exploreSvcs;
+    exploreSvcs.deviceActionService = services->deviceActionService();
+    exploreSvcs.configLoader = configFileLoader_;
+    exploreSvcs.previewService = filePreviewService_;
+    exploreSvcs.favoritesService = favoritesService_;
+    exploreSvcs.playlistService = playlistService_;
+    explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, exploreSvcs);
     explorePanel_->setMetadataServices(metadataBundle_);
     transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferService_,
                                        services->remoteFileOperations());

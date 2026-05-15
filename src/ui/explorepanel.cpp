@@ -16,6 +16,7 @@
 #include "services/configfileloaderservice.h"
 #include "services/deviceactionservice.h"
 #include "services/deviceconnection.h"
+#include "services/explorepanelservices.h"
 #include "services/favoritesservice.h"
 #include "services/filebrowsercore.h"
 #include "services/filepreviewservice.h"
@@ -31,26 +32,24 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-ExplorePanel::ExplorePanel(DeviceConnection *connection, DeviceActionService *deviceActionService,
-                           RemoteFileModel *model, ConfigFileLoaderService *configLoader,
-                           FilePreviewService *previewService, FavoritesService *favoritesService,
-                           PlaylistService *playlistService, QWidget *parent)
+ExplorePanel::ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
+                           const ExplorePanelServices &services, QWidget *parent)
     : QWidget(parent), deviceConnection_(connection), remoteFileModel_(model),
-      playlistService_(playlistService)
+      playlistService_(services.playlistService)
 {
     Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
-    Q_ASSERT(deviceActionService && "DeviceActionService is required");
+    Q_ASSERT(services.deviceActionService && "DeviceActionService is required");
     Q_ASSERT(remoteFileModel_ && "RemoteFileModel is required");
-    Q_ASSERT(configLoader && "ConfigFileLoaderService is required");
-    Q_ASSERT(previewService && "FilePreviewService is required");
-    Q_ASSERT(favoritesService && "FavoritesService is required");
+    Q_ASSERT(services.configLoader && "ConfigFileLoaderService is required");
+    Q_ASSERT(services.previewService && "FilePreviewService is required");
+    Q_ASSERT(services.favoritesService && "FavoritesService is required");
     Q_ASSERT(playlistService_ && "PlaylistService is required");
 
-    actionController_ =
-        new FileActionController(deviceActionService, deviceConnection_, configLoader, this);
+    actionController_ = new FileActionController(services.deviceActionService, deviceConnection_,
+                                                 services.configLoader, this);
     actionController_->setPlaylistService(playlistService_);
     // selectionView_ and treeView_ are wired after setupUi() via setSelectionSource
-    favoritesController_ = new ExploreFavoritesController(favoritesService, this);
+    favoritesController_ = new ExploreFavoritesController(services.favoritesService, this);
     contextMenu_ = new ExploreContextMenu(this);
 
     setupUi();
@@ -62,16 +61,16 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection, DeviceActionService *de
                                                      navViewAdapter_, favoritesController_, this);
 
     previewCoordinator_ =
-        new PreviewCoordinator(previewService, fileDetailsPanel_, playlistService_, this);
+        new PreviewCoordinator(services.previewService, fileDetailsPanel_, playlistService_, this);
     previewCoordinator_->setRemoteFileModel(remoteFileModel_);
 
     actionController_->setSelectionSource(treeView_, remoteFileModel_);
 
     setupConnections();
 
-    connect(configLoader, &ConfigFileLoaderService::loadFinished, previewCoordinator_,
+    connect(services.configLoader, &ConfigFileLoaderService::loadFinished, previewCoordinator_,
             &PreviewCoordinator::onConfigLoadFinished);
-    connect(configLoader, &ConfigFileLoaderService::loadFailed, previewCoordinator_,
+    connect(services.configLoader, &ConfigFileLoaderService::loadFailed, previewCoordinator_,
             &PreviewCoordinator::onConfigLoadFailed);
 }
 
