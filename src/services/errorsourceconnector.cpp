@@ -8,6 +8,7 @@
 #include "iftpclient.h"
 #include "irestclient.h"
 #include "keyboardinputservice.h"
+#include "playlistservice.h"
 #include "remotefileoperationsservice.h"
 #include "songlengthsdatabase.h"
 #include "transferservice.h"
@@ -24,7 +25,7 @@ void ErrorHandler::connectSources(DeviceConnection *dc, IRestClient *restClient,
                                   HVSCMetadataService *hvsc, GameBase64Service *gb64,
                                   RemoteFileOperationsService *rfo, StreamingService *ss,
                                   IAudioPlaybackService *apb, VideoRecordingService *vrs,
-                                  KeyboardInputService *kis)
+                                  KeyboardInputService *kis, PlaylistService *ps)
 {
     connectDeviceSources(dc, restClient, cfl);
     connectTransferSources(ftpClient, ts);
@@ -46,6 +47,9 @@ void ErrorHandler::connectSources(DeviceConnection *dc, IRestClient *restClient,
     }
     if (kis) {
         connect(kis, &KeyboardInputService::errorOccurred, this, &ErrorHandler::handleDataError);
+    }
+    if (ps) {
+        connect(ps, &PlaylistService::errorOccurred, this, &ErrorHandler::handleDataError);
     }
 }
 

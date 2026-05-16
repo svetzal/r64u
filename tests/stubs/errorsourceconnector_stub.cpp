@@ -10,6 +10,7 @@ class HVSCMetadataService;
 class IAudioPlaybackService;
 class IRestClient;
 class KeyboardInputService;
+class PlaylistService;
 class RemoteFileModel;
 class RemoteFileOperationsService;
 class SonglengthsDatabase;
@@ -24,7 +25,7 @@ void ErrorHandler::connectSources(DeviceConnection * /*dc*/, IRestClient * /*res
                                   HVSCMetadataService * /*hvsc*/, GameBase64Service * /*gb64*/,
                                   RemoteFileOperationsService * /*rfo*/, StreamingService * /*ss*/,
                                   IAudioPlaybackService * /*apb*/, VideoRecordingService * /*vrs*/,
-                                  KeyboardInputService * /*kis*/)
+                                  KeyboardInputService * /*kis*/, PlaylistService * /*ps*/)
 {
     connectTransferSources(ftpClient, nullptr);
 }

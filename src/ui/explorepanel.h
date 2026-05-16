@@ -12,6 +12,7 @@
 #include <QWidget>
 
 class DeviceConnection;
+class ErrorHandler;
 class RemoteFileModel;
 class StreamingService;
 class FileDetailsPanel;
@@ -49,6 +50,9 @@ public:
 
     // Metadata services injection (bundled)
     void setMetadataServices(const MetadataServiceBundle &bundle);
+
+    // Error handler injection (routes boot sequence errors through centralized handler)
+    void setErrorHandler(ErrorHandler *handler);
 
     // Streaming service injection (for auto-start on play/run)
     void setStreamingService(StreamingService *manager);

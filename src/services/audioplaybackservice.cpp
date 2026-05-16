@@ -114,6 +114,7 @@ void AudioPlaybackService::writeSamples(const QByteArray &samples, int /*sampleC
     QMutexLocker locker(&writeMutex_);
 
     if (!isPlaying_ || !audioDevice_) {
+        qCDebug(LogStreaming) << "writeSamples dropped: not playing or no audio device";
         return;
     }
 

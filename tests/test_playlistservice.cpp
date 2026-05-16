@@ -165,7 +165,7 @@ private slots:
 
     void testPlay_EmptyPlaylist_EmitsPlaylistIsEmptyStatusMessage()
     {
-        QSignalSpy spy(manager, &PlaylistService::statusMessage);
+        QSignalSpy spy(manager, &PlaylistService::errorOccurred);
         manager->play();
         QCOMPARE(spy.count(), 1);
         QVERIFY(spy.at(0).at(0).toString().contains("Playlist is empty"));
@@ -174,7 +174,7 @@ private slots:
     void testPlay_OutOfBoundsIndex_EmitsInvalidTrackIndexStatusMessage()
     {
         addTestItem(manager, "/SD/a.sid");
-        QSignalSpy spy(manager, &PlaylistService::statusMessage);
+        QSignalSpy spy(manager, &PlaylistService::errorOccurred);
         manager->play(99);
         QCOMPARE(spy.count(), 1);
         QVERIFY(spy.at(0).at(0).toString().contains("Invalid track index"));
@@ -210,7 +210,7 @@ private slots:
 
     void testNext_EmptyPlaylist_EmitsPlaylistIsEmptyStatusMessage()
     {
-        QSignalSpy spy(manager, &PlaylistService::statusMessage);
+        QSignalSpy spy(manager, &PlaylistService::errorOccurred);
         manager->next();
         QCOMPARE(spy.count(), 1);
         QVERIFY(spy.at(0).at(0).toString().contains("Playlist is empty"));
@@ -238,7 +238,7 @@ private slots:
 
     void testPrevious_EmptyPlaylist_EmitsPlaylistIsEmptyStatusMessage()
     {
-        QSignalSpy spy(manager, &PlaylistService::statusMessage);
+        QSignalSpy spy(manager, &PlaylistService::errorOccurred);
         manager->previous();
         QCOMPARE(spy.count(), 1);
         QVERIFY(spy.at(0).at(0).toString().contains("Playlist is empty"));
@@ -249,8 +249,7 @@ private slots:
         // Add one item and play it (at index 0); previous() has nowhere to go
         addTestItem(manager, "/SD/a.sid");
         manager->play(0);
-        // Consume the statusMessage from play() (device not connected)
-        QSignalSpy spy(manager, &PlaylistService::statusMessage);
+        QSignalSpy spy(manager, &PlaylistService::errorOccurred);
         manager->previous();
         QCOMPARE(spy.count(), 1);
         QVERIFY(spy.at(0).at(0).toString().contains("Already at first track"));

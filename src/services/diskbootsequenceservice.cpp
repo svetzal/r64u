@@ -85,6 +85,10 @@ void DiskBootSequenceService::executeCurrentStep()
                 } else {
                     qCWarning(LogDevice)
                         << "DiskBootSequenceService: mountImage skipped, no REST client";
+                    running_ = false;
+                    emit errorOccurred(tr("Boot sequence failed: device not connected"));
+                    emit aborted();
+                    return;
                 }
                 executeCurrentStep();
             } else if constexpr (std::is_same_v<T, diskboot::ResetMachineCall>) {
@@ -93,6 +97,10 @@ void DiskBootSequenceService::executeCurrentStep()
                 } else {
                     qCWarning(LogDevice)
                         << "DiskBootSequenceService: resetMachine skipped, no REST client";
+                    running_ = false;
+                    emit errorOccurred(tr("Boot sequence failed: device not connected"));
+                    emit aborted();
+                    return;
                 }
                 executeCurrentStep();
             } else if constexpr (std::is_same_v<T, diskboot::TypeTextCall>) {
@@ -101,6 +109,10 @@ void DiskBootSequenceService::executeCurrentStep()
                 } else {
                     qCWarning(LogDevice)
                         << "DiskBootSequenceService: typeText skipped, no REST client";
+                    running_ = false;
+                    emit errorOccurred(tr("Boot sequence failed: device not connected"));
+                    emit aborted();
+                    return;
                 }
                 executeCurrentStep();
             } else if constexpr (std::is_same_v<T, diskboot::WaitMs>) {

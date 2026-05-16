@@ -1,6 +1,7 @@
 #include "services/deviceconnection.h"
 #include "services/errorhandler.h"
 #include "services/ivideostreamreceiver.h"
+#include "services/playlistservice.h"
 #include "services/transferservice.h"
 #include "services/videorecordingservice.h"
 
@@ -74,6 +75,56 @@ void DeviceConnection::resetProtocolFlags() {}
 void DeviceConnection::checkBothConnected() {}
 void DeviceConnection::startReconnect() {}
 void DeviceConnection::stopReconnect() {}
+
+// ---------------------------------------------------------------------------
+// PlaylistService stubs — provides Q_OBJECT/signal metadata without the real implementation
+
+PlaylistService::PlaylistService(DeviceConnection * /*connection*/, QObject *parent)
+    : QObject(parent)
+{
+}
+
+void PlaylistService::setSonglengthsDatabase(SonglengthsDatabase * /*database*/) {}
+void PlaylistService::setStreamingService(StreamingService * /*manager*/) {}
+void PlaylistService::addItem(const QString & /*path*/, int /*subsong*/) {}
+void PlaylistService::addItem(const PlaylistItem & /*item*/) {}
+void PlaylistService::removeItem(int /*index*/) {}
+void PlaylistService::moveItem(int /*from*/, int /*to*/) {}
+void PlaylistService::clear() {}
+PlaylistService::PlaylistItem PlaylistService::itemAt(int /*index*/) const
+{
+    return {};
+}
+void PlaylistService::play(int /*index*/) {}
+void PlaylistService::stop() {}
+void PlaylistService::next() {}
+void PlaylistService::previous() {}
+void PlaylistService::setShuffle(bool /*enabled*/) {}
+void PlaylistService::setRepeatMode(RepeatMode /*mode*/) {}
+void PlaylistService::setDefaultDuration(int /*seconds*/) {}
+void PlaylistService::setItemDuration(int /*index*/, int /*seconds*/) {}
+void PlaylistService::updateDurationFromData(const QString & /*path*/,
+                                             const QByteArray & /*sidData*/)
+{
+}
+bool PlaylistService::savePlaylist(const QString & /*filePath*/) const
+{
+    return false;
+}
+bool PlaylistService::loadPlaylist(const QString & /*filePath*/)
+{
+    return false;
+}
+void PlaylistService::saveSettings() const {}
+void PlaylistService::loadSettings() {}
+void PlaylistService::onAdvanceTimer() {}
+void PlaylistService::onSidDataReceived(const QString & /*remotePath*/, const QByteArray & /*data*/)
+{
+}
+void PlaylistService::startTimer() {}
+void PlaylistService::stopTimer() {}
+void PlaylistService::playCurrentItem() {}
+void PlaylistService::ensureStreamingStarted() {}
 
 // ---------------------------------------------------------------------------
 

@@ -217,7 +217,8 @@ void MainWindow::setupConnections()
         metadataBundle_.songlengthsDatabase, metadataBundle_.hvscMetadataService,
         metadataBundle_.gameBase64Service, transferPanel_->fileOperations(), ss,
         ss ? ss->audioPlayback() : nullptr, viewPanel_->recordingService(),
-        ss ? ss->keyboardInput() : nullptr);
+        ss ? ss->keyboardInput() : nullptr, playlistService_);
+    explorePanel_->setErrorHandler(errorHandler_);
 
     // Connection lifecycle signals (navigation / model management)
     connect(deviceConnection_, &DeviceConnection::stateChanged, this,

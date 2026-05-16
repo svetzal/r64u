@@ -610,6 +610,7 @@ add_executable(test_errorsourceconnector
     ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.h
     ${CMAKE_SOURCE_DIR}/src/services/iaudioplaybackservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/playlistservice.h
 )
 
 target_include_directories(test_errorsourceconnector PRIVATE

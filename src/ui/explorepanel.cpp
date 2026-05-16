@@ -16,6 +16,7 @@
 #include "services/configfileloaderservice.h"
 #include "services/deviceactionservice.h"
 #include "services/deviceconnection.h"
+#include "services/errorhandler.h"
 #include "services/explorepanelservices.h"
 #include "services/favoritesservice.h"
 #include "services/filebrowsercore.h"
@@ -328,6 +329,11 @@ void ExplorePanel::setMetadataServices(const MetadataServiceBundle &bundle)
         fileDetailsPanel_->setHVSCMetadataService(bundle.hvscMetadataService);
         fileDetailsPanel_->setGameBase64Service(bundle.gameBase64Service);
     }
+}
+
+void ExplorePanel::setErrorHandler(ErrorHandler *handler)
+{
+    actionController_->setErrorHandler(handler);
 }
 
 void ExplorePanel::setStreamingService(StreamingService *manager)

@@ -213,11 +213,11 @@ private slots:
     // setRestClient — null safety
     // =========================================================
 
-    void testStartBootSequence_NullRestClient_StillCompletes()
+    void testStartBootSequence_NullRestClient_AbortsWithError()
     {
-        // Remove REST client — sequence should still complete (guards in executeCurrentStep)
         DiskBootSequenceService svcNoClient;
-        QSignalSpy completedSpy(&svcNoClient, &DiskBootSequenceService::completed);
+        QSignalSpy abortedSpy(&svcNoClient, &DiskBootSequenceService::aborted);
+        QSignalSpy errorSpy(&svcNoClient, &DiskBootSequenceService::errorOccurred);
 
         svcNoClient.startBootSequence("/SD/games/test.d64", fastConfig());
 
@@ -225,7 +225,9 @@ private slots:
             QCoreApplication::processEvents();
         }
 
-        QCOMPARE(completedSpy.count(), 1);
+        QCOMPARE(abortedSpy.count(), 1);
+        QCOMPARE(errorSpy.count(), 1);
+        QVERIFY(errorSpy.at(0).at(0).toString().contains("device not connected"));
     }
 
 private:

@@ -128,6 +128,7 @@ void VideoRecordingService::addFrame(const QImage &frame)
     QMutexLocker locker(&mutex_);
 
     if (!recording_ || frame.isNull()) {
+        qCDebug(LogRecording) << "addFrame skipped: not recording or null frame";
         return;
     }
 
@@ -152,7 +153,8 @@ void VideoRecordingService::addFrame(const QImage &frame)
     }
 
     if (!rgbFrame.save(&buffer, "JPEG", 85)) {
-        // If JPEG fails, skip this frame
+        qCWarning(LogRecording) << "VideoRecordingService: JPEG encoding failed, frame dropped";
+        emit error(tr("Frame encoding failed"));
         return;
     }
 
@@ -176,6 +178,7 @@ void VideoRecordingService::addAudioSamples(const QByteArray &samples, int sampl
     QMutexLocker locker(&mutex_);
 
     if (!recording_ || samples.isEmpty()) {
+        qCDebug(LogRecording) << "addAudioSamples skipped: not recording or empty samples";
         return;
     }
 

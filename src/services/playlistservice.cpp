@@ -117,7 +117,7 @@ void PlaylistService::play(int index)
 {
     if (state_.items.isEmpty()) {
         qCWarning(LogPlaylist) << "Cannot play: playlist is empty";
-        emit statusMessage(tr("Playlist is empty"));
+        emit errorOccurred(tr("Playlist is empty"));
         return;
     }
 
@@ -129,7 +129,7 @@ void PlaylistService::play(int index)
     } else if (index < state_.items.count()) {
         state_.currentIndex = index;
     } else {
-        emit statusMessage(tr("Invalid track index"));
+        emit errorOccurred(tr("Invalid track index"));
         return;
     }
 
@@ -165,7 +165,7 @@ void PlaylistService::next()
 {
     if (state_.items.isEmpty()) {
         qCWarning(LogPlaylist) << "next() called on empty playlist";
-        emit statusMessage(tr("Playlist is empty"));
+        emit errorOccurred(tr("Playlist is empty"));
         return;
     }
 
@@ -188,13 +188,13 @@ void PlaylistService::previous()
 {
     if (state_.items.isEmpty()) {
         qCWarning(LogPlaylist) << "previous() called on empty playlist";
-        emit statusMessage(tr("Playlist is empty"));
+        emit errorOccurred(tr("Playlist is empty"));
         return;
     }
 
     int prevIdx = playlist::previousIndex(state_);
     if (prevIdx < 0) {
-        emit statusMessage(tr("Already at first track"));
+        emit errorOccurred(tr("Already at first track"));
         return;
     }
 

@@ -72,6 +72,11 @@ signals:
      */
     void aborted();
 
+    /**
+     * @brief Emitted when the boot sequence fails due to a missing dependency.
+     */
+    void errorOccurred(const QString &error);
+
 private:
     void executeCurrentStep();
 

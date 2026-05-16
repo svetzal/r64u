@@ -17,6 +17,7 @@ class IAudioPlaybackService;
 class IFtpClient;
 class IRestClient;
 class KeyboardInputService;
+class PlaylistService;
 class RemoteFileModel;
 class RemoteFileOperationsService;
 class SonglengthsDatabase;
@@ -96,7 +97,7 @@ public:
                         HVSCMetadataService *hvsc, GameBase64Service *gb64,
                         RemoteFileOperationsService *rfo = nullptr, StreamingService *ss = nullptr,
                         IAudioPlaybackService *apb = nullptr, VideoRecordingService *vrs = nullptr,
-                        KeyboardInputService *kis = nullptr);
+                        KeyboardInputService *kis = nullptr, PlaylistService *ps = nullptr);
 
     /// @name Generic Error Handling
     /// @{

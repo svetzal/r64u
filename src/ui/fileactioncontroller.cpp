@@ -38,6 +38,10 @@ FileActionController::FileActionController(DeviceActionService *deviceActionServ
 void FileActionController::setErrorHandler(ErrorHandler *handler)
 {
     errorHandler_ = handler;
+    if (handler) {
+        connect(bootService_, &DiskBootSequenceService::errorOccurred, handler,
+                &ErrorHandler::handleDataError);
+    }
 }
 
 void FileActionController::setStreamingService(StreamingService *manager)
