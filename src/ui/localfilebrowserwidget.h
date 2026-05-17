@@ -16,7 +16,6 @@ public:
     explicit LocalFileBrowserWidget(QWidget *parent = nullptr);
 
     [[nodiscard]] QString selectedPath() const override;
-    [[nodiscard]] QStringList selectedPaths() const;
     [[nodiscard]] bool isSelectedDirectory() const override;
     void setUploadEnabled(bool enabled);
 

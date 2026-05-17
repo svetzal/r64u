@@ -13,7 +13,6 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QSet>
 #include <QStandardPaths>
 #include <QToolBar>
 #include <QTreeView>
@@ -129,10 +128,8 @@ void LocalFileBrowserWidget::updateActions()
     bool hasSelection = !LocalFileBrowserWidget::selectedPath()
                              .isEmpty();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
 
+    updateCommonActions();
     uploadAction_->setEnabled(hasSelection);
-    newFolderAction_->setEnabled(true);
-    renameAction_->setEnabled(hasSelection);
-    deleteAction_->setEnabled(hasSelection);
 }
 
 void LocalFileBrowserWidget::setUploadEnabled(bool enabled)
@@ -149,33 +146,6 @@ QString LocalFileBrowserWidget::selectedPath() const
         return fileModel_->filePath(sourceIndex);
     }
     return QString();
-}
-
-QStringList LocalFileBrowserWidget::selectedPaths() const
-{
-    QStringList paths;
-    if (!treeView_ || !treeView_->selectionModel()) {
-        return paths;
-    }
-
-    // Get all selected indexes, filter to column 0 only (avoid duplicates from multi-column
-    // selection)
-    QModelIndexList selectedIndexes = treeView_->selectionModel()->selectedIndexes();
-    QSet<QString> seenPaths;  // Deduplicate
-
-    for (const QModelIndex &proxyIndex : selectedIndexes) {
-        if (proxyIndex.column() != 0) {
-            continue;  // Only process first column to avoid duplicates
-        }
-        QModelIndex sourceIndex = proxyModel_->mapToSource(proxyIndex);
-        QString path = fileModel_->filePath(sourceIndex);
-        if (!path.isEmpty() && !seenPaths.contains(path)) {
-            seenPaths.insert(path);
-            paths.append(path);
-        }
-    }
-
-    return paths;
 }
 
 bool LocalFileBrowserWidget::isSelectedDirectory() const

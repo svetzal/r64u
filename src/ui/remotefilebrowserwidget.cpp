@@ -9,49 +9,46 @@
 #include "services/remotefileoperationsservice.h"
 #include "utils/logging.h"
 
+#include <QAction>
 #include <QFileInfo>
 #include <QHeaderView>
 #include <QInputDialog>
-#include <QLabel>
+#include <QItemSelectionModel>
+#include <QMenu>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QSet>
 #include <QShowEvent>
-#include <QVBoxLayout>
+#include <QToolBar>
+#include <QTreeView>
 
-RemoteFileBrowserWidget::RemoteFileBrowserWidget(RemoteFileModel *model, QWidget *parent)
-    : QWidget(parent), remoteFileModel_(model), currentDirectory_("/"),
+RemoteFileBrowserWidget::RemoteFileBrowserWidget(RemoteFileModel *fileModel, QWidget *parent)
+    : FileBrowserWidget(parent), remoteFileModel_(fileModel),
       controller_(new RemoteFileBrowserController(this)), refreshPolicy_(new RefreshPolicy(this))
 {
     Q_ASSERT(remoteFileModel_ && "RemoteFileModel is required");
+    currentDirectory_ = QStringLiteral("/");
     refreshPolicy_->setModel(remoteFileModel_);
     refreshPolicy_->setConnected(false);
 
-    setupUi();
-    setupContextMenu();
-    setupConnections();
+    // NOLINT: Qt template-method initialization pattern. These virtual methods are defined
+    // in this concrete class and are intentionally called here to set up the widget.
+    // Virtual dispatch is safe because RemoteFileBrowserWidget is not designed to be subclassed.
+    RemoteFileBrowserWidget::setupUi();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
+    RemoteFileBrowserWidget::
+        setupContextMenu();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
+    RemoteFileBrowserWidget::
+        setupConnections();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
 }
 
 void RemoteFileBrowserWidget::setupUi()
 {
-    auto *layout = new QVBoxLayout(this);
-    layout->setContentsMargins(4, 4, 4, 4);
+    // Call base class to create standard UI structure
+    FileBrowserWidget::setupUi();
 
-    auto *label = new QLabel(tr("C64U Files"));
-    label->setStyleSheet("font-weight: bold;");
-    layout->addWidget(label);
+    // Set blue style for nav widget
+    navWidget_->setStyleBlue();
 
-    // Path navigation widget
-    navWidget_ = new PathNavigationWidget(tr("Upload to:"));
-    connect(navWidget_, &PathNavigationWidget::upClicked, this,
-            &RemoteFileBrowserWidget::onParentFolder);
-    layout->addWidget(navWidget_);
-
-    // Toolbar
-    toolBar_ = new QToolBar();
-    toolBar_->setIconSize(QSize(16, 16));
-    toolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-
+    // Add remote-specific actions to toolbar
     downloadAction_ = toolBar_->addAction(tr("Download"));
     downloadAction_->setToolTip(tr("Download selected files from C64U"));
     connect(downloadAction_, &QAction::triggered, this, &RemoteFileBrowserWidget::onDownload);
@@ -74,44 +71,24 @@ void RemoteFileBrowserWidget::setupUi()
     refreshAction_->setToolTip(tr("Refresh file listing"));
     connect(refreshAction_, &QAction::triggered, this, &RemoteFileBrowserWidget::onRefresh);
 
-    layout->addWidget(toolBar_);
-
-    // Tree view
-    treeView_ = new QTreeView();
-    if (remoteFileModel_) {
-        treeView_->setModel(remoteFileModel_);
-    }
-    treeView_->setAlternatingRowColors(true);
-    treeView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    treeView_->setContextMenuPolicy(Qt::CustomContextMenu);
+    // Set up the model
+    treeView_->setModel(remoteFileModel_);
 
     // Set column widths: Size and Type get fixed widths, Name stretches
     treeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     treeView_->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     treeView_->header()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
 
-    connect(treeView_, &QTreeView::customContextMenuRequested, this,
-            &RemoteFileBrowserWidget::onContextMenu);
-    connect(treeView_, &QTreeView::doubleClicked, this, &RemoteFileBrowserWidget::onDoubleClicked);
-    // Guard against null selection model
-    if (auto *selModel = treeView_->selectionModel()) {
-        connect(selModel, &QItemSelectionModel::selectionChanged, this, [this]() {
-            updateActions();
-            emit selectionChanged();
-        });
-    }
-
-    layout->addWidget(treeView_);
-
-    // Initialize nav widget
-    navWidget_->setPath(currentDirectory_);
-    updateActions();
+    RemoteFileBrowserWidget::updateActions();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
 }
 
 void RemoteFileBrowserWidget::setupContextMenu()
 {
-    contextMenu_ = new QMenu(this);
-    setDestAction_ = contextMenu_->addAction(tr("Set as Upload Destination"), this, [this]() {
+    // Call base class to create menu with "Set as Destination" action
+    FileBrowserWidget::setupContextMenu();
+
+    // Connect the set destination action with remote-specific logic
+    connect(setDestAction_, &QAction::triggered, this, [this]() {
         if (!treeView_ || !remoteFileModel_) {
             qCDebug(LogUi) << "setupContextMenu: treeView or remoteFileModel is null";
             return;
@@ -122,6 +99,8 @@ void RemoteFileBrowserWidget::setupContextMenu()
             setCurrentDirectory(path);
         }
     });
+
+    // Add remote-specific menu items
     contextMenu_->addSeparator();
     contextMenu_->addAction(tr("Download to Local Directory"), this,
                             &RemoteFileBrowserWidget::onDownload);
@@ -131,7 +110,11 @@ void RemoteFileBrowserWidget::setupContextMenu()
     contextMenu_->addAction(tr("Refresh"), this, &RemoteFileBrowserWidget::onRefresh);
 }
 
-void RemoteFileBrowserWidget::setupConnections() {}
+void RemoteFileBrowserWidget::setupConnections()
+{
+    // Call base class to set up standard connections (doubleClicked, contextMenu, selectionChanged)
+    FileBrowserWidget::setupConnections();
+}
 
 void RemoteFileBrowserWidget::setFileOperations(RemoteFileOperationsService *ops)
 {
@@ -156,19 +139,13 @@ void RemoteFileBrowserWidget::setFileOperations(RemoteFileOperationsService *ops
     }
 }
 
-void RemoteFileBrowserWidget::setErrorHandler(ErrorHandler *handler)
-{
-    errorHandler_ = handler;
-}
-
 void RemoteFileBrowserWidget::updateActions()
 {
-    bool hasSelection = !selectedPath().isEmpty();
+    bool hasSelection = !RemoteFileBrowserWidget::selectedPath()
+                             .isEmpty();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
 
+    updateCommonActions(connected_);
     downloadAction_->setEnabled(connected_ && hasSelection);
-    newFolderAction_->setEnabled(connected_);
-    renameAction_->setEnabled(connected_ && hasSelection);
-    deleteAction_->setEnabled(connected_ && hasSelection);
     refreshAction_->setEnabled(connected_);
 }
 
@@ -226,32 +203,6 @@ QString RemoteFileBrowserWidget::selectedPath() const
     return {};
 }
 
-QStringList RemoteFileBrowserWidget::selectedPaths() const
-{
-    QStringList paths;
-    if (!treeView_ || !treeView_->selectionModel() || !remoteFileModel_) {
-        return paths;
-    }
-
-    // Get all selected indexes, filter to column 0 only (avoid duplicates from multi-column
-    // selection)
-    QModelIndexList selectedIndexes = treeView_->selectionModel()->selectedIndexes();
-    QSet<QString> seenPaths;  // Deduplicate
-
-    for (const QModelIndex &index : selectedIndexes) {
-        if (index.column() != 0) {
-            continue;  // Only process first column to avoid duplicates
-        }
-        QString path = remoteFileModel_->filePath(index);
-        if (!path.isEmpty() && !seenPaths.contains(path)) {
-            seenPaths.insert(path);
-            paths.append(path);
-        }
-    }
-
-    return paths;
-}
-
 bool RemoteFileBrowserWidget::isSelectedDirectory() const
 {
     if (!treeView_ || !remoteFileModel_) {
@@ -262,6 +213,32 @@ bool RemoteFileBrowserWidget::isSelectedDirectory() const
         return remoteFileModel_->isDirectory(index);
     }
     return false;
+}
+
+QAbstractItemModel *RemoteFileBrowserWidget::model() const
+{
+    return remoteFileModel_;
+}
+
+QString RemoteFileBrowserWidget::filePath(const QModelIndex &index) const
+{
+    if (!remoteFileModel_ || !index.isValid()) {
+        return {};
+    }
+    return remoteFileModel_->filePath(index);
+}
+
+bool RemoteFileBrowserWidget::isDirectory(const QModelIndex &index) const
+{
+    if (!remoteFileModel_ || !index.isValid()) {
+        return false;
+    }
+    return remoteFileModel_->isDirectory(index);
+}
+
+void RemoteFileBrowserWidget::navigateToDirectory(const QString &path)
+{
+    setCurrentDirectory(path);
 }
 
 void RemoteFileBrowserWidget::refresh()
@@ -282,17 +259,21 @@ void RemoteFileBrowserWidget::showEvent(QShowEvent *event)
     refreshIfStale();
 }
 
-void RemoteFileBrowserWidget::onDoubleClicked(const QModelIndex &index)
+void RemoteFileBrowserWidget::onParentFolder()
 {
-    if (!index.isValid() || !remoteFileModel_) {
-        qCDebug(LogUi) << "onDoubleClicked: invalid index or null remoteFileModel";
+    if (currentDirectory_.isEmpty() || currentDirectory_ == "/") {
         return;
     }
 
-    if (remoteFileModel_->isDirectory(index)) {
-        QString path = remoteFileModel_->filePath(index);
-        setCurrentDirectory(path);
+    QString parentPath = currentDirectory_;
+    int lastSlash = parentPath.lastIndexOf('/');
+    if (lastSlash > 0) {
+        parentPath = parentPath.left(lastSlash);
+    } else {
+        parentPath = "/";
     }
+
+    setCurrentDirectory(parentPath);
 }
 
 void RemoteFileBrowserWidget::onContextMenu(const QPoint &pos)
@@ -312,23 +293,6 @@ void RemoteFileBrowserWidget::onContextMenu(const QPoint &pos)
             contextMenu_->exec(treeView_->viewport()->mapToGlobal(pos));
         }
     }
-}
-
-void RemoteFileBrowserWidget::onParentFolder()
-{
-    if (currentDirectory_.isEmpty() || currentDirectory_ == "/") {
-        return;
-    }
-
-    QString parentPath = currentDirectory_;
-    int lastSlash = parentPath.lastIndexOf('/');
-    if (lastSlash > 0) {
-        parentPath = parentPath.left(lastSlash);
-    } else {
-        parentPath = "/";
-    }
-
-    setCurrentDirectory(parentPath);
 }
 
 void RemoteFileBrowserWidget::onDownload()

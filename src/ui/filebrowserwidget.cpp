@@ -11,6 +11,7 @@
 #include <QItemSelectionModel>
 #include <QLabel>
 #include <QMenu>
+#include <QSet>
 #include <QToolBar>
 #include <QTreeView>
 #include <QVBoxLayout>
@@ -92,6 +93,47 @@ void FileBrowserWidget::setupConnections()
         }
     } else {
         qCDebug(LogUi) << "setupConnections: treeView_ is null, skipping connection setup";
+    }
+}
+
+QStringList FileBrowserWidget::selectedPaths() const
+{
+    QStringList paths;
+    if (!treeView_ || !treeView_->selectionModel()) {
+        return paths;
+    }
+
+    // Get all selected indexes, filter to column 0 only (avoid duplicates from multi-column
+    // selection)
+    QModelIndexList selectedIndexes = treeView_->selectionModel()->selectedIndexes();
+    QSet<QString> seenPaths;  // Deduplicate
+
+    for (const QModelIndex &index : selectedIndexes) {
+        if (index.column() != 0) {
+            continue;  // Only process first column to avoid duplicates
+        }
+        QString path = filePath(index);
+        if (!path.isEmpty() && !seenPaths.contains(path)) {
+            seenPaths.insert(path);
+            paths.append(path);
+        }
+    }
+
+    return paths;
+}
+
+void FileBrowserWidget::updateCommonActions(bool extraCondition)
+{
+    bool hasSelection = !selectedPath().isEmpty();
+
+    if (newFolderAction_) {
+        newFolderAction_->setEnabled(extraCondition);
+    }
+    if (renameAction_) {
+        renameAction_->setEnabled(extraCondition && hasSelection);
+    }
+    if (deleteAction_) {
+        deleteAction_->setEnabled(extraCondition && hasSelection);
     }
 }
 

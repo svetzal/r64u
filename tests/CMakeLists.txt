@@ -2587,6 +2587,7 @@ add_executable(test_remotefilebrowserwidget
     ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowsercontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/refreshpolicy.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
 )
 

@@ -57,6 +57,16 @@ public:
     [[nodiscard]] virtual QString selectedPath() const = 0;
 
     /**
+     * @brief Returns the paths of all selected items.
+     *
+     * Filters to column 0 only and deduplicates, using the virtual filePath()
+     * method to map model indexes to paths.
+     *
+     * @return List of selected paths.
+     */
+    [[nodiscard]] QStringList selectedPaths() const;
+
+    /**
      * @brief Returns whether the selected item is a directory.
      * @return true if selected item is a directory, false otherwise.
      */
@@ -92,12 +102,12 @@ protected slots:
      * @brief Handles context menu request.
      * @param pos The position where context menu was requested.
      */
-    void onContextMenu(const QPoint &pos);
+    virtual void onContextMenu(const QPoint &pos);
 
     /**
      * @brief Navigates to the parent folder.
      */
-    void onParentFolder();
+    virtual void onParentFolder();
 
     /**
      * @brief Creates a new folder in the current directory.
@@ -145,6 +155,18 @@ protected:
      * Subclasses must implement this to enable/disable their actions.
      */
     virtual void updateActions() = 0;
+
+    /**
+     * @brief Updates common action states shared by all subclasses.
+     *
+     * Sets the enabled state of newFolderAction_, renameAction_, and
+     * deleteAction_ based on the current selection and an optional extra
+     * condition (e.g., connection state for remote panels).
+     *
+     * @param extraCondition Additional condition that must be true to enable actions.
+     *                       Defaults to true (always allow for local panels).
+     */
+    void updateCommonActions(bool extraCondition = true);
 
     /**
      * @brief Returns the label text for this browser.

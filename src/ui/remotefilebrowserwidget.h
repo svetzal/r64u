@@ -1,33 +1,24 @@
 #ifndef REMOTEFILEBROWSERWIDGET_H
 #define REMOTEFILEBROWSERWIDGET_H
 
-#include <QMenu>
-#include <QToolBar>
-#include <QTreeView>
-#include <QWidget>
+#include "filebrowserwidget.h"
 
 class RemoteFileModel;
 class RemoteFileOperationsService;
 class RemoteFileBrowserController;
 class RefreshPolicy;
-class PathNavigationWidget;
-class ErrorHandler;
 
-class RemoteFileBrowserWidget : public QWidget
+class RemoteFileBrowserWidget : public FileBrowserWidget
 {
     Q_OBJECT
 
 public:
     explicit RemoteFileBrowserWidget(RemoteFileModel *model, QWidget *parent = nullptr);
 
-    void setCurrentDirectory(const QString &path);
-    QString currentDirectory() const { return currentDirectory_; }
-    [[nodiscard]] QString selectedPath() const;
-    [[nodiscard]] QStringList selectedPaths() const;
-    [[nodiscard]] bool isSelectedDirectory() const;
+    [[nodiscard]] QString selectedPath() const override;
+    [[nodiscard]] bool isSelectedDirectory() const override;
     void setDownloadEnabled(bool enabled);
     void setFileOperations(RemoteFileOperationsService *ops);
-    void setErrorHandler(ErrorHandler *handler);
     void refresh();
     void refreshIfStale();
 
@@ -55,27 +46,39 @@ public:
     [[nodiscard]] AutoRefreshSuppressor suppressRefresh();
 
 public slots:
+    void setCurrentDirectory(const QString &path) override;
     void onConnectionStateChanged(bool connected);
 
 protected:
     void showEvent(QShowEvent *event) override;
+
+    void setupUi() override;
+    void setupContextMenu() override;
+    void setupConnections() override;
+    void updateActions() override;
+
+    [[nodiscard]] QString labelText() const override { return tr("C64U Files"); }
+    [[nodiscard]] QString navLabelText() const override { return tr("Upload to:"); }
+    [[nodiscard]] QAbstractItemModel *model() const override;
+    [[nodiscard]] QString filePath(const QModelIndex &index) const override;
+    [[nodiscard]] bool isDirectory(const QModelIndex &index) const override;
+    void navigateToDirectory(const QString &path) override;
+
+protected slots:
+    void onParentFolder() override;
+    void onContextMenu(const QPoint &pos) override;
+    void onNewFolder() override;
+    void onRename() override;
+    void onDelete() override;
 
 signals:
     void downloadRequested(const QString &remotePath, bool isDirectory);
     void deleteRequested(const QString &remotePath, bool isDirectory);
     void createFolderRequested(const QString &path);
     void renameRequested(const QString &oldPath, const QString &newPath);
-    void currentDirectoryChanged(const QString &path);
-    void selectionChanged();
 
 private slots:
-    void onDoubleClicked(const QModelIndex &index);
-    void onContextMenu(const QPoint &pos);
-    void onParentFolder();
     void onDownload();
-    void onNewFolder();
-    void onRename();
-    void onDelete();
     void onRefresh();
 
     // FTP result slots
@@ -84,41 +87,22 @@ private slots:
     void onFileRenamed(const QString &oldPath, const QString &newPath);
 
 private:
-    void setupUi();
-    void setupContextMenu();
-    void setupConnections();
-    void updateActions();
-
     void setSuppressAutoRefresh(bool suppress);
 
     // Dependencies (not owned)
     RemoteFileModel *remoteFileModel_ = nullptr;
     RemoteFileOperationsService *fileOperations_ = nullptr;
-    ErrorHandler *errorHandler_ = nullptr;
 
     // Owned controller and policy (Qt parent ownership)
     RemoteFileBrowserController *controller_ = nullptr;
     RefreshPolicy *refreshPolicy_ = nullptr;
 
     // State
-    QString currentDirectory_;
     bool connected_ = false;
 
-    // UI widgets
-    QTreeView *treeView_ = nullptr;
-    QToolBar *toolBar_ = nullptr;
-    PathNavigationWidget *navWidget_ = nullptr;
-
-    // Actions
+    // Remote-specific actions
     QAction *downloadAction_ = nullptr;
-    QAction *newFolderAction_ = nullptr;
-    QAction *renameAction_ = nullptr;
-    QAction *deleteAction_ = nullptr;
     QAction *refreshAction_ = nullptr;
-
-    // Context menu
-    QMenu *contextMenu_ = nullptr;
-    QAction *setDestAction_ = nullptr;
 };
 
 #endif  // REMOTEFILEBROWSERWIDGET_H
