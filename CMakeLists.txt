@@ -132,6 +132,10 @@ set(SOURCES
     src/services/playlistservice.cpp
     src/services/playlistcore.cpp
     src/services/transfercore.cpp
+    src/services/transferconfirmcore.cpp
+    src/services/transferlistingcore.cpp
+    src/services/transferdecisioncore.cpp
+    src/services/transferftpcore.cpp
     src/services/ilocalfilesystem.cpp
     src/services/localfilesystem.cpp
     src/services/ifiledownloader.cpp

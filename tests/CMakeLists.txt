@@ -55,10 +55,19 @@ set(LEGACY_MOCK_HEADERS
     services/c64uftpclient.h
 )
 
+# All transfer core implementation files (split from transfercore.cpp for cohesion)
+set(TRANSFER_CORE_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferconfirmcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferlistingcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdecisioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferftpcore.cpp
+)
+
 # TransferCore tests - pure transfer logic, no I/O dependencies
 add_executable(test_transfercore
     test_transfercore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${TRANSFER_CORE_SOURCES}
 )
 
 target_include_directories(test_transfercore PRIVATE
@@ -81,7 +90,7 @@ endif()
 add_executable(test_batchmanager
     test_batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
 )
 
@@ -109,7 +118,7 @@ add_executable(test_transferqueue
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
@@ -151,7 +160,7 @@ add_executable(test_transferorchestrator
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -192,7 +201,7 @@ add_executable(test_coordinators
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
@@ -512,7 +521,7 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
@@ -816,7 +825,7 @@ if(BUILD_INTEGRATION_TESTS)
         ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
         ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
         ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
-        ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+        ${TRANSFER_CORE_SOURCES}
         ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -1829,7 +1838,7 @@ add_executable(test_transferftphandler
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
@@ -2353,7 +2362,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
@@ -2523,7 +2532,7 @@ add_executable(test_transferpanel
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
@@ -2722,7 +2731,7 @@ add_executable(test_transferqueuewidget
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
@@ -2793,7 +2802,7 @@ add_executable(test_batchprogresswidget
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
@@ -3036,7 +3045,7 @@ add_executable(test_transferprogresswidget
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -3092,7 +3101,7 @@ add_executable(test_transferprogresscontainer
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp

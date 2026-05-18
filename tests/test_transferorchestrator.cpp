@@ -188,6 +188,51 @@ private slots:
 
         QCOMPARE(spy.count(), 1);
     }
+
+    void testProcessNext_NoFtpClient_EmitsOperationFailed()
+    {
+        // Enqueue a download while connected so it enters the queue
+        QString remotePath = "/test/file.txt";
+        QString localPath = tempDir.path() + "/file.txt";
+        orchestrator->enqueueDownload(remotePath, localPath);
+
+        // Disconnect FTP before processNext runs
+        mockFtp->mockSetConnected(false);
+
+        QSignalSpy spy(orchestrator, &TransferOrchestrator::operationFailed);
+
+        // Flush causes processNext to run, which now sees FTP not connected
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(spy.count(), 1);
+        // Verify the error is "not connected" (second argument of operationFailed)
+        QCOMPARE(spy.first().at(1).toString(), tr("Not connected to device"));
+    }
+
+    void testProcessNextDelete_NoFtpClient_EmitsOperationFailed()
+    {
+        // Set up a recursive delete (connected), which starts a directory scan.
+        // Provide an empty listing so the scan can complete.
+        // Disconnect FTP before the scan result is processed, so that
+        // processNextDelete() runs with no FTP client and emits operationFailed.
+        QString remotePath = "/remote/dir";
+        mockFtp->mockSetDirectoryListing(remotePath, {});  // empty directory
+
+        orchestrator->enqueueRecursiveDelete(remotePath);
+
+        // Disconnect FTP before the scan result is processed
+        mockFtp->mockSetConnected(false);
+
+        QSignalSpy spy(orchestrator, &TransferOrchestrator::operationFailed);
+
+        // Processing the list response triggers deleteScanComplete -> processNextDelete
+        // which now sees FTP disconnected and emits operationFailed
+        mockFtp->mockProcessNextOperation();  // processes the list
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.first().at(1).toString(), tr("Not connected to device"));
+    }
 };
 
 QTEST_MAIN(TestTransferOrchestrator)

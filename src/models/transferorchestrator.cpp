@@ -470,10 +470,7 @@ void TransferOrchestrator::enqueueRecursiveDownload(const QString &remoteDir,
         return;
     }
 
-    QString normalizedRemote = remoteDir;
-    while (normalizedRemote.endsWith('/') && normalizedRemote.length() > 1) {
-        normalizedRemote.chop(1);
-    }
+    QString normalizedRemote = transfer::normalizePath(remoteDir);
 
     folderCoordinator_->enqueueRecursive(OperationType::Download, normalizedRemote, localDir);
 }
@@ -560,10 +557,12 @@ void TransferOrchestrator::processNext()
     case transfer::ProcessNextAction::Blocked:
         qCDebug(LogTransfer) << "TransferOrchestrator: processNext blocked by state:"
                              << queueStateToString(state_.queueState);
+        emit statusMessage(tr("Transfer queue is busy"));
         return;
 
     case transfer::ProcessNextAction::NoFtpClient:
         qCDebug(LogTransfer) << "TransferOrchestrator: FTP client not ready";
+        emit operationFailed(QString(), tr("Not connected to device"));
         return;
 
     case transfer::ProcessNextAction::StartFolderOp: {

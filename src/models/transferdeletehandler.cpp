@@ -109,10 +109,7 @@ void TransferDeleteHandler::enqueueRecursiveDelete(const QString &remotePath)
         return;
     }
 
-    QString normalizedPath = remotePath;
-    while (normalizedPath.endsWith('/') && normalizedPath.length() > 1) {
-        normalizedPath.chop(1);
-    }
+    QString normalizedPath = transfer::normalizePath(remotePath);
 
     if (transfer::isPathBeingTransferred(state_, normalizedPath, OperationType::Delete)) {
         qCDebug(LogTransfer) << "TransferDeleteHandler: Ignoring duplicate delete request for"
@@ -137,6 +134,7 @@ void TransferDeleteHandler::processNextDelete()
     if (!ftpClient_ || !ftpClient_->isConnected()) {
         qCWarning(LogTransfer) << "processNextDelete: FTP disconnected, resetting to Idle";
         transitionToCb_(QueueState::Idle);
+        emit operationFailed(QString(), tr("Not connected to device"));
         return;
     }
 
