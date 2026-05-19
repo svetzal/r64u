@@ -95,7 +95,7 @@ void PlaylistService::moveItem(int from, int to)
 void PlaylistService::clear()
 {
     if (state_.items.isEmpty()) {
-        qCWarning(LogPlaylist) << "clear called but playlist is already empty";
+        emit statusMessage(tr("Playlist is already empty"));
         return;
     }
 

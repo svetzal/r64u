@@ -700,6 +700,7 @@ add_executable(test_c64uftpclient_protocol
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
 target_include_directories(test_c64uftpclient_protocol BEFORE PRIVATE

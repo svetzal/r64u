@@ -82,8 +82,8 @@ void RemoteDirectoryCreator::onDirectoryCreated(const QString &path)
     qCDebug(LogTransfer) << "RemoteDirectoryCreator: onDirectoryCreated:" << path;
 
     if (state_.queueState != transfer::QueueState::CreatingDirectories) {
-        qCDebug(LogTransfer) << "RemoteDirectoryCreator::onDirectoryCreated: unexpected state,"
-                             << "ignoring" << path;
+        qCWarning(LogTransfer) << "RemoteDirectoryCreator::onDirectoryCreated: unexpected state,"
+                               << "ignoring" << path;
         return;
     }
 

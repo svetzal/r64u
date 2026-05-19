@@ -233,7 +233,8 @@ void FileActionController::loadConfig(const QString &path, filetype::FileType ty
     if (configFileLoader_) {
         configFileLoader_->loadConfigFile(path);
     } else {
-        qCDebug(LogUi) << "loadConfig: configFileLoader_ is null, skipping load for" << path;
+        qCWarning(LogUi) << "loadConfig: configFileLoader_ is null, cannot load" << path;
+        emit statusMessage(tr("Configuration loader not available"));
     }
 }
 
@@ -279,6 +280,8 @@ bool FileActionController::validateFileOperation(const QString &path)
         if (errorHandler_) {
             errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
                                        tr("No file selected"));
+        } else {
+            emit statusMessage(tr("No file selected"));
         }
         return false;
     }
@@ -286,6 +289,8 @@ bool FileActionController::validateFileOperation(const QString &path)
         if (errorHandler_) {
             errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
                                        tr("Not connected to device"));
+        } else {
+            emit statusMessage(tr("Not connected to device"));
         }
         return false;
     }

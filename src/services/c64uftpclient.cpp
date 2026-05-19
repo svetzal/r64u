@@ -3,6 +3,8 @@
 #include "ftpcore.h"
 #include "ftpresponsehandler.h"
 
+#include "utils/logging.h"
+
 #include <QDebug>
 #include <QFileInfo>
 #include <QRegularExpression>
@@ -77,6 +79,7 @@ void C64UFtpClient::connectToHost()
 void C64UFtpClient::disconnect()
 {
     if (state_ == State::Disconnected) {
+        qCDebug(LogFtp) << "FTP: disconnect() called when already disconnected — no-op";
         return;
     }
 
@@ -87,8 +90,10 @@ void C64UFtpClient::disconnect()
         dataSocket_->abort();
     }
 
-    if (controlSocket_->state() != QAbstractSocket::UnconnectedState) {
+    if (controlSocket_->state() == QAbstractSocket::ConnectedState) {
         sendCommand("QUIT");
+    }
+    if (controlSocket_->state() != QAbstractSocket::UnconnectedState) {
         controlSocket_->disconnectFromHost();
     }
 
@@ -98,7 +103,8 @@ void C64UFtpClient::disconnect()
 void C64UFtpClient::sendCommand(const QString &command)
 {
     if (controlSocket_->state() != QAbstractSocket::ConnectedState) {
-        qDebug() << "FTP: Cannot send command, socket not connected";
+        qCWarning(LogFtp) << "FTP: Cannot send command, socket not connected";
+        emit error(tr("Cannot send command: not connected"));
         return;
     }
     if (command.startsWith("PASS ")) {
@@ -461,9 +467,14 @@ void C64UFtpClient::onDataDisconnected()
 void C64UFtpClient::onDataError(QAbstractSocket::SocketError socketError)
 {
     if (socketError == QAbstractSocket::RemoteHostClosedError) {
-        qDebug() << "FTP: Data socket closed by server, reading remaining data...";
+        qCDebug(LogFtp) << "FTP: Data socket closed by server, reading remaining data...";
         if (dataSocket_->bytesAvailable() > 0) {
             onDataReadyRead();
+        }
+        // A remote close mid-transfer (no remaining data) is a premature close
+        if (transferState_.isDownloading() && dataSocket_->bytesAvailable() == 0) {
+            qCWarning(LogFtp) << "FTP: Server closed data connection during active transfer";
+            emit error(tr("Connection closed during transfer"));
         }
         return;
     }

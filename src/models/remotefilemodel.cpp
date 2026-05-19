@@ -225,9 +225,14 @@ bool RemoteFileModel::canFetchMore(const QModelIndex &parent) const
 void RemoteFileModel::fetchMore(const QModelIndex &parent)
 {
     TreeNode *node = nodeFromIndex(parent);
-    if (!node || !ftpClient_ || node->fetching) {
+    if (!node || node->fetching) {
         qCDebug(LogFileOps) << "fetchMore: skipped (node=" << (node ? node->fullPath : "null")
-                            << "ftpClient_=" << (ftpClient_ != nullptr) << ")";
+                            << "fetching=" << (node ? node->fetching : false) << ")";
+        return;
+    }
+    if (!ftpClient_) {
+        qCWarning(LogFileOps) << "fetchMore: ftpClient_ is null, cannot fetch" << node->fullPath;
+        emit loadingFinished(node->fullPath);
         return;
     }
 
@@ -466,6 +471,7 @@ void RemoteFileModel::onDirectoryListed(const QString &path, const QList<FtpEntr
                               << "- this indicates a bug. Ignoring to prevent corruption.";
         qCWarning(LogFileOps) << "Model: rootPath_:" << rootPath_
                               << "pendingFetches_ keys:" << pendingFetches_.keys();
+        emit loadingFinished(path);
         return;
     }
 
@@ -477,6 +483,8 @@ void RemoteFileModel::onDirectoryListed(const QString &path, const QList<FtpEntr
     if (node->fullPath != path) {
         qCWarning(LogFileOps) << "Model: Node path mismatch - expected:" << path
                               << "got:" << node->fullPath << "- ignoring to prevent corruption!";
+        node->fetching = false;
+        emit loadingFinished(path);
         return;
     }
 

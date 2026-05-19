@@ -243,6 +243,7 @@ void FolderOperationCoordinator::startFolderOperation(const transfer::PendingFol
                                        5000);
                     emit operationFailed(QFileInfo(op.targetPath).fileName(),
                                          tr("Failed to delete existing local folder"));
+                    return;
                 }
             }
         }
