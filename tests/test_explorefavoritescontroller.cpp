@@ -54,7 +54,7 @@ private slots:
     // onFavoriteSelected — null action
     // -----------------------------------------------------------------------
 
-    void testOnFavoriteSelected_NullAction_NoSignalsEmitted()
+    void testOnFavoriteSelected_NullAction_EmitsStatusMessage()
     {
         QSignalSpy navSpy(controller_, &ExploreFavoritesController::navigateToPath);
         QSignalSpy msgSpy(controller_, &ExploreFavoritesController::statusMessage);
@@ -62,14 +62,15 @@ private slots:
         controller_->onFavoriteSelected(nullptr);
 
         QCOMPARE(navSpy.count(), 0);
-        QCOMPARE(msgSpy.count(), 0);
+        QCOMPARE(msgSpy.count(), 1);
+        QVERIFY(msgSpy.at(0).at(0).toString().contains("favorite"));
     }
 
     // -----------------------------------------------------------------------
     // onFavoriteSelected — action with empty data
     // -----------------------------------------------------------------------
 
-    void testOnFavoriteSelected_ActionWithEmptyData_NoSignalsEmitted()
+    void testOnFavoriteSelected_ActionWithEmptyData_EmitsStatusMessage()
     {
         QAction action;
         action.setData(QString(""));
@@ -80,7 +81,8 @@ private slots:
         controller_->onFavoriteSelected(&action);
 
         QCOMPARE(navSpy.count(), 0);
-        QCOMPARE(msgSpy.count(), 0);
+        QCOMPARE(msgSpy.count(), 1);
+        QVERIFY(msgSpy.at(0).at(0).toString().contains("path"));
     }
 
     // -----------------------------------------------------------------------
@@ -140,13 +142,14 @@ private slots:
     // onToggleFavorite — empty path
     // -----------------------------------------------------------------------
 
-    void testOnToggleFavorite_EmptyPath_NoSignalsEmitted()
+    void testOnToggleFavorite_EmptyPath_EmitsNoFileSelected()
     {
         QSignalSpy spy(controller_, &ExploreFavoritesController::statusMessage);
 
         controller_->onToggleFavorite("");
 
-        QCOMPARE(spy.count(), 0);
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("selected"));
     }
 
     // -----------------------------------------------------------------------
@@ -332,14 +335,15 @@ private slots:
     // Null FavoritesService — guard clause
     // -----------------------------------------------------------------------
 
-    void testConstructedWithNullService_ToggleFavorite_NoSignal()
+    void testConstructedWithNullService_ToggleFavorite_EmitsFavoritesNotAvailable()
     {
         ExploreFavoritesController ctrl(nullptr, this);
         QSignalSpy spy(&ctrl, &ExploreFavoritesController::statusMessage);
 
         ctrl.onToggleFavorite("/SD/Music/song.sid");
 
-        QCOMPARE(spy.count(), 0);
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("available"));
     }
 };
 

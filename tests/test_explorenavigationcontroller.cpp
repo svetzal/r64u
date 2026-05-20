@@ -121,26 +121,31 @@ private slots:
         QCOMPARE(mock_.pathHistory.last(), QString("/"));
     }
 
-    void testNavigateToParent_AtRoot_NoOp()
+    void testNavigateToParent_AtRoot_EmitsAlreadyAtRoot()
     {
         ctrl_->setCurrentDirectory("/");
         mock_.pathHistory.clear();
+        QSignalSpy spy(ctrl_, &ExploreNavigationController::statusMessage);
 
         ctrl_->navigateToParent();
 
-        // No further navigation call should be made
         QVERIFY(mock_.pathHistory.isEmpty());
         QCOMPARE(ctrl_->currentDirectory(), QString("/"));
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("root"));
     }
 
-    void testNavigateToParent_Empty_NoOp()
+    void testNavigateToParent_Empty_EmitsAlreadyAtRoot()
     {
         ctrl_->setCurrentDirectory("");
         mock_.pathHistory.clear();
+        QSignalSpy spy(ctrl_, &ExploreNavigationController::statusMessage);
 
         ctrl_->navigateToParent();
 
         QVERIFY(mock_.pathHistory.isEmpty());
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("root"));
     }
 
     // ======================================================================
@@ -157,6 +162,16 @@ private slots:
 
         // No additional path changes expected
         QVERIFY(mock_.pathHistory.isEmpty());
+    }
+
+    void testRefresh_NullDeviceConnection_EmitsStatusMessage()
+    {
+        QSignalSpy spy(ctrl_, &ExploreNavigationController::statusMessage);
+
+        ctrl_->refresh();
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("connected"));
     }
 
     // ======================================================================

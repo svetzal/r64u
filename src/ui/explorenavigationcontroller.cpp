@@ -47,6 +47,7 @@ QString ExploreNavigationController::currentDirectory() const
 void ExploreNavigationController::navigateToParent()
 {
     if (currentDirectory_.isEmpty() || currentDirectory_ == "/") {
+        emit statusMessage(tr("Already at root directory"), 1500);
         return;
     }
 
@@ -69,7 +70,7 @@ void ExploreNavigationController::refresh()
     }
 
     if (!remoteFileModel_ || !view_) {
-        qCDebug(LogUi) << "refresh: remoteFileModel_ or view_ is null, skipping refresh";
+        emit statusMessage(tr("File browser not ready"));
         return;
     }
 

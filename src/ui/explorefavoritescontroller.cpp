@@ -32,9 +32,7 @@ void ExploreFavoritesController::setFavoritesMenu(QMenu *menu)
 void ExploreFavoritesController::updateForPath(const QString &path)
 {
     if (!toggleFavoriteAction_ || !favoritesService_) {
-        qCDebug(LogUi)
-            << "updateForPath: toggleFavoriteAction_ or favoritesService_ is null, skipping for"
-            << path;
+        qCWarning(LogUi) << "updateForPath: toggleFavoriteAction_ or favoritesService_ is null";
         return;
     }
     bool fav = favoritesService_->isFavorite(path);
@@ -49,7 +47,12 @@ bool ExploreFavoritesController::isFavorite(const QString &path) const
 
 void ExploreFavoritesController::onToggleFavorite(const QString &path)
 {
-    if (!favoritesService_ || path.isEmpty()) {
+    if (!favoritesService_) {
+        emit statusMessage(tr("Favorites not available"));
+        return;
+    }
+    if (path.isEmpty()) {
+        emit statusMessage(tr("No file selected"));
         return;
     }
 
@@ -70,12 +73,13 @@ void ExploreFavoritesController::onToggleFavorite(const QString &path)
 void ExploreFavoritesController::onFavoriteSelected(QAction *action)
 {
     if (!action) {
-        qCDebug(LogUi) << "onFavoriteSelected: action is null, skipping";
+        emit statusMessage(tr("No favorite selected"));
         return;
     }
 
     QString path = action->data().toString();
     if (path.isEmpty()) {
+        emit statusMessage(tr("Favorite has no associated path"));
         return;
     }
 
@@ -95,8 +99,7 @@ void ExploreFavoritesController::onFavoriteSelected(QAction *action)
 void ExploreFavoritesController::onFavoritesChanged()
 {
     if (!favoritesMenu_ || !favoritesService_) {
-        qCDebug(LogUi)
-            << "onFavoritesChanged: favoritesMenu_ or favoritesService_ is null, skipping";
+        qCWarning(LogUi) << "onFavoritesChanged: favoritesMenu_ or favoritesService_ is null";
         return;
     }
 
