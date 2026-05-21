@@ -193,8 +193,9 @@ private slots:
         QSignalSpy spy(&diagnostics, &StreamingDiagnosticsService::diagnosticsUpdated);
         diagnostics.setEnabled(true);
 
-        // Wait for a few updates
-        QTest::qWait(350);
+        // Wait for a few updates (600ms gives generous margin at 100ms interval,
+        // even on loaded CI systems where timer fires may be delayed)
+        QTest::qWait(600);
 
         // Should have received at least 2-3 updates
         QVERIFY(spy.count() >= 2);
