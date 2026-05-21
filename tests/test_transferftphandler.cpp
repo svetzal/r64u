@@ -1,5 +1,5 @@
 #include "ftp/recursivescancoordinator.h"
-#include "ftp/remotedirectorycreator.h"
+#include "ftp/remotedirectorycoordinator.h"
 #include "mocks/mockftpclient.h"
 #include "mocks/mocklocalfilesystem.h"
 #include "models/transferftphandler.h"
@@ -196,10 +196,10 @@ private slots:
         mkdir.remotePath = "/remote/newdir";
         state_.pendingMkdirs.enqueue(mkdir);
 
-        RemoteDirectoryCreator creator(state_, mockFtp, mockFs, this);
+        RemoteDirectoryCoordinator creator(state_, mockFtp, mockFs, this);
         handler->setDirCreator(&creator);
 
-        QSignalSpy spy(&creator, &RemoteDirectoryCreator::allDirectoriesCreated);
+        QSignalSpy spy(&creator, &RemoteDirectoryCoordinator::allDirectoriesCreated);
 
         emit mockFtp->directoryCreated("/remote/newdir");
 
@@ -231,19 +231,19 @@ private slots:
     }
 
     // -------------------------------------------------------------------------
-    // RemoteDirectoryCreator: null FTP client / null localFs guard tests
+    // RemoteDirectoryCoordinator: null FTP client / null localFs guard tests
     // -------------------------------------------------------------------------
 
     void testCreateNextDirectory_nullFtpClient_emitsError()
     {
         // Construct creator with null FTP client
-        RemoteDirectoryCreator creator(state_, nullptr, mockFs, this);
+        RemoteDirectoryCoordinator creator(state_, nullptr, mockFs, this);
 
         transfer::PendingMkdir mkdir;
         mkdir.remotePath = "/remote/newdir";
         state_.pendingMkdirs.enqueue(mkdir);
 
-        QSignalSpy errorSpy(&creator, &RemoteDirectoryCreator::error);
+        QSignalSpy errorSpy(&creator, &RemoteDirectoryCoordinator::error);
 
         creator.createNextDirectory();
 
@@ -254,7 +254,7 @@ private slots:
     void testQueueDirectoriesForUpload_nullLocalFs_onlyQueuesRoot()
     {
         // Construct creator with null localFs — only root should be queued
-        RemoteDirectoryCreator creator(state_, mockFtp, nullptr, this);
+        RemoteDirectoryCoordinator creator(state_, mockFtp, nullptr, this);
 
         creator.queueDirectoriesForUpload("/local/dir", "/remote/dir");
 

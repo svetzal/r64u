@@ -1,4 +1,4 @@
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/errorhandler.h"
 #include "services/ivideostreamreceiver.h"
 #include "services/playlistservice.h"
@@ -6,7 +6,7 @@
 #include "services/videorecordingservice.h"
 
 // Minimal stub implementations to provide signal metadata for the linker.
-// DeviceConnection and TransferService are QSKIP-ed in test_errorsourceconnector
+// DeviceConnectionManager and TransferService are QSKIP-ed in test_errorsourceconnector
 // because they require heavy dependency chains or show blocking dialogs.
 // VideoRecordingService is stubbed here to avoid pulling in StreamingService and
 // AudioStreamReceiver/VideoStreamReceiver chains.
@@ -35,51 +35,51 @@ void VideoRecordingService::onRawFrameReady(const QByteArray & /*frameData*/,
 {
 }
 
-DeviceConnection::DeviceConnection(QObject *parent) : QObject(parent) {}
+DeviceConnectionManager::DeviceConnectionManager(QObject *parent) : QObject(parent) {}
 
-DeviceConnection::DeviceConnection(IRestClient * /*restClient*/, IFtpClient * /*ftpClient*/,
-                                   QObject *parent)
+DeviceConnectionManager::DeviceConnectionManager(IRestClient * /*restClient*/,
+                                                 IFtpClient * /*ftpClient*/, QObject *parent)
     : QObject(parent)
 {
 }
 
-DeviceConnection::~DeviceConnection() = default;
+DeviceConnectionManager::~DeviceConnectionManager() = default;
 
-void DeviceConnection::setHost(const QString & /*host*/) {}
-void DeviceConnection::setPassword(const QString & /*password*/) {}
-void DeviceConnection::setAutoReconnect(bool /*enabled*/) {}
-void DeviceConnection::connectToDevice() {}
-void DeviceConnection::disconnectFromDevice() {}
-void DeviceConnection::refreshDeviceInfo() {}
-void DeviceConnection::refreshDriveInfo() {}
-void DeviceConnection::onRestInfoReceived(const DeviceInfo & /*info*/) {}
-void DeviceConnection::onRestDrivesReceived(const QList<DriveInfo> & /*drives*/) {}
-void DeviceConnection::onRestConnectionError(const QString & /*error*/) {}
-void DeviceConnection::onRestOperationFailed(const QString & /*operation*/,
-                                             const QString & /*error*/)
+void DeviceConnectionManager::setHost(const QString & /*host*/) {}
+void DeviceConnectionManager::setPassword(const QString & /*password*/) {}
+void DeviceConnectionManager::setAutoReconnect(bool /*enabled*/) {}
+void DeviceConnectionManager::connectToDevice() {}
+void DeviceConnectionManager::disconnectFromDevice() {}
+void DeviceConnectionManager::refreshDeviceInfo() {}
+void DeviceConnectionManager::refreshDriveInfo() {}
+void DeviceConnectionManager::onRestInfoReceived(const DeviceInfo & /*info*/) {}
+void DeviceConnectionManager::onRestDrivesReceived(const QList<DriveInfo> & /*drives*/) {}
+void DeviceConnectionManager::onRestConnectionError(const QString & /*error*/) {}
+void DeviceConnectionManager::onRestOperationFailed(const QString & /*operation*/,
+                                                    const QString & /*error*/)
 {
 }
-void DeviceConnection::onFtpConnected() {}
-void DeviceConnection::onFtpDisconnected() {}
-void DeviceConnection::onFtpError(const QString & /*message*/) {}
-void DeviceConnection::onReconnectTimer() {}
-bool DeviceConnection::tryTransitionTo(ConnectionState /*newState*/)
-{
-    return false;
-}
-bool DeviceConnection::isValidTransition(ConnectionState /*from*/, ConnectionState /*to*/)
+void DeviceConnectionManager::onFtpConnected() {}
+void DeviceConnectionManager::onFtpDisconnected() {}
+void DeviceConnectionManager::onFtpError(const QString & /*message*/) {}
+void DeviceConnectionManager::onReconnectTimer() {}
+bool DeviceConnectionManager::tryTransitionTo(ConnectionState /*newState*/)
 {
     return false;
 }
-void DeviceConnection::resetProtocolFlags() {}
-void DeviceConnection::checkBothConnected() {}
-void DeviceConnection::startReconnect() {}
-void DeviceConnection::stopReconnect() {}
+bool DeviceConnectionManager::isValidTransition(ConnectionState /*from*/, ConnectionState /*to*/)
+{
+    return false;
+}
+void DeviceConnectionManager::resetProtocolFlags() {}
+void DeviceConnectionManager::checkBothConnected() {}
+void DeviceConnectionManager::startReconnect() {}
+void DeviceConnectionManager::stopReconnect() {}
 
 // ---------------------------------------------------------------------------
 // PlaylistService stubs — provides Q_OBJECT/signal metadata without the real implementation
 
-PlaylistService::PlaylistService(DeviceConnection * /*connection*/, QObject *parent)
+PlaylistService::PlaylistService(DeviceConnectionManager * /*connection*/, QObject *parent)
     : QObject(parent)
 {
 }
@@ -128,8 +128,8 @@ void PlaylistService::ensureStreamingStarted() {}
 
 // ---------------------------------------------------------------------------
 
-TransferService::TransferService(DeviceConnection * /*connection*/, TransferQueue * /*queue*/,
-                                 QObject *parent)
+TransferService::TransferService(DeviceConnectionManager * /*connection*/,
+                                 TransferQueue * /*queue*/, QObject *parent)
     : QObject(parent)
 {
 }

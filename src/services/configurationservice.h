@@ -9,7 +9,7 @@
 #include <QStringList>
 #include <QVariant>
 
-class DeviceConnection;
+class DeviceConnectionManager;
 
 /**
  * @brief Service wrapping configuration REST operations.
@@ -26,7 +26,7 @@ class ConfigurationService : public QObject
     Q_OBJECT
 
 public:
-    explicit ConfigurationService(DeviceConnection *connection, QObject *parent = nullptr);
+    explicit ConfigurationService(DeviceConnectionManager *connection, QObject *parent = nullptr);
 
     /**
      * @brief Requests all configuration categories from the device.
@@ -106,7 +106,7 @@ signals:
     void operationNotAvailable(const QString &operation);
 
 private:
-    DeviceConnection *deviceConnection_ = nullptr;
+    DeviceConnectionManager *deviceConnection_ = nullptr;
 };
 
 #endif  // CONFIGURATIONSERVICE_H

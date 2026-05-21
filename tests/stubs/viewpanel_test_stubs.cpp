@@ -7,9 +7,9 @@
  * etc.).  The stubs here satisfy linker symbol requirements without pulling in
  * those chains.  All method bodies are no-ops or return safe defaults.
  *
- * StreamingDiagnostics requires VideoStreamReceiver and AudioStreamReceiver
+ * StreamingDiagnosticsServiceService requires VideoStreamReceiver and AudioStreamReceiver
  * concrete types.  Since we include mock versions of those (from MOCK_STREAMING),
- * we only need to stub the StreamingDiagnostics attachment hooks.
+ * we only need to stub the StreamingDiagnosticsServiceService attachment hooks.
  */
 
 #include "services/streamingservice.h"
@@ -19,7 +19,7 @@
 // StreamingService stubs
 // ---------------------------------------------------------------------------
 
-StreamingService::StreamingService(DeviceConnection * /*connection*/,
+StreamingService::StreamingService(DeviceConnectionManager * /*connection*/,
                                    IStreamControlClient * /*streamControl*/,
                                    IVideoStreamReceiver * /*videoReceiver*/,
                                    IAudioStreamReceiver * /*audioReceiver*/,
@@ -95,41 +95,43 @@ QImage Vic2::convertFrame(const QByteArray & /*frameData*/,
 }
 
 // ---------------------------------------------------------------------------
-// StreamingDiagnostics stubs
+// StreamingDiagnosticsService stubs
 // ---------------------------------------------------------------------------
 
-#include "services/streamingdiagnostics.h"
+#include "services/streamingdiagnosticsservice.h"
 
-StreamingDiagnostics::StreamingDiagnostics(QObject *parent) : QObject(parent) {}
+StreamingDiagnosticsService::StreamingDiagnosticsService(QObject *parent) : QObject(parent) {}
 
-StreamingDiagnostics::~StreamingDiagnostics() = default;
+StreamingDiagnosticsService::~StreamingDiagnosticsService() = default;
 
-void StreamingDiagnostics::reset() {}
+void StreamingDiagnosticsService::reset() {}
 
-void StreamingDiagnostics::attachVideoReceiver(VideoStreamReceiver * /*receiver*/) {}
+void StreamingDiagnosticsService::attachVideoReceiver(VideoStreamReceiver * /*receiver*/) {}
 
-void StreamingDiagnostics::attachAudioReceiver(AudioStreamReceiver * /*receiver*/) {}
+void StreamingDiagnosticsService::attachAudioReceiver(AudioStreamReceiver * /*receiver*/) {}
 
-QString StreamingDiagnostics::qualityLevelString(QualityLevel /*level*/)
+QString StreamingDiagnosticsService::qualityLevelString(QualityLevel /*level*/)
 {
     return QString();
 }
 
-QColor StreamingDiagnostics::qualityLevelColor(QualityLevel /*level*/)
+QColor StreamingDiagnosticsService::qualityLevelColor(QualityLevel /*level*/)
 {
     return QColor();
 }
 
-void StreamingDiagnostics::onUpdateTimer() {}
+void StreamingDiagnosticsService::onUpdateTimer() {}
 
-void StreamingDiagnostics::onVideoStatsUpdated(quint64 /*bytesReceived*/,
-                                               quint64 /*packetsReceived*/, quint64 /*packetsLost*/)
+void StreamingDiagnosticsService::onVideoStatsUpdated(quint64 /*bytesReceived*/,
+                                                      quint64 /*packetsReceived*/,
+                                                      quint64 /*packetsLost*/)
 {
 }
 
-void StreamingDiagnostics::onAudioStatsUpdated(quint64 /*bytesReceived*/,
-                                               quint64 /*samplesDecoded*/, int /*bufferLevel*/)
+void StreamingDiagnosticsService::onAudioStatsUpdated(quint64 /*bytesReceived*/,
+                                                      quint64 /*samplesDecoded*/,
+                                                      int /*bufferLevel*/)
 {
 }
 
-void StreamingDiagnostics::onAudioBufferUnderrun() {}
+void StreamingDiagnosticsService::onAudioBufferUnderrun() {}

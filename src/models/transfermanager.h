@@ -1,15 +1,15 @@
-#ifndef TRANSFERORCHESTRATOR_H
-#define TRANSFERORCHESTRATOR_H
+#ifndef TRANSFERMANAGER_H
+#define TRANSFERMANAGER_H
 
 #include "batchmanager.h"
 #include "transferdeletehandler.h"
-#include "transfereventprocessor.h"
+#include "transfereventhandler.h"
 #include "transferftphandler.h"
 #include "transfertimeoutmanager.h"
 
 #include "ftp/folderoperationcoordinator.h"
 #include "ftp/recursivescancoordinator.h"
-#include "ftp/remotedirectorycreator.h"
+#include "ftp/remotedirectorycoordinator.h"
 #include "services/ftpentry.h"
 #include "services/iftpclient.h"
 #include "services/ilocalfilesystem.h"
@@ -38,14 +38,14 @@ using transfer::TransferItem;
 /**
  * @brief Orchestrates transfer queue state, FTP dispatch, and folder operations.
  *
- * TransferOrchestrator manages the lifecycle of file transfers: enqueuing uploads,
+ * TransferManager manages the lifecycle of file transfers: enqueuing uploads,
  * downloads, and deletes; coordinating recursive folder scans and directory creation;
  * handling overwrite and folder-exists confirmations; and delegating actual FTP I/O
  * to TransferFtpHandler. Model notifications are routed back to the owning
  * QAbstractListModel via the ModelCallbacks struct so the orchestrator itself has
  * no dependency on Qt's model infrastructure.
  */
-class TransferOrchestrator : public QObject
+class TransferManager : public QObject
 {
     Q_OBJECT
 
@@ -65,8 +65,8 @@ public:
         std::function<void()> endRemoveRows;
     };
 
-    explicit TransferOrchestrator(QObject *parent = nullptr);
-    ~TransferOrchestrator() override;
+    explicit TransferManager(QObject *parent = nullptr);
+    ~TransferManager() override;
 
     void setModelCallbacks(const ModelCallbacks &callbacks);
 
@@ -96,7 +96,7 @@ public:
 
     /**
      * @brief Provides direct access to the BatchManager for callers that need
-     *        batch queries without going through TransferOrchestrator pass-throughs.
+     *        batch queries without going through TransferManager pass-throughs.
      * @return Non-owning pointer to the batch manager (never null after construction).
      */
     [[nodiscard]] const BatchManager *batchManager() const { return batchManager_; }
@@ -203,13 +203,13 @@ private:
 
     BatchManager *batchManager_ = nullptr;
     TransferTimeoutManager *timeoutManager_ = nullptr;
-    TransferEventProcessor *eventProcessor_ = nullptr;
+    TransferEventHandler *eventProcessor_ = nullptr;
 
     RecursiveScanCoordinator *scanCoordinator_ = nullptr;
-    RemoteDirectoryCreator *dirCreator_ = nullptr;
+    RemoteDirectoryCoordinator *dirCreator_ = nullptr;
     FolderOperationCoordinator *folderCoordinator_ = nullptr;
     TransferFtpHandler *ftpHandler_ = nullptr;
     TransferDeleteHandler *deleteHandler_ = nullptr;
 };
 
-#endif  // TRANSFERORCHESTRATOR_H
+#endif  // TRANSFERMANAGER_H

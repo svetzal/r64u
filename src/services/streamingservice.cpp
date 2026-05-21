@@ -7,7 +7,7 @@
 
 #include "audioplaybackservice.h"
 #include "audiostreamreceiver.h"
-#include "deviceconnection.h"
+#include "deviceconnectionmanager.h"
 #include "iaudioplaybackservice.h"
 #include "iaudiostreamreceiver.h"
 #include "inetworkinterfaceprovider.h"
@@ -17,7 +17,7 @@
 #include "keyboardinputservice.h"
 #include "networkinterfaceprovider.h"
 #include "streamcontrolclient.h"
-#include "streamingdiagnostics.h"
+#include "streamingdiagnosticsservice.h"
 #include "videostreamreceiver.h"
 
 #include "utils/logging.h"
@@ -25,7 +25,7 @@
 #include <QHostAddress>
 #include <QUrl>
 
-StreamingService::StreamingService(DeviceConnection *connection,
+StreamingService::StreamingService(DeviceConnectionManager *connection,
                                    IStreamControlClient *streamControl,
                                    IVideoStreamReceiver *videoReceiver,
                                    IAudioStreamReceiver *audioReceiver,
@@ -38,7 +38,7 @@ StreamingService::StreamingService(DeviceConnection *connection,
       concreteVideoReceiver_(qobject_cast<VideoStreamReceiver *>(videoReceiver)),
       concreteAudioReceiver_(qobject_cast<AudioStreamReceiver *>(audioReceiver))
 {
-    Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
+    Q_ASSERT(deviceConnection_ && "DeviceConnectionManager is required");
 
     // Connect video receiver format detection
     connect(videoReceiver_, &IVideoStreamReceiver::formatDetected, this,
@@ -57,7 +57,8 @@ StreamingService::StreamingService(DeviceConnection *connection,
             &StreamingService::onStreamCommandFailed);
 }
 
-StreamingService *StreamingService::createDefault(DeviceConnection *connection, QObject *parent)
+StreamingService *StreamingService::createDefault(DeviceConnectionManager *connection,
+                                                  QObject *parent)
 {
     // Create owned streaming services (parented to manager)
     auto *streamControl = new StreamControlClient(nullptr);
@@ -79,7 +80,7 @@ StreamingService *StreamingService::createDefault(DeviceConnection *connection, 
     keyboardInput->setParent(manager);
 
     // Attach diagnostics to receivers (diagnostics also owned by manager)
-    auto *diagnostics = new StreamingDiagnostics(manager);
+    auto *diagnostics = new StreamingDiagnosticsService(manager);
     manager->diagnostics_ = diagnostics;
     diagnostics->attachVideoReceiver(videoReceiver);
     diagnostics->attachAudioReceiver(audioReceiver);

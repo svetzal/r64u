@@ -4,11 +4,11 @@
 #include "inavigationview.h"
 
 #include "models/remotefilemodel.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "utils/logging.h"
 
 ExploreNavigationController::ExploreNavigationController(
-    DeviceConnection *connection, RemoteFileModel *model, INavigationView *view,
+    DeviceConnectionManager *connection, RemoteFileModel *model, INavigationView *view,
     ExploreFavoritesController *favoritesController, QObject *parent)
     : QObject(parent), deviceConnection_(connection), remoteFileModel_(model), view_(view),
       favoritesController_(favoritesController), currentDirectory_("/")

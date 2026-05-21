@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QString>
 
-class DeviceConnection;
+class DeviceConnectionManager;
 
 /**
  * @brief Service wrapping file play, run, and mount REST operations.
@@ -20,7 +20,7 @@ class DeviceActionService : public QObject
     Q_OBJECT
 
 public:
-    explicit DeviceActionService(DeviceConnection *connection, QObject *parent = nullptr);
+    explicit DeviceActionService(DeviceConnectionManager *connection, QObject *parent = nullptr);
 
     /**
      * @brief Sends a command to play a SID music file.
@@ -67,7 +67,7 @@ signals:
     void operationNotAvailable(const QString &operation);
 
 private:
-    DeviceConnection *deviceConnection_ = nullptr;
+    DeviceConnectionManager *deviceConnection_ = nullptr;
 };
 
 #endif  // DEVICEACTIONSERVICE_H

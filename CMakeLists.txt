@@ -52,7 +52,7 @@ set(SOURCES
     src/ui/localfilebrowserwidget.cpp
     src/ui/remotefilebrowserwidget.cpp
     src/ui/remotefilebrowsercontroller.cpp
-    src/ui/refreshpolicy.cpp
+    src/ui/refreshpolicymanager.cpp
     src/ui/transferprogresswidget.cpp
     src/ui/batchprogresswidget.cpp
     src/ui/transferprogresscontainer.cpp
@@ -61,7 +61,7 @@ set(SOURCES
     src/ui/explorepanelcore.cpp
     src/ui/fileactioncontroller.cpp
     src/ui/explorefavoritescontroller.cpp
-    src/ui/explorecontextmenu.cpp
+    src/ui/explorecontextmenucontroller.cpp
     src/ui/explorenavigationcontroller.cpp
     src/ui/navigationviewadapter.cpp
     src/ui/menubarbuilder.cpp
@@ -85,7 +85,7 @@ set(SOURCES
     src/services/c64urestclient.cpp
     src/services/iftpclient.cpp
     src/services/c64uftpclient.cpp
-    src/services/deviceconnection.cpp
+    src/services/deviceconnectionmanager.cpp
     src/services/configfileloaderservice.cpp
     src/services/filepreviewservice.cpp
     src/services/transferservice.cpp
@@ -150,20 +150,20 @@ set(SOURCES
     src/services/configurationservice.cpp
     src/services/deviceactionservice.cpp
     src/services/systemcommandcontroller.cpp
-    src/services/streamingdiagnostics.cpp
+    src/services/streamingdiagnosticsservice.cpp
     src/ui/streamingdiagnosticswidget.cpp
     src/models/remotefilemodel.cpp
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
-    src/models/transferorchestrator.cpp
+    src/models/transfermanager.cpp
     src/models/transferdeletehandler.cpp
     src/models/transferftphandler.cpp
     src/models/batchmanager.cpp
     src/models/transfertimeoutmanager.cpp
-    src/models/transfereventprocessor.cpp
+    src/models/transfereventhandler.cpp
     src/models/configurationmodel.cpp
     src/ftp/recursivescancoordinator.cpp
-    src/ftp/remotedirectorycreator.cpp
+    src/ftp/remotedirectorycoordinator.cpp
     src/ftp/folderoperationcoordinator.cpp
 )
 
@@ -181,7 +181,7 @@ set(HEADERS
     src/ui/localfilebrowserwidget.h
     src/ui/remotefilebrowserwidget.h
     src/ui/remotefilebrowsercontroller.h
-    src/ui/refreshpolicy.h
+    src/ui/refreshpolicymanager.h
     src/ui/transferprogresswidget.h
     src/ui/batchprogresswidget.h
     src/ui/transferprogresscontainer.h
@@ -190,7 +190,7 @@ set(HEADERS
     src/ui/explorepanelcore.h
     src/ui/fileactioncontroller.h
     src/ui/explorefavoritescontroller.h
-    src/ui/explorecontextmenu.h
+    src/ui/explorecontextmenucontroller.h
     src/ui/explorenavigationcontroller.h
     src/ui/inavigationview.h
     src/ui/navigationviewadapter.h
@@ -216,7 +216,7 @@ set(HEADERS
     src/ui/filepreview/defaultfilepreview.h
     src/services/c64urestclient.h
     src/services/c64uftpclient.h
-    src/services/deviceconnection.h
+    src/services/deviceconnectionmanager.h
     src/services/configfileloaderservice.h
     src/services/filepreviewservice.h
     src/services/transferservice.h
@@ -276,22 +276,22 @@ set(HEADERS
     src/services/deviceactionservice.h
     src/services/metadataservicebundle.h
     src/services/systemcommandcontroller.h
-    src/services/streamingdiagnostics.h
+    src/services/streamingdiagnosticsservice.h
     src/services/localfileoperationsservice.h
     src/ui/streamingdiagnosticswidget.h
     src/utils/rollingstats.h
     src/models/remotefilemodel.h
     src/models/localfileproxymodel.h
     src/models/transferqueue.h
-    src/models/transferorchestrator.h
+    src/models/transfermanager.h
     src/models/transferdeletehandler.h
     src/models/transferftphandler.h
     src/models/batchmanager.h
     src/models/transfertimeoutmanager.h
-    src/models/transfereventprocessor.h
+    src/models/transfereventhandler.h
     src/models/configurationmodel.h
     src/ftp/recursivescancoordinator.h
-    src/ftp/remotedirectorycreator.h
+    src/ftp/remotedirectorycoordinator.h
     src/ftp/folderoperationcoordinator.h
 )
 

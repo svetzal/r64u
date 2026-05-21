@@ -1,31 +1,31 @@
 /**
- * @file test_explorecontextmenu.cpp
- * @brief Unit tests for ExploreContextMenu action enablement.
+ * @file test_explorecontextmenucontroller.cpp
+ * @brief Unit tests for ExploreContextMenuController action enablement.
  *
  * showForSelection() calls QMenu::exec() which blocks on user input — untestable
  * directly.  The enablement logic has been extracted into prepareMenu(), which
  * applies action enabled/text state without showing the menu.  These tests
  * exercise prepareMenu() with various ActionEnablement combinations.
  *
- * Note: ExploreContextMenu creates a QMenu internally and therefore requires
+ * Note: ExploreContextMenuController creates a QMenu internally and therefore requires
  * Qt Widgets.  The offscreen platform plugin is sufficient; no display is needed.
  */
 
-#include "ui/explorecontextmenu.h"
+#include "ui/explorecontextmenucontroller.h"
 #include "ui/explorepanelcore.h"
 
 #include <QAction>
 #include <QtTest>
 
-class TestExploreContextMenu : public QObject
+class TestExploreContextMenuController : public QObject
 {
     Q_OBJECT
 
 private:
-    ExploreContextMenu *contextMenu_ = nullptr;
+    ExploreContextMenuController *contextMenu_ = nullptr;
 
 private slots:
-    void init() { contextMenu_ = new ExploreContextMenu(this); }
+    void init() { contextMenu_ = new ExploreContextMenuController(this); }
 
     void cleanup()
     {
@@ -67,10 +67,10 @@ private slots:
         // Since we cannot introspect private QActions directly, we use QSignalSpy
         // on the signals that fire when enabled actions are triggered.
         // A disabled action must not emit any signal when triggered.
-        QSignalSpy playSpy(contextMenu_, &ExploreContextMenu::playRequested);
-        QSignalSpy runSpy(contextMenu_, &ExploreContextMenu::runRequested);
-        QSignalSpy mountASpy(contextMenu_, &ExploreContextMenu::mountARequested);
-        QSignalSpy downloadSpy(contextMenu_, &ExploreContextMenu::downloadRequested);
+        QSignalSpy playSpy(contextMenu_, &ExploreContextMenuController::playRequested);
+        QSignalSpy runSpy(contextMenu_, &ExploreContextMenuController::runRequested);
+        QSignalSpy mountASpy(contextMenu_, &ExploreContextMenuController::mountARequested);
+        QSignalSpy downloadSpy(contextMenu_, &ExploreContextMenuController::downloadRequested);
 
         // Disabled actions won't fire trigger on activate, but we can confirm
         // nothing fired during prepareMenu itself:
@@ -92,7 +92,7 @@ private slots:
 
         contextMenu_->prepareMenu(e, false, false);
 
-        QSignalSpy spy(contextMenu_, &ExploreContextMenu::playRequested);
+        QSignalSpy spy(contextMenu_, &ExploreContextMenuController::playRequested);
         emit contextMenu_->playRequested();  // Simulate trigger via signal
         QCOMPARE(spy.count(), 1);
     }
@@ -108,7 +108,7 @@ private slots:
 
         contextMenu_->prepareMenu(e, false, false);
 
-        QSignalSpy spy(contextMenu_, &ExploreContextMenu::runRequested);
+        QSignalSpy spy(contextMenu_, &ExploreContextMenuController::runRequested);
         emit contextMenu_->runRequested();
         QCOMPARE(spy.count(), 1);
     }
@@ -124,8 +124,8 @@ private slots:
 
         contextMenu_->prepareMenu(e, false, false);
 
-        QSignalSpy spyA(contextMenu_, &ExploreContextMenu::mountARequested);
-        QSignalSpy spyB(contextMenu_, &ExploreContextMenu::mountBRequested);
+        QSignalSpy spyA(contextMenu_, &ExploreContextMenuController::mountARequested);
+        QSignalSpy spyB(contextMenu_, &ExploreContextMenuController::mountBRequested);
         emit contextMenu_->mountARequested();
         emit contextMenu_->mountBRequested();
         QCOMPARE(spyA.count(), 1);
@@ -143,7 +143,7 @@ private slots:
 
         contextMenu_->prepareMenu(e, false, false);
 
-        QSignalSpy spy(contextMenu_, &ExploreContextMenu::downloadRequested);
+        QSignalSpy spy(contextMenu_, &ExploreContextMenuController::downloadRequested);
         emit contextMenu_->downloadRequested();
         QCOMPARE(spy.count(), 1);
     }
@@ -159,7 +159,7 @@ private slots:
 
         contextMenu_->prepareMenu(e, false, false);
 
-        QSignalSpy spy(contextMenu_, &ExploreContextMenu::loadConfigRequested);
+        QSignalSpy spy(contextMenu_, &ExploreContextMenuController::loadConfigRequested);
         emit contextMenu_->loadConfigRequested();
         QCOMPARE(spy.count(), 1);
     }
@@ -172,7 +172,7 @@ private slots:
     {
         contextMenu_->prepareMenu(disabledEnablement(), true, false);
 
-        QSignalSpy spy(contextMenu_, &ExploreContextMenu::addToPlaylistRequested);
+        QSignalSpy spy(contextMenu_, &ExploreContextMenuController::addToPlaylistRequested);
         emit contextMenu_->addToPlaylistRequested();
         QCOMPARE(spy.count(), 1);
     }
@@ -185,7 +185,7 @@ private slots:
     {
         contextMenu_->prepareMenu(disabledEnablement(), false, true);
 
-        QSignalSpy spy(contextMenu_, &ExploreContextMenu::toggleFavoriteRequested);
+        QSignalSpy spy(contextMenu_, &ExploreContextMenuController::toggleFavoriteRequested);
         emit contextMenu_->toggleFavoriteRequested();
         QCOMPARE(spy.count(), 1);
     }
@@ -194,7 +194,7 @@ private slots:
     {
         contextMenu_->prepareMenu(disabledEnablement(), false, false);
 
-        QSignalSpy spy(contextMenu_, &ExploreContextMenu::toggleFavoriteRequested);
+        QSignalSpy spy(contextMenu_, &ExploreContextMenuController::toggleFavoriteRequested);
         emit contextMenu_->toggleFavoriteRequested();
         QCOMPARE(spy.count(), 1);
     }
@@ -207,7 +207,7 @@ private slots:
     {
         contextMenu_->prepareMenu(disabledEnablement(), false, false);
 
-        QSignalSpy spy(contextMenu_, &ExploreContextMenu::refreshRequested);
+        QSignalSpy spy(contextMenu_, &ExploreContextMenuController::refreshRequested);
         emit contextMenu_->refreshRequested();
         QCOMPARE(spy.count(), 1);
     }
@@ -227,5 +227,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(TestExploreContextMenu)
-#include "test_explorecontextmenu.moc"
+QTEST_MAIN(TestExploreContextMenuController)
+#include "test_explorecontextmenucontroller.moc"

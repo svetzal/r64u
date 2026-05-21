@@ -3,7 +3,7 @@
 
 class QMainWindow;
 class QToolBar;
-class DeviceConnection;
+class DeviceConnectionManager;
 class SystemCommandController;
 class ConnectionStatusWidget;
 class ConnectionUIController;
@@ -38,7 +38,7 @@ public:
     /// @param refreshAction  The refresh action from the menu bar (passed to
     /// ConnectionUIController)
     static SystemToolBarResult build(QMainWindow *window, QToolBar *toolBar,
-                                     DeviceConnection *deviceConnection,
+                                     DeviceConnectionManager *deviceConnection,
                                      SystemCommandController *sysCtrl, QAction *refreshAction);
 };
 

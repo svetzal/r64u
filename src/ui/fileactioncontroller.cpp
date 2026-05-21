@@ -3,7 +3,7 @@
 #include "models/remotefilemodel.h"
 #include "services/configfileloaderservice.h"
 #include "services/deviceactionservice.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/diskbootsequenceservice.h"
 #include "services/errorhandler.h"
 #include "services/filebrowsercore.h"
@@ -17,7 +17,7 @@
 #include <QTreeView>
 
 FileActionController::FileActionController(DeviceActionService *deviceActionService,
-                                           DeviceConnection *connection,
+                                           DeviceConnectionManager *connection,
                                            ConfigFileLoaderService *configLoader, QObject *parent)
     : QObject(parent), deviceActionService_(deviceActionService), deviceConnection_(connection),
       configFileLoader_(configLoader)

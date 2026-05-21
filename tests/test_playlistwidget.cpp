@@ -13,7 +13,7 @@
  * - Playback-control slots delegate to PlaylistService
  * - Elapsed-timer starts on playbackStarted, stops on playbackStopped
  *
- * PlaylistService is constructed with a null DeviceConnection.  All guard
+ * PlaylistService is constructed with a null DeviceConnectionManager.  All guard
  * clauses for null connections are in PlaylistService and prevent any real
  * hardware calls from being made during the tests.
  */

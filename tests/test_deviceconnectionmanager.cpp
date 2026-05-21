@@ -1,6 +1,6 @@
 /**
- * @file test_deviceconnection.cpp
- * @brief Unit tests for DeviceConnection state machine.
+ * @file test_deviceconnectionmanager.cpp
+ * @brief Unit tests for DeviceConnectionManager state machine.
  *
  * Tests verify:
  * - All valid state transitions
@@ -11,22 +11,22 @@
  * - Guard conditions on connectToDevice() and disconnectFromDevice()
  */
 
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 
 #include <QSignalSpy>
 #include <QtTest>
 
-class TestDeviceConnection : public QObject
+class TestDeviceConnectionManager : public QObject
 {
     Q_OBJECT
 
 private:
-    DeviceConnection *conn;
+    DeviceConnectionManager *conn;
 
 private slots:
     void init()
     {
-        conn = new DeviceConnection(this);
+        conn = new DeviceConnectionManager(this);
         conn->setHost("192.168.1.64");
         conn->setAutoReconnect(false);  // Disable for most tests
     }
@@ -41,7 +41,7 @@ private slots:
 
     void testInitialState()
     {
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Disconnected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
         QVERIFY(!conn->isConnected());
         QVERIFY(!conn->isRestConnected());
         QVERIFY(!conn->canPerformOperations());
@@ -71,20 +71,20 @@ private slots:
 
     void testValidTransition_DisconnectedToConnecting()
     {
-        QSignalSpy stateSpy(conn, &DeviceConnection::stateChanged);
+        QSignalSpy stateSpy(conn, &DeviceConnectionManager::stateChanged);
 
         conn->connectToDevice();
 
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connecting);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connecting);
         QCOMPARE(stateSpy.count(), 1);
-        QCOMPARE(stateSpy.first().first().value<DeviceConnection::ConnectionState>(),
-                 DeviceConnection::ConnectionState::Connecting);
+        QCOMPARE(stateSpy.first().first().value<DeviceConnectionManager::ConnectionState>(),
+                 DeviceConnectionManager::ConnectionState::Connecting);
     }
 
     void testValidTransition_ConnectingToConnected()
     {
-        QSignalSpy stateSpy(conn, &DeviceConnection::stateChanged);
-        QSignalSpy connectedSpy(conn, &DeviceConnection::connected);
+        QSignalSpy stateSpy(conn, &DeviceConnectionManager::stateChanged);
+        QSignalSpy connectedSpy(conn, &DeviceConnectionManager::connected);
 
         conn->connectToDevice();
         stateSpy.clear();
@@ -95,7 +95,7 @@ private slots:
         emit conn->restClient()->infoReceived(info);
         emit conn->ftpClient()->connected();
 
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connected);
         QVERIFY(conn->isConnected());
         QVERIFY(conn->canPerformOperations());
         QCOMPARE(stateSpy.count(), 1);
@@ -104,8 +104,8 @@ private slots:
 
     void testValidTransition_ConnectingToDisconnected_OnError()
     {
-        QSignalSpy stateSpy(conn, &DeviceConnection::stateChanged);
-        QSignalSpy errorSpy(conn, &DeviceConnection::connectionError);
+        QSignalSpy stateSpy(conn, &DeviceConnectionManager::stateChanged);
+        QSignalSpy errorSpy(conn, &DeviceConnectionManager::connectionError);
 
         conn->connectToDevice();
         stateSpy.clear();
@@ -113,7 +113,7 @@ private slots:
         // Simulate REST error during connection
         emit conn->restClient()->connectionError("Connection refused");
 
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Disconnected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
         QCOMPARE(stateSpy.count(), 1);
         QCOMPARE(errorSpy.count(), 1);
         QVERIFY(errorSpy.first().first().toString().contains("REST"));
@@ -121,19 +121,19 @@ private slots:
 
     void testValidTransition_ConnectedToDisconnected()
     {
-        QSignalSpy disconnectedSpy(conn, &DeviceConnection::disconnected);
+        QSignalSpy disconnectedSpy(conn, &DeviceConnectionManager::disconnected);
 
         // First connect
         conn->connectToDevice();
         DeviceInfo info;
         emit conn->restClient()->infoReceived(info);
         emit conn->ftpClient()->connected();
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connected);
 
         // Then disconnect
         conn->disconnectFromDevice();
 
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Disconnected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
         QCOMPARE(disconnectedSpy.count(), 1);
     }
 
@@ -146,14 +146,14 @@ private slots:
         DeviceInfo info;
         emit conn->restClient()->infoReceived(info);
         emit conn->ftpClient()->connected();
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connected);
 
-        QSignalSpy stateSpy(conn, &DeviceConnection::stateChanged);
+        QSignalSpy stateSpy(conn, &DeviceConnectionManager::stateChanged);
 
         // Simulate FTP disconnect (connection loss)
         emit conn->ftpClient()->disconnected();
 
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Reconnecting);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Reconnecting);
         QCOMPARE(stateSpy.count(), 1);
     }
 
@@ -162,15 +162,15 @@ private slots:
     void testInvalidTransition_ConnectingWhileConnecting()
     {
         conn->connectToDevice();
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connecting);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connecting);
 
-        QSignalSpy stateSpy(conn, &DeviceConnection::stateChanged);
+        QSignalSpy stateSpy(conn, &DeviceConnectionManager::stateChanged);
 
         // Try to connect again while already connecting
         conn->connectToDevice();
 
         // Should be ignored - state unchanged
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connecting);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connecting);
         QCOMPARE(stateSpy.count(), 0);
     }
 
@@ -181,15 +181,15 @@ private slots:
         DeviceInfo info;
         emit conn->restClient()->infoReceived(info);
         emit conn->ftpClient()->connected();
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connected);
 
-        QSignalSpy stateSpy(conn, &DeviceConnection::stateChanged);
+        QSignalSpy stateSpy(conn, &DeviceConnectionManager::stateChanged);
 
         // Try to connect again while connected
         conn->connectToDevice();
 
         // Should be ignored
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connected);
         QCOMPARE(stateSpy.count(), 0);
     }
 
@@ -197,13 +197,13 @@ private slots:
 
     void testGuard_ConnectWithoutHost()
     {
-        auto *noHostConn = new DeviceConnection(this);
-        QSignalSpy errorSpy(noHostConn, &DeviceConnection::connectionError);
+        auto *noHostConn = new DeviceConnectionManager(this);
+        QSignalSpy errorSpy(noHostConn, &DeviceConnectionManager::connectionError);
 
         noHostConn->connectToDevice();
 
         // Should emit error, not transition
-        QCOMPARE(noHostConn->state(), DeviceConnection::ConnectionState::Disconnected);
+        QCOMPARE(noHostConn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
         QCOMPARE(errorSpy.count(), 1);
         QVERIFY(errorSpy.first().first().toString().contains("host"));
 
@@ -239,19 +239,19 @@ private slots:
     {
         // Start connecting
         conn->connectToDevice();
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connecting);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connecting);
 
         // Only REST connected - should still be Connecting
         DeviceInfo info;
         emit conn->restClient()->infoReceived(info);
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connecting);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connecting);
         QVERIFY(!conn->isConnected());
         QVERIFY(!conn->canPerformOperations());  // Not yet - still connecting
         QVERIFY(conn->isRestConnected());
 
         // FTP connects - now should be Connected
         emit conn->ftpClient()->connected();
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connected);
         QVERIFY(conn->isConnected());
     }
 
@@ -262,13 +262,13 @@ private slots:
 
         // FTP connects first
         emit conn->ftpClient()->connected();
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connecting);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connecting);
         QVERIFY(!conn->isConnected());
 
         // REST connects second
         DeviceInfo info;
         emit conn->restClient()->infoReceived(info);
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connected);
         QVERIFY(conn->isConnected());
     }
 
@@ -278,12 +278,12 @@ private slots:
 
         // FTP connects
         emit conn->ftpClient()->connected();
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connecting);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connecting);
 
         // REST fails - should abort and disconnect
         emit conn->restClient()->connectionError("Timeout");
 
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Disconnected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
         QVERIFY(!conn->isConnected());
     }
 
@@ -294,12 +294,12 @@ private slots:
         // REST succeeds
         DeviceInfo info;
         emit conn->restClient()->infoReceived(info);
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connecting);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connecting);
 
         // FTP fails
         emit conn->ftpClient()->error("Connection refused");
 
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Disconnected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
         QVERIFY(!conn->isConnected());
     }
 
@@ -314,7 +314,7 @@ private slots:
         DeviceInfo info;
         emit conn->restClient()->infoReceived(info);
         emit conn->ftpClient()->connected();
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connected);
 
         // Simulate FTP disconnect - with autoReconnect off, the FTP disconnect
         // signal is not handled when in Connected state (no reconnection attempt).
@@ -323,7 +323,7 @@ private slots:
 
         // State remains Connected - the FTP disconnect is only monitored
         // when autoReconnect is true
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connected);
     }
 
     void testReconnect_TriggeredOnConnectionLoss()
@@ -335,14 +335,14 @@ private slots:
         DeviceInfo info;
         emit conn->restClient()->infoReceived(info);
         emit conn->ftpClient()->connected();
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connected);
 
-        QSignalSpy stateSpy(conn, &DeviceConnection::stateChanged);
+        QSignalSpy stateSpy(conn, &DeviceConnectionManager::stateChanged);
 
         // Simulate REST connection error while connected
         emit conn->restClient()->connectionError("Connection lost");
 
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Reconnecting);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Reconnecting);
     }
 
     void testReconnect_DisconnectStopsTimer()
@@ -355,50 +355,50 @@ private slots:
         emit conn->restClient()->infoReceived(info);
         emit conn->ftpClient()->connected();
         emit conn->ftpClient()->disconnected();
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Reconnecting);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Reconnecting);
 
         // User calls disconnect
         conn->disconnectFromDevice();
 
         // Should be fully disconnected
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Disconnected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
     }
 
     // === Error Handling Tests ===
 
     void testError_DuringConnecting_REST()
     {
-        QSignalSpy errorSpy(conn, &DeviceConnection::connectionError);
+        QSignalSpy errorSpy(conn, &DeviceConnectionManager::connectionError);
 
         conn->connectToDevice();
         emit conn->restClient()->connectionError("Network unreachable");
 
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Disconnected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
         QCOMPARE(errorSpy.count(), 1);
         QVERIFY(errorSpy.first().first().toString().contains("REST"));
     }
 
     void testError_DuringConnecting_FTP()
     {
-        QSignalSpy errorSpy(conn, &DeviceConnection::connectionError);
+        QSignalSpy errorSpy(conn, &DeviceConnectionManager::connectionError);
 
         conn->connectToDevice();
         emit conn->ftpClient()->error("Connection timed out");
 
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Disconnected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
         QCOMPARE(errorSpy.count(), 1);
         QVERIFY(errorSpy.first().first().toString().contains("FTP"));
     }
 
     void testError_OperationFailed_InfoRequest()
     {
-        QSignalSpy errorSpy(conn, &DeviceConnection::connectionError);
+        QSignalSpy errorSpy(conn, &DeviceConnectionManager::connectionError);
 
         conn->connectToDevice();
         // Simulate REST info operation failure (treated as connection error during connect)
         emit conn->restClient()->operationFailed("info", "Invalid response");
 
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Disconnected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
         QCOMPARE(errorSpy.count(), 1);
     }
 
@@ -406,7 +406,7 @@ private slots:
 
     void testDeviceInfo_CachedOnConnect()
     {
-        QSignalSpy infoSpy(conn, &DeviceConnection::deviceInfoUpdated);
+        QSignalSpy infoSpy(conn, &DeviceConnectionManager::deviceInfoUpdated);
 
         conn->connectToDevice();
 
@@ -442,7 +442,7 @@ private slots:
 
     void testDriveInfo_CachedOnReceive()
     {
-        QSignalSpy drivesSpy(conn, &DeviceConnection::driveInfoUpdated);
+        QSignalSpy drivesSpy(conn, &DeviceConnectionManager::driveInfoUpdated);
 
         conn->connectToDevice();
         DeviceInfo info;
@@ -470,26 +470,26 @@ private slots:
         DeviceInfo info;
         emit conn->restClient()->infoReceived(info);
         emit conn->ftpClient()->connected();
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Connected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Connected);
         conn->disconnectFromDevice();
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Disconnected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
 
         // Note: Real socket may still be cleaning up, but state machine should
         // allow reconnection. The socket-level issues are handled by the FTP client.
         // For this test, we verify the state machine allows the transition.
 
-        // Second cycle - use a fresh DeviceConnection to avoid socket cleanup issues
-        auto *conn2 = new DeviceConnection(this);
+        // Second cycle - use a fresh DeviceConnectionManager to avoid socket cleanup issues
+        auto *conn2 = new DeviceConnectionManager(this);
         conn2->setHost("192.168.1.64");
         conn2->setAutoReconnect(false);
 
         conn2->connectToDevice();
-        QCOMPARE(conn2->state(), DeviceConnection::ConnectionState::Connecting);
+        QCOMPARE(conn2->state(), DeviceConnectionManager::ConnectionState::Connecting);
         emit conn2->restClient()->infoReceived(info);
         emit conn2->ftpClient()->connected();
-        QCOMPARE(conn2->state(), DeviceConnection::ConnectionState::Connected);
+        QCOMPARE(conn2->state(), DeviceConnectionManager::ConnectionState::Connected);
         conn2->disconnectFromDevice();
-        QCOMPARE(conn2->state(), DeviceConnection::ConnectionState::Disconnected);
+        QCOMPARE(conn2->state(), DeviceConnectionManager::ConnectionState::Disconnected);
 
         delete conn2;
     }
@@ -502,14 +502,14 @@ private slots:
 
         // Disconnect before connection completes
         conn->disconnectFromDevice();
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Disconnected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
 
         // Late signal arrives - should be ignored
         DeviceInfo info;
         emit conn->restClient()->infoReceived(info);
 
         // Still disconnected
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Disconnected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
     }
 
     void testEdgeCase_DoubleDisconnect()
@@ -519,15 +519,15 @@ private slots:
         emit conn->restClient()->infoReceived(info);
         emit conn->ftpClient()->connected();
 
-        QSignalSpy disconnectedSpy(conn, &DeviceConnection::disconnected);
+        QSignalSpy disconnectedSpy(conn, &DeviceConnectionManager::disconnected);
 
         conn->disconnectFromDevice();
         conn->disconnectFromDevice();  // Second call
 
         // Should only emit once effectively
-        QCOMPARE(conn->state(), DeviceConnection::ConnectionState::Disconnected);
+        QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
     }
 };
 
-QTEST_MAIN(TestDeviceConnection)
-#include "test_deviceconnection.moc"
+QTEST_MAIN(TestDeviceConnectionManager)
+#include "test_deviceconnectionmanager.moc"

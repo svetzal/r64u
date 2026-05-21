@@ -1,7 +1,7 @@
 #include "mocks/mockftpclient.h"
 #include "mocks/mockrestclient.h"
 #include "services/deviceactionservice.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 
 #include <QSignalSpy>
 #include <QtTest>
@@ -12,11 +12,11 @@ class TestDeviceActionService : public QObject
 
 private:
     // Creates a connection with a non-null MockRestClient (production-like, but disconnected).
-    DeviceConnection *makeConnection()
+    DeviceConnectionManager *makeConnection()
     {
         auto *restClient = new MockRestClient(this);
         auto *ftpClient = new MockFtpClient(this);
-        return new DeviceConnection(restClient, ftpClient, this);
+        return new DeviceConnectionManager(restClient, ftpClient, this);
     }
 
 private slots:

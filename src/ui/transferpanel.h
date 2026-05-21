@@ -9,7 +9,7 @@
 
 #include <memory>
 
-class DeviceConnection;
+class DeviceConnectionManager;
 class ErrorHandler;
 class RemoteFileModel;
 class TransferQueue;
@@ -25,7 +25,7 @@ class TransferPanel : public QWidget, public IPanel
 public:
     QObject *asQObject() override { return this; }
 
-    explicit TransferPanel(DeviceConnection *connection, RemoteFileModel *model,
+    explicit TransferPanel(DeviceConnectionManager *connection, RemoteFileModel *model,
                            TransferService *transferService,
                            RemoteFileOperationsService *fileOperations, QWidget *parent = nullptr);
 
@@ -62,7 +62,7 @@ private:
     void setupConnections();
 
     // Dependencies (not owned)
-    DeviceConnection *deviceConnection_ = nullptr;
+    DeviceConnectionManager *deviceConnection_ = nullptr;
     ErrorHandler *errorHandler_ = nullptr;
     TransferService *transferService_ = nullptr;
 

@@ -3,7 +3,7 @@
 #include "services/configfileloader.h"
 #include "services/configurationservice.h"
 #include "services/deviceactionservice.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/errorhandler.h"
 #include "services/favoritesservice.h"
 #include "services/filepreviewservice.h"

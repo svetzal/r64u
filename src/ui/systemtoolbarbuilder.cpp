@@ -12,7 +12,7 @@
 #include <QWidget>
 
 SystemToolBarResult SystemToolBarBuilder::build(QMainWindow *window, QToolBar *toolBar,
-                                                DeviceConnection *deviceConnection,
+                                                DeviceConnectionManager *deviceConnection,
                                                 SystemCommandController *sysCtrl,
                                                 QAction *refreshAction)
 {

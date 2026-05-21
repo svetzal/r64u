@@ -12,7 +12,7 @@
 
 #include "services/streamingservice.h"
 
-StreamingService::StreamingService(DeviceConnection * /*connection*/,
+StreamingService::StreamingService(DeviceConnectionManager * /*connection*/,
                                    IStreamControlClient * /*streamControl*/,
                                    IVideoStreamReceiver * /*videoReceiver*/,
                                    IAudioStreamReceiver * /*audioReceiver*/,

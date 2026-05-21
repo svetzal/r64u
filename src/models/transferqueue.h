@@ -1,7 +1,7 @@
 #ifndef TRANSFERQUEUE_H
 #define TRANSFERQUEUE_H
 
-#include "transferorchestrator.h"
+#include "transfermanager.h"
 
 #include "services/transfercore.h"
 
@@ -131,7 +131,7 @@ signals:
 private:
     void setupSignalForwarding();
 
-    TransferOrchestrator *orchestrator_ = nullptr;
+    TransferManager *orchestrator_ = nullptr;
 };
 
 #endif  // TRANSFERQUEUE_H

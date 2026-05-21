@@ -1,7 +1,7 @@
 #include "remotefilebrowserwidget.h"
 
 #include "pathnavigationwidget.h"
-#include "refreshpolicy.h"
+#include "refreshpolicymanager.h"
 #include "remotefilebrowsercontroller.h"
 
 #include "models/remotefilemodel.h"
@@ -23,7 +23,8 @@
 
 RemoteFileBrowserWidget::RemoteFileBrowserWidget(RemoteFileModel *fileModel, QWidget *parent)
     : FileBrowserWidget(parent), remoteFileModel_(fileModel),
-      controller_(new RemoteFileBrowserController(this)), refreshPolicy_(new RefreshPolicy(this))
+      controller_(new RemoteFileBrowserController(this)),
+      refreshPolicy_(new RefreshPolicyManager(this))
 {
     Q_ASSERT(remoteFileModel_ && "RemoteFileModel is required");
     currentDirectory_ = QStringLiteral("/");

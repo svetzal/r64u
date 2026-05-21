@@ -9,7 +9,7 @@
 #include <QToolBar>
 
 class PreferencesDialog;
-class DeviceConnection;
+class DeviceConnectionManager;
 class RemoteFileModel;
 class TransferQueue;
 class ConfigFileLoaderService;
@@ -70,7 +70,7 @@ private:
     Mode currentMode_ = Mode::ExploreRun;
 
     // Services (owned by MainWindow, shared with panels)
-    DeviceConnection *deviceConnection_ = nullptr;
+    DeviceConnectionManager *deviceConnection_ = nullptr;
     RemoteFileModel *remoteFileModel_ = nullptr;
     TransferQueue *transferQueue_ = nullptr;
     ConfigFileLoaderService *configFileLoader_ = nullptr;

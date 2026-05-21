@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QString>
 
-class DeviceConnection;
+class DeviceConnectionManager;
 class RemoteFileModel;
 class ExploreFavoritesController;
 class INavigationView;
@@ -16,8 +16,8 @@ class ExploreNavigationController : public QObject
     Q_OBJECT
 
 public:
-    explicit ExploreNavigationController(DeviceConnection *connection, RemoteFileModel *model,
-                                         INavigationView *view,
+    explicit ExploreNavigationController(DeviceConnectionManager *connection,
+                                         RemoteFileModel *model, INavigationView *view,
                                          ExploreFavoritesController *favoritesController,
                                          QObject *parent = nullptr);
 
@@ -32,7 +32,7 @@ signals:
     void statusMessage(const QString &message, int timeout = 0);
 
 private:
-    DeviceConnection *deviceConnection_ = nullptr;
+    DeviceConnectionManager *deviceConnection_ = nullptr;
     RemoteFileModel *remoteFileModel_ = nullptr;
     INavigationView *view_ = nullptr;
     ExploreFavoritesController *favoritesController_ = nullptr;

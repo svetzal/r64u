@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QString>
 
-class DeviceConnection;
+class DeviceConnectionManager;
 class IStreamControlClient;
 class IVideoStreamReceiver;
 class IAudioStreamReceiver;
@@ -13,7 +13,7 @@ class INetworkInterfaceProvider;
 class VideoStreamReceiver;
 class AudioStreamReceiver;
 class KeyboardInputService;
-class StreamingDiagnostics;
+class StreamingDiagnosticsService;
 
 /**
  * @brief Service for C64 Ultimate streaming.
@@ -64,13 +64,11 @@ public:
      * createDefault; caller-owned when injected directly).
      * @param parent Optional parent QObject for memory management.
      */
-    explicit StreamingService(DeviceConnection *connection, IStreamControlClient *streamControl,
-                              IVideoStreamReceiver *videoReceiver,
-                              IAudioStreamReceiver *audioReceiver,
-                              IAudioPlaybackService *audioPlayback,
-                              KeyboardInputService *keyboardInput,
-                              INetworkInterfaceProvider *networkProvider,
-                              QObject *parent = nullptr);
+    explicit StreamingService(
+        DeviceConnectionManager *connection, IStreamControlClient *streamControl,
+        IVideoStreamReceiver *videoReceiver, IAudioStreamReceiver *audioReceiver,
+        IAudioPlaybackService *audioPlayback, KeyboardInputService *keyboardInput,
+        INetworkInterfaceProvider *networkProvider, QObject *parent = nullptr);
 
     /**
      * @brief Factory method that creates a StreamingService with production dependencies.
@@ -83,7 +81,8 @@ public:
      * @param parent Optional parent QObject for memory management.
      * @return A fully configured StreamingService owning its dependencies.
      */
-    static StreamingService *createDefault(DeviceConnection *connection, QObject *parent = nullptr);
+    static StreamingService *createDefault(DeviceConnectionManager *connection,
+                                           QObject *parent = nullptr);
 
     /**
      * @brief Destructor. Stops streaming and cleans up resources.
@@ -147,7 +146,7 @@ public:
      * @brief Returns the streaming diagnostics service.
      * @return Pointer to the diagnostics service.
      */
-    [[nodiscard]] StreamingDiagnostics *diagnostics() const { return diagnostics_; }
+    [[nodiscard]] StreamingDiagnosticsService *diagnostics() const { return diagnostics_; }
 
 signals:
     /**
@@ -191,7 +190,7 @@ private:
     [[nodiscard]] QString findLocalHostForDevice() const;
 
     // Non-owned dependency
-    DeviceConnection *deviceConnection_ = nullptr;
+    DeviceConnectionManager *deviceConnection_ = nullptr;
 
     // Injected streaming service interfaces (lifetime managed via Qt parent/child)
     IStreamControlClient *streamControl_ = nullptr;
@@ -208,7 +207,7 @@ private:
     AudioStreamReceiver *concreteAudioReceiver_ = nullptr;
 
     // Owned streaming services (created by createDefault)
-    StreamingDiagnostics *diagnostics_ = nullptr;
+    StreamingDiagnosticsService *diagnostics_ = nullptr;
 
     // State
     bool isStreaming_ = false;

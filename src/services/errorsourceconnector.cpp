@@ -1,5 +1,5 @@
 #include "configfileloaderservice.h"
-#include "deviceconnection.h"
+#include "deviceconnectionmanager.h"
 #include "errorhandler.h"
 #include "filepreviewservice.h"
 #include "gamebase64service.h"
@@ -18,7 +18,7 @@
 
 #include <QFileInfo>
 
-void ErrorHandler::connectSources(DeviceConnection *dc, IRestClient *restClient,
+void ErrorHandler::connectSources(DeviceConnectionManager *dc, IRestClient *restClient,
                                   RemoteFileModel *rfm, IFtpClient *ftpClient,
                                   FilePreviewService *fps, ConfigFileLoaderService *cfl,
                                   TransferService *ts, SonglengthsDatabase *sld,
@@ -53,11 +53,12 @@ void ErrorHandler::connectSources(DeviceConnection *dc, IRestClient *restClient,
     }
 }
 
-void ErrorHandler::connectDeviceSources(DeviceConnection *dc, IRestClient *restClient,
+void ErrorHandler::connectDeviceSources(DeviceConnectionManager *dc, IRestClient *restClient,
                                         ConfigFileLoaderService *cfl)
 {
     if (dc) {
-        connect(dc, &DeviceConnection::connectionError, this, &ErrorHandler::handleConnectionError);
+        connect(dc, &DeviceConnectionManager::connectionError, this,
+                &ErrorHandler::handleConnectionError);
     }
     if (restClient) {
         connect(restClient, &IRestClient::operationFailed, this,

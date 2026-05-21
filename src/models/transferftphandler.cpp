@@ -3,7 +3,7 @@
 #include "transfertimeoutmanager.h"
 
 #include "../ftp/recursivescancoordinator.h"
-#include "../ftp/remotedirectorycreator.h"
+#include "../ftp/remotedirectorycoordinator.h"
 #include "../services/ftpclientmixin.h"
 #include "../utils/logging.h"
 
@@ -43,7 +43,7 @@ void TransferFtpHandler::setTimeoutManager(TransferTimeoutManager *manager)
     timeoutManager_ = manager;
 }
 
-void TransferFtpHandler::setDirCreator(RemoteDirectoryCreator *creator)
+void TransferFtpHandler::setDirCreator(RemoteDirectoryCoordinator *creator)
 {
     dirCreator_ = creator;
 }

@@ -9,7 +9,7 @@
  * - loadSettings / saveSettings round-trip
  * - selectedLocalPath / selectedRemotePath return empty when nothing selected
  *
- * Full dependency wiring is used (real DeviceConnection, RemoteFileModel, etc.)
+ * Full dependency wiring is used (real DeviceConnectionManager, RemoteFileModel, etc.)
  * with disconnected mock clients so no network I/O occurs.
  */
 
@@ -17,7 +17,7 @@
 #include "mocks/mockrestclient.h"
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/remotefileoperationsservice.h"
 #include "services/transferservice.h"
 #include "ui/transferpanel.h"
@@ -34,7 +34,7 @@ class TestTransferPanel : public QObject
 private:
     MockRestClient *mockRest_ = nullptr;
     MockFtpClient *mockFtp_ = nullptr;
-    DeviceConnection *connection_ = nullptr;
+    DeviceConnectionManager *connection_ = nullptr;
     RemoteFileModel *remoteModel_ = nullptr;
     TransferQueue *queue_ = nullptr;
     TransferService *transferService_ = nullptr;
@@ -44,7 +44,7 @@ private:
     {
         mockRest_ = new MockRestClient(this);
         mockFtp_ = new MockFtpClient(this);
-        connection_ = new DeviceConnection(mockRest_, mockFtp_, this);
+        connection_ = new DeviceConnectionManager(mockRest_, mockFtp_, this);
         remoteModel_ = new RemoteFileModel(this);
         queue_ = new TransferQueue(this);
         transferService_ = new TransferService(connection_, queue_, this);

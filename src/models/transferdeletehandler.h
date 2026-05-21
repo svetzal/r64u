@@ -11,7 +11,7 @@
 #include <functional>
 
 class RecursiveScanCoordinator;
-class RemoteDirectoryCreator;
+class RemoteDirectoryCoordinator;
 
 using transfer::OperationType;
 using transfer::QueueState;
@@ -20,7 +20,7 @@ using transfer::QueueState;
  * @brief Handles enqueue and dispatch of delete operations.
  *
  * Encapsulates enqueueDelete(), enqueueRecursiveDelete(), and processNextDelete()
- * that were previously part of TransferOrchestrator. Operates on the shared
+ * that were previously part of TransferManager. Operates on the shared
  * transfer::State by reference, and signals back to the orchestrator for
  * model notifications, state transitions, and scheduling.
  */
@@ -38,7 +38,7 @@ public:
 
     void setFtpClient(IFtpClient *client);
     void setScanCoordinator(RecursiveScanCoordinator *coordinator);
-    void setDirCreator(RemoteDirectoryCreator *creator);
+    void setDirCreator(RemoteDirectoryCoordinator *creator);
 
     /// Callbacks for orchestrator operations that cannot be signalled.
     void setCreateBatchCallback(CreateBatchFn fn);
@@ -64,7 +64,7 @@ private:
     transfer::State &state_;
     QPointer<IFtpClient> ftpClient_;
     RecursiveScanCoordinator *scanCoordinator_ = nullptr;
-    RemoteDirectoryCreator *dirCreator_ = nullptr;
+    RemoteDirectoryCoordinator *dirCreator_ = nullptr;
 
     CreateBatchFn createBatchCb_;
     NotifyInsertFn beginInsertCb_;

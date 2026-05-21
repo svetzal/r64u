@@ -7,7 +7,7 @@
 #include <QString>
 
 class IFtpClient;
-class DeviceConnection;
+class DeviceConnectionManager;
 
 /**
  * @brief Service for coordinating file transfer operations.
@@ -40,7 +40,7 @@ public:
      * @param queue The transfer queue to delegate operations to (not owned).
      * @param parent Optional parent QObject for memory management.
      */
-    explicit TransferService(DeviceConnection *connection, TransferQueue *queue,
+    explicit TransferService(DeviceConnectionManager *connection, TransferQueue *queue,
                              QObject *parent = nullptr);
 
     /**
@@ -401,7 +401,7 @@ private:
      */
     [[nodiscard]] bool requiresConnection(const QString &path);
 
-    DeviceConnection *connection_ = nullptr;
+    DeviceConnectionManager *connection_ = nullptr;
     TransferQueue *queue_ = nullptr;
 };
 

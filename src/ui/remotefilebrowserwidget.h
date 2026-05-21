@@ -6,7 +6,7 @@
 class RemoteFileModel;
 class RemoteFileOperationsService;
 class RemoteFileBrowserController;
-class RefreshPolicy;
+class RefreshPolicyManager;
 
 class RemoteFileBrowserWidget : public FileBrowserWidget
 {
@@ -25,7 +25,7 @@ public:
     /**
      * @brief RAII guard that suppresses auto-refresh for its lifetime.
      *
-     * Delegates to RefreshPolicy internally. Callers can write:
+     * Delegates to RefreshPolicyManager internally. Callers can write:
      * @code
      *   auto suppressor = widget->suppressRefresh();
      *   // ... operations that should not trigger refresh ...
@@ -95,7 +95,7 @@ private:
 
     // Owned controller and policy (Qt parent ownership)
     RemoteFileBrowserController *controller_ = nullptr;
-    RefreshPolicy *refreshPolicy_ = nullptr;
+    RefreshPolicyManager *refreshPolicy_ = nullptr;
 
     // State
     bool connected_ = false;

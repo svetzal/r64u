@@ -1,7 +1,7 @@
 #include "mocks/mockconnectionstatusview.h"
 #include "mocks/mockftpclient.h"
 #include "mocks/mockrestclient.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "ui/connectionuicontroller.h"
 
 #include <QAction>
@@ -15,7 +15,7 @@ class TestConnectionUIController : public QObject
 private:
     MockRestClient *mockRest_ = nullptr;
     MockFtpClient *mockFtp_ = nullptr;
-    DeviceConnection *dc_ = nullptr;
+    DeviceConnectionManager *dc_ = nullptr;
     MockConnectionStatusView mockView_;
     ConnectionUIController *ctrl_ = nullptr;
 
@@ -24,7 +24,7 @@ private slots:
     {
         mockRest_ = new MockRestClient(this);
         mockFtp_ = new MockFtpClient(this);
-        dc_ = new DeviceConnection(mockRest_, mockFtp_, this);
+        dc_ = new DeviceConnectionManager(mockRest_, mockFtp_, this);
         ctrl_ = new ConnectionUIController(dc_, &mockView_);
     }
 

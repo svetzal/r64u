@@ -1,7 +1,7 @@
 #include "mocks/mockftpclient.h"
 #include "mocks/mockrestclient.h"
 #include "services/configurationservice.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/devicetypes.h"
 #include "ui/configpanel.h"
 
@@ -58,7 +58,7 @@ private:
     /**
      * @brief Creates a TrackingRestClient-backed ConfigurationService in Connected state.
      *
-     * Drives the DeviceConnection through its full connect sequence so that
+     * Drives the DeviceConnectionManager through its full connect sequence so that
      * canPerformOperations() returns true.  Returns the REST and FTP client
      * pointers via out-parameters so tests can inject response signals.
      */
@@ -67,7 +67,7 @@ private:
     {
         auto *restClient = new TrackingRestClient(this);
         auto *ftpClient = new MockFtpClient(this);
-        auto *connection = new DeviceConnection(restClient, ftpClient, this);
+        auto *connection = new DeviceConnectionManager(restClient, ftpClient, this);
 
         // Drive the connection state machine to Connected:
         // connectToDevice() sets connectingInProgress_ = true and calls getInfo() + connectToHost()
@@ -115,7 +115,7 @@ private slots:
     {
         auto *restClient = new TrackingRestClient(this);
         auto *ftpClient = new MockFtpClient(this);
-        auto *connection = new DeviceConnection(restClient, ftpClient, this);
+        auto *connection = new DeviceConnectionManager(restClient, ftpClient, this);
         // Do NOT call connectToDevice() — stays Disconnected
         auto *service = new ConfigurationService(connection, this);
         ConfigPanel panel(service);

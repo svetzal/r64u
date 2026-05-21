@@ -1,9 +1,9 @@
 #include "deviceactionservice.h"
 
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/irestclient.h"
 
-DeviceActionService::DeviceActionService(DeviceConnection *connection, QObject *parent)
+DeviceActionService::DeviceActionService(DeviceConnectionManager *connection, QObject *parent)
     : QObject(parent), deviceConnection_(connection)
 {
 }

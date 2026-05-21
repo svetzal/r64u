@@ -1,10 +1,10 @@
 #include "transferservice.h"
 
-#include "deviceconnection.h"
+#include "deviceconnectionmanager.h"
 
 #include <QFileInfo>
 
-TransferService::TransferService(DeviceConnection *connection, TransferQueue *queue,
+TransferService::TransferService(DeviceConnectionManager *connection, TransferQueue *queue,
                                  QObject *parent)
     : QObject(parent), connection_(connection), queue_(queue)
 {

@@ -1,5 +1,5 @@
-#ifndef DEVICECONNECTION_H
-#define DEVICECONNECTION_H
+#ifndef DEVICECONNECTIONMANAGER_H
+#define DEVICECONNECTIONMANAGER_H
 
 #include "iftpclient.h"
 #include "irestclient.h"
@@ -20,18 +20,18 @@
  *
  * @par Example usage:
  * @code
- * DeviceConnection *conn = new DeviceConnection(this);
+ * DeviceConnectionManager *conn = new DeviceConnectionManager(this);
  * conn->setHost("192.168.1.64");
  * conn->setPassword("admin");
  * conn->setAutoReconnect(true);
  *
- * connect(conn, &DeviceConnection::connected, this, &MyClass::onConnected);
- * connect(conn, &DeviceConnection::connectionError, this, &MyClass::onError);
+ * connect(conn, &DeviceConnectionManager::connected, this, &MyClass::onConnected);
+ * connect(conn, &DeviceConnectionManager::connectionError, this, &MyClass::onError);
  *
  * conn->connectToDevice();
  * @endcode
  */
-class DeviceConnection : public QObject
+class DeviceConnectionManager : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(ConnectionState state READ state NOTIFY stateChanged)
@@ -41,7 +41,7 @@ public:
     enum class ConnectionState { Disconnected, Connecting, Connected, Reconnecting };
     Q_ENUM(ConnectionState)
 
-    explicit DeviceConnection(QObject *parent = nullptr);
+    explicit DeviceConnectionManager(QObject *parent = nullptr);
 
     /**
      * @brief Constructs a device connection manager with injected clients (for testing).
@@ -49,9 +49,10 @@ public:
      * @param ftpClient Pre-created FTP client (ownership transferred).
      * @param parent Optional parent QObject for memory management.
      */
-    DeviceConnection(IRestClient *restClient, IFtpClient *ftpClient, QObject *parent = nullptr);
+    DeviceConnectionManager(IRestClient *restClient, IFtpClient *ftpClient,
+                            QObject *parent = nullptr);
 
-    ~DeviceConnection() override;
+    ~DeviceConnectionManager() override;
 
     void setHost(const QString &host);
     [[nodiscard]] QString host() const { return host_; }
@@ -94,7 +95,7 @@ public slots:
     void refreshDriveInfo();
 
 signals:
-    void stateChanged(DeviceConnection::ConnectionState state);
+    void stateChanged(DeviceConnectionManager::ConnectionState state);
     void connected();
     void disconnected();
     void connectionError(const QString &message);
@@ -174,4 +175,4 @@ private:
     QList<DriveInfo> driveInfo_;
 };
 
-#endif  // DEVICECONNECTION_H
+#endif  // DEVICECONNECTIONMANAGER_H

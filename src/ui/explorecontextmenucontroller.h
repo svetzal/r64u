@@ -1,5 +1,5 @@
-#ifndef EXPLORECONTEXTMENU_H
-#define EXPLORECONTEXTMENU_H
+#ifndef EXPLORECONTEXTMENUCONTROLLER_H
+#define EXPLORECONTEXTMENUCONTROLLER_H
 
 #include "explorepanelcore.h"
 
@@ -11,12 +11,12 @@ class QMenu;
 class QAction;
 class QPoint;
 
-class ExploreContextMenu : public QObject
+class ExploreContextMenuController : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit ExploreContextMenu(QObject *parent = nullptr);
+    explicit ExploreContextMenuController(QObject *parent = nullptr);
 
     /// Apply enablement state to all actions without showing the menu.
     /// Called by showForSelection(); exposed for unit testing.
@@ -50,4 +50,4 @@ private:
     QAction *contextAddToPlaylistAction_ = nullptr;
 };
 
-#endif  // EXPLORECONTEXTMENU_H
+#endif  // EXPLORECONTEXTMENUCONTROLLER_H

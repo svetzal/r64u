@@ -1,5 +1,5 @@
-#ifndef REMOTEDIRECTORYCREATOR_H
-#define REMOTEDIRECTORYCREATOR_H
+#ifndef REMOTEDIRECTORYCOORDINATOR_H
+#define REMOTEDIRECTORYCOORDINATOR_H
 
 #include "services/transfercore.h"
 
@@ -18,13 +18,13 @@ class ILocalFileSystem;
  * Local file system queries (enumerating subdirectories) are routed through
  * ILocalFileSystem, keeping this coordinator independently testable.
  */
-class RemoteDirectoryCreator : public QObject
+class RemoteDirectoryCoordinator : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit RemoteDirectoryCreator(transfer::State &state, IFtpClient *ftpClient,
-                                    ILocalFileSystem *localFs, QObject *parent = nullptr);
+    explicit RemoteDirectoryCoordinator(transfer::State &state, IFtpClient *ftpClient,
+                                        ILocalFileSystem *localFs, QObject *parent = nullptr);
 
     void setFtpClient(IFtpClient *client);
     void setLocalFileSystem(ILocalFileSystem *fs);
@@ -49,4 +49,4 @@ private:
     ILocalFileSystem *localFs_ = nullptr;
 };
 
-#endif  // REMOTEDIRECTORYCREATOR_H
+#endif  // REMOTEDIRECTORYCOORDINATOR_H

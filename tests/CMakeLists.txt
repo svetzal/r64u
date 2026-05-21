@@ -121,14 +121,14 @@ add_executable(test_transferqueue
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
-    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
 )
 
@@ -152,9 +152,9 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_transferqueue)
 endif()
 
-# TransferOrchestrator tests - uses MockFtpClient, tests orchestration logic without QAbstractListModel
-add_executable(test_transferorchestrator
-    test_transferorchestrator.cpp
+# TransferManager tests - uses MockFtpClient, tests orchestration logic without QAbstractListModel
+add_executable(test_transfermanager
+    test_transfermanager.cpp
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -162,33 +162,33 @@ add_executable(test_transferorchestrator
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
-    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
 )
 
-target_include_directories(test_transferorchestrator PRIVATE
+target_include_directories(test_transfermanager PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(test_transferorchestrator PRIVATE
+target_link_libraries(test_transfermanager PRIVATE
     Qt6::Core
     Qt6::Test
     Qt6::Network
 )
 
-add_test(NAME TransferOrchestratorTest COMMAND test_transferorchestrator)
+add_test(NAME TransferManagerTest COMMAND test_transfermanager)
 
 if(BUILD_COVERAGE)
-    add_coverage_target(transferorchestrator test_transferorchestrator)
-    add_dependencies(coverage coverage_transferorchestrator)
+    add_coverage_target(transfermanager test_transfermanager)
+    add_dependencies(coverage coverage_transfermanager)
 endif()
 
 # Coordinator tests - isolated unit tests using MockLocalFileSystem (no real disk I/O)
@@ -203,7 +203,7 @@ add_executable(test_coordinators
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
-    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
 )
 
@@ -258,11 +258,11 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_remotefilemodel)
 endif()
 
-# DeviceConnection tests - tests state machine using real clients with signal injection
-add_executable(test_deviceconnection
-    test_deviceconnection.cpp
+# DeviceConnectionManager tests - tests state machine using real clients with signal injection
+add_executable(test_deviceconnectionmanager
+    test_deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
@@ -274,23 +274,23 @@ add_executable(test_deviceconnection
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
 )
 
-target_include_directories(test_deviceconnection PRIVATE
+target_include_directories(test_deviceconnectionmanager PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(test_deviceconnection PRIVATE
+target_link_libraries(test_deviceconnectionmanager PRIVATE
     Qt6::Core
     Qt6::Test
     Qt6::Network
 )
 
 # Register test with CTest
-add_test(NAME DeviceConnectionTest COMMAND test_deviceconnection)
+add_test(NAME DeviceConnectionManagerTest COMMAND test_deviceconnectionmanager)
 
 # Add coverage target if coverage is enabled
 if(BUILD_COVERAGE)
-    add_coverage_target(deviceconnection test_deviceconnection)
-    add_dependencies(coverage coverage_deviceconnection)
+    add_coverage_target(deviceconnectionmanager test_deviceconnectionmanager)
+    add_dependencies(coverage coverage_deviceconnectionmanager)
 endif()
 
 # ConfigurationModel tests
@@ -512,7 +512,7 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
@@ -525,14 +525,14 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
-    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
 )
 
@@ -614,7 +614,7 @@ add_executable(test_errorsourceconnector
     ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
     # Headers for AUTOMOC to generate signal implementations for stubbed classes
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.h
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.h
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.h
     ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.h
@@ -828,14 +828,14 @@ if(BUILD_INTEGRATION_TESTS)
         ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
         ${TRANSFER_CORE_SOURCES}
         ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-        ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+        ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
         ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-        ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+        ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
         ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
-        ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+        ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
         ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
     )
 
@@ -937,11 +937,11 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_rollingstats)
 endif()
 
-# StreamingDiagnostics tests
-add_executable(test_streamingdiagnostics
-    test_streamingdiagnostics.cpp
+# StreamingDiagnosticsService tests
+add_executable(test_streamingdiagnosticsservice
+    test_streamingdiagnosticsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnosticsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
@@ -950,11 +950,11 @@ add_executable(test_streamingdiagnostics
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
 )
 
-target_include_directories(test_streamingdiagnostics PRIVATE
+target_include_directories(test_streamingdiagnosticsservice PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(test_streamingdiagnostics PRIVATE
+target_link_libraries(test_streamingdiagnosticsservice PRIVATE
     Qt6::Core
     Qt6::Test
     Qt6::Gui
@@ -962,12 +962,12 @@ target_link_libraries(test_streamingdiagnostics PRIVATE
 )
 
 # Register test with CTest
-add_test(NAME StreamingDiagnosticsTest COMMAND test_streamingdiagnostics)
+add_test(NAME StreamingDiagnosticsServiceTest COMMAND test_streamingdiagnosticsservice)
 
 # Add coverage target if coverage is enabled
 if(BUILD_COVERAGE)
-    add_coverage_target(streamingdiagnostics test_streamingdiagnostics)
-    add_dependencies(coverage coverage_streamingdiagnostics)
+    add_coverage_target(streamingdiagnosticsservice test_streamingdiagnosticsservice)
+    add_dependencies(coverage coverage_streamingdiagnosticsservice)
 endif()
 
 # HVSCMetadataService tests
@@ -1061,7 +1061,7 @@ add_executable(test_streamingmanager
     ${CMAKE_SOURCE_DIR}/src/services/iaudioplaybackservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
@@ -1078,7 +1078,7 @@ add_executable(test_streamingmanager
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audioplaybackservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnosticsservice.cpp
 )
 
 target_include_directories(test_streamingmanager PRIVATE
@@ -1807,26 +1807,26 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_transfertimeoutmanager)
 endif()
 
-# TransferEventProcessor tests - isolated unit tests for deferred event queue
-add_executable(test_transfereventprocessor
-    test_transfereventprocessor.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+# TransferEventHandler tests - isolated unit tests for deferred event queue
+add_executable(test_transfereventhandler
+    test_transfereventhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
 )
 
-target_include_directories(test_transfereventprocessor PRIVATE
+target_include_directories(test_transfereventhandler PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(test_transfereventprocessor PRIVATE
+target_link_libraries(test_transfereventhandler PRIVATE
     Qt6::Core
     Qt6::Test
 )
 
-add_test(NAME TransferEventProcessorTest COMMAND test_transfereventprocessor)
+add_test(NAME TransferEventHandlerTest COMMAND test_transfereventhandler)
 
 if(BUILD_COVERAGE)
-    add_coverage_target(transfereventprocessor test_transfereventprocessor)
-    add_dependencies(coverage coverage_transfereventprocessor)
+    add_coverage_target(transfereventhandler test_transfereventhandler)
+    add_dependencies(coverage coverage_transfereventhandler)
 endif()
 
 # TransferFtpHandler tests - FTP event translation layer
@@ -1843,7 +1843,7 @@ add_executable(test_transferftphandler
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
-    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
 )
 
 target_include_directories(test_transferftphandler PRIVATE
@@ -1894,7 +1894,7 @@ add_executable(test_fileactioncontroller
     mocks/mockrestclient.cpp
     mocks/mockftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceactionservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
@@ -1948,7 +1948,7 @@ add_executable(test_explorenavigationcontroller
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     # Headers listed so AUTOMOC generates moc files for stubbed classes
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.h
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.h
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.h
     ${CMAKE_SOURCE_DIR}/src/ui/explorefavoritescontroller.h
 )
 
@@ -2017,7 +2017,7 @@ add_executable(test_connectionuicontroller
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
@@ -2090,7 +2090,7 @@ add_executable(test_panelcoordinator
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
@@ -2151,29 +2151,29 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_explorepanelcore)
 endif()
 
-# ExploreContextMenu tests - action enablement state via prepareMenu()
-add_executable(test_explorecontextmenu
-    test_explorecontextmenu.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/explorecontextmenu.cpp
+# ExploreContextMenuController tests - action enablement state via prepareMenu()
+add_executable(test_explorecontextmenucontroller
+    test_explorecontextmenucontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/explorecontextmenucontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/explorepanelcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
 )
 
-target_include_directories(test_explorecontextmenu PRIVATE
+target_include_directories(test_explorecontextmenucontroller PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(test_explorecontextmenu PRIVATE
+target_link_libraries(test_explorecontextmenucontroller PRIVATE
     Qt6::Core
     Qt6::Widgets
     Qt6::Test
 )
 
-add_test(NAME ExploreContextMenuTest COMMAND test_explorecontextmenu)
+add_test(NAME ExploreContextMenuControllerTest COMMAND test_explorecontextmenucontroller)
 
 if(BUILD_COVERAGE)
-    add_coverage_target(explorecontextmenu test_explorecontextmenu)
-    add_dependencies(coverage coverage_explorecontextmenu)
+    add_coverage_target(explorecontextmenucontroller test_explorecontextmenucontroller)
+    add_dependencies(coverage coverage_explorecontextmenucontroller)
 endif()
 
 # ExploreFavoritesController tests - signal emissions and menu rebuilding
@@ -2203,14 +2203,14 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_explorefavoritescontroller)
 endif()
 
-# ConfigurationService tests - delegation and signal forwarding via DeviceConnection/IRestClient
+# ConfigurationService tests - delegation and signal forwarding via DeviceConnectionManager/IRestClient
 add_executable(test_configurationservice
     test_configurationservice.cpp
     mocks/mockrestclient.cpp
     mocks/mockftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/configurationservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
@@ -2247,7 +2247,7 @@ add_executable(test_deviceactionservice
     mocks/mockftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceactionservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
@@ -2286,7 +2286,7 @@ add_executable(test_configpanel
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/configurationservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
@@ -2333,7 +2333,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/services/deviceactionservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/systemcommandcontroller.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
@@ -2366,14 +2366,14 @@ add_executable(test_servicefactory
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
-    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
@@ -2464,7 +2464,7 @@ add_executable(test_viewpanel
     mocks/mockrestclient.cpp
     mocks/mockftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
@@ -2486,7 +2486,7 @@ add_executable(test_viewpanel
     # Headers for AUTOMOC (stubs provide bodies for these Q_OBJECT classes)
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
-    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.h
+    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnosticsservice.h
 )
 
 target_include_directories(test_viewpanel PRIVATE
@@ -2517,7 +2517,7 @@ add_executable(test_transferpanel
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
@@ -2537,21 +2537,21 @@ add_executable(test_transferpanel
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/localfileproxymodel.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
-    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/transferpanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowsercontroller.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/refreshpolicy.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/refreshpolicymanager.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/localfilebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
@@ -2596,7 +2596,7 @@ add_executable(test_remotefilebrowserwidget
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowsercontroller.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/refreshpolicy.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/refreshpolicymanager.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
 )
@@ -2735,14 +2735,14 @@ add_executable(test_transferqueuewidget
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
-    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/transferqueuewidget.cpp
 )
@@ -2806,14 +2806,14 @@ add_executable(test_batchprogresswidget
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
-    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/batchprogresswidget.cpp
 )
@@ -2945,7 +2945,7 @@ add_executable(test_videodisplaywidget
     # Headers for AUTOMOC (stubs provide bodies for these Q_OBJECT classes)
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
-    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.h
+    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnosticsservice.h
 )
 
 target_include_directories(test_videodisplaywidget PRIVATE
@@ -2978,7 +2978,7 @@ add_executable(test_streamingdiagnosticswidget
     # Headers for AUTOMOC (stubs provide bodies for these Q_OBJECT classes)
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
-    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.h
+    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnosticsservice.h
 )
 
 target_include_directories(test_streamingdiagnosticswidget PRIVATE
@@ -3031,7 +3031,7 @@ endif()
 add_executable(test_transferprogresswidget
     test_transferprogresswidget.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
@@ -3048,14 +3048,14 @@ add_executable(test_transferprogresswidget
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
-    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/transferprogresswidget.cpp
 )
@@ -3087,7 +3087,7 @@ add_executable(test_transferprogresscontainer
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
@@ -3104,14 +3104,14 @@ add_executable(test_transferprogresscontainer
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferorchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventprocessor.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
-    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycreator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/transferprogresscontainer.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/batchprogresswidget.cpp
@@ -3159,7 +3159,7 @@ add_executable(test_preferencesdialog
     # Headers for AUTOMOC (stubs provide bodies for these Q_OBJECT classes)
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
-    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnostics.h
+    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnosticsservice.h
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.h
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.h
@@ -3244,7 +3244,7 @@ add_executable(test_systemtoolbarbuilder
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/deviceconnection.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp

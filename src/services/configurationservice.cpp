@@ -1,9 +1,9 @@
 #include "configurationservice.h"
 
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/irestclient.h"
 
-ConfigurationService::ConfigurationService(DeviceConnection *connection, QObject *parent)
+ConfigurationService::ConfigurationService(DeviceConnectionManager *connection, QObject *parent)
     : QObject(parent), deviceConnection_(connection)
 {
     if (deviceConnection_ && deviceConnection_->restClient()) {

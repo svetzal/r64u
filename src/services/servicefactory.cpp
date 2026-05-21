@@ -5,7 +5,7 @@
 #include "services/configfileloaderservice.h"
 #include "services/configurationservice.h"
 #include "services/deviceactionservice.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/errorhandler.h"
 #include "services/favoritesservice.h"
 #include "services/filepreviewservice.h"
@@ -21,7 +21,7 @@
 
 ServiceFactory::ServiceFactory(QWidget *owner, QObject *parent) : QObject(parent)
 {
-    deviceConnection_ = new DeviceConnection(this);
+    deviceConnection_ = new DeviceConnectionManager(this);
     remoteFileModel_ = new RemoteFileModel(this);
     transferQueue_ = new TransferQueue(this);
     configFileLoader_ = new ConfigFileLoaderService(this);
@@ -54,7 +54,7 @@ ServiceFactory::ServiceFactory(QWidget *owner, QObject *parent) : QObject(parent
         new SystemCommandController(deviceConnection_->restClient(), statusMessageService_, this);
 }
 
-DeviceConnection *ServiceFactory::deviceConnection() const
+DeviceConnectionManager *ServiceFactory::deviceConnection() const
 {
     return deviceConnection_;
 }

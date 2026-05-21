@@ -9,7 +9,7 @@
 #include <QString>
 #include <QTimer>
 
-class DeviceConnection;
+class DeviceConnectionManager;
 class SonglengthsDatabase;
 class StreamingService;
 
@@ -43,7 +43,7 @@ public:
      */
     using RepeatMode = playlist::RepeatMode;
 
-    explicit PlaylistService(DeviceConnection *connection, QObject *parent = nullptr);
+    explicit PlaylistService(DeviceConnectionManager *connection, QObject *parent = nullptr);
     ~PlaylistService() override = default;
 
     /**
@@ -289,7 +289,7 @@ private:
     void playCurrentItem();
     void ensureStreamingStarted();
 
-    DeviceConnection *deviceConnection_ = nullptr;
+    DeviceConnectionManager *deviceConnection_ = nullptr;
     SonglengthsDatabase *songlengthsDatabase_ = nullptr;
     StreamingService *streamingService_ = nullptr;
 

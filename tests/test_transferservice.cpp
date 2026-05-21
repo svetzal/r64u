@@ -7,7 +7,7 @@
  * - Signals are properly forwarded from TransferQueue
  * - Queue state queries work correctly
  *
- * Note: "When connected" tests are skipped because DeviceConnection has
+ * Note: "When connected" tests are skipped because DeviceConnectionManager has
  * a complex state machine that requires both REST and FTP to be connected,
  * and we don't have a way to mock that state without significant refactoring.
  * The actual queueing behavior is tested in test_transferqueue.cpp.
@@ -15,7 +15,7 @@
 
 #include "mocks/mockftpclient.h"
 #include "models/transferqueue.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/transferservice.h"
 
 #include <QSignalSpy>
@@ -62,7 +62,7 @@ private slots:
 
 private:
     MockFtpClient *mockFtp_ = nullptr;
-    DeviceConnection *connection_ = nullptr;
+    DeviceConnectionManager *connection_ = nullptr;
     TransferQueue *queue_ = nullptr;
     TransferService *service_ = nullptr;
     QTemporaryDir *tempDir_ = nullptr;
@@ -82,7 +82,7 @@ void TestTransferService::init()
 
     // Create mock and real objects
     mockFtp_ = new MockFtpClient(this);
-    connection_ = new DeviceConnection(this);
+    connection_ = new DeviceConnectionManager(this);
     queue_ = new TransferQueue(this);
 
     // Inject mock FTP client into queue

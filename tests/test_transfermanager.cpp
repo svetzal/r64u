@@ -1,17 +1,17 @@
 #include "mocks/mockftpclient.h"
-#include "models/transferorchestrator.h"
+#include "models/transfermanager.h"
 
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QtTest>
 
-class TestTransferOrchestrator : public QObject
+class TestTransferManager : public QObject
 {
     Q_OBJECT
 
 private:
     MockFtpClient *mockFtp = nullptr;
-    TransferOrchestrator *orchestrator = nullptr;
+    TransferManager *orchestrator = nullptr;
     QTemporaryDir tempDir;
 
     void flushAndProcess()
@@ -40,7 +40,7 @@ private slots:
     void init()
     {
         mockFtp = new MockFtpClient(this);
-        orchestrator = new TransferOrchestrator(this);
+        orchestrator = new TransferManager(this);
         orchestrator->setFtpClient(mockFtp);
         orchestrator->setAutoOverwrite(true);
         orchestrator->setAutoMerge(true);
@@ -112,7 +112,7 @@ private slots:
 
         orchestrator->enqueueDownload(remotePath, localPath);
 
-        QSignalSpy spy(orchestrator, &TransferOrchestrator::operationsCancelled);
+        QSignalSpy spy(orchestrator, &TransferManager::operationsCancelled);
 
         orchestrator->cancelAll();
 
@@ -162,7 +162,7 @@ private slots:
     void testEnqueueRecursiveUpload_NotConnected_EmitsOperationFailed()
     {
         mockFtp->mockSetConnected(false);
-        QSignalSpy spy(orchestrator, &TransferOrchestrator::operationFailed);
+        QSignalSpy spy(orchestrator, &TransferManager::operationFailed);
 
         orchestrator->enqueueRecursiveUpload(tempDir.path(), "/remote/dir");
 
@@ -172,7 +172,7 @@ private slots:
     void testEnqueueRecursiveDownload_NotConnected_EmitsOperationFailed()
     {
         mockFtp->mockSetConnected(false);
-        QSignalSpy spy(orchestrator, &TransferOrchestrator::operationFailed);
+        QSignalSpy spy(orchestrator, &TransferManager::operationFailed);
 
         orchestrator->enqueueRecursiveDownload("/remote/dir", tempDir.path());
 
@@ -182,7 +182,7 @@ private slots:
     void testEnqueueRecursiveDelete_NotConnected_EmitsOperationFailed()
     {
         mockFtp->mockSetConnected(false);
-        QSignalSpy spy(orchestrator, &TransferOrchestrator::operationFailed);
+        QSignalSpy spy(orchestrator, &TransferManager::operationFailed);
 
         orchestrator->enqueueRecursiveDelete("/remote/dir");
 
@@ -199,7 +199,7 @@ private slots:
         // Disconnect FTP before processNext runs
         mockFtp->mockSetConnected(false);
 
-        QSignalSpy spy(orchestrator, &TransferOrchestrator::operationFailed);
+        QSignalSpy spy(orchestrator, &TransferManager::operationFailed);
 
         // Flush causes processNext to run, which now sees FTP not connected
         orchestrator->flushEventQueue();
@@ -223,7 +223,7 @@ private slots:
         // Disconnect FTP before the scan result is processed
         mockFtp->mockSetConnected(false);
 
-        QSignalSpy spy(orchestrator, &TransferOrchestrator::operationFailed);
+        QSignalSpy spy(orchestrator, &TransferManager::operationFailed);
 
         // Processing the list response triggers deleteScanComplete -> processNextDelete
         // which now sees FTP disconnected and emits operationFailed
@@ -235,5 +235,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(TestTransferOrchestrator)
-#include "test_transferorchestrator.moc"
+QTEST_MAIN(TestTransferManager)
+#include "test_transfermanager.moc"

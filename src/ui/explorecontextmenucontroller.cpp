@@ -1,4 +1,4 @@
-#include "explorecontextmenu.h"
+#include "explorecontextmenucontroller.h"
 
 #include "explorepanelcore.h"
 
@@ -8,52 +8,57 @@
 #include <QMenu>
 #include <QPoint>
 
-ExploreContextMenu::ExploreContextMenu(QObject *parent) : QObject(parent)
+ExploreContextMenuController::ExploreContextMenuController(QObject *parent) : QObject(parent)
 {
     contextMenu_ = new QMenu();
 
     contextPlayAction_ = contextMenu_->addAction(tr("Play"));
-    connect(contextPlayAction_, &QAction::triggered, this, &ExploreContextMenu::playRequested);
+    connect(contextPlayAction_, &QAction::triggered, this,
+            &ExploreContextMenuController::playRequested);
 
     contextAddToPlaylistAction_ = contextMenu_->addAction(tr("Add to Playlist"));
     connect(contextAddToPlaylistAction_, &QAction::triggered, this,
-            &ExploreContextMenu::addToPlaylistRequested);
+            &ExploreContextMenuController::addToPlaylistRequested);
 
     contextRunAction_ = contextMenu_->addAction(tr("Run"));
-    connect(contextRunAction_, &QAction::triggered, this, &ExploreContextMenu::runRequested);
+    connect(contextRunAction_, &QAction::triggered, this,
+            &ExploreContextMenuController::runRequested);
 
     contextLoadConfigAction_ = contextMenu_->addAction(tr("Load Config"));
     connect(contextLoadConfigAction_, &QAction::triggered, this,
-            &ExploreContextMenu::loadConfigRequested);
+            &ExploreContextMenuController::loadConfigRequested);
 
     contextMenu_->addSeparator();
 
     contextMountAAction_ = contextMenu_->addAction(tr("Mount to Drive A"));
-    connect(contextMountAAction_, &QAction::triggered, this, &ExploreContextMenu::mountARequested);
+    connect(contextMountAAction_, &QAction::triggered, this,
+            &ExploreContextMenuController::mountARequested);
 
     contextMountBAction_ = contextMenu_->addAction(tr("Mount to Drive B"));
-    connect(contextMountBAction_, &QAction::triggered, this, &ExploreContextMenu::mountBRequested);
+    connect(contextMountBAction_, &QAction::triggered, this,
+            &ExploreContextMenuController::mountBRequested);
 
     contextMenu_->addSeparator();
 
     contextDownloadAction_ = contextMenu_->addAction(tr("Download"));
     connect(contextDownloadAction_, &QAction::triggered, this,
-            &ExploreContextMenu::downloadRequested);
+            &ExploreContextMenuController::downloadRequested);
 
     contextMenu_->addSeparator();
 
     contextToggleFavoriteAction_ = contextMenu_->addAction(tr("Toggle Favorite"));
     connect(contextToggleFavoriteAction_, &QAction::triggered, this,
-            &ExploreContextMenu::toggleFavoriteRequested);
+            &ExploreContextMenuController::toggleFavoriteRequested);
 
     contextMenu_->addSeparator();
 
     QAction *refreshAction = contextMenu_->addAction(tr("Refresh"));
-    connect(refreshAction, &QAction::triggered, this, &ExploreContextMenu::refreshRequested);
+    connect(refreshAction, &QAction::triggered, this,
+            &ExploreContextMenuController::refreshRequested);
 }
 
-void ExploreContextMenu::prepareMenu(const explorepanel::ActionEnablement &enablement,
-                                     bool canAddToPlaylist, bool isFavorite)
+void ExploreContextMenuController::prepareMenu(const explorepanel::ActionEnablement &enablement,
+                                               bool canAddToPlaylist, bool isFavorite)
 {
     contextPlayAction_->setEnabled(enablement.canPlay);
     contextAddToPlaylistAction_->setEnabled(canAddToPlaylist);
@@ -66,9 +71,9 @@ void ExploreContextMenu::prepareMenu(const explorepanel::ActionEnablement &enabl
                                                      : tr("Add to Favorites"));
 }
 
-void ExploreContextMenu::showForSelection(const QPoint &globalPos,
-                                          const explorepanel::ActionEnablement &enablement,
-                                          bool canAddToPlaylist, bool isFavorite)
+void ExploreContextMenuController::showForSelection(
+    const QPoint &globalPos, const explorepanel::ActionEnablement &enablement,
+    bool canAddToPlaylist, bool isFavorite)
 {
     prepareMenu(enablement, canAddToPlaylist, isFavorite);
     contextMenu_->exec(globalPos);

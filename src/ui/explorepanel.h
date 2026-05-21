@@ -11,7 +11,7 @@
 #include <QTreeView>
 #include <QWidget>
 
-class DeviceConnection;
+class DeviceConnectionManager;
 class ErrorHandler;
 class RemoteFileModel;
 class StreamingService;
@@ -21,7 +21,7 @@ class DriveStatusWidget;
 class PlaylistWidget;
 class FileActionController;
 class ExploreFavoritesController;
-class ExploreContextMenu;
+class ExploreContextMenuController;
 class ExploreNavigationController;
 class NavigationViewAdapter;
 class PreviewCoordinator;
@@ -34,7 +34,7 @@ class ExplorePanel : public QWidget, public IPanel
 public:
     QObject *asQObject() override { return this; }
 
-    explicit ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
+    explicit ExplorePanel(DeviceConnectionManager *connection, RemoteFileModel *model,
                           const ExplorePanelServices &services, QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
@@ -82,14 +82,14 @@ private:
     void setupConnections();
 
     // Dependencies (not owned)
-    DeviceConnection *deviceConnection_ = nullptr;
+    DeviceConnectionManager *deviceConnection_ = nullptr;
     RemoteFileModel *remoteFileModel_ = nullptr;
     PlaylistService *playlistService_ = nullptr;
 
     // Owned controllers (Qt parent ownership)
     FileActionController *actionController_ = nullptr;
     ExploreFavoritesController *favoritesController_ = nullptr;
-    ExploreContextMenu *contextMenu_ = nullptr;
+    ExploreContextMenuController *contextMenu_ = nullptr;
     NavigationViewAdapter *navViewAdapter_ = nullptr;
     ExploreNavigationController *navController_ = nullptr;
     PreviewCoordinator *previewCoordinator_ = nullptr;

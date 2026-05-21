@@ -1,11 +1,11 @@
 #include "transferqueue.h"
 
-#include "transferorchestrator.h"
+#include "transfermanager.h"
 
 TransferQueue::TransferQueue(QObject *parent)
-    : QAbstractListModel(parent), orchestrator_(new TransferOrchestrator(this))
+    : QAbstractListModel(parent), orchestrator_(new TransferManager(this))
 {
-    TransferOrchestrator::ModelCallbacks callbacks;
+    TransferManager::ModelCallbacks callbacks;
     callbacks.beginInsertRows = [this](int first, int last) {
         beginInsertRows(QModelIndex(), first, last);
     };
@@ -23,35 +23,33 @@ TransferQueue::TransferQueue(QObject *parent)
 
 void TransferQueue::setupSignalForwarding()
 {
-    connect(orchestrator_, &TransferOrchestrator::operationStarted, this,
+    connect(orchestrator_, &TransferManager::operationStarted, this,
             &TransferQueue::operationStarted);
-    connect(orchestrator_, &TransferOrchestrator::operationCompleted, this,
+    connect(orchestrator_, &TransferManager::operationCompleted, this,
             &TransferQueue::operationCompleted);
-    connect(orchestrator_, &TransferOrchestrator::operationFailed, this,
+    connect(orchestrator_, &TransferManager::operationFailed, this,
             &TransferQueue::operationFailed);
-    connect(orchestrator_, &TransferOrchestrator::allOperationsCompleted, this,
+    connect(orchestrator_, &TransferManager::allOperationsCompleted, this,
             &TransferQueue::allOperationsCompleted);
-    connect(orchestrator_, &TransferOrchestrator::operationsCancelled, this,
+    connect(orchestrator_, &TransferManager::operationsCancelled, this,
             &TransferQueue::operationsCancelled);
-    connect(orchestrator_, &TransferOrchestrator::queueChanged, this, &TransferQueue::queueChanged);
-    connect(orchestrator_, &TransferOrchestrator::deleteProgressUpdate, this,
+    connect(orchestrator_, &TransferManager::queueChanged, this, &TransferQueue::queueChanged);
+    connect(orchestrator_, &TransferManager::deleteProgressUpdate, this,
             &TransferQueue::deleteProgressUpdate);
-    connect(orchestrator_, &TransferOrchestrator::overwriteConfirmationNeeded, this,
+    connect(orchestrator_, &TransferManager::overwriteConfirmationNeeded, this,
             &TransferQueue::overwriteConfirmationNeeded);
-    connect(orchestrator_, &TransferOrchestrator::folderExistsConfirmationNeeded, this,
+    connect(orchestrator_, &TransferManager::folderExistsConfirmationNeeded, this,
             &TransferQueue::folderExistsConfirmationNeeded);
-    connect(orchestrator_, &TransferOrchestrator::batchStarted, this, &TransferQueue::batchStarted);
-    connect(orchestrator_, &TransferOrchestrator::batchProgressUpdate, this,
+    connect(orchestrator_, &TransferManager::batchStarted, this, &TransferQueue::batchStarted);
+    connect(orchestrator_, &TransferManager::batchProgressUpdate, this,
             &TransferQueue::batchProgressUpdate);
-    connect(orchestrator_, &TransferOrchestrator::batchCompleted, this,
-            &TransferQueue::batchCompleted);
-    connect(orchestrator_, &TransferOrchestrator::statusMessage, this,
-            &TransferQueue::statusMessage);
-    connect(orchestrator_, &TransferOrchestrator::scanningStarted, this,
+    connect(orchestrator_, &TransferManager::batchCompleted, this, &TransferQueue::batchCompleted);
+    connect(orchestrator_, &TransferManager::statusMessage, this, &TransferQueue::statusMessage);
+    connect(orchestrator_, &TransferManager::scanningStarted, this,
             &TransferQueue::scanningStarted);
-    connect(orchestrator_, &TransferOrchestrator::scanningProgress, this,
+    connect(orchestrator_, &TransferManager::scanningProgress, this,
             &TransferQueue::scanningProgress);
-    connect(orchestrator_, &TransferOrchestrator::directoryCreationProgress, this,
+    connect(orchestrator_, &TransferManager::directoryCreationProgress, this,
             &TransferQueue::directoryCreationProgress);
 }
 

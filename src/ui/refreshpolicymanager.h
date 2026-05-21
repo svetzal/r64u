@@ -1,5 +1,5 @@
-#ifndef REFRESHPOLICY_H
-#define REFRESHPOLICY_H
+#ifndef REFRESHPOLICYMANAGER_H
+#define REFRESHPOLICYMANAGER_H
 
 #include <QObject>
 
@@ -12,12 +12,12 @@ class RemoteFileModel;
  * "refresh if stale when visible" logic that was previously embedded in
  * RemoteFileBrowserWidget.
  */
-class RefreshPolicy : public QObject
+class RefreshPolicyManager : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit RefreshPolicy(QObject *parent = nullptr);
+    explicit RefreshPolicyManager(QObject *parent = nullptr);
 
     void setModel(RemoteFileModel *model);
     void setConnected(bool connected);
@@ -28,13 +28,13 @@ public:
     class Suppressor
     {
     public:
-        explicit Suppressor(RefreshPolicy *policy);
+        explicit Suppressor(RefreshPolicyManager *policy);
         ~Suppressor();
         Suppressor(const Suppressor &) = delete;
         Suppressor &operator=(const Suppressor &) = delete;
 
     private:
-        RefreshPolicy *policy_;
+        RefreshPolicyManager *policy_;
     };
 
     /**
@@ -66,4 +66,4 @@ private:
     bool suppressed_ = false;
 };
 
-#endif  // REFRESHPOLICY_H
+#endif  // REFRESHPOLICYMANAGER_H

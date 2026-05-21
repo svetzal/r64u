@@ -1,4 +1,4 @@
-#include "services/streamingdiagnostics.h"
+#include "services/streamingdiagnosticsservice.h"
 
 #include <QColor>
 #include <QSignalSpy>
@@ -6,7 +6,7 @@
 
 #include <tuple>
 
-class TestStreamingDiagnostics : public QObject
+class TestStreamingDiagnosticsService : public QObject
 {
     Q_OBJECT
 
@@ -15,7 +15,7 @@ private slots:
 
     void testConstructor()
     {
-        StreamingDiagnostics diagnostics;
+        StreamingDiagnosticsService diagnostics;
         QVERIFY(!diagnostics.isEnabled());
     }
 
@@ -23,14 +23,14 @@ private slots:
 
     void testEnable()
     {
-        StreamingDiagnostics diagnostics;
+        StreamingDiagnosticsService diagnostics;
         diagnostics.setEnabled(true);
         QVERIFY(diagnostics.isEnabled());
     }
 
     void testDisable()
     {
-        StreamingDiagnostics diagnostics;
+        StreamingDiagnosticsService diagnostics;
         diagnostics.setEnabled(true);
         diagnostics.setEnabled(false);
         QVERIFY(!diagnostics.isEnabled());
@@ -38,7 +38,7 @@ private slots:
 
     void testEnableIdempotent()
     {
-        StreamingDiagnostics diagnostics;
+        StreamingDiagnosticsService diagnostics;
         diagnostics.setEnabled(true);
         diagnostics.setEnabled(true);  // Should not reset state
         QVERIFY(diagnostics.isEnabled());
@@ -48,7 +48,7 @@ private slots:
 
     void testInitialSnapshot()
     {
-        StreamingDiagnostics diagnostics;
+        StreamingDiagnosticsService diagnostics;
         DiagnosticsSnapshot snapshot = diagnostics.currentSnapshot();
 
         QCOMPARE(snapshot.overallQuality, QualityLevel::Unknown);
@@ -61,7 +61,7 @@ private slots:
 
     void testSnapshotAfterEnable()
     {
-        StreamingDiagnostics diagnostics;
+        StreamingDiagnosticsService diagnostics;
         diagnostics.setEnabled(true);
 
         // Wait a bit for uptime to accumulate
@@ -75,20 +75,24 @@ private slots:
 
     void testQualityLevelString()
     {
-        QCOMPARE(StreamingDiagnostics::qualityLevelString(QualityLevel::Unknown),
+        QCOMPARE(StreamingDiagnosticsService::qualityLevelString(QualityLevel::Unknown),
                  QString("Unknown"));
-        QCOMPARE(StreamingDiagnostics::qualityLevelString(QualityLevel::Excellent),
+        QCOMPARE(StreamingDiagnosticsService::qualityLevelString(QualityLevel::Excellent),
                  QString("Excellent"));
-        QCOMPARE(StreamingDiagnostics::qualityLevelString(QualityLevel::Good), QString("Good"));
-        QCOMPARE(StreamingDiagnostics::qualityLevelString(QualityLevel::Fair), QString("Fair"));
-        QCOMPARE(StreamingDiagnostics::qualityLevelString(QualityLevel::Poor), QString("Poor"));
+        QCOMPARE(StreamingDiagnosticsService::qualityLevelString(QualityLevel::Good),
+                 QString("Good"));
+        QCOMPARE(StreamingDiagnosticsService::qualityLevelString(QualityLevel::Fair),
+                 QString("Fair"));
+        QCOMPARE(StreamingDiagnosticsService::qualityLevelString(QualityLevel::Poor),
+                 QString("Poor"));
     }
 
     void testQualityLevelColor()
     {
-        QColor unknownColor = StreamingDiagnostics::qualityLevelColor(QualityLevel::Unknown);
-        QColor excellentColor = StreamingDiagnostics::qualityLevelColor(QualityLevel::Excellent);
-        QColor poorColor = StreamingDiagnostics::qualityLevelColor(QualityLevel::Poor);
+        QColor unknownColor = StreamingDiagnosticsService::qualityLevelColor(QualityLevel::Unknown);
+        QColor excellentColor =
+            StreamingDiagnosticsService::qualityLevelColor(QualityLevel::Excellent);
+        QColor poorColor = StreamingDiagnosticsService::qualityLevelColor(QualityLevel::Poor);
 
         // Unknown should be grey-ish
         QCOMPARE(unknownColor.red(), 128);
@@ -106,7 +110,7 @@ private slots:
 
     void testVideoCallback()
     {
-        StreamingDiagnostics diagnostics;
+        StreamingDiagnosticsService diagnostics;
         diagnostics.setEnabled(true);
 
         auto callback = diagnostics.videoCallback();
@@ -120,7 +124,7 @@ private slots:
 
     void testAudioCallback()
     {
-        StreamingDiagnostics diagnostics;
+        StreamingDiagnosticsService diagnostics;
         diagnostics.setEnabled(true);
 
         auto callback = diagnostics.audioCallback();
@@ -133,7 +137,7 @@ private slots:
 
     void testVideoPacketCallback()
     {
-        StreamingDiagnostics diagnostics;
+        StreamingDiagnosticsService diagnostics;
         diagnostics.setEnabled(true);
 
         auto callback = diagnostics.videoCallback();
@@ -149,7 +153,7 @@ private slots:
 
     void testVideoFrameCallback()
     {
-        StreamingDiagnostics diagnostics;
+        StreamingDiagnosticsService diagnostics;
         diagnostics.setEnabled(true);
 
         auto callback = diagnostics.videoCallback();
@@ -166,7 +170,7 @@ private slots:
 
     void testReset()
     {
-        StreamingDiagnostics diagnostics;
+        StreamingDiagnosticsService diagnostics;
         diagnostics.setEnabled(true);
 
         auto callback = diagnostics.videoCallback();
@@ -183,10 +187,10 @@ private slots:
 
     void testUpdateInterval()
     {
-        StreamingDiagnostics diagnostics;
+        StreamingDiagnosticsService diagnostics;
         diagnostics.setUpdateInterval(100);  // 100ms
 
-        QSignalSpy spy(&diagnostics, &StreamingDiagnostics::diagnosticsUpdated);
+        QSignalSpy spy(&diagnostics, &StreamingDiagnosticsService::diagnosticsUpdated);
         diagnostics.setEnabled(true);
 
         // Wait for a few updates
@@ -198,10 +202,10 @@ private slots:
 
     void testNoUpdatesWhenDisabled()
     {
-        StreamingDiagnostics diagnostics;
+        StreamingDiagnosticsService diagnostics;
         diagnostics.setUpdateInterval(50);  // Fast updates
 
-        QSignalSpy spy(&diagnostics, &StreamingDiagnostics::diagnosticsUpdated);
+        QSignalSpy spy(&diagnostics, &StreamingDiagnosticsService::diagnosticsUpdated);
 
         // Don't enable - should not receive updates
         QTest::qWait(150);
@@ -213,7 +217,7 @@ private slots:
 
     void testCallbacksIgnoredWhenDisabled()
     {
-        StreamingDiagnostics diagnostics;
+        StreamingDiagnosticsService diagnostics;
         // Not enabled
 
         auto callback = diagnostics.videoCallback();
@@ -229,5 +233,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(TestStreamingDiagnostics)
-#include "test_streamingdiagnostics.moc"
+QTEST_MAIN(TestStreamingDiagnosticsService)
+#include "test_streamingdiagnosticsservice.moc"

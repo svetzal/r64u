@@ -1,7 +1,7 @@
 #include "explorepanel.h"
 
 #include "drivestatuswidget.h"
-#include "explorecontextmenu.h"
+#include "explorecontextmenucontroller.h"
 #include "explorefavoritescontroller.h"
 #include "explorenavigationcontroller.h"
 #include "explorepanelcore.h"
@@ -15,7 +15,7 @@
 #include "models/remotefilemodel.h"
 #include "services/configfileloaderservice.h"
 #include "services/deviceactionservice.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/errorhandler.h"
 #include "services/explorepanelservices.h"
 #include "services/favoritesservice.h"
@@ -33,12 +33,12 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-ExplorePanel::ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
+ExplorePanel::ExplorePanel(DeviceConnectionManager *connection, RemoteFileModel *model,
                            const ExplorePanelServices &services, QWidget *parent)
     : QWidget(parent), deviceConnection_(connection), remoteFileModel_(model),
       playlistService_(services.playlistService)
 {
-    Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
+    Q_ASSERT(deviceConnection_ && "DeviceConnectionManager is required");
     Q_ASSERT(services.deviceActionService && "DeviceActionService is required");
     Q_ASSERT(remoteFileModel_ && "RemoteFileModel is required");
     Q_ASSERT(services.configLoader && "ConfigFileLoaderService is required");
@@ -51,7 +51,7 @@ ExplorePanel::ExplorePanel(DeviceConnection *connection, RemoteFileModel *model,
     actionController_->setPlaylistService(playlistService_);
     // selectionView_ and treeView_ are wired after setupUi() via setSelectionSource
     favoritesController_ = new ExploreFavoritesController(services.favoritesService, this);
-    contextMenu_ = new ExploreContextMenu(this);
+    contextMenu_ = new ExploreContextMenuController(this);
 
     setupUi();
 
@@ -213,7 +213,7 @@ void ExplorePanel::setupUi()
 void ExplorePanel::setupConnections()
 {
     if (deviceConnection_) {
-        connect(deviceConnection_, &DeviceConnection::stateChanged, this,
+        connect(deviceConnection_, &DeviceConnectionManager::stateChanged, this,
                 &ExplorePanel::onConnectionStateChanged);
     }
 
@@ -234,26 +234,27 @@ void ExplorePanel::setupConnections()
     connect(navController_, &ExploreNavigationController::statusMessage, this,
             &ExplorePanel::statusMessage);
 
-    connect(contextMenu_, &ExploreContextMenu::playRequested, actionController_,
+    connect(contextMenu_, &ExploreContextMenuController::playRequested, actionController_,
             &FileActionController::playSelection);
-    connect(contextMenu_, &ExploreContextMenu::runRequested, actionController_,
+    connect(contextMenu_, &ExploreContextMenuController::runRequested, actionController_,
             &FileActionController::runSelection);
-    connect(contextMenu_, &ExploreContextMenu::mountARequested, this,
+    connect(contextMenu_, &ExploreContextMenuController::mountARequested, this,
             [this]() { actionController_->mountToDrive(selectedPath(), "a"); });
-    connect(contextMenu_, &ExploreContextMenu::mountBRequested, this,
+    connect(contextMenu_, &ExploreContextMenuController::mountBRequested, this,
             [this]() { actionController_->mountToDrive(selectedPath(), "b"); });
-    connect(contextMenu_, &ExploreContextMenu::downloadRequested, this,
+    connect(contextMenu_, &ExploreContextMenuController::downloadRequested, this,
             [this]() { actionController_->download(selectedPath()); });
-    connect(contextMenu_, &ExploreContextMenu::loadConfigRequested, actionController_,
+    connect(contextMenu_, &ExploreContextMenuController::loadConfigRequested, actionController_,
             &FileActionController::loadConfigSelection);
-    connect(contextMenu_, &ExploreContextMenu::toggleFavoriteRequested, this, [this]() {
+    connect(contextMenu_, &ExploreContextMenuController::toggleFavoriteRequested, this, [this]() {
         QString path =
             selectedPath().isEmpty() ? navController_->currentDirectory() : selectedPath();
         favoritesController_->onToggleFavorite(path);
     });
-    connect(contextMenu_, &ExploreContextMenu::addToPlaylistRequested, actionController_,
+    connect(contextMenu_, &ExploreContextMenuController::addToPlaylistRequested, actionController_,
             &FileActionController::addToPlaylistSelection);
-    connect(contextMenu_, &ExploreContextMenu::refreshRequested, this, [this]() { refresh(); });
+    connect(contextMenu_, &ExploreContextMenuController::refreshRequested, this,
+            [this]() { refresh(); });
     connect(actionController_, &FileActionController::statusMessage, this,
             &ExplorePanel::statusMessage);
 

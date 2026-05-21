@@ -5,7 +5,7 @@
 
 #include "playlistservice.h"
 
-#include "deviceconnection.h"
+#include "deviceconnectionmanager.h"
 #include "iftpclient.h"
 #include "playlistcore.h"
 #include "songlengthsdatabase.h"
@@ -22,7 +22,7 @@
 
 #include <algorithm>
 
-PlaylistService::PlaylistService(DeviceConnection *connection, QObject *parent)
+PlaylistService::PlaylistService(DeviceConnectionManager *connection, QObject *parent)
     : QObject(parent), deviceConnection_(connection), advanceTimer_(new QTimer(this))
 {
     advanceTimer_->setSingleShot(true);

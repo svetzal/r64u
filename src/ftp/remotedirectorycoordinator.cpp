@@ -1,32 +1,33 @@
 /**
- * @file remotedirectorycreator.cpp
- * @brief Implementation of RemoteDirectoryCreator.
+ * @file remotedirectorycoordinator.cpp
+ * @brief Implementation of RemoteDirectoryCoordinator.
  */
 
-#include "remotedirectorycreator.h"
+#include "remotedirectorycoordinator.h"
 
 #include "services/iftpclient.h"
 #include "services/ilocalfilesystem.h"
 #include "utils/logging.h"
 
-RemoteDirectoryCreator::RemoteDirectoryCreator(transfer::State &state, IFtpClient *ftpClient,
-                                               ILocalFileSystem *localFs, QObject *parent)
+RemoteDirectoryCoordinator::RemoteDirectoryCoordinator(transfer::State &state,
+                                                       IFtpClient *ftpClient,
+                                                       ILocalFileSystem *localFs, QObject *parent)
     : QObject(parent), state_(state), ftpClient_(ftpClient), localFs_(localFs)
 {
 }
 
-void RemoteDirectoryCreator::setFtpClient(IFtpClient *client)
+void RemoteDirectoryCoordinator::setFtpClient(IFtpClient *client)
 {
     ftpClient_ = client;
 }
 
-void RemoteDirectoryCreator::setLocalFileSystem(ILocalFileSystem *fs)
+void RemoteDirectoryCoordinator::setLocalFileSystem(ILocalFileSystem *fs)
 {
     localFs_ = fs;
 }
 
-void RemoteDirectoryCreator::queueDirectoriesForUpload(const QString &localDir,
-                                                       const QString &remoteDir)
+void RemoteDirectoryCoordinator::queueDirectoriesForUpload(const QString &localDir,
+                                                           const QString &remoteDir)
 {
     // Queue root directory
     transfer::PendingMkdir rootMkdir;
@@ -37,7 +38,7 @@ void RemoteDirectoryCreator::queueDirectoriesForUpload(const QString &localDir,
 
     // Queue all subdirectories via gateway
     if (!localFs_) {
-        qCWarning(LogTransfer) << "RemoteDirectoryCreator: localFs_ is null, cannot enumerate"
+        qCWarning(LogTransfer) << "RemoteDirectoryCoordinator: localFs_ is null, cannot enumerate"
                                << localDir;
     }
     if (localFs_) {
@@ -59,17 +60,17 @@ void RemoteDirectoryCreator::queueDirectoriesForUpload(const QString &localDir,
     emit directoryCreationProgress(0, state_.totalDirectoriesToCreate);
 }
 
-void RemoteDirectoryCreator::createNextDirectory()
+void RemoteDirectoryCoordinator::createNextDirectory()
 {
     if (state_.pendingMkdirs.isEmpty()) {
-        qCDebug(LogTransfer) << "RemoteDirectoryCreator: All directories created";
+        qCDebug(LogTransfer) << "RemoteDirectoryCoordinator: All directories created";
         emit allDirectoriesCreated();
         return;
     }
 
     transfer::PendingMkdir mkdir = state_.pendingMkdirs.head();
     if (!ftpClient_) {
-        qCWarning(LogTransfer) << "RemoteDirectoryCreator: ftpClient_ is null, cannot create"
+        qCWarning(LogTransfer) << "RemoteDirectoryCoordinator: ftpClient_ is null, cannot create"
                                << mkdir.remotePath;
         emit error(tr("Cannot create directory: not connected"));
         return;
@@ -77,13 +78,14 @@ void RemoteDirectoryCreator::createNextDirectory()
     ftpClient_->makeDirectory(mkdir.remotePath);
 }
 
-void RemoteDirectoryCreator::onDirectoryCreated(const QString &path)
+void RemoteDirectoryCoordinator::onDirectoryCreated(const QString &path)
 {
-    qCDebug(LogTransfer) << "RemoteDirectoryCreator: onDirectoryCreated:" << path;
+    qCDebug(LogTransfer) << "RemoteDirectoryCoordinator: onDirectoryCreated:" << path;
 
     if (state_.queueState != transfer::QueueState::CreatingDirectories) {
-        qCWarning(LogTransfer) << "RemoteDirectoryCreator::onDirectoryCreated: unexpected state,"
-                               << "ignoring" << path;
+        qCWarning(LogTransfer)
+            << "RemoteDirectoryCoordinator::onDirectoryCreated: unexpected state,"
+            << "ignoring" << path;
         return;
     }
 
@@ -94,7 +96,7 @@ void RemoteDirectoryCreator::onDirectoryCreated(const QString &path)
         emit directoryCreationProgress(state_.directoriesCreated, state_.totalDirectoriesToCreate);
 
         if (state_.pendingMkdirs.isEmpty()) {
-            qCDebug(LogTransfer) << "RemoteDirectoryCreator: All directories created";
+            qCDebug(LogTransfer) << "RemoteDirectoryCoordinator: All directories created";
             emit allDirectoriesCreated();
         } else {
             createNextDirectory();

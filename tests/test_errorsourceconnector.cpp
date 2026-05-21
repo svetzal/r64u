@@ -160,7 +160,7 @@ private slots:
     void testFtpClient_ErrorRoutedToDataError();
     void testRestClient_OperationFailedRoutedToOperationFailed();
     void testRemoteFileModel_ErrorOccurredRoutedToDataError();
-    void testDeviceConnection_SkippedDueToCriticalDialog();
+    void testDeviceConnectionManager_SkippedDueToCriticalDialog();
     void testFilePreviewService_PreviewFailedRoutedToOperationFailed();
     void testConfigFileLoader_LoadFailedRoutedToOperationFailed();
     void testTransferService_SkippedDueToHeavyDependencies();
@@ -250,9 +250,10 @@ void TestErrorSourceConnector::testRemoteFileModel_ErrorOccurredRoutedToDataErro
     QVERIFY(spy.at(0).at(0).toString().contains("Failed to list directory"));
 }
 
-void TestErrorSourceConnector::testDeviceConnection_SkippedDueToCriticalDialog()
+void TestErrorSourceConnector::testDeviceConnectionManager_SkippedDueToCriticalDialog()
 {
-    QSKIP("DeviceConnection::connectionError routes to handleConnectionError which uses Critical "
+    QSKIP("DeviceConnectionManager::connectionError routes to handleConnectionError which uses "
+          "Critical "
           "severity and shows a blocking QMessageBox dialog");
 }
 

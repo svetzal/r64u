@@ -9,7 +9,7 @@
 #include <QPointer>
 
 class TransferTimeoutManager;
-class RemoteDirectoryCreator;
+class RemoteDirectoryCoordinator;
 class RecursiveScanCoordinator;
 
 /// Owns the 8 FTP client signal connections and translates raw FTP events into
@@ -24,7 +24,7 @@ public:
 
     void setFtpClient(IFtpClient *client);
     void setTimeoutManager(TransferTimeoutManager *manager);
-    void setDirCreator(RemoteDirectoryCreator *creator);
+    void setDirCreator(RemoteDirectoryCoordinator *creator);
     void setScanCoordinator(RecursiveScanCoordinator *coordinator);
 
 signals:
@@ -57,7 +57,7 @@ private:
     transfer::State &state_;
     QPointer<IFtpClient> ftpClient_;
     TransferTimeoutManager *timeoutManager_ = nullptr;
-    RemoteDirectoryCreator *dirCreator_ = nullptr;
+    RemoteDirectoryCoordinator *dirCreator_ = nullptr;
     RecursiveScanCoordinator *scanCoordinator_ = nullptr;
 };
 

@@ -1,9 +1,9 @@
 /**
- * @file streamingdiagnostics.cpp
+ * @file streamingdiagnosticsservice.cpp
  * @brief Implementation of the streaming diagnostics service.
  */
 
-#include "streamingdiagnostics.h"
+#include "streamingdiagnosticsservice.h"
 
 #include "audiostreamreceiver.h"
 #include "videostreamreceiver.h"
@@ -14,16 +14,16 @@
 #include <QMutexLocker>
 #include <QTimer>
 
-StreamingDiagnostics::StreamingDiagnostics(QObject *parent)
+StreamingDiagnosticsService::StreamingDiagnosticsService(QObject *parent)
     : QObject(parent), updateTimer_(new QTimer(this))
 {
     updateTimer_->setInterval(DefaultUpdateIntervalMs);
-    connect(updateTimer_, &QTimer::timeout, this, &StreamingDiagnostics::onUpdateTimer);
+    connect(updateTimer_, &QTimer::timeout, this, &StreamingDiagnosticsService::onUpdateTimer);
 }
 
-StreamingDiagnostics::~StreamingDiagnostics() = default;
+StreamingDiagnosticsService::~StreamingDiagnosticsService() = default;
 
-void StreamingDiagnostics::setEnabled(bool enabled)
+void StreamingDiagnosticsService::setEnabled(bool enabled)
 {
     if (enabled_ == enabled) {
         return;
@@ -40,7 +40,7 @@ void StreamingDiagnostics::setEnabled(bool enabled)
     }
 }
 
-void StreamingDiagnostics::attachVideoReceiver(VideoStreamReceiver *receiver)
+void StreamingDiagnosticsService::attachVideoReceiver(VideoStreamReceiver *receiver)
 {
     if (videoReceiver_) {
         disconnect(videoReceiver_, nullptr, this, nullptr);
@@ -50,11 +50,11 @@ void StreamingDiagnostics::attachVideoReceiver(VideoStreamReceiver *receiver)
 
     if (videoReceiver_) {
         connect(videoReceiver_, &VideoStreamReceiver::statsUpdated, this,
-                &StreamingDiagnostics::onVideoStatsUpdated);
+                &StreamingDiagnosticsService::onVideoStatsUpdated);
     }
 }
 
-void StreamingDiagnostics::attachAudioReceiver(AudioStreamReceiver *receiver)
+void StreamingDiagnosticsService::attachAudioReceiver(AudioStreamReceiver *receiver)
 {
     if (audioReceiver_) {
         disconnect(audioReceiver_, nullptr, this, nullptr);
@@ -64,20 +64,20 @@ void StreamingDiagnostics::attachAudioReceiver(AudioStreamReceiver *receiver)
 
     if (audioReceiver_) {
         connect(audioReceiver_, &AudioStreamReceiver::statsUpdated, this,
-                &StreamingDiagnostics::onAudioStatsUpdated);
+                &StreamingDiagnosticsService::onAudioStatsUpdated);
         connect(audioReceiver_, &AudioStreamReceiver::bufferUnderrun, this,
-                &StreamingDiagnostics::onAudioBufferUnderrun);
+                &StreamingDiagnosticsService::onAudioBufferUnderrun);
 
         audioBufferTarget_ = audioReceiver_->jitterBufferSize();
     }
 }
 
-void StreamingDiagnostics::setUpdateInterval(int intervalMs)
+void StreamingDiagnosticsService::setUpdateInterval(int intervalMs)
 {
     updateTimer_->setInterval(intervalMs);
 }
 
-DiagnosticsSnapshot StreamingDiagnostics::currentSnapshot() const
+DiagnosticsSnapshot StreamingDiagnosticsService::currentSnapshot() const
 {
     DiagnosticsSnapshot snapshot;
 
@@ -140,7 +140,7 @@ DiagnosticsSnapshot StreamingDiagnostics::currentSnapshot() const
     return snapshot;
 }
 
-void StreamingDiagnostics::reset()
+void StreamingDiagnosticsService::reset()
 {
     videoPacketsReceived_ = 0;
     videoPacketsLost_ = 0;
@@ -177,7 +177,7 @@ void StreamingDiagnostics::reset()
     uptimeTimer_.restart();
 }
 
-VideoDiagnosticsCallback StreamingDiagnostics::videoCallback()
+VideoDiagnosticsCallback StreamingDiagnosticsService::videoCallback()
 {
     VideoDiagnosticsCallback callback;
 
@@ -196,7 +196,7 @@ VideoDiagnosticsCallback StreamingDiagnostics::videoCallback()
     return callback;
 }
 
-AudioDiagnosticsCallback StreamingDiagnostics::audioCallback()
+AudioDiagnosticsCallback StreamingDiagnosticsService::audioCallback()
 {
     AudioDiagnosticsCallback callback;
 
@@ -209,7 +209,7 @@ AudioDiagnosticsCallback StreamingDiagnostics::audioCallback()
     return callback;
 }
 
-QString StreamingDiagnostics::qualityLevelString(QualityLevel level)
+QString StreamingDiagnosticsService::qualityLevelString(QualityLevel level)
 {
     switch (level) {
     case QualityLevel::Excellent:
@@ -226,7 +226,7 @@ QString StreamingDiagnostics::qualityLevelString(QualityLevel level)
     }
 }
 
-QColor StreamingDiagnostics::qualityLevelColor(QualityLevel level)
+QColor StreamingDiagnosticsService::qualityLevelColor(QualityLevel level)
 {
     switch (level) {
     case QualityLevel::Excellent:
@@ -243,7 +243,7 @@ QColor StreamingDiagnostics::qualityLevelColor(QualityLevel level)
     }
 }
 
-void StreamingDiagnostics::onUpdateTimer()
+void StreamingDiagnosticsService::onUpdateTimer()
 {
     if (!enabled_) {
         return;
@@ -253,8 +253,8 @@ void StreamingDiagnostics::onUpdateTimer()
     emit diagnosticsUpdated(snapshot);
 }
 
-void StreamingDiagnostics::onVideoStatsUpdated(quint64 packetsReceived, quint64 framesCompleted,
-                                               quint64 packetsLost)
+void StreamingDiagnosticsService::onVideoStatsUpdated(quint64 packetsReceived,
+                                                      quint64 framesCompleted, quint64 packetsLost)
 {
     if (!enabled_) {
         return;
@@ -265,8 +265,8 @@ void StreamingDiagnostics::onVideoStatsUpdated(quint64 packetsReceived, quint64 
     videoPacketsLost_ = packetsLost;
 }
 
-void StreamingDiagnostics::onAudioStatsUpdated(quint64 packetsReceived, quint64 packetsLost,
-                                               int bufferLevel)
+void StreamingDiagnosticsService::onAudioStatsUpdated(quint64 packetsReceived, quint64 packetsLost,
+                                                      int bufferLevel)
 {
     if (!enabled_) {
         return;
@@ -277,14 +277,14 @@ void StreamingDiagnostics::onAudioStatsUpdated(quint64 packetsReceived, quint64 
     audioBufferLevel_ = bufferLevel;
 }
 
-void StreamingDiagnostics::onAudioBufferUnderrun()
+void StreamingDiagnosticsService::onAudioBufferUnderrun()
 {
     if (enabled_) {
         audioBufferUnderruns_++;
     }
 }
 
-QualityLevel StreamingDiagnostics::calculateQualityLevel() const
+QualityLevel StreamingDiagnosticsService::calculateQualityLevel() const
 {
     // Need some data to calculate quality
     if (videoPacketsReceived_ < 100 && audioPacketsReceived_ < 100) {
@@ -334,7 +334,7 @@ QualityLevel StreamingDiagnostics::calculateQualityLevel() const
     return QualityLevel::Poor;
 }
 
-void StreamingDiagnostics::handleVideoPacket(qint64 arrivalTimeUs)
+void StreamingDiagnosticsService::handleVideoPacket(qint64 arrivalTimeUs)
 {
     if (!enabled_) {
         return;
@@ -347,7 +347,7 @@ void StreamingDiagnostics::handleVideoPacket(qint64 arrivalTimeUs)
     lastVideoPacketTimeUs_ = arrivalTimeUs;
 }
 
-void StreamingDiagnostics::handleVideoFrameStart(quint16 frameNumber, qint64 startTimeUs)
+void StreamingDiagnosticsService::handleVideoFrameStart(quint16 frameNumber, qint64 startTimeUs)
 {
     if (!enabled_) {
         return;
@@ -357,8 +357,8 @@ void StreamingDiagnostics::handleVideoFrameStart(quint16 frameNumber, qint64 sta
     currentFrameStartUs_ = startTimeUs;
 }
 
-void StreamingDiagnostics::handleVideoFrameComplete(quint16 frameNumber, qint64 endTimeUs,
-                                                    bool complete)
+void StreamingDiagnosticsService::handleVideoFrameComplete(quint16 frameNumber, qint64 endTimeUs,
+                                                           bool complete)
 {
     if (!enabled_) {
         return;
@@ -378,14 +378,14 @@ void StreamingDiagnostics::handleVideoFrameComplete(quint16 frameNumber, qint64 
     currentFrameStartUs_ = 0;
 }
 
-void StreamingDiagnostics::handleVideoOutOfOrder()
+void StreamingDiagnosticsService::handleVideoOutOfOrder()
 {
     if (enabled_) {
         videoOutOfOrderPackets_++;
     }
 }
 
-void StreamingDiagnostics::handleAudioPacket(qint64 arrivalTimeUs)
+void StreamingDiagnosticsService::handleAudioPacket(qint64 arrivalTimeUs)
 {
     if (!enabled_) {
         return;
@@ -398,14 +398,14 @@ void StreamingDiagnostics::handleAudioPacket(qint64 arrivalTimeUs)
     lastAudioPacketTimeUs_ = arrivalTimeUs;
 }
 
-void StreamingDiagnostics::handleAudioBufferUnderrun()
+void StreamingDiagnosticsService::handleAudioBufferUnderrun()
 {
     if (enabled_) {
         audioBufferUnderruns_++;
     }
 }
 
-void StreamingDiagnostics::handleAudioDiscontinuity(int gap)
+void StreamingDiagnosticsService::handleAudioDiscontinuity(int gap)
 {
     Q_UNUSED(gap)
     if (enabled_) {
@@ -413,7 +413,7 @@ void StreamingDiagnostics::handleAudioDiscontinuity(int gap)
     }
 }
 
-AudioPlaybackDiagnosticsCallback StreamingDiagnostics::audioPlaybackCallback()
+AudioPlaybackDiagnosticsCallback StreamingDiagnosticsService::audioPlaybackCallback()
 {
     AudioPlaybackDiagnosticsCallback callback;
 
@@ -427,7 +427,7 @@ AudioPlaybackDiagnosticsCallback StreamingDiagnostics::audioPlaybackCallback()
     return callback;
 }
 
-VideoDisplayDiagnosticsCallback StreamingDiagnostics::videoDisplayCallback()
+VideoDisplayDiagnosticsCallback StreamingDiagnosticsService::videoDisplayCallback()
 {
     VideoDisplayDiagnosticsCallback callback;
 
@@ -444,8 +444,8 @@ VideoDisplayDiagnosticsCallback StreamingDiagnostics::videoDisplayCallback()
     return callback;
 }
 
-void StreamingDiagnostics::handleAudioSamplesWritten(qint64 writeTimeUs, qint64 bytesWritten,
-                                                     qint64 bytesDropped)
+void StreamingDiagnosticsService::handleAudioSamplesWritten(qint64 writeTimeUs, qint64 bytesWritten,
+                                                            qint64 bytesDropped)
 {
     if (!enabled_) {
         return;
@@ -461,14 +461,14 @@ void StreamingDiagnostics::handleAudioSamplesWritten(qint64 writeTimeUs, qint64 
     lastAudioWriteTimeUs_ = writeTimeUs;
 }
 
-void StreamingDiagnostics::handleAudioPlaybackUnderrun()
+void StreamingDiagnosticsService::handleAudioPlaybackUnderrun()
 {
     if (enabled_) {
         audioPlaybackUnderruns_++;
     }
 }
 
-void StreamingDiagnostics::handleVideoFrameDisplayed(qint64 displayTimeUs)
+void StreamingDiagnosticsService::handleVideoFrameDisplayed(qint64 displayTimeUs)
 {
     if (!enabled_) {
         return;
@@ -481,14 +481,14 @@ void StreamingDiagnostics::handleVideoFrameDisplayed(qint64 displayTimeUs)
     lastVideoDisplayTimeUs_ = displayTimeUs;
 }
 
-void StreamingDiagnostics::handleVideoDisplayUnderrun()
+void StreamingDiagnosticsService::handleVideoDisplayUnderrun()
 {
     if (enabled_) {
         videoDisplayUnderruns_++;
     }
 }
 
-void StreamingDiagnostics::handleVideoBufferLevelChanged(int bufferLevel)
+void StreamingDiagnosticsService::handleVideoBufferLevelChanged(int bufferLevel)
 {
     if (enabled_) {
         videoFrameBufferLevel_ = bufferLevel;

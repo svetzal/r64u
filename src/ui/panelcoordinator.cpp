@@ -1,7 +1,7 @@
 #include "panelcoordinator.h"
 
 #include "models/remotefilemodel.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/errorhandler.h"
 #include "services/irestclient.h"
 #include "services/statusmessageservice.h"
@@ -11,7 +11,7 @@
 #include <QTabWidget>
 
 PanelCoordinator::PanelCoordinator(IPanel *explore, IPanel *transfer, IPanel *view, IPanel *config,
-                                   DeviceConnection *connection, RemoteFileModel *model,
+                                   DeviceConnectionManager *connection, RemoteFileModel *model,
                                    TransferService *transferService,
                                    StatusMessageService *statusService, ErrorHandler *errorHandler,
                                    QTabWidget *tabWidget, QObject *parent)

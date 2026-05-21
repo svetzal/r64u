@@ -1,12 +1,12 @@
 #include "services/transferservice.h"
 
 // Minimal stubs for symbols referenced by panelcoordinator.cpp.
-// These methods are never called in tests: the DeviceConnection is always
+// These methods are never called in tests: the DeviceConnectionManager is always
 // disconnected, so the transferService_ null-check short-circuits before
 // any of these methods are reached.
 
-TransferService::TransferService(DeviceConnection * /*connection*/, TransferQueue * /*queue*/,
-                                 QObject *parent)
+TransferService::TransferService(DeviceConnectionManager * /*connection*/,
+                                 TransferQueue * /*queue*/, QObject *parent)
     : QObject(parent)
 {
 }

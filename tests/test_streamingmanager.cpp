@@ -14,7 +14,7 @@
 #include "mocks/mockrestclient.h"
 #include "mocks/mockstreamcontrolclient.h"
 #include "mocks/mockvideostreamreceiver.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/devicetypes.h"
 #include "services/keyboardinputservice.h"
 #include "services/streamingservice.h"
@@ -30,7 +30,7 @@ class TestStreamingService : public QObject
     Q_OBJECT
 
 private:
-    DeviceConnection *conn_ = nullptr;
+    DeviceConnectionManager *conn_ = nullptr;
     MockRestClient *mockRest_ = nullptr;
     MockFtpClient *mockFtp_ = nullptr;
     MockStreamControlClient *mockControl_ = nullptr;
@@ -41,7 +41,7 @@ private:
     KeyboardInputService *keyboardService_ = nullptr;
     StreamingService *manager_ = nullptr;
 
-    /// Helper: set up DeviceConnection in Connected state
+    /// Helper: set up DeviceConnectionManager in Connected state
     void makeConnected()
     {
         conn_->connectToDevice();
@@ -69,7 +69,7 @@ private slots:
     {
         mockRest_ = new MockRestClient();
         mockFtp_ = new MockFtpClient();
-        conn_ = new DeviceConnection(mockRest_, mockFtp_, this);
+        conn_ = new DeviceConnectionManager(mockRest_, mockFtp_, this);
         conn_->setHost("192.168.1.64");
         conn_->setAutoReconnect(false);
 

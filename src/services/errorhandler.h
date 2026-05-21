@@ -9,7 +9,7 @@
 class QWidget;
 
 class ConfigFileLoaderService;
-class DeviceConnection;
+class DeviceConnectionManager;
 class FilePreviewService;
 class GameBase64Service;
 class HVSCMetadataService;
@@ -58,7 +58,7 @@ enum class ErrorSeverity {
  * ErrorHandler *handler = new ErrorHandler(parentWidget, this);
  *
  * // Connect error signals from various sources
- * connect(connection, &DeviceConnection::connectionError,
+ * connect(connection, &DeviceConnectionManager::connectionError,
  *         handler, &ErrorHandler::handleConnectionError);
  *
  * // Handle with custom severity
@@ -91,7 +91,7 @@ public:
      */
     ~ErrorHandler() override = default;
 
-    void connectSources(DeviceConnection *dc, IRestClient *restClient, RemoteFileModel *rfm,
+    void connectSources(DeviceConnectionManager *dc, IRestClient *restClient, RemoteFileModel *rfm,
                         IFtpClient *ftpClient, FilePreviewService *fps,
                         ConfigFileLoaderService *cfl, TransferService *ts, SonglengthsDatabase *sld,
                         HVSCMetadataService *hvsc, GameBase64Service *gb64,
@@ -241,7 +241,7 @@ private:
      */
     void connectStreamingServiceSources(StreamingService *ss);
 
-    void connectDeviceSources(DeviceConnection *dc, IRestClient *restClient,
+    void connectDeviceSources(DeviceConnectionManager *dc, IRestClient *restClient,
                               ConfigFileLoaderService *cfl);
     void connectTransferSources(IFtpClient *ftpClient, TransferService *ts);
     void connectModelSources(RemoteFileModel *rfm, FilePreviewService *fps);

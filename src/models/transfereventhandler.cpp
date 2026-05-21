@@ -1,20 +1,20 @@
-#include "transfereventprocessor.h"
+#include "transfereventhandler.h"
 
 #include <QTimer>
 
-TransferEventProcessor::TransferEventProcessor(QObject *parent) : QObject(parent) {}
+TransferEventHandler::TransferEventHandler(QObject *parent) : QObject(parent) {}
 
-void TransferEventProcessor::schedule(std::function<void()> event)
+void TransferEventHandler::schedule(std::function<void()> event)
 {
     queue_.enqueue(std::move(event));
 
     if (!scheduled_) {
         scheduled_ = true;
-        QTimer::singleShot(0, this, &TransferEventProcessor::processQueue);
+        QTimer::singleShot(0, this, &TransferEventHandler::processQueue);
     }
 }
 
-void TransferEventProcessor::flush()
+void TransferEventHandler::flush()
 {
     if (processing_) {
         return;
@@ -31,14 +31,14 @@ void TransferEventProcessor::flush()
     processing_ = false;
 }
 
-void TransferEventProcessor::processQueue()
+void TransferEventHandler::processQueue()
 {
     scheduled_ = false;
 
     if (processing_) {
         if (!queue_.isEmpty() && !scheduled_) {
             scheduled_ = true;
-            QTimer::singleShot(0, this, &TransferEventProcessor::processQueue);
+            QTimer::singleShot(0, this, &TransferEventHandler::processQueue);
         }
         return;
     }

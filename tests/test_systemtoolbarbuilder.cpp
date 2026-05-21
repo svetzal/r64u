@@ -11,7 +11,7 @@
 
 #include "mocks/mockftpclient.h"
 #include "mocks/mockrestclient.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/statusmessageservice.h"
 #include "services/systemcommandcontroller.h"
 #include "ui/systemtoolbarbuilder.h"
@@ -34,7 +34,7 @@ private:
 
         auto *mockRest = new MockRestClient(window);
         auto *mockFtp = new MockFtpClient(window);
-        auto *connection = new DeviceConnection(mockRest, mockFtp, window);
+        auto *connection = new DeviceConnectionManager(mockRest, mockFtp, window);
 
         auto *status = new StatusMessageService(window);
         auto *sysCtrl = new SystemCommandController(mockRest, status, window);

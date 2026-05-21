@@ -6,7 +6,7 @@
 #include <QObject>
 #include <QWidget>
 
-class DeviceConnection;
+class DeviceConnectionManager;
 class RemoteFileModel;
 class TransferQueue;
 class ConfigFileLoaderService;
@@ -44,7 +44,7 @@ public:
     explicit ServiceFactory(QWidget *owner, QObject *parent = nullptr);
 
     /// @brief Returns the device connection service.
-    [[nodiscard]] DeviceConnection *deviceConnection() const;
+    [[nodiscard]] DeviceConnectionManager *deviceConnection() const;
     /// @brief Returns the remote file model.
     [[nodiscard]] RemoteFileModel *remoteFileModel() const;
     /// @brief Returns the transfer queue.
@@ -91,7 +91,7 @@ public:
     [[nodiscard]] MetadataServiceBundle metadataBundle() const;
 
 private:
-    DeviceConnection *deviceConnection_ = nullptr;
+    DeviceConnectionManager *deviceConnection_ = nullptr;
     RemoteFileModel *remoteFileModel_ = nullptr;
     TransferQueue *transferQueue_ = nullptr;
     ConfigFileLoaderService *configFileLoader_ = nullptr;

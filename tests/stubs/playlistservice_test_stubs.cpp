@@ -35,7 +35,7 @@ SonglengthsDatabase::lookupByData(const QByteArray & /*sidData*/) const
 // StreamingService stubs
 // ---------------------------------------------------------------------------
 
-StreamingService::StreamingService(DeviceConnection * /*connection*/,
+StreamingService::StreamingService(DeviceConnectionManager * /*connection*/,
                                    IStreamControlClient * /*streamControl*/,
                                    IVideoStreamReceiver * /*videoReceiver*/,
                                    IAudioStreamReceiver * /*audioReceiver*/,

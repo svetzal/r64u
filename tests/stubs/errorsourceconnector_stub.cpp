@@ -3,7 +3,7 @@
 
 class AudioPlaybackService;
 class ConfigFileLoaderService;
-class DeviceConnection;
+class DeviceConnectionManager;
 class FilePreviewService;
 class GameBase64Service;
 class HVSCMetadataService;
@@ -18,7 +18,7 @@ class StreamingService;
 class TransferService;
 class VideoRecordingService;
 
-void ErrorHandler::connectSources(DeviceConnection * /*dc*/, IRestClient * /*restClient*/,
+void ErrorHandler::connectSources(DeviceConnectionManager * /*dc*/, IRestClient * /*restClient*/,
                                   RemoteFileModel * /*rfm*/, IFtpClient *ftpClient,
                                   FilePreviewService * /*fps*/, ConfigFileLoaderService * /*cfl*/,
                                   TransferService * /*ts*/, SonglengthsDatabase * /*sld*/,
@@ -32,7 +32,8 @@ void ErrorHandler::connectSources(DeviceConnection * /*dc*/, IRestClient * /*res
 
 void ErrorHandler::connectStreamingServiceSources(StreamingService * /*ss*/) {}
 
-void ErrorHandler::connectDeviceSources(DeviceConnection * /*dc*/, IRestClient * /*restClient*/,
+void ErrorHandler::connectDeviceSources(DeviceConnectionManager * /*dc*/,
+                                        IRestClient * /*restClient*/,
                                         ConfigFileLoaderService * /*cfl*/)
 {
 }

@@ -1,7 +1,7 @@
 #ifndef STREAMINGDIAGNOSTICSWIDGET_H
 #define STREAMINGDIAGNOSTICSWIDGET_H
 
-#include "services/streamingdiagnostics.h"
+#include "services/streamingdiagnosticsservice.h"
 
 #include <QWidget>
 

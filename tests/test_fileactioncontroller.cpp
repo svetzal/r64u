@@ -1,7 +1,7 @@
 #include "mocks/mockftpclient.h"
 #include "mocks/mockrestclient.h"
 #include "services/deviceactionservice.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/errorhandler.h"
 #include "services/filetypecore.h"
 #include "services/playlistservice.h"
@@ -16,17 +16,17 @@ class TestFileActionController : public QObject
     Q_OBJECT
 
 private:
-    // Helpers that build a fully-wired controller with a live (disconnected) DeviceConnection.
-    // The connection has a real MockRestClient so restClient() != nullptr.
-    DeviceConnection *makeConnection()
+    // Helpers that build a fully-wired controller with a live (disconnected)
+    // DeviceConnectionManager. The connection has a real MockRestClient so restClient() != nullptr.
+    DeviceConnectionManager *makeConnection()
     {
         auto *restClient = new MockRestClient(this);
         auto *ftpClient = new MockFtpClient(this);
-        return new DeviceConnection(restClient, ftpClient, this);
+        return new DeviceConnectionManager(restClient, ftpClient, this);
     }
 
     // Creates a DeviceActionService backed by the given connection.
-    DeviceActionService *makeActionService(DeviceConnection *connection)
+    DeviceActionService *makeActionService(DeviceConnectionManager *connection)
     {
         return new DeviceActionService(connection, this);
     }
@@ -250,7 +250,7 @@ private slots:
         QVERIFY(spy.at(0).at(0).toString().contains("not a configuration file"));
     }
 
-    void testLoadConfig_NoDeviceConnection_EmitsNotConnectedMessage()
+    void testLoadConfig_NoDeviceConnectionManager_EmitsNotConnectedMessage()
     {
         // Correct type, but no device connection (nullptr) -> "Not connected"
         auto *controller = new FileActionController(nullptr, nullptr, nullptr, this);

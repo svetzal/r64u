@@ -152,9 +152,9 @@ private slots:
     // refresh — null device connection guard
     // ======================================================================
 
-    void testRefresh_NullDeviceConnection_NoOp()
+    void testRefresh_NullDeviceConnectionManager_NoOp()
     {
-        // With null DeviceConnection, refresh() should return early without crashing
+        // With null DeviceConnectionManager, refresh() should return early without crashing
         ctrl_->setCurrentDirectory("/SD");
         mock_.pathHistory.clear();
 
@@ -164,7 +164,7 @@ private slots:
         QVERIFY(mock_.pathHistory.isEmpty());
     }
 
-    void testRefresh_NullDeviceConnection_EmitsStatusMessage()
+    void testRefresh_NullDeviceConnectionManager_EmitsStatusMessage()
     {
         QSignalSpy spy(ctrl_, &ExploreNavigationController::statusMessage);
 
@@ -178,7 +178,7 @@ private slots:
     // refreshIfStale — null device connection guard
     // ======================================================================
 
-    void testRefreshIfStale_NullDeviceConnection_NoOp()
+    void testRefreshIfStale_NullDeviceConnectionManager_NoOp()
     {
         ctrl_->setCurrentDirectory("/SD");
         mock_.pathHistory.clear();

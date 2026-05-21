@@ -3,11 +3,11 @@
 #include "streamingdiagnosticswidget.h"
 #include "videodisplaywidget.h"
 
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/errorhandler.h"
 #include "services/keyboardinputservice.h"
 #include "services/screenshotservice.h"
-#include "services/streamingdiagnostics.h"
+#include "services/streamingdiagnosticsservice.h"
 #include "services/streamingservice.h"
 #include "services/videorecordingservice.h"
 #include "services/videostreamreceiver.h"
@@ -18,10 +18,10 @@
 #include <QSettings>
 #include <QVBoxLayout>
 
-ViewPanel::ViewPanel(DeviceConnection *connection, QWidget *parent)
+ViewPanel::ViewPanel(DeviceConnectionManager *connection, QWidget *parent)
     : QWidget(parent), deviceConnection_(connection)
 {
-    Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
+    Q_ASSERT(deviceConnection_ && "DeviceConnectionManager is required");
     setupUi();
 }
 
@@ -124,7 +124,7 @@ void ViewPanel::setupUi()
 
     // Wire device connection state changes (independent of streaming services)
     if (deviceConnection_) {
-        connect(deviceConnection_, &DeviceConnection::stateChanged, this,
+        connect(deviceConnection_, &DeviceConnectionManager::stateChanged, this,
                 &ViewPanel::onConnectionStateChanged);
     }
 }
@@ -169,8 +169,8 @@ void ViewPanel::setStreamingService(StreamingService *manager)
 
     // Connect diagnostics service to widget
     if (streamingService_->diagnostics() && diagnosticsWidget_) {
-        connect(streamingService_->diagnostics(), &StreamingDiagnostics::diagnosticsUpdated, this,
-                &ViewPanel::onDiagnosticsUpdated);
+        connect(streamingService_->diagnostics(), &StreamingDiagnosticsService::diagnosticsUpdated,
+                this, &ViewPanel::onDiagnosticsUpdated);
     }
 }
 

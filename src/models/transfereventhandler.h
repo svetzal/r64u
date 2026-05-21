@@ -1,5 +1,5 @@
-#ifndef TRANSFEREVENTPROCESSOR_H
-#define TRANSFEREVENTPROCESSOR_H
+#ifndef TRANSFEREVENTHANDLER_H
+#define TRANSFEREVENTHANDLER_H
 
 #include <QObject>
 #include <QQueue>
@@ -8,12 +8,12 @@
 
 /// Manages the deferred event queue used by TransferQueue to serialise
 /// processNext() calls onto the Qt event loop.
-class TransferEventProcessor : public QObject
+class TransferEventHandler : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit TransferEventProcessor(QObject *parent = nullptr);
+    explicit TransferEventHandler(QObject *parent = nullptr);
 
     /// Enqueue an event and schedule processing on the next event-loop tick.
     void schedule(std::function<void()> event);
@@ -30,4 +30,4 @@ private:
     bool scheduled_ = false;
 };
 
-#endif  // TRANSFEREVENTPROCESSOR_H
+#endif  // TRANSFEREVENTHANDLER_H

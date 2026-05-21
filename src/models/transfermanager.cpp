@@ -1,4 +1,4 @@
-#include "transferorchestrator.h"
+#include "transfermanager.h"
 
 #include "transferftphandler.h"
 
@@ -10,13 +10,13 @@
 #include <QDebug>
 #include <QFileInfo>
 
-TransferOrchestrator::TransferOrchestrator(QObject *parent)
+TransferManager::TransferManager(QObject *parent)
     : QObject(parent), localFs_(new LocalFileSystem(this)),
       batchManager_(new BatchManager(state_, this)),
       timeoutManager_(new TransferTimeoutManager(TransferTimeoutManager::OperationTimeoutMs, this)),
-      eventProcessor_(new TransferEventProcessor(this)),
+      eventProcessor_(new TransferEventHandler(this)),
       scanCoordinator_(new RecursiveScanCoordinator(state_, nullptr, localFs_, this)),
-      dirCreator_(new RemoteDirectoryCreator(state_, nullptr, localFs_, this)),
+      dirCreator_(new RemoteDirectoryCoordinator(state_, nullptr, localFs_, this)),
       folderCoordinator_(new FolderOperationCoordinator(state_, nullptr, localFs_, this))
 {
     deleteHandler_ = new TransferDeleteHandler(state_, this);
@@ -30,7 +30,7 @@ TransferOrchestrator::TransferOrchestrator(QObject *parent)
     setupDeleteHandler();
 }
 
-void TransferOrchestrator::setupBatchManager()
+void TransferManager::setupBatchManager()
 {
     batchManager_->setModelResetCallbacks(
         [this]() {
@@ -55,23 +55,22 @@ void TransferOrchestrator::setupBatchManager()
         [this]() { folderCoordinator_->onFolderOperationComplete(); });
     batchManager_->setScheduleProcessNextCallback([this]() { scheduleProcessNext(); });
 
-    connect(batchManager_, &BatchManager::batchStarted, this, &TransferOrchestrator::batchStarted);
+    connect(batchManager_, &BatchManager::batchStarted, this, &TransferManager::batchStarted);
     connect(batchManager_, &BatchManager::batchProgressUpdate, this,
-            &TransferOrchestrator::batchProgressUpdate);
-    connect(batchManager_, &BatchManager::batchCompleted, this,
-            &TransferOrchestrator::batchCompleted);
+            &TransferManager::batchProgressUpdate);
+    connect(batchManager_, &BatchManager::batchCompleted, this, &TransferManager::batchCompleted);
     connect(batchManager_, &BatchManager::allOperationsCompleted, this,
-            &TransferOrchestrator::allOperationsCompleted);
-    connect(batchManager_, &BatchManager::queueChanged, this, &TransferOrchestrator::queueChanged);
+            &TransferManager::allOperationsCompleted);
+    connect(batchManager_, &BatchManager::queueChanged, this, &TransferManager::queueChanged);
 }
 
-void TransferOrchestrator::setupTimeoutManager()
+void TransferManager::setupTimeoutManager()
 {
     connect(timeoutManager_, &TransferTimeoutManager::operationTimedOut, this,
-            &TransferOrchestrator::onOperationTimeout);
+            &TransferManager::onOperationTimeout);
 }
 
-void TransferOrchestrator::setupScanCoordinator()
+void TransferManager::setupScanCoordinator()
 {
     connect(scanCoordinator_, &RecursiveScanCoordinator::downloadFileDiscovered, this,
             [this](const QString &remotePath, const QString &localPath, int batchId) {
@@ -88,11 +87,11 @@ void TransferOrchestrator::setupScanCoordinator()
                 scheduleProcessNext();
             });
     connect(scanCoordinator_, &RecursiveScanCoordinator::statusMessage, this,
-            &TransferOrchestrator::statusMessage);
+            &TransferManager::statusMessage);
     connect(scanCoordinator_, &RecursiveScanCoordinator::scanningStarted, this,
-            &TransferOrchestrator::scanningStarted);
+            &TransferManager::scanningStarted);
     connect(scanCoordinator_, &RecursiveScanCoordinator::scanningProgress, this,
-            &TransferOrchestrator::scanningProgress);
+            &TransferManager::scanningProgress);
     connect(scanCoordinator_, &RecursiveScanCoordinator::deleteScanComplete, this, [this]() {
         transitionTo(QueueState::Deleting);
         emit queueChanged();
@@ -108,15 +107,15 @@ void TransferOrchestrator::setupScanCoordinator()
             [this]() { scheduleProcessNext(); });
 }
 
-void TransferOrchestrator::setupDirectoryCreator()
+void TransferManager::setupDirectoryCreator()
 {
-    connect(dirCreator_, &RemoteDirectoryCreator::directoryCreationProgress, this,
-            &TransferOrchestrator::directoryCreationProgress);
-    connect(dirCreator_, &RemoteDirectoryCreator::allDirectoriesCreated, this,
+    connect(dirCreator_, &RemoteDirectoryCoordinator::directoryCreationProgress, this,
+            &TransferManager::directoryCreationProgress);
+    connect(dirCreator_, &RemoteDirectoryCoordinator::allDirectoriesCreated, this,
             [this]() { finishDirectoryCreation(); });
 }
 
-void TransferOrchestrator::setupFolderOperationCoordinator()
+void TransferManager::setupFolderOperationCoordinator()
 {
     folderCoordinator_->setCreateBatchCallback(
         [this](transfer::OperationType type, const QString &description, const QString &folderName,
@@ -147,22 +146,22 @@ void TransferOrchestrator::setupFolderOperationCoordinator()
     connect(folderCoordinator_, &FolderOperationCoordinator::pendingUploadAfterDeleteSet, this,
             [this](const QString &targetPath) { enqueueRecursiveDelete(targetPath); });
     connect(folderCoordinator_, &FolderOperationCoordinator::folderConfirmationNeeded, this,
-            &TransferOrchestrator::folderExistsConfirmationNeeded);
+            &TransferManager::folderExistsConfirmationNeeded);
     connect(folderCoordinator_, &FolderOperationCoordinator::operationStarted, this,
-            &TransferOrchestrator::operationStarted);
+            &TransferManager::operationStarted);
     connect(folderCoordinator_, &FolderOperationCoordinator::allOperationsCompleted, this,
-            &TransferOrchestrator::allOperationsCompleted);
+            &TransferManager::allOperationsCompleted);
     connect(folderCoordinator_, &FolderOperationCoordinator::operationsCancelled, this,
-            &TransferOrchestrator::operationsCancelled);
+            &TransferManager::operationsCancelled);
     connect(folderCoordinator_, &FolderOperationCoordinator::statusMessage, this,
-            &TransferOrchestrator::statusMessage);
+            &TransferManager::statusMessage);
     connect(folderCoordinator_, &FolderOperationCoordinator::operationFailed, this,
-            &TransferOrchestrator::operationFailed);
+            &TransferManager::operationFailed);
     connect(folderCoordinator_, &FolderOperationCoordinator::scheduleProcessNextRequested, this,
             [this]() { scheduleProcessNext(); });
 }
 
-void TransferOrchestrator::setupFtpHandler()
+void TransferManager::setupFtpHandler()
 {
     ftpHandler_ = new TransferFtpHandler(state_, this);
     ftpHandler_->setTimeoutManager(timeoutManager_);
@@ -172,13 +171,12 @@ void TransferOrchestrator::setupFtpHandler()
     connect(ftpHandler_, &TransferFtpHandler::itemDataChanged, this,
             [this](int row) { notifyDataChanged(row); });
     connect(ftpHandler_, &TransferFtpHandler::operationCompleted, this,
-            &TransferOrchestrator::operationCompleted);
+            &TransferManager::operationCompleted);
     connect(ftpHandler_, &TransferFtpHandler::operationFailed, this,
-            &TransferOrchestrator::operationFailed);
-    connect(ftpHandler_, &TransferFtpHandler::queueChanged, this,
-            &TransferOrchestrator::queueChanged);
+            &TransferManager::operationFailed);
+    connect(ftpHandler_, &TransferFtpHandler::queueChanged, this, &TransferManager::queueChanged);
     connect(ftpHandler_, &TransferFtpHandler::deleteProgressUpdate, this,
-            &TransferOrchestrator::deleteProgressUpdate);
+            &TransferManager::deleteProgressUpdate);
     connect(ftpHandler_, &TransferFtpHandler::scheduleProcessNextRequested, this,
             [this]() { scheduleProcessNext(); });
     connect(ftpHandler_, &TransferFtpHandler::processNextDeleteRequested, this,
@@ -191,7 +189,7 @@ void TransferOrchestrator::setupFtpHandler()
             });
 }
 
-void TransferOrchestrator::setupDeleteHandler()
+void TransferManager::setupDeleteHandler()
 {
     deleteHandler_->setScanCoordinator(scanCoordinator_);
     deleteHandler_->setDirCreator(dirCreator_);
@@ -207,17 +205,17 @@ void TransferOrchestrator::setupDeleteHandler()
     deleteHandler_->setScheduleProcessNextCallback([this]() { scheduleProcessNext(); });
 
     connect(deleteHandler_, &TransferDeleteHandler::operationFailed, this,
-            &TransferOrchestrator::operationFailed);
+            &TransferManager::operationFailed);
     connect(deleteHandler_, &TransferDeleteHandler::operationCompleted, this,
-            &TransferOrchestrator::operationCompleted);
+            &TransferManager::operationCompleted);
     connect(deleteHandler_, &TransferDeleteHandler::allOperationsCompleted, this,
-            &TransferOrchestrator::allOperationsCompleted);
+            &TransferManager::allOperationsCompleted);
     connect(deleteHandler_, &TransferDeleteHandler::statusMessage, this,
-            &TransferOrchestrator::statusMessage);
+            &TransferManager::statusMessage);
     connect(deleteHandler_, &TransferDeleteHandler::queueChanged, this,
-            &TransferOrchestrator::queueChanged);
+            &TransferManager::queueChanged);
     connect(deleteHandler_, &TransferDeleteHandler::batchStarted, this,
-            &TransferOrchestrator::batchStarted);
+            &TransferManager::batchStarted);
     connect(deleteHandler_, &TransferDeleteHandler::startDirectoryCreationAfterDeleteRequested,
             this, [this]() {
                 dirCreator_->queueDirectoriesForUpload(state_.currentFolderOp.sourcePath,
@@ -231,7 +229,7 @@ void TransferOrchestrator::setupDeleteHandler()
             });
 }
 
-TransferOrchestrator::~TransferOrchestrator()
+TransferManager::~TransferManager()
 {
     disconnectFtpClient(ftpClient_, this);
 }
@@ -240,44 +238,44 @@ TransferOrchestrator::~TransferOrchestrator()
 // Model notification helpers
 // ============================================================================
 
-void TransferOrchestrator::notifyBeginInsert(int first, int last)
+void TransferManager::notifyBeginInsert(int first, int last)
 {
     if (modelCallbacks_.beginInsertRows)
         modelCallbacks_.beginInsertRows(first, last);
 }
 
-void TransferOrchestrator::notifyEndInsert()
+void TransferManager::notifyEndInsert()
 {
     if (modelCallbacks_.endInsertRows)
         modelCallbacks_.endInsertRows();
 }
 
-void TransferOrchestrator::notifyDataChanged(int row)
+void TransferManager::notifyDataChanged(int row)
 {
     if (modelCallbacks_.dataChangedRow)
         modelCallbacks_.dataChangedRow(row);
 }
 
-void TransferOrchestrator::notifyBeginReset()
+void TransferManager::notifyBeginReset()
 {
     if (modelCallbacks_.beginResetModel)
         modelCallbacks_.beginResetModel();
 }
 
-void TransferOrchestrator::notifyEndReset()
+void TransferManager::notifyEndReset()
 {
     if (modelCallbacks_.endResetModel)
         modelCallbacks_.endResetModel();
 }
 
-void TransferOrchestrator::setModelCallbacks(const ModelCallbacks &callbacks)
+void TransferManager::setModelCallbacks(const ModelCallbacks &callbacks)
 {
     modelCallbacks_ = callbacks;
     if (!modelCallbacks_.beginResetModel)
-        qCDebug(LogTransfer) << "TransferOrchestrator: model callbacks not set (headless mode)";
+        qCDebug(LogTransfer) << "TransferManager: model callbacks not set (headless mode)";
 }
 
-void TransferOrchestrator::setLocalFileSystem(ILocalFileSystem *fs)
+void TransferManager::setLocalFileSystem(ILocalFileSystem *fs)
 {
     localFs_ = fs;
     scanCoordinator_->setLocalFileSystem(fs);
@@ -289,12 +287,12 @@ void TransferOrchestrator::setLocalFileSystem(ILocalFileSystem *fs)
 // Event queue
 // ============================================================================
 
-void TransferOrchestrator::scheduleProcessNext()
+void TransferManager::scheduleProcessNext()
 {
     eventProcessor_->schedule([this]() { processNext(); });
 }
 
-void TransferOrchestrator::flushEventQueue()
+void TransferManager::flushEventQueue()
 {
     eventProcessor_->flush();
 }
@@ -303,13 +301,13 @@ void TransferOrchestrator::flushEventQueue()
 // State machine
 // ============================================================================
 
-void TransferOrchestrator::transitionTo(QueueState newState)
+void TransferManager::transitionTo(QueueState newState)
 {
     if (state_.queueState == newState) {
         return;
     }
 
-    qCDebug(LogTransfer) << "TransferOrchestrator: State transition"
+    qCDebug(LogTransfer) << "TransferManager: State transition"
                          << queueStateToString(state_.queueState) << "->"
                          << queueStateToString(newState);
 
@@ -320,7 +318,7 @@ void TransferOrchestrator::transitionTo(QueueState newState)
 // FTP client
 // ============================================================================
 
-void TransferOrchestrator::setFtpClient(IFtpClient *client)
+void TransferManager::setFtpClient(IFtpClient *client)
 {
     ftpClient_ = client;
 
@@ -335,7 +333,7 @@ void TransferOrchestrator::setFtpClient(IFtpClient *client)
 // Enqueue helpers
 // ============================================================================
 
-int TransferOrchestrator::findBatchIndex(int batchId) const
+int TransferManager::findBatchIndex(int batchId) const
 {
     for (int i = 0; i < state_.batches.size(); ++i) {
         if (state_.batches[i].batchId == batchId)
@@ -344,7 +342,7 @@ int TransferOrchestrator::findBatchIndex(int batchId) const
     return -1;
 }
 
-void TransferOrchestrator::activateAndSchedule(int batchIdx)
+void TransferManager::activateAndSchedule(int batchIdx)
 {
     if (state_.activeBatchIndex < 0) {
         state_.activeBatchIndex = batchIdx;
@@ -361,8 +359,8 @@ void TransferOrchestrator::activateAndSchedule(int batchIdx)
 // Single-file enqueue operations
 // ============================================================================
 
-void TransferOrchestrator::enqueueUpload(const QString &localPath, const QString &remotePath,
-                                         int targetBatchId)
+void TransferManager::enqueueUpload(const QString &localPath, const QString &remotePath,
+                                    int targetBatchId)
 {
     int batchIdx = (targetBatchId >= 0) ? findBatchIndex(targetBatchId) : -1;
 
@@ -380,7 +378,7 @@ void TransferOrchestrator::enqueueUpload(const QString &localPath, const QString
     }
 
     if (batchIdx < 0 || batchIdx >= state_.batches.size()) {
-        qCWarning(LogTransfer) << "TransferOrchestrator::enqueueUpload - no valid batch";
+        qCWarning(LogTransfer) << "TransferManager::enqueueUpload - no valid batch";
         emit operationFailed(QFileInfo(localPath).fileName(), tr("Failed to create upload batch"));
         return;
     }
@@ -401,8 +399,8 @@ void TransferOrchestrator::enqueueUpload(const QString &localPath, const QString
     activateAndSchedule(batchIdx);
 }
 
-void TransferOrchestrator::enqueueDownload(const QString &remotePath, const QString &localPath,
-                                           int targetBatchId)
+void TransferManager::enqueueDownload(const QString &remotePath, const QString &localPath,
+                                      int targetBatchId)
 {
     int batchIdx = (targetBatchId >= 0) ? findBatchIndex(targetBatchId) : -1;
 
@@ -420,7 +418,7 @@ void TransferOrchestrator::enqueueDownload(const QString &remotePath, const QStr
     }
 
     if (batchIdx < 0 || batchIdx >= state_.batches.size()) {
-        qCWarning(LogTransfer) << "TransferOrchestrator::enqueueDownload - no valid batch";
+        qCWarning(LogTransfer) << "TransferManager::enqueueDownload - no valid batch";
         emit operationFailed(QFileInfo(remotePath).fileName(),
                              tr("Failed to create download batch"));
         return;
@@ -445,7 +443,7 @@ void TransferOrchestrator::enqueueDownload(const QString &remotePath, const QStr
 // Recursive folder operations
 // ============================================================================
 
-void TransferOrchestrator::enqueueRecursiveUpload(const QString &localDir, const QString &remoteDir)
+void TransferManager::enqueueRecursiveUpload(const QString &localDir, const QString &remoteDir)
 {
     if (!ftpClient_ || !ftpClient_->isConnected()) {
         qCWarning(LogTransfer) << "enqueueRecursiveUpload skipped: FTP not connected";
@@ -461,8 +459,7 @@ void TransferOrchestrator::enqueueRecursiveUpload(const QString &localDir, const
     folderCoordinator_->enqueueRecursive(OperationType::Upload, localDir, remoteDir);
 }
 
-void TransferOrchestrator::enqueueRecursiveDownload(const QString &remoteDir,
-                                                    const QString &localDir)
+void TransferManager::enqueueRecursiveDownload(const QString &remoteDir, const QString &localDir)
 {
     if (!ftpClient_ || !ftpClient_->isConnected()) {
         qCWarning(LogTransfer) << "enqueueRecursiveDownload skipped: FTP not connected";
@@ -475,7 +472,7 @@ void TransferOrchestrator::enqueueRecursiveDownload(const QString &remoteDir,
     folderCoordinator_->enqueueRecursive(OperationType::Download, normalizedRemote, localDir);
 }
 
-void TransferOrchestrator::respondToFolderExists(FolderExistsResponse response)
+void TransferManager::respondToFolderExists(FolderExistsResponse response)
 {
     folderCoordinator_->respondToFolderExists(response);
 }
@@ -484,10 +481,9 @@ void TransferOrchestrator::respondToFolderExists(FolderExistsResponse response)
 // Coordinator helpers
 // ============================================================================
 
-void TransferOrchestrator::finishDirectoryCreation()
+void TransferManager::finishDirectoryCreation()
 {
-    qCDebug(LogTransfer)
-        << "TransferOrchestrator: All directories created, queueing files for upload";
+    qCDebug(LogTransfer) << "TransferManager: All directories created, queueing files for upload";
 
     if (TransferBatch *batch = findBatch(state_.currentFolderOp.batchId)) {
         batch->scanned = true;
@@ -495,8 +491,7 @@ void TransferOrchestrator::finishDirectoryCreation()
 
     const QString &sourcePath = state_.currentFolderOp.sourcePath;
     if (!localFs_->directoryExists(sourcePath)) {
-        qCWarning(LogTransfer) << "TransferOrchestrator: Source directory doesn't exist:"
-                               << sourcePath;
+        qCWarning(LogTransfer) << "TransferManager: Source directory doesn't exist:" << sourcePath;
         return;
     }
 
@@ -510,11 +505,11 @@ void TransferOrchestrator::finishDirectoryCreation()
         fileCount++;
     }
 
-    qCDebug(LogTransfer) << "TransferOrchestrator: Queued" << fileCount << "files for upload";
+    qCDebug(LogTransfer) << "TransferManager: Queued" << fileCount << "files for upload";
 
     if (fileCount == 0) {
         if (findBatch(state_.currentFolderOp.batchId)) {
-            qCDebug(LogTransfer) << "TransferOrchestrator: Empty folder upload batch"
+            qCDebug(LogTransfer) << "TransferManager: Empty folder upload batch"
                                  << state_.currentFolderOp.batchId;
             completeBatch(state_.currentFolderOp.batchId);
             return;
@@ -529,12 +524,12 @@ void TransferOrchestrator::finishDirectoryCreation()
 // Delete operations (delegated to deleteHandler_)
 // ============================================================================
 
-void TransferOrchestrator::enqueueDelete(const QString &remotePath, bool isDirectory)
+void TransferManager::enqueueDelete(const QString &remotePath, bool isDirectory)
 {
     deleteHandler_->enqueueDelete(remotePath, isDirectory);
 }
 
-void TransferOrchestrator::enqueueRecursiveDelete(const QString &remotePath)
+void TransferManager::enqueueRecursiveDelete(const QString &remotePath)
 {
     deleteHandler_->enqueueRecursiveDelete(remotePath);
 }
@@ -543,9 +538,9 @@ void TransferOrchestrator::enqueueRecursiveDelete(const QString &remotePath)
 // Core processing loop
 // ============================================================================
 
-void TransferOrchestrator::processNext()
+void TransferManager::processNext()
 {
-    qCDebug(LogTransfer) << "TransferOrchestrator: processNext, state:"
+    qCDebug(LogTransfer) << "TransferManager: processNext, state:"
                          << queueStateToString(state_.queueState);
 
     bool ftpReady = ftpClient_ && ftpClient_->isConnected();
@@ -555,13 +550,13 @@ void TransferOrchestrator::processNext()
 
     switch (decision.action) {
     case transfer::ProcessNextAction::Blocked:
-        qCDebug(LogTransfer) << "TransferOrchestrator: processNext blocked by state:"
+        qCDebug(LogTransfer) << "TransferManager: processNext blocked by state:"
                              << queueStateToString(state_.queueState);
         emit statusMessage(tr("Transfer queue is busy"));
         return;
 
     case transfer::ProcessNextAction::NoFtpClient:
-        qCDebug(LogTransfer) << "TransferOrchestrator: FTP client not ready";
+        qCDebug(LogTransfer) << "TransferManager: FTP client not ready";
         emit operationFailed(QString(), tr("Not connected to device"));
         return;
 
@@ -610,7 +605,7 @@ void TransferOrchestrator::processNext()
     }
 
     case transfer::ProcessNextAction::NoPending:
-        qCDebug(LogTransfer) << "TransferOrchestrator: No more pending items";
+        qCDebug(LogTransfer) << "TransferManager: No more pending items";
         stopOperationTimeout();
         state_.currentIndex = -1;
         if (state_.batches.isEmpty()) {
@@ -624,7 +619,7 @@ void TransferOrchestrator::processNext()
 // Confirmation handling
 // ============================================================================
 
-void TransferOrchestrator::respondToOverwrite(OverwriteResponse response)
+void TransferManager::respondToOverwrite(OverwriteResponse response)
 {
     int affectedBatchId = -1;
     if (response == OverwriteResponse::Skip) {
@@ -668,34 +663,34 @@ void TransferOrchestrator::respondToOverwrite(OverwriteResponse response)
 // Batch management (delegated to batchManager_)
 // ============================================================================
 
-int TransferOrchestrator::createBatch(OperationType type, const QString &description,
-                                      const QString &folderName, const QString &sourcePath)
+int TransferManager::createBatch(OperationType type, const QString &description,
+                                 const QString &folderName, const QString &sourcePath)
 {
     return batchManager_->createBatch(type, description, folderName, sourcePath);
 }
 
-void TransferOrchestrator::activateNextBatch()
+void TransferManager::activateNextBatch()
 {
     batchManager_->activateNextBatch();
 }
 
-void TransferOrchestrator::completeBatch(int batchId)
+void TransferManager::completeBatch(int batchId)
 {
     batchManager_->completeBatch(batchId);
 }
 
-void TransferOrchestrator::purgeBatch(int batchId)
+void TransferManager::purgeBatch(int batchId)
 {
     batchManager_->purgeBatch(batchId);
 }
 
-void TransferOrchestrator::emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
-                                                        bool includeFailed)
+void TransferManager::emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
+                                                   bool includeFailed)
 {
     batchManager_->emitBatchProgressAndComplete(batchId, batchIsComplete, includeFailed);
 }
 
-void TransferOrchestrator::markCurrentComplete(TransferItem::Status status)
+void TransferManager::markCurrentComplete(TransferItem::Status status)
 {
     if (state_.currentIndex < 0 || state_.currentIndex >= state_.items.size()) {
         qCWarning(LogTransfer) << "markCurrentComplete: invalid index" << state_.currentIndex;
@@ -713,22 +708,22 @@ void TransferOrchestrator::markCurrentComplete(TransferItem::Status status)
     }
 }
 
-TransferBatch *TransferOrchestrator::findBatch(int batchId)
+TransferBatch *TransferManager::findBatch(int batchId)
 {
     return batchManager_->findBatch(batchId);
 }
 
-const TransferBatch *TransferOrchestrator::findBatch(int batchId) const
+const TransferBatch *TransferManager::findBatch(int batchId) const
 {
     return batchManager_->findBatch(batchId);
 }
 
-TransferBatch *TransferOrchestrator::activeBatch()
+TransferBatch *TransferManager::activeBatch()
 {
     return batchManager_->activeBatch();
 }
 
-int TransferOrchestrator::findItemIndex(const QString &localPath, const QString &remotePath) const
+int TransferManager::findItemIndex(const QString &localPath, const QString &remotePath) const
 {
     return transfer::findItemIndex(state_, localPath, remotePath);
 }
@@ -737,7 +732,7 @@ int TransferOrchestrator::findItemIndex(const QString &localPath, const QString 
 // Queue operations
 // ============================================================================
 
-void TransferOrchestrator::clear()
+void TransferManager::clear()
 {
     notifyBeginReset();
     state_ = transfer::clearAll(state_);
@@ -747,7 +742,7 @@ void TransferOrchestrator::clear()
     emit queueChanged();
 }
 
-void TransferOrchestrator::cancelAll()
+void TransferManager::cancelAll()
 {
     if (ftpClient_ && (state_.queueState == QueueState::Transferring ||
                        state_.queueState == QueueState::Deleting)) {
@@ -765,7 +760,7 @@ void TransferOrchestrator::cancelAll()
     emit operationsCancelled();
 }
 
-void TransferOrchestrator::cancelBatch(int batchId)
+void TransferManager::cancelBatch(int batchId)
 {
     int batchIdx = transfer::findBatchIndex(state_, batchId);
     if (batchIdx < 0) {
@@ -797,52 +792,52 @@ void TransferOrchestrator::cancelBatch(int batchId)
 // Query methods
 // ============================================================================
 
-int TransferOrchestrator::pendingCount() const
+int TransferManager::pendingCount() const
 {
     return transfer::pendingCount(state_);
 }
 
-int TransferOrchestrator::activeCount() const
+int TransferManager::activeCount() const
 {
     return transfer::activeCount(state_);
 }
 
-int TransferOrchestrator::activeAndPendingCount() const
+int TransferManager::activeAndPendingCount() const
 {
     return transfer::activeAndPendingCount(state_);
 }
 
-bool TransferOrchestrator::isScanningForDelete() const
+bool TransferManager::isScanningForDelete() const
 {
     return state_.queueState == QueueState::Scanning && !state_.pendingDeleteScans.isEmpty();
 }
 
-bool TransferOrchestrator::hasActiveBatch() const
+bool TransferManager::hasActiveBatch() const
 {
     return batchManager_->hasActiveBatch();
 }
 
-int TransferOrchestrator::queuedBatchCount() const
+int TransferManager::queuedBatchCount() const
 {
     return batchManager_->queuedBatchCount();
 }
 
-bool TransferOrchestrator::isPathBeingTransferred(const QString &path, OperationType type) const
+bool TransferManager::isPathBeingTransferred(const QString &path, OperationType type) const
 {
     return transfer::isPathBeingTransferred(state_, path, type);
 }
 
-BatchProgress TransferOrchestrator::activeBatchProgress() const
+BatchProgress TransferManager::activeBatchProgress() const
 {
     return batchManager_->activeBatchProgress();
 }
 
-BatchProgress TransferOrchestrator::batchProgress(int batchId) const
+BatchProgress TransferManager::batchProgress(int batchId) const
 {
     return batchManager_->batchProgress(batchId);
 }
 
-QList<int> TransferOrchestrator::allBatchIds() const
+QList<int> TransferManager::allBatchIds() const
 {
     return batchManager_->allBatchIds();
 }
@@ -851,19 +846,19 @@ QList<int> TransferOrchestrator::allBatchIds() const
 // Timeout handling
 // ============================================================================
 
-void TransferOrchestrator::startOperationTimeout()
+void TransferManager::startOperationTimeout()
 {
     timeoutManager_->start();
 }
 
-void TransferOrchestrator::stopOperationTimeout()
+void TransferManager::stopOperationTimeout()
 {
     timeoutManager_->stop();
 }
 
-void TransferOrchestrator::onOperationTimeout()
+void TransferManager::onOperationTimeout()
 {
-    qCDebug(LogTransfer) << "TransferOrchestrator: Operation timeout!";
+    qCDebug(LogTransfer) << "TransferManager: Operation timeout!";
 
     if (ftpClient_) {
         ftpClient_->abort();

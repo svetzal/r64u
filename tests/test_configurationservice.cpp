@@ -1,7 +1,7 @@
 #include "mocks/mockftpclient.h"
 #include "mocks/mockrestclient.h"
 #include "services/configurationservice.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 
 #include <QSignalSpy>
 #include <QtTest>
@@ -11,11 +11,11 @@ class TestConfigurationService : public QObject
     Q_OBJECT
 
 private:
-    DeviceConnection *makeConnection()
+    DeviceConnectionManager *makeConnection()
     {
         auto *restClient = new MockRestClient(this);
         auto *ftpClient = new MockFtpClient(this);
-        return new DeviceConnection(restClient, ftpClient, this);
+        return new DeviceConnectionManager(restClient, ftpClient, this);
     }
 
 private slots:
@@ -34,7 +34,7 @@ private slots:
     {
         auto *connection = makeConnection();
         ConfigurationService service(connection, this);
-        // DeviceConnection starts Disconnected, so canPerformOperations() returns false
+        // DeviceConnectionManager starts Disconnected, so canPerformOperations() returns false
         QVERIFY(!service.canPerformOperations());
     }
 
@@ -146,7 +146,7 @@ private slots:
     {
         auto *restClient = new MockRestClient(this);
         auto *ftpClient = new MockFtpClient(this);
-        auto *connection = new DeviceConnection(restClient, ftpClient, this);
+        auto *connection = new DeviceConnectionManager(restClient, ftpClient, this);
         ConfigurationService service(connection, this);
         QSignalSpy spy(&service, &ConfigurationService::configCategoriesReceived);
 
@@ -160,7 +160,7 @@ private slots:
     {
         auto *restClient = new MockRestClient(this);
         auto *ftpClient = new MockFtpClient(this);
-        auto *connection = new DeviceConnection(restClient, ftpClient, this);
+        auto *connection = new DeviceConnectionManager(restClient, ftpClient, this);
         ConfigurationService service(connection, this);
         QSignalSpy spy(&service, &ConfigurationService::configSavedToFlash);
 
@@ -173,7 +173,7 @@ private slots:
     {
         auto *restClient = new MockRestClient(this);
         auto *ftpClient = new MockFtpClient(this);
-        auto *connection = new DeviceConnection(restClient, ftpClient, this);
+        auto *connection = new DeviceConnectionManager(restClient, ftpClient, this);
         ConfigurationService service(connection, this);
         QSignalSpy spy(&service, &ConfigurationService::configLoadedFromFlash);
 
@@ -186,7 +186,7 @@ private slots:
     {
         auto *restClient = new MockRestClient(this);
         auto *ftpClient = new MockFtpClient(this);
-        auto *connection = new DeviceConnection(restClient, ftpClient, this);
+        auto *connection = new DeviceConnectionManager(restClient, ftpClient, this);
         ConfigurationService service(connection, this);
         QSignalSpy spy(&service, &ConfigurationService::configResetToDefaults);
 
@@ -199,7 +199,7 @@ private slots:
     {
         auto *restClient = new MockRestClient(this);
         auto *ftpClient = new MockFtpClient(this);
-        auto *connection = new DeviceConnection(restClient, ftpClient, this);
+        auto *connection = new DeviceConnectionManager(restClient, ftpClient, this);
         ConfigurationService service(connection, this);
         QSignalSpy spy(&service, &ConfigurationService::configItemSet);
 

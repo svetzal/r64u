@@ -1,7 +1,7 @@
 #include "transferdeletehandler.h"
 
 #include "ftp/recursivescancoordinator.h"
-#include "ftp/remotedirectorycreator.h"
+#include "ftp/remotedirectorycoordinator.h"
 #include "utils/logging.h"
 
 #include <QFileInfo>
@@ -21,7 +21,7 @@ void TransferDeleteHandler::setScanCoordinator(RecursiveScanCoordinator *coordin
     scanCoordinator_ = coordinator;
 }
 
-void TransferDeleteHandler::setDirCreator(RemoteDirectoryCreator *creator)
+void TransferDeleteHandler::setDirCreator(RemoteDirectoryCoordinator *creator)
 {
     dirCreator_ = creator;
 }

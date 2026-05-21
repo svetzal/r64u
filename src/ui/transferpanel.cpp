@@ -5,7 +5,7 @@
 #include "transferprogresscontainer.h"
 
 #include "models/remotefilemodel.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/errorhandler.h"
 #include "services/remotefileoperationsservice.h"
 #include "services/transferservice.h"
@@ -17,14 +17,14 @@
 #include <QStandardPaths>
 #include <QVBoxLayout>
 
-TransferPanel::TransferPanel(DeviceConnection *connection, RemoteFileModel *model,
+TransferPanel::TransferPanel(DeviceConnectionManager *connection, RemoteFileModel *model,
                              TransferService *transferService,
                              RemoteFileOperationsService *fileOperations, QWidget *parent)
     : QWidget(parent), deviceConnection_(connection), transferService_(transferService),
       fileOperations_(fileOperations)
 {
     // These dependencies are required - assert in debug builds
-    Q_ASSERT(deviceConnection_ && "DeviceConnection is required");
+    Q_ASSERT(deviceConnection_ && "DeviceConnectionManager is required");
     Q_ASSERT(model && "RemoteFileModel is required");
     Q_ASSERT(transferService_ && "TransferService is required");
     Q_ASSERT(fileOperations_ && "RemoteFileOperations is required");
@@ -56,7 +56,7 @@ void TransferPanel::setupConnections()
 {
     // Subscribe to device connection state changes
     if (deviceConnection_) {
-        connect(deviceConnection_, &DeviceConnection::stateChanged, this,
+        connect(deviceConnection_, &DeviceConnectionManager::stateChanged, this,
                 &TransferPanel::onConnectionStateChanged);
     }
 

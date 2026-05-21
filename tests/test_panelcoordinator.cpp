@@ -1,7 +1,7 @@
 #include "mocks/mockftpclient.h"
 #include "mocks/mockrestclient.h"
 #include "models/remotefilemodel.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/errorhandler.h"
 #include "services/statusmessageservice.h"
 #include "ui/ipanel.h"
@@ -77,7 +77,7 @@ private slots:
 private:
     MockRestClient *mockRest_ = nullptr;
     MockFtpClient *mockFtp_ = nullptr;
-    DeviceConnection *dc_ = nullptr;
+    DeviceConnectionManager *dc_ = nullptr;
     RemoteFileModel *remoteFileModel_ = nullptr;
     StatusMessageService *statusService_ = nullptr;
     ErrorHandler *errorHandler_ = nullptr;
@@ -94,7 +94,7 @@ void TestPanelCoordinator::init()
 {
     mockRest_ = new MockRestClient(this);
     mockFtp_ = new MockFtpClient(this);
-    dc_ = new DeviceConnection(mockRest_, mockFtp_, this);
+    dc_ = new DeviceConnectionManager(mockRest_, mockFtp_, this);
     remoteFileModel_ = new RemoteFileModel(this);
     statusService_ = new StatusMessageService(this);
     errorParentWidget_ = new QWidget();
@@ -209,7 +209,7 @@ void TestPanelCoordinator::testOnOperationSucceeded_NonMount_ShowsSuccessMessage
 
 void TestPanelCoordinator::testOnOperationSucceeded_Mount_DoesNotCrash()
 {
-    // DeviceConnection is disconnected — refreshDriveInfo() is a no-op
+    // DeviceConnectionManager is disconnected — refreshDriveInfo() is a no-op
     // Verify the coordinator does not crash on a "mount" operation
     QMetaObject::invokeMethod(coord_, "onOperationSucceeded", Q_ARG(QString, QString("mount")));
     QCoreApplication::processEvents();

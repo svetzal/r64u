@@ -13,14 +13,14 @@
  * - stopStreamingIfActive() stops only when active, no-op otherwise
  * - loadSettings() / saveSettings() round-trip
  *
- * Tests use a null DeviceConnection-safe path: the ViewPanel constructor asserts
+ * Tests use a null DeviceConnectionManager-safe path: the ViewPanel constructor asserts
  * that connection is non-null, so we supply a minimal stand-in via a real
- * DeviceConnection backed by mock clients.
+ * DeviceConnectionManager backed by mock clients.
  */
 
 #include "mocks/mockftpclient.h"
 #include "mocks/mockrestclient.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/screenshotservice.h"
 #include "services/streamingservice.h"
 #include "services/videorecordingservice.h"
@@ -37,13 +37,13 @@ class TestViewPanel : public QObject
 private:
     MockRestClient *mockRest_ = nullptr;
     MockFtpClient *mockFtp_ = nullptr;
-    DeviceConnection *connection_ = nullptr;
+    DeviceConnectionManager *connection_ = nullptr;
 
-    DeviceConnection *makeDisconnectedConnection()
+    DeviceConnectionManager *makeDisconnectedConnection()
     {
         mockRest_ = new MockRestClient(this);
         mockFtp_ = new MockFtpClient(this);
-        return new DeviceConnection(mockRest_, mockFtp_, this);
+        return new DeviceConnectionManager(mockRest_, mockFtp_, this);
     }
 
 private slots:

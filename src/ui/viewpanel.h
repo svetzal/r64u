@@ -9,7 +9,7 @@
 #include <QToolBar>
 #include <QWidget>
 
-class DeviceConnection;
+class DeviceConnectionManager;
 class ErrorHandler;
 class VideoDisplayWidget;
 class StreamingService;
@@ -25,7 +25,7 @@ class ViewPanel : public QWidget, public IPanel
 public:
     QObject *asQObject() override { return this; }
 
-    explicit ViewPanel(DeviceConnection *connection, QWidget *parent = nullptr);
+    explicit ViewPanel(DeviceConnectionManager *connection, QWidget *parent = nullptr);
     ~ViewPanel() override;
 
     // Public API for MainWindow coordination
@@ -92,7 +92,7 @@ private:
     void updateActions();
 
     // Dependencies (not owned)
-    DeviceConnection *deviceConnection_ = nullptr;
+    DeviceConnectionManager *deviceConnection_ = nullptr;
     ErrorHandler *errorHandler_ = nullptr;
 
     // Injected services (not owned)

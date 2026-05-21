@@ -5,7 +5,7 @@
 #include "services/configfileloaderservice.h"
 #include "services/configurationservice.h"
 #include "services/deviceactionservice.h"
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "services/errorhandler.h"
 #include "services/explorepanelservices.h"
 #include "services/favoritesservice.h"
@@ -124,8 +124,8 @@ void MainWindow::setupSystemToolBar()
 
     // Wire actions that need private MainWindow slots
     connect(connectAction_, &QAction::triggered, this, [this]() {
-        DeviceConnection::ConnectionState state = deviceConnection_->state();
-        if (state == DeviceConnection::ConnectionState::Disconnected) {
+        DeviceConnectionManager::ConnectionState state = deviceConnection_->state();
+        if (state == DeviceConnectionManager::ConnectionState::Disconnected) {
             onConnect();
         } else {
             onDisconnect();
@@ -221,9 +221,9 @@ void MainWindow::setupConnections()
     explorePanel_->setErrorHandler(errorHandler_);
 
     // Connection lifecycle signals (navigation / model management)
-    connect(deviceConnection_, &DeviceConnection::stateChanged, this,
+    connect(deviceConnection_, &DeviceConnectionManager::stateChanged, this,
             &MainWindow::onConnectionStateChanged);
-    connect(deviceConnection_, &DeviceConnection::driveInfoUpdated, this,
+    connect(deviceConnection_, &DeviceConnectionManager::driveInfoUpdated, this,
             &MainWindow::onDriveInfoUpdated);
 
     // Config file loader loading started notification
@@ -421,13 +421,13 @@ void MainWindow::onRefresh()
 
 void MainWindow::onConnectionStateChanged()
 {
-    DeviceConnection::ConnectionState state = deviceConnection_->state();
+    DeviceConnectionManager::ConnectionState state = deviceConnection_->state();
 
     switch (state) {
-    case DeviceConnection::ConnectionState::Connecting:
+    case DeviceConnectionManager::ConnectionState::Connecting:
         statusMessageService_->showInfo(tr("Connecting..."));
         break;
-    case DeviceConnection::ConnectionState::Connected:
+    case DeviceConnectionManager::ConnectionState::Connected:
         statusMessageService_->showInfo(tr("Connected"));
         // Navigate to saved directory for the currently active panel only
         if (currentMode_ == Mode::ExploreRun) {
@@ -438,10 +438,10 @@ void MainWindow::onConnectionStateChanged()
             transferPanel_->setCurrentRemoteDir(dir.isEmpty() ? "/" : dir);
         }
         break;
-    case DeviceConnection::ConnectionState::Reconnecting:
+    case DeviceConnectionManager::ConnectionState::Reconnecting:
         statusMessageService_->showWarning(tr("Reconnecting..."));
         break;
-    case DeviceConnection::ConnectionState::Disconnected:
+    case DeviceConnectionManager::ConnectionState::Disconnected:
         statusMessageService_->showInfo(tr("Disconnected"));
         remoteFileModel_->clear();
         viewPanel_->stopStreamingIfActive();

@@ -7,7 +7,7 @@ class IPanel;
 class StatusMessageService;
 class RemoteFileModel;
 class TransferService;
-class DeviceConnection;
+class DeviceConnectionManager;
 class ErrorHandler;
 class QTabWidget;
 
@@ -17,7 +17,7 @@ class PanelCoordinator : public QObject
 
 public:
     explicit PanelCoordinator(IPanel *explore, IPanel *transfer, IPanel *view, IPanel *config,
-                              DeviceConnection *connection, RemoteFileModel *model,
+                              DeviceConnectionManager *connection, RemoteFileModel *model,
                               TransferService *transferService, StatusMessageService *statusService,
                               ErrorHandler *errorHandler, QTabWidget *tabWidget,
                               QObject *parent = nullptr);
@@ -37,7 +37,7 @@ private:
     IPanel *transferPanel_;
     IPanel *viewPanel_;
     IPanel *configPanel_;
-    DeviceConnection *deviceConnection_;
+    DeviceConnectionManager *deviceConnection_;
     RemoteFileModel *remoteFileModel_;
     TransferService *transferService_;
     StatusMessageService *statusMessageService_;

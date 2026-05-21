@@ -1,15 +1,15 @@
-#include "models/transfereventprocessor.h"
+#include "models/transfereventhandler.h"
 
 #include <QtTest>
 
-class TestTransferEventProcessor : public QObject
+class TestTransferEventHandler : public QObject
 {
     Q_OBJECT
 
 private slots:
     void testScheduleDoesNotExecuteSynchronously()
     {
-        TransferEventProcessor processor;
+        TransferEventHandler processor;
         bool ran = false;
         processor.schedule([&ran]() { ran = true; });
         QVERIFY(!ran);
@@ -17,7 +17,7 @@ private slots:
 
     void testFlushDrainsQueue()
     {
-        TransferEventProcessor processor;
+        TransferEventHandler processor;
         bool ran = false;
         processor.schedule([&ran]() { ran = true; });
         processor.flush();
@@ -26,7 +26,7 @@ private slots:
 
     void testFlushExecutesInFifoOrder()
     {
-        TransferEventProcessor processor;
+        TransferEventHandler processor;
         QStringList order;
         processor.schedule([&order]() { order.append("first"); });
         processor.schedule([&order]() { order.append("second"); });
@@ -37,13 +37,13 @@ private slots:
 
     void testFlushIsNoOpWhenEmpty()
     {
-        TransferEventProcessor processor;
+        TransferEventHandler processor;
         processor.flush();
     }
 
     void testFlushIsReentrantSafe()
     {
-        TransferEventProcessor processor;
+        TransferEventHandler processor;
         int outerRan = 0;
         processor.schedule([&processor, &outerRan]() {
             ++outerRan;
@@ -55,7 +55,7 @@ private slots:
 
     void testScheduleWhileFlushing()
     {
-        TransferEventProcessor processor;
+        TransferEventHandler processor;
         bool aRan = false;
         bool bRan = false;
         processor.schedule([&processor, &aRan, &bRan]() {
@@ -68,5 +68,5 @@ private slots:
     }
 };
 
-QTEST_MAIN(TestTransferEventProcessor)
-#include "test_transfereventprocessor.moc"
+QTEST_MAIN(TestTransferEventHandler)
+#include "test_transfereventhandler.moc"

@@ -1,16 +1,17 @@
-#include "deviceconnection.h"
+#include "deviceconnectionmanager.h"
 
 #include "c64uftpclient.h"
 #include "c64urestclient.h"
 
 #include "utils/logging.h"
 
-DeviceConnection::DeviceConnection(QObject *parent)
-    : DeviceConnection(new C64URestClient(nullptr), new C64UFtpClient(nullptr), parent)
+DeviceConnectionManager::DeviceConnectionManager(QObject *parent)
+    : DeviceConnectionManager(new C64URestClient(nullptr), new C64UFtpClient(nullptr), parent)
 {
 }
 
-DeviceConnection::DeviceConnection(IRestClient *restClient, IFtpClient *ftpClient, QObject *parent)
+DeviceConnectionManager::DeviceConnectionManager(IRestClient *restClient, IFtpClient *ftpClient,
+                                                 QObject *parent)
     : QObject(parent), restClient_(restClient), ftpClient_(ftpClient),
       reconnectTimer_(new QTimer(this))
 {
@@ -19,27 +20,29 @@ DeviceConnection::DeviceConnection(IRestClient *restClient, IFtpClient *ftpClien
     setupConnections();
 }
 
-void DeviceConnection::setupConnections()
+void DeviceConnectionManager::setupConnections()
 {
-    connect(restClient_, &IRestClient::infoReceived, this, &DeviceConnection::onRestInfoReceived);
+    connect(restClient_, &IRestClient::infoReceived, this,
+            &DeviceConnectionManager::onRestInfoReceived);
     connect(restClient_, &IRestClient::drivesReceived, this,
-            &DeviceConnection::onRestDrivesReceived);
+            &DeviceConnectionManager::onRestDrivesReceived);
     connect(restClient_, &IRestClient::connectionError, this,
-            &DeviceConnection::onRestConnectionError);
+            &DeviceConnectionManager::onRestConnectionError);
     connect(restClient_, &IRestClient::operationFailed, this,
-            &DeviceConnection::onRestOperationFailed);
+            &DeviceConnectionManager::onRestOperationFailed);
 
-    connect(ftpClient_, &IFtpClient::connected, this, &DeviceConnection::onFtpConnected);
-    connect(ftpClient_, &IFtpClient::disconnected, this, &DeviceConnection::onFtpDisconnected);
-    connect(ftpClient_, &IFtpClient::error, this, &DeviceConnection::onFtpError);
+    connect(ftpClient_, &IFtpClient::connected, this, &DeviceConnectionManager::onFtpConnected);
+    connect(ftpClient_, &IFtpClient::disconnected, this,
+            &DeviceConnectionManager::onFtpDisconnected);
+    connect(ftpClient_, &IFtpClient::error, this, &DeviceConnectionManager::onFtpError);
 
     reconnectTimer_->setSingleShot(true);
-    connect(reconnectTimer_, &QTimer::timeout, this, &DeviceConnection::onReconnectTimer);
+    connect(reconnectTimer_, &QTimer::timeout, this, &DeviceConnectionManager::onReconnectTimer);
 }
 
-DeviceConnection::~DeviceConnection() = default;
+DeviceConnectionManager::~DeviceConnectionManager() = default;
 
-bool DeviceConnection::isValidTransition(ConnectionState from, ConnectionState to)
+bool DeviceConnectionManager::isValidTransition(ConnectionState from, ConnectionState to)
 {
     // Same state is always valid (no-op)
     if (from == to) {
@@ -69,10 +72,10 @@ bool DeviceConnection::isValidTransition(ConnectionState from, ConnectionState t
     return false;
 }
 
-bool DeviceConnection::tryTransitionTo(ConnectionState newState)
+bool DeviceConnectionManager::tryTransitionTo(ConnectionState newState)
 {
     if (!isValidTransition(state_, newState)) {
-        qCWarning(LogDevice) << "DeviceConnection: Invalid state transition from"
+        qCWarning(LogDevice) << "DeviceConnectionManager: Invalid state transition from"
                              << static_cast<int>(state_) << "to" << static_cast<int>(newState);
         return false;
     }
@@ -84,28 +87,28 @@ bool DeviceConnection::tryTransitionTo(ConnectionState newState)
     return true;
 }
 
-void DeviceConnection::resetProtocolFlags()
+void DeviceConnectionManager::resetProtocolFlags()
 {
     connectingInProgress_ = false;
     restConnected_ = false;
     ftpConnected_ = false;
 }
 
-void DeviceConnection::setHost(const QString &host)
+void DeviceConnectionManager::setHost(const QString &host)
 {
     host_ = host;
     restClient_->setHost(host);
     ftpClient_->setHost(host);
 }
 
-void DeviceConnection::setPassword(const QString &password)
+void DeviceConnectionManager::setPassword(const QString &password)
 {
     password_ = password;
     restClient_->setPassword(password);
     // FTP typically uses anonymous access on Ultimate devices
 }
 
-void DeviceConnection::setAutoReconnect(bool enabled)
+void DeviceConnectionManager::setAutoReconnect(bool enabled)
 {
     autoReconnect_ = enabled;
     if (!enabled) {
@@ -113,7 +116,7 @@ void DeviceConnection::setAutoReconnect(bool enabled)
     }
 }
 
-void DeviceConnection::connectToDevice()
+void DeviceConnectionManager::connectToDevice()
 {
     // Guard: only allow connecting from Disconnected state
     // Block during Connecting, Connected, and Reconnecting to prevent
@@ -149,7 +152,7 @@ void DeviceConnection::connectToDevice()
     ftpClient_->connectToHost();
 }
 
-void DeviceConnection::disconnectFromDevice()
+void DeviceConnectionManager::disconnectFromDevice()
 {
     stopReconnect();
 
@@ -170,21 +173,21 @@ void DeviceConnection::disconnectFromDevice()
     emit disconnected();
 }
 
-void DeviceConnection::refreshDeviceInfo()
+void DeviceConnectionManager::refreshDeviceInfo()
 {
     if (state_ == ConnectionState::Connected) {
         restClient_->getInfo();
     }
 }
 
-void DeviceConnection::refreshDriveInfo()
+void DeviceConnectionManager::refreshDriveInfo()
 {
     if (state_ == ConnectionState::Connected) {
         restClient_->getDrives();
     }
 }
 
-void DeviceConnection::onRestInfoReceived(const DeviceInfo &info)
+void DeviceConnectionManager::onRestInfoReceived(const DeviceInfo &info)
 {
     deviceInfo_ = info;
     emit deviceInfoUpdated(info);
@@ -198,13 +201,13 @@ void DeviceConnection::onRestInfoReceived(const DeviceInfo &info)
     restClient_->getDrives();
 }
 
-void DeviceConnection::onRestDrivesReceived(const QList<DriveInfo> &drives)
+void DeviceConnectionManager::onRestDrivesReceived(const QList<DriveInfo> &drives)
 {
     driveInfo_ = drives;
     emit driveInfoUpdated(drives);
 }
 
-void DeviceConnection::onRestConnectionError(const QString &error)
+void DeviceConnectionManager::onRestConnectionError(const QString &error)
 {
     if (connectingInProgress_) {
         // Guard: only handle if we're still in a connecting state
@@ -233,7 +236,7 @@ void DeviceConnection::onRestConnectionError(const QString &error)
     }
 }
 
-void DeviceConnection::onRestOperationFailed(const QString &operation, const QString &error)
+void DeviceConnectionManager::onRestOperationFailed(const QString &operation, const QString &error)
 {
     // If this was the initial info request during connection
     if (connectingInProgress_ && operation == "info") {
@@ -241,7 +244,7 @@ void DeviceConnection::onRestOperationFailed(const QString &operation, const QSt
     }
 }
 
-void DeviceConnection::onFtpConnected()
+void DeviceConnectionManager::onFtpConnected()
 {
     if (connectingInProgress_) {
         ftpConnected_ = true;
@@ -249,7 +252,7 @@ void DeviceConnection::onFtpConnected()
     }
 }
 
-void DeviceConnection::onFtpDisconnected()
+void DeviceConnectionManager::onFtpDisconnected()
 {
     if (state_ == ConnectionState::Connected && autoReconnect_) {
         if (tryTransitionTo(ConnectionState::Reconnecting)) {
@@ -258,7 +261,7 @@ void DeviceConnection::onFtpDisconnected()
     }
 }
 
-void DeviceConnection::onFtpError(const QString &message)
+void DeviceConnectionManager::onFtpError(const QString &message)
 {
     if (connectingInProgress_) {
         // Guard: only handle if we're still in a connecting state
@@ -280,7 +283,7 @@ void DeviceConnection::onFtpError(const QString &message)
     }
 }
 
-void DeviceConnection::checkBothConnected()
+void DeviceConnectionManager::checkBothConnected()
 {
     // Guard: only check if we're in a connecting state
     if (state_ != ConnectionState::Connecting && state_ != ConnectionState::Reconnecting) {
@@ -297,7 +300,7 @@ void DeviceConnection::checkBothConnected()
     }
 }
 
-void DeviceConnection::startReconnect()
+void DeviceConnectionManager::startReconnect()
 {
     if (!autoReconnect_) {
         tryTransitionTo(ConnectionState::Disconnected);
@@ -321,12 +324,12 @@ void DeviceConnection::startReconnect()
     reconnectTimer_->start(ReconnectIntervalMs);
 }
 
-void DeviceConnection::stopReconnect()
+void DeviceConnectionManager::stopReconnect()
 {
     reconnectTimer_->stop();
 }
 
-void DeviceConnection::onReconnectTimer()
+void DeviceConnectionManager::onReconnectTimer()
 {
     // Guard: only attempt reconnect if still in reconnecting state
     if (state_ != ConnectionState::Reconnecting) {

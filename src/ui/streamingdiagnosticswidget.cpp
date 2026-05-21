@@ -256,7 +256,8 @@ void StreamingDiagnosticsWidget::updateDetailedDisplay(const DiagnosticsSnapshot
 {
     // Update header
     qualityLabel_->setText(
-        tr("Quality: %1").arg(StreamingDiagnostics::qualityLevelString(snapshot.overallQuality)));
+        tr("Quality: %1")
+            .arg(StreamingDiagnosticsService::qualityLevelString(snapshot.overallQuality)));
 
     // Format uptime
     qint64 uptimeSecs = snapshot.uptimeMs / 1000;
@@ -329,7 +330,7 @@ void StreamingDiagnosticsWidget::updateDetailedDisplay(const DiagnosticsSnapshot
 
 void StreamingDiagnosticsWidget::updateQualityIndicator(QualityLevel level)
 {
-    QColor color = StreamingDiagnostics::qualityLevelColor(level);
+    QColor color = StreamingDiagnosticsService::qualityLevelColor(level);
     qualityDot_->setStyleSheet(
         QString("background-color: %1; border-radius: 5px;").arg(color.name()));
 }

@@ -1,20 +1,20 @@
 #include "connectionuicontroller.h"
 
-#include "services/deviceconnection.h"
+#include "services/deviceconnectionmanager.h"
 #include "ui/iconnectionstatusview.h"
 #include "utils/logging.h"
 
 #include <QAction>
 
-ConnectionUIController::ConnectionUIController(DeviceConnection *connection,
+ConnectionUIController::ConnectionUIController(DeviceConnectionManager *connection,
                                                IConnectionStatusView *statusWidget, QObject *parent)
     : QObject(parent), deviceConnection_(connection), statusWidget_(statusWidget)
 {
-    connect(deviceConnection_, &DeviceConnection::stateChanged, this,
+    connect(deviceConnection_, &DeviceConnectionManager::stateChanged, this,
             &ConnectionUIController::onConnectionStateChanged);
-    connect(deviceConnection_, &DeviceConnection::deviceInfoUpdated, this,
+    connect(deviceConnection_, &DeviceConnectionManager::deviceInfoUpdated, this,
             &ConnectionUIController::onDeviceInfoUpdated);
-    connect(deviceConnection_, &DeviceConnection::driveInfoUpdated, this,
+    connect(deviceConnection_, &DeviceConnectionManager::driveInfoUpdated, this,
             &ConnectionUIController::onDriveInfoUpdated);
 }
 
@@ -77,18 +77,18 @@ void ConnectionUIController::updateActions()
     }
 
     if (connectAction_) {
-        DeviceConnection::ConnectionState state = deviceConnection_->state();
+        DeviceConnectionManager::ConnectionState state = deviceConnection_->state();
         switch (state) {
-        case DeviceConnection::ConnectionState::Disconnected:
+        case DeviceConnectionManager::ConnectionState::Disconnected:
             connectAction_->setText(tr("Connect"));
             break;
-        case DeviceConnection::ConnectionState::Connecting:
+        case DeviceConnectionManager::ConnectionState::Connecting:
             connectAction_->setText(tr("Cancel"));
             break;
-        case DeviceConnection::ConnectionState::Connected:
+        case DeviceConnectionManager::ConnectionState::Connected:
             connectAction_->setText(tr("Disconnect"));
             break;
-        case DeviceConnection::ConnectionState::Reconnecting:
+        case DeviceConnectionManager::ConnectionState::Reconnecting:
             connectAction_->setText(tr("Cancel"));
             break;
         }

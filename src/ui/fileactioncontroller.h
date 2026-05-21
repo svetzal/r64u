@@ -9,7 +9,7 @@
 #include <QPair>
 #include <QString>
 
-class DeviceConnection;
+class DeviceConnectionManager;
 class DeviceActionService;
 class ConfigFileLoaderService;
 class DiskBootSequenceService;
@@ -25,7 +25,7 @@ class FileActionController : public QObject
 
 public:
     explicit FileActionController(DeviceActionService *deviceActionService,
-                                  DeviceConnection *connection,
+                                  DeviceConnectionManager *connection,
                                   ConfigFileLoaderService *configLoader, QObject *parent = nullptr);
 
     void setStreamingService(StreamingService *manager);
@@ -76,7 +76,7 @@ private:
     [[nodiscard]] filetype::FileType selectionFileType() const;
 
     DeviceActionService *deviceActionService_ = nullptr;
-    DeviceConnection *deviceConnection_ = nullptr;
+    DeviceConnectionManager *deviceConnection_ = nullptr;
     ConfigFileLoaderService *configFileLoader_ = nullptr;
     StreamingService *streamingService_ = nullptr;
     PlaylistService *playlistService_ = nullptr;

@@ -1,5 +1,5 @@
-#ifndef STREAMINGDIAGNOSTICS_H
-#define STREAMINGDIAGNOSTICS_H
+#ifndef STREAMINGDIAGNOSTICSSERVICE_H
+#define STREAMINGDIAGNOSTICSSERVICE_H
 
 #include "utils/rollingstats.h"
 
@@ -118,17 +118,17 @@ struct VideoDisplayDiagnosticsCallback
  *
  * @par Example usage:
  * @code
- * StreamingDiagnostics *diagnostics = new StreamingDiagnostics(this);
+ * StreamingDiagnosticsService *diagnostics = new StreamingDiagnosticsService(this);
  * diagnostics->attachVideoReceiver(videoReceiver);
  * diagnostics->attachAudioReceiver(audioReceiver);
  *
- * connect(diagnostics, &StreamingDiagnostics::diagnosticsUpdated,
+ * connect(diagnostics, &StreamingDiagnosticsService::diagnosticsUpdated,
  *         this, &MyClass::onDiagnosticsUpdate);
  *
  * diagnostics->setEnabled(true);
  * @endcode
  */
-class StreamingDiagnostics : public QObject
+class StreamingDiagnosticsService : public QObject
 {
     Q_OBJECT
 
@@ -143,12 +143,12 @@ public:
      * @brief Constructs a streaming diagnostics service.
      * @param parent Optional parent QObject for memory management.
      */
-    explicit StreamingDiagnostics(QObject *parent = nullptr);
+    explicit StreamingDiagnosticsService(QObject *parent = nullptr);
 
     /**
      * @brief Destructor.
      */
-    ~StreamingDiagnostics() override;
+    ~StreamingDiagnosticsService() override;
 
     /**
      * @brief Enables or disables diagnostics collection.
@@ -310,4 +310,4 @@ private:
     RollingStats videoDisplayIntervalStats_{StatisticsWindowSize};
 };
 
-#endif  // STREAMINGDIAGNOSTICS_H
+#endif  // STREAMINGDIAGNOSTICSSERVICE_H

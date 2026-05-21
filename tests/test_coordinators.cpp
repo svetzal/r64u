@@ -12,7 +12,7 @@
 
 #include "ftp/folderoperationcoordinator.h"
 #include "ftp/recursivescancoordinator.h"
-#include "ftp/remotedirectorycreator.h"
+#include "ftp/remotedirectorycoordinator.h"
 #include "mocks/mockftpclient.h"
 #include "mocks/mocklocalfilesystem.h"
 #include "services/ftpentry.h"
@@ -22,10 +22,10 @@
 #include <QtTest>
 
 // ============================================================================
-// RemoteDirectoryCreator tests
+// RemoteDirectoryCoordinator tests
 // ============================================================================
 
-class TestRemoteDirectoryCreator : public QObject
+class TestRemoteDirectoryCoordinator : public QObject
 {
     Q_OBJECT
 
@@ -33,7 +33,7 @@ private:
     transfer::State state_;
     MockFtpClient *mockFtp = nullptr;
     MockLocalFileSystem *mockFs = nullptr;
-    RemoteDirectoryCreator *creator = nullptr;
+    RemoteDirectoryCoordinator *creator = nullptr;
 
 private slots:
     void init()
@@ -41,7 +41,7 @@ private slots:
         state_ = transfer::State();
         mockFtp = new MockFtpClient(this);
         mockFs = new MockLocalFileSystem(this);
-        creator = new RemoteDirectoryCreator(state_, mockFtp, mockFs, this);
+        creator = new RemoteDirectoryCoordinator(state_, mockFtp, mockFs, this);
         mockFtp->mockSetConnected(true);
     }
 
@@ -104,7 +104,7 @@ private slots:
 
     void testQueueDirectoriesForUpload_emitsProgressSignal()
     {
-        QSignalSpy spy(creator, &RemoteDirectoryCreator::directoryCreationProgress);
+        QSignalSpy spy(creator, &RemoteDirectoryCoordinator::directoryCreationProgress);
         mockFs->mockSetSubdirectories("/local/dir", QStringList{});
 
         creator->queueDirectoriesForUpload("/local/dir", "/remote/dir");
@@ -131,7 +131,7 @@ private slots:
 
     void testCreateNextDirectory_emitsAllCreatedWhenQueueEmpty()
     {
-        QSignalSpy spy(creator, &RemoteDirectoryCreator::allDirectoriesCreated);
+        QSignalSpy spy(creator, &RemoteDirectoryCoordinator::allDirectoriesCreated);
 
         // Empty queue — nothing queued yet
         creator->createNextDirectory();
@@ -158,7 +158,7 @@ private slots:
 
     void testOnDirectoryCreated_emitsAllCreatedWhenLastDir()
     {
-        QSignalSpy spy(creator, &RemoteDirectoryCreator::allDirectoriesCreated);
+        QSignalSpy spy(creator, &RemoteDirectoryCoordinator::allDirectoriesCreated);
         mockFs->mockSetSubdirectories("/local/dir", QStringList{});
         creator->queueDirectoriesForUpload("/local/dir", "/remote/dir");
         state_.queueState = transfer::QueueState::CreatingDirectories;
@@ -648,7 +648,7 @@ int main(int argc, char *argv[])
     int status = 0;
 
     {
-        TestRemoteDirectoryCreator t;
+        TestRemoteDirectoryCoordinator t;
         status |= QTest::qExec(&t, argc, argv);
     }
     {
