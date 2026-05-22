@@ -34,7 +34,7 @@ private slots:
         QCoreApplication::setOrganizationName("r64utest");
         QCoreApplication::setApplicationName("test_servicefactory");
 
-        factory_ = new ServiceFactory(nullptr, this);
+        factory_ = new ServiceFactory(this);
     }
 
     void cleanup()

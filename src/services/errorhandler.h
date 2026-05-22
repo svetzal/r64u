@@ -6,7 +6,7 @@
 
 #include <functional>
 
-class QWidget;
+class IErrorPresenter;
 
 class ConfigFileLoaderService;
 class DeviceConnectionManager;
@@ -81,10 +81,16 @@ class ErrorHandler : public QObject
 public:
     /**
      * @brief Constructs an error handler.
-     * @param parentWidget Widget to use as parent for dialogs (not owned).
+     * @param presenter Presenter used to show dialogs (not owned, may be null).
      * @param parent Optional parent QObject for memory management.
      */
-    explicit ErrorHandler(QWidget *parentWidget, QObject *parent = nullptr);
+    explicit ErrorHandler(IErrorPresenter *presenter = nullptr, QObject *parent = nullptr);
+
+    /**
+     * @brief Sets the error presenter used to show dialogs.
+     * @param presenter Presenter to use (not owned, may be null).
+     */
+    void setPresenter(IErrorPresenter *presenter);
 
     /**
      * @brief Destructor.
@@ -262,7 +268,7 @@ private:
      */
     [[nodiscard]] static QString severityToString(ErrorSeverity severity);
 
-    QWidget *parentWidget_ = nullptr;
+    IErrorPresenter *presenter_ = nullptr;
 };
 
 #endif  // ERRORHANDLER_H

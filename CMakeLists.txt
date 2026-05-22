@@ -60,6 +60,7 @@ set(SOURCES
     src/ui/explorepanel.cpp
     src/ui/explorepanelcore.cpp
     src/ui/fileactioncontroller.cpp
+    src/ui/dialogerrorpresenter.cpp
     src/ui/explorefavoritescontroller.cpp
     src/ui/explorecontextmenucontroller.cpp
     src/ui/explorenavigationcontroller.cpp
@@ -189,6 +190,8 @@ set(HEADERS
     src/ui/explorepanel.h
     src/ui/explorepanelcore.h
     src/ui/fileactioncontroller.h
+    src/ui/dialogerrorpresenter.h
+    src/services/ierrorpresenter.h
     src/ui/explorefavoritescontroller.h
     src/ui/explorecontextmenucontroller.h
     src/ui/explorenavigationcontroller.h

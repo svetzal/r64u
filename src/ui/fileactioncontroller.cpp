@@ -123,6 +123,24 @@ void FileActionController::loadConfigSelection()
     loadConfig(selectionPath(), selectionFileType());
 }
 
+void FileActionController::mountToDriveSelection(const QString &drive)
+{
+    if (!hasSelectionSource()) {
+        emit statusMessage(tr("File browser not ready"));
+        return;
+    }
+    mountToDrive(selectionPath(), drive);
+}
+
+void FileActionController::downloadSelection()
+{
+    if (!hasSelectionSource()) {
+        emit statusMessage(tr("File browser not ready"));
+        return;
+    }
+    download(selectionPath());
+}
+
 void FileActionController::addToPlaylistSelection()
 {
     if (!hasSelectionSource()) {

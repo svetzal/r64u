@@ -26,6 +26,7 @@
 #include "ui/configpanel.h"
 #include "ui/connectionstatuswidget.h"
 #include "ui/connectionuicontroller.h"
+#include "ui/dialogerrorpresenter.h"
 #include "ui/explorepanel.h"
 #include "ui/menubarbuilder.h"
 #include "ui/panelcoordinator.h"
@@ -46,7 +47,8 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-    auto *services = new ServiceFactory(this, this);
+    auto *services = new ServiceFactory(this);
+    services->setErrorPresenter(new DialogErrorPresenter(this));
 
     deviceConnection_ = services->deviceConnection();
     remoteFileModel_ = services->remoteFileModel();

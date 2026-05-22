@@ -220,6 +220,28 @@ private slots:
         QVERIFY(spy.at(0).at(0).toString().contains("Not connected"));
     }
 
+    void testMountToDriveSelection_NoSelectionSource_EmitsBrowserNotReadyMessage()
+    {
+        auto *controller = new FileActionController(nullptr, nullptr, nullptr, this);
+        QSignalSpy spy(controller, &FileActionController::statusMessage);
+
+        controller->mountToDriveSelection("a");
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("File browser not ready"));
+    }
+
+    void testDownloadSelection_NoSelectionSource_EmitsBrowserNotReadyMessage()
+    {
+        auto *controller = new FileActionController(nullptr, nullptr, nullptr, this);
+        QSignalSpy spy(controller, &FileActionController::statusMessage);
+
+        controller->downloadSelection();
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("File browser not ready"));
+    }
+
     // ==========================================================================
     // loadConfig() — validation
     // ==========================================================================

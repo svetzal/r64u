@@ -81,7 +81,6 @@ private:
     RemoteFileModel *remoteFileModel_ = nullptr;
     StatusMessageService *statusService_ = nullptr;
     ErrorHandler *errorHandler_ = nullptr;
-    QWidget *errorParentWidget_ = nullptr;
     QTabWidget *tabWidget_ = nullptr;
     MockPanel *explorePanel_ = nullptr;
     MockPanel *transferPanel_ = nullptr;
@@ -97,8 +96,7 @@ void TestPanelCoordinator::init()
     dc_ = new DeviceConnectionManager(mockRest_, mockFtp_, this);
     remoteFileModel_ = new RemoteFileModel(this);
     statusService_ = new StatusMessageService(this);
-    errorParentWidget_ = new QWidget();
-    errorHandler_ = new ErrorHandler(errorParentWidget_, this);
+    errorHandler_ = new ErrorHandler(nullptr, this);
     tabWidget_ = new QTabWidget();
     explorePanel_ = new MockPanel(this);
     transferPanel_ = new MockPanel(this);
@@ -115,8 +113,6 @@ void TestPanelCoordinator::cleanup()
     coord_ = nullptr;
     delete tabWidget_;
     tabWidget_ = nullptr;
-    delete errorParentWidget_;
-    errorParentWidget_ = nullptr;
 }
 
 void TestPanelCoordinator::testStatusMessageFromExplorePanel_ForwardedToService()

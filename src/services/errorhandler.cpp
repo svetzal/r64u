@@ -1,14 +1,18 @@
 #include "errorhandler.h"
 
+#include "ierrorpresenter.h"
 #include "statusmessageservice.h"
 
 #include <QDebug>
-#include <QMessageBox>
-#include <QPushButton>
 
-ErrorHandler::ErrorHandler(QWidget *parentWidget, QObject *parent)
-    : QObject(parent), parentWidget_(parentWidget)
+ErrorHandler::ErrorHandler(IErrorPresenter *presenter, QObject *parent)
+    : QObject(parent), presenter_(presenter)
 {
+}
+
+void ErrorHandler::setPresenter(IErrorPresenter *presenter)
+{
+    presenter_ = presenter;
 }
 
 void ErrorHandler::handleError(ErrorCategory category, ErrorSeverity severity, const QString &title,
@@ -85,28 +89,16 @@ void ErrorHandler::info(ErrorCategory category, const QString &message)
 
 void ErrorHandler::showErrorDialog(const QString &title, const QString &message)
 {
-    QMessageBox::warning(parentWidget_, title, message);
+    if (presenter_) {
+        presenter_->showErrorDialog(title, message);
+    }
 }
 
 bool ErrorHandler::showRetryDialog(const QString &title, const QString &message,
                                    const std::function<void()> &retryCallback)
 {
-    QMessageBox msgBox(parentWidget_);
-    msgBox.setWindowTitle(title);
-    msgBox.setText(message);
-    msgBox.setIcon(QMessageBox::Warning);
-
-    QPushButton *retryButton = msgBox.addButton(tr("Retry"), QMessageBox::AcceptRole);
-    msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
-
-    msgBox.setDefaultButton(retryButton);
-    msgBox.exec();
-
-    if (msgBox.clickedButton() == retryButton) {
-        if (retryCallback) {
-            retryCallback();
-        }
-        return true;
+    if (presenter_) {
+        return presenter_->showRetryDialog(title, message, retryCallback);
     }
     return false;
 }

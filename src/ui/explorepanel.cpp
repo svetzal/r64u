@@ -103,30 +103,18 @@ void ExplorePanel::setupUi()
 
     playAction_ = toolBar_->addAction(tr("Play"));
     playAction_->setToolTip(tr("Play selected SID/MOD file"));
-    connect(playAction_, &QAction::triggered, this, [this]() {
-        if (!treeView_ || !remoteFileModel_) {
-            emit statusMessage(tr("File browser not ready"));
-            return;
-        }
-        actionController_->play(selectedPath(),
-                                remoteFileModel_->fileType(treeView_->currentIndex()));
-    });
+    connect(playAction_, &QAction::triggered, actionController_,
+            &FileActionController::playSelection);
 
     runAction_ = toolBar_->addAction(tr("Run"));
     runAction_->setToolTip(tr("Run selected PRG/CRT file"));
-    connect(runAction_, &QAction::triggered, this, [this]() {
-        if (!treeView_ || !remoteFileModel_) {
-            emit statusMessage(tr("File browser not ready"));
-            return;
-        }
-        actionController_->run(selectedPath(),
-                               remoteFileModel_->fileType(treeView_->currentIndex()));
-    });
+    connect(runAction_, &QAction::triggered, actionController_,
+            &FileActionController::runSelection);
 
     mountAction_ = toolBar_->addAction(tr("Mount"));
     mountAction_->setToolTip(tr("Mount selected disk image"));
     connect(mountAction_, &QAction::triggered, this,
-            [this]() { actionController_->mountToDrive(selectedPath(), "a"); });
+            [this]() { actionController_->mountToDriveSelection("a"); });
 
     toolBar_->addSeparator();
 
@@ -239,11 +227,11 @@ void ExplorePanel::setupConnections()
     connect(contextMenu_, &ExploreContextMenuController::runRequested, actionController_,
             &FileActionController::runSelection);
     connect(contextMenu_, &ExploreContextMenuController::mountARequested, this,
-            [this]() { actionController_->mountToDrive(selectedPath(), "a"); });
+            [this]() { actionController_->mountToDriveSelection("a"); });
     connect(contextMenu_, &ExploreContextMenuController::mountBRequested, this,
-            [this]() { actionController_->mountToDrive(selectedPath(), "b"); });
-    connect(contextMenu_, &ExploreContextMenuController::downloadRequested, this,
-            [this]() { actionController_->download(selectedPath()); });
+            [this]() { actionController_->mountToDriveSelection("b"); });
+    connect(contextMenu_, &ExploreContextMenuController::downloadRequested, actionController_,
+            &FileActionController::downloadSelection);
     connect(contextMenu_, &ExploreContextMenuController::loadConfigRequested, actionController_,
             &FileActionController::loadConfigSelection);
     connect(contextMenu_, &ExploreContextMenuController::toggleFavoriteRequested, this, [this]() {

@@ -12,6 +12,7 @@
 #include "services/gamebase64service.h"
 #include "services/httpfiledownloader.h"
 #include "services/hvscmetadataservice.h"
+#include "services/ierrorpresenter.h"
 #include "services/playlistservice.h"
 #include "services/remotefileoperationsservice.h"
 #include "services/songlengthsdatabase.h"
@@ -19,7 +20,7 @@
 #include "services/systemcommandcontroller.h"
 #include "services/transferservice.h"
 
-ServiceFactory::ServiceFactory(QWidget *owner, QObject *parent) : QObject(parent)
+ServiceFactory::ServiceFactory(QObject *parent) : QObject(parent)
 {
     deviceConnection_ = new DeviceConnectionManager(this);
     remoteFileModel_ = new RemoteFileModel(this);
@@ -32,7 +33,7 @@ ServiceFactory::ServiceFactory(QWidget *owner, QObject *parent) : QObject(parent
 
     filePreviewService_ = new FilePreviewService(deviceConnection_->ftpClient(), this);
     transferService_ = new TransferService(deviceConnection_, transferQueue_, this);
-    errorHandler_ = new ErrorHandler(owner, this);
+    errorHandler_ = new ErrorHandler(nullptr, this);
     statusMessageService_ = new StatusMessageService(this);
     favoritesService_ = new FavoritesService(this);
     playlistService_ = new PlaylistService(deviceConnection_, this);
@@ -52,6 +53,11 @@ ServiceFactory::ServiceFactory(QWidget *owner, QObject *parent) : QObject(parent
     remoteFileOperations_ = new RemoteFileOperationsService(deviceConnection_->ftpClient(), this);
     systemCommandController_ =
         new SystemCommandController(deviceConnection_->restClient(), statusMessageService_, this);
+}
+
+void ServiceFactory::setErrorPresenter(IErrorPresenter *presenter)
+{
+    errorHandler_->setPresenter(presenter);
 }
 
 DeviceConnectionManager *ServiceFactory::deviceConnection() const

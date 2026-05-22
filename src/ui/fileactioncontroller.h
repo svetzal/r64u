@@ -62,6 +62,8 @@ public slots:
     void runSelection();
     void loadConfigSelection();
     void addToPlaylistSelection();
+    void mountToDriveSelection(const QString &drive);
+    void downloadSelection();
 
 signals:
     void statusMessage(const QString &message, int timeout = 0);

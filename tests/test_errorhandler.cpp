@@ -2,7 +2,6 @@
 #include "services/iftpclient.h"
 
 #include <QSignalSpy>
-#include <QWidget>
 #include <QtTest/QtTest>
 
 class MinimalFtpSource : public IFtpClient
@@ -68,22 +67,18 @@ private slots:
     void testConnectSourcesSignalRouting();
 
 private:
-    QWidget *parentWidget_ = nullptr;
     ErrorHandler *handler_ = nullptr;
 };
 
 void TestErrorHandler::init()
 {
-    parentWidget_ = new QWidget();
-    handler_ = new ErrorHandler(parentWidget_, this);
+    handler_ = new ErrorHandler(nullptr, this);
 }
 
 void TestErrorHandler::cleanup()
 {
     delete handler_;
     handler_ = nullptr;
-    delete parentWidget_;
-    parentWidget_ = nullptr;
 }
 
 void TestErrorHandler::testHandleErrorEmitsStatusMessage()

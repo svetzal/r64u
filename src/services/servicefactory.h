@@ -4,8 +4,8 @@
 #include "metadataservicebundle.h"
 
 #include <QObject>
-#include <QWidget>
 
+class IErrorPresenter;
 class DeviceConnectionManager;
 class RemoteFileModel;
 class TransferQueue;
@@ -38,10 +38,18 @@ class ServiceFactory : public QObject
 public:
     /**
      * @brief Constructs and wires all services.
-     * @param owner The QWidget used as parent for dialogs (e.g. ErrorHandler).
      * @param parent Qt object parent for this factory.
      */
-    explicit ServiceFactory(QWidget *owner, QObject *parent = nullptr);
+    explicit ServiceFactory(QObject *parent = nullptr);
+
+    /**
+     * @brief Sets the error presenter used to show dialogs.
+     *
+     * Call this after construction to wire a UI-layer presenter into the
+     * ErrorHandler. The presenter is not owned by the factory.
+     * @param presenter Presenter to use (not owned, may be null).
+     */
+    void setErrorPresenter(IErrorPresenter *presenter);
 
     /// @brief Returns the device connection service.
     [[nodiscard]] DeviceConnectionManager *deviceConnection() const;

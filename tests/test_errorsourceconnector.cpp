@@ -14,7 +14,6 @@
 #include "services/videorecordingservice.h"
 
 #include <QSignalSpy>
-#include <QWidget>
 #include <QtTest/QtTest>
 
 // ---------------------------------------------------------------------------
@@ -146,7 +145,6 @@ class TestErrorSourceConnector : public QObject
     Q_OBJECT
 
 private:
-    QWidget *parentWidget_ = nullptr;
     ErrorHandler *handler_ = nullptr;
     MockFileDownloader *downloader1_ = nullptr;
     MockFileDownloader *downloader2_ = nullptr;
@@ -176,8 +174,7 @@ private slots:
 
 void TestErrorSourceConnector::init()
 {
-    parentWidget_ = new QWidget();
-    handler_ = new ErrorHandler(parentWidget_);
+    handler_ = new ErrorHandler(nullptr);
     downloader1_ = new MockFileDownloader();
     downloader2_ = new MockFileDownloader();
     downloader3_ = new MockFileDownloader();
@@ -187,8 +184,6 @@ void TestErrorSourceConnector::cleanup()
 {
     delete handler_;
     handler_ = nullptr;
-    delete parentWidget_;
-    parentWidget_ = nullptr;
     delete downloader1_;
     downloader1_ = nullptr;
     delete downloader2_;
