@@ -14,13 +14,17 @@ set(_LLVM_HOMEBREW_HINTS
     "/opt/homebrew/opt/llvm/bin"
     "/opt/homebrew/opt/llvm@22/bin"
     "/opt/homebrew/opt/llvm@21/bin"
+    "/opt/homebrew/opt/llvm@20/bin"
+    "/opt/homebrew/opt/llvm@19/bin"
     "/usr/local/opt/llvm/bin"
     "/usr/local/opt/llvm@22/bin"
     "/usr/local/opt/llvm@21/bin"
+    "/usr/local/opt/llvm@20/bin"
+    "/usr/local/opt/llvm@19/bin"
 )
 
 find_program(CLANG_TIDY_EXE
-    NAMES clang-tidy clang-tidy-22 clang-tidy-21 clang-tidy-18 clang-tidy-17 clang-tidy-16 clang-tidy-15
+    NAMES clang-tidy clang-tidy-22 clang-tidy-21 clang-tidy-20 clang-tidy-19 clang-tidy-18 clang-tidy-17 clang-tidy-16 clang-tidy-15
     HINTS ${_LLVM_HOMEBREW_HINTS}
 )
 

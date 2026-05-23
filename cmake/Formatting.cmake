@@ -10,13 +10,17 @@ set(_LLVM_HOMEBREW_HINTS
     "/opt/homebrew/opt/llvm/bin"
     "/opt/homebrew/opt/llvm@22/bin"
     "/opt/homebrew/opt/llvm@21/bin"
+    "/opt/homebrew/opt/llvm@20/bin"
+    "/opt/homebrew/opt/llvm@19/bin"
     "/usr/local/opt/llvm/bin"
     "/usr/local/opt/llvm@22/bin"
     "/usr/local/opt/llvm@21/bin"
+    "/usr/local/opt/llvm@20/bin"
+    "/usr/local/opt/llvm@19/bin"
 )
 
 find_program(CLANG_FORMAT_EXE
-    NAMES clang-format clang-format-22 clang-format-21 clang-format-18 clang-format-17 clang-format-16 clang-format-15
+    NAMES clang-format clang-format-22 clang-format-21 clang-format-20 clang-format-19 clang-format-18 clang-format-17 clang-format-16 clang-format-15
     HINTS ${_LLVM_HOMEBREW_HINTS}
 )
 
