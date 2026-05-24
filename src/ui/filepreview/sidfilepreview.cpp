@@ -1,6 +1,6 @@
 #include "sidfilepreview.h"
 
-#include "services/sidfileparser.h"
+#include "core/sidfileparser.h"
 
 #include <QFileInfo>
 

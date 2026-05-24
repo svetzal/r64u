@@ -1,6 +1,6 @@
 #include "diskimagepreview.h"
 
-#include "services/diskimagereader.h"
+#include "core/diskimagereader.h"
 
 #include <QFileInfo>
 

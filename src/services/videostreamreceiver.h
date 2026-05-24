@@ -2,13 +2,13 @@
 #define VIDEOSTREAMRECEIVER_H
 
 #include "ivideostreamreceiver.h"
+#include "udpstreamsocket.h"
 #include "videostreamcore.h"
 
 #include <QByteArray>
 #include <QElapsedTimer>
 #include <QObject>
 #include <QSet>
-#include <QUdpSocket>
 #include <QVector>
 
 #include <functional>
@@ -160,9 +160,6 @@ signals:
      */
     void statsUpdated(quint64 packetsReceived, quint64 framesCompleted, quint64 packetsLost);
 
-private slots:
-    void onReadyRead();
-
 private:
     void processPacket(const QByteArray &packet);
     void startNewFrame(quint16 frameNumber);
@@ -170,7 +167,7 @@ private:
     [[nodiscard]] VideoFormat detectFormat(const videostream::PacketHeader &header) const;
 
     // Network
-    QUdpSocket *socket_ = nullptr;
+    UdpStreamSocket *streamSocket_ = nullptr;
 
     // Frame assembly
     QByteArray frameBuffer_;         // Current frame being assembled

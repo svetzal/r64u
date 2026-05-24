@@ -452,6 +452,7 @@ endif()
 add_executable(test_videostreamreceiver
     test_videostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/udpstreamsocket.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
 )
@@ -943,6 +944,7 @@ add_executable(test_streamingdiagnosticsservice
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnosticsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/udpstreamsocket.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
@@ -1073,6 +1075,7 @@ add_executable(test_streamingmanager
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamcontrolclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamprotocolcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/udpstreamsocket.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiver.cpp
@@ -1657,10 +1660,34 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_streamcontrolclient)
 endif()
 
+# UdpStreamSocket tests - shared UDP socket lifecycle helper
+add_executable(test_udpstreamsocket
+    test_udpstreamsocket.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/udpstreamsocket.cpp
+)
+
+target_include_directories(test_udpstreamsocket PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_udpstreamsocket PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME UdpStreamSocketTest COMMAND test_udpstreamsocket)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(udpstreamsocket test_udpstreamsocket)
+    add_dependencies(coverage coverage_udpstreamsocket)
+endif()
+
 # AudioStreamReceiver tests - UDP audio receiver with jitter buffer
 add_executable(test_audiostreamreceiver
     test_audiostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/udpstreamsocket.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiver.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
 )

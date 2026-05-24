@@ -7,15 +7,13 @@
 
 #include "utils/logging.h"
 
-#include <QNetworkDatagram>
-#include <QVariant>
-
 VideoStreamReceiver::VideoStreamReceiver(QObject *parent)
-    : IVideoStreamReceiver(parent), socket_(new QUdpSocket(this))
+    : IVideoStreamReceiver(parent),
+      streamSocket_(new UdpStreamSocket(2 * 1024 * 1024, videostream::PacketSize, this))
 {
-    connect(socket_, &QUdpSocket::readyRead, this, &VideoStreamReceiver::onReadyRead);
-    connect(socket_, &QUdpSocket::errorOccurred, this,
-            [this](QAbstractSocket::SocketError) { emit socketError(socket_->errorString()); });
+    connect(streamSocket_, &UdpStreamSocket::packetReceived, this,
+            &VideoStreamReceiver::processPacket);
+    connect(streamSocket_, &UdpStreamSocket::socketError, this, &VideoStreamReceiver::socketError);
 
     // Pre-allocate frame buffer for maximum size (PAL)
     // Each line is 192 bytes (384 pixels at 4 bits each)
@@ -36,23 +34,8 @@ bool VideoStreamReceiver::bind()
 bool VideoStreamReceiver::bind(quint16 port)
 {
     LOG_VERBOSE() << "VideoStreamReceiver: Binding to port" << port;
-    if (socket_->state() != QAbstractSocket::UnconnectedState) {
-        close();
-    }
 
-    // Set a large receive buffer to handle packet bursts
-    socket_->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption,
-                             QVariant(2 * 1024 * 1024));
-
-    if (!socket_->bind(QHostAddress::Any, port)) {
-        LOG_VERBOSE() << "VideoStreamReceiver: Failed to bind:" << socket_->errorString();
-        emit socketError(
-            QString("Failed to bind to port %1: %2").arg(port).arg(socket_->errorString()));
-        return false;
-    }
-    LOG_VERBOSE() << "VideoStreamReceiver: Bound successfully to port" << socket_->localPort();
-
-    // Reset state
+    // Reset state before binding
     frameInProgress_ = false;
     currentFrameNum_ = 0;
     receivedPackets_.clear();
@@ -63,25 +46,29 @@ bool VideoStreamReceiver::bind(quint16 port)
     totalPacketsLost_ = 0;
     firstPacket_ = true;
 
-    return true;
+    bool ok = streamSocket_->bind(port);
+    if (ok) {
+        LOG_VERBOSE() << "VideoStreamReceiver: Bound successfully to port" << streamSocket_->port();
+    } else {
+        LOG_VERBOSE() << "VideoStreamReceiver: Failed to bind to port" << port;
+    }
+    return ok;
 }
 
 void VideoStreamReceiver::close()
 {
-    if (socket_->state() != QAbstractSocket::UnconnectedState) {
-        socket_->close();
-    }
+    streamSocket_->close();
     frameInProgress_ = false;
 }
 
 bool VideoStreamReceiver::isActive() const
 {
-    return socket_->state() == QAbstractSocket::BoundState;
+    return streamSocket_->isActive();
 }
 
 quint16 VideoStreamReceiver::port() const
 {
-    return socket_->localPort();
+    return streamSocket_->port();
 }
 
 void VideoStreamReceiver::setDiagnosticsCallback(const DiagnosticsCallback &callback)
@@ -89,30 +76,6 @@ void VideoStreamReceiver::setDiagnosticsCallback(const DiagnosticsCallback &call
     diagnosticsCallback_ = callback;
     if (callback.onPacketReceived || callback.onFrameStarted || callback.onFrameCompleted) {
         diagnosticsTimer_.start();
-    }
-}
-
-void VideoStreamReceiver::onReadyRead()
-{
-    static int packetLogCounter = 0;
-    while (socket_->hasPendingDatagrams()) {
-        QNetworkDatagram datagram = socket_->receiveDatagram();
-        if (datagram.isValid()) {
-            QByteArray packet = datagram.data();
-            // Log first few packets and then periodically
-            if (packetLogCounter < 5 || packetLogCounter % 1000 == 0) {
-                LOG_VERBOSE() << "VideoStreamReceiver: Received packet size:" << packet.size()
-                              << "from:" << datagram.senderAddress().toString()
-                              << "expected size:" << videostream::PacketSize;
-            }
-            packetLogCounter++;
-            if (packet.size() == videostream::PacketSize) {
-                processPacket(packet);
-            } else {
-                LOG_VERBOSE() << "VideoStreamReceiver: Ignoring malformed packet, size:"
-                              << packet.size();
-            }
-        }
     }
 }
 

@@ -1,9 +1,9 @@
 #ifndef FILEMETADATACORE_H
 #define FILEMETADATACORE_H
 
+#include "core/sidfileparser.h"
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
-#include "services/sidfileparser.h"
 #include "services/songlengthsdatabase.h"
 
 #include <QString>

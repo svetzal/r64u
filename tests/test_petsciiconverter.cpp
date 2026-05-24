@@ -1,4 +1,4 @@
-#include "services/petsciiconverter.h"
+#include "core/petsciiconverter.h"
 
 #include <QtTest>
 

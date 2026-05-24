@@ -1,6 +1,6 @@
 #include "filedetailspanel.h"
 
-#include "services/diskimagereader.h"
+#include "core/diskimagereader.h"
 #include "services/fileactioncore.h"
 #include "services/filemetadatacore.h"
 #include "services/gamebase64service.h"

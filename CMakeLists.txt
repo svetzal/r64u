@@ -100,6 +100,7 @@ set(SOURCES
     src/services/iaudioplaybackservice.cpp
     src/services/streamcontrolclient.cpp
     src/services/streamingservice.cpp
+    src/services/udpstreamsocket.cpp
     src/services/videostreamreceiver.cpp
     src/services/audiostreamreceiver.cpp
     src/services/audioplaybackservice.cpp
@@ -236,6 +237,7 @@ set(HEADERS
     src/services/networkinterfaceprovider.h
     src/services/streamcontrolclient.h
     src/services/streamingservice.h
+    src/services/udpstreamsocket.h
     src/services/videostreamreceiver.h
     src/services/audiostreamreceiver.h
     src/services/audioplaybackservice.h

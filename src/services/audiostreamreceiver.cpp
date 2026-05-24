@@ -6,17 +6,17 @@
 #include "audiostreamreceiver.h"
 
 #include <QMutexLocker>
-#include <QNetworkDatagram>
-#include <QVariant>
 
 #include <algorithm>
 
 AudioStreamReceiver::AudioStreamReceiver(QObject *parent)
-    : IAudioStreamReceiver(parent), socket_(new QUdpSocket(this)), flushTimer_(new QTimer(this))
+    : IAudioStreamReceiver(parent),
+      streamSocket_(new UdpStreamSocket(1024 * 1024, PacketSize, this)),
+      flushTimer_(new QTimer(this))
 {
-    connect(socket_, &QUdpSocket::readyRead, this, &AudioStreamReceiver::onReadyRead);
-    connect(socket_, &QUdpSocket::errorOccurred, this,
-            [this](QAbstractSocket::SocketError) { emit socketError(socket_->errorString()); });
+    connect(streamSocket_, &UdpStreamSocket::packetReceived, this,
+            &AudioStreamReceiver::processPacket);
+    connect(streamSocket_, &UdpStreamSocket::socketError, this, &AudioStreamReceiver::socketError);
 
     // Set up flush timer for steady playback timing
     flushTimer_->setTimerType(Qt::PreciseTimer);
@@ -35,20 +35,7 @@ bool AudioStreamReceiver::bind()
 
 bool AudioStreamReceiver::bind(quint16 port)
 {
-    if (socket_->state() != QAbstractSocket::UnconnectedState) {
-        close();
-    }
-
-    // Set a large receive buffer
-    socket_->setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, QVariant(1024 * 1024));
-
-    if (!socket_->bind(QHostAddress::Any, port)) {
-        emit socketError(
-            QString("Failed to bind to port %1: %2").arg(port).arg(socket_->errorString()));
-        return false;
-    }
-
-    // Reset state
+    // Reset state before binding
     {
         QMutexLocker locker(&bufferMutex_);
         jitterBuffer_.clear();
@@ -58,16 +45,13 @@ bool AudioStreamReceiver::bind(quint16 port)
     totalPacketsLost_ = 0;
     firstPacket_ = true;
 
-    return true;
+    return streamSocket_->bind(port);
 }
 
 void AudioStreamReceiver::close()
 {
     stopFlushTimer();
-
-    if (socket_->state() != QAbstractSocket::UnconnectedState) {
-        socket_->close();
-    }
+    streamSocket_->close();
 
     QMutexLocker locker(&bufferMutex_);
     jitterBuffer_.clear();
@@ -76,12 +60,12 @@ void AudioStreamReceiver::close()
 
 bool AudioStreamReceiver::isActive() const
 {
-    return socket_->state() == QAbstractSocket::BoundState;
+    return streamSocket_->isActive();
 }
 
 quint16 AudioStreamReceiver::port() const
 {
-    return socket_->localPort();
+    return streamSocket_->port();
 }
 
 void AudioStreamReceiver::setJitterBufferSize(int packets)
@@ -110,20 +94,6 @@ void AudioStreamReceiver::setDiagnosticsCallback(const DiagnosticsCallback &call
     diagnosticsCallback_ = callback;
     if (callback.onPacketReceived || callback.onBufferUnderrun || callback.onSampleDiscontinuity) {
         diagnosticsTimer_.start();
-    }
-}
-
-void AudioStreamReceiver::onReadyRead()
-{
-    while (socket_->hasPendingDatagrams()) {
-        QNetworkDatagram datagram = socket_->receiveDatagram();
-        if (datagram.isValid()) {
-            QByteArray packet = datagram.data();
-            if (packet.size() == PacketSize) {
-                processPacket(packet);
-            }
-            // Ignore malformed packets
-        }
     }
 }
 

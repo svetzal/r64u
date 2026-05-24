@@ -3,6 +3,7 @@
 
 #include "audiostreamcore.h"
 #include "iaudiostreamreceiver.h"
+#include "udpstreamsocket.h"
 
 #include <QByteArray>
 #include <QElapsedTimer>
@@ -10,7 +11,6 @@
 #include <QObject>
 #include <QQueue>
 #include <QTimer>
-#include <QUdpSocket>
 
 #include <functional>
 
@@ -114,7 +114,6 @@ signals:
     void bufferUnderrun();
 
 private slots:
-    void onReadyRead();
     void onFlushTimer();
 
 private:
@@ -132,7 +131,7 @@ private:
     [[nodiscard]] int calculateFlushIntervalUs() const;
 
     // Network
-    QUdpSocket *socket_ = nullptr;
+    UdpStreamSocket *streamSocket_ = nullptr;
 
     // Jitter buffer
     QQueue<AudioPacket> jitterBuffer_;
