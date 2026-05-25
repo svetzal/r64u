@@ -226,6 +226,209 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_coordinators)
 endif()
 
+# TransferDecisionCore tests - pure processNext/delete decision and FTP error handling, no I/O
+add_executable(test_transferdecisioncore
+    test_transferdecisioncore.cpp
+    ${TRANSFER_CORE_SOURCES}
+)
+target_include_directories(test_transferdecisioncore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_transferdecisioncore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+add_test(NAME TransferDecisionCoreTest COMMAND test_transferdecisioncore)
+if(BUILD_COVERAGE)
+    add_coverage_target(transferdecisioncore test_transferdecisioncore)
+    add_dependencies(coverage coverage_transferdecisioncore)
+endif()
+
+# TransferConfirmCore tests - pure overwrite/folder confirmation logic, no I/O
+add_executable(test_transferconfirmcore
+    test_transferconfirmcore.cpp
+    ${TRANSFER_CORE_SOURCES}
+)
+target_include_directories(test_transferconfirmcore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_transferconfirmcore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+add_test(NAME TransferConfirmCoreTest COMMAND test_transferconfirmcore)
+if(BUILD_COVERAGE)
+    add_coverage_target(transferconfirmcore test_transferconfirmcore)
+    add_dependencies(coverage coverage_transferconfirmcore)
+endif()
+
+# TransferListingCore tests - pure directory listing processing, no I/O
+add_executable(test_transferlistingcore
+    test_transferlistingcore.cpp
+    ${TRANSFER_CORE_SOURCES}
+)
+target_include_directories(test_transferlistingcore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_transferlistingcore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+add_test(NAME TransferListingCoreTest COMMAND test_transferlistingcore)
+if(BUILD_COVERAGE)
+    add_coverage_target(transferlistingcore test_transferlistingcore)
+    add_dependencies(coverage coverage_transferlistingcore)
+endif()
+
+# TransferFtpCore tests - pure FTP operation completion and enqueue helpers, no I/O
+add_executable(test_transferftpcore
+    test_transferftpcore.cpp
+    ${TRANSFER_CORE_SOURCES}
+)
+target_include_directories(test_transferftpcore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_transferftpcore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+add_test(NAME TransferFtpCoreTest COMMAND test_transferftpcore)
+if(BUILD_COVERAGE)
+    add_coverage_target(transferftpcore test_transferftpcore)
+    add_dependencies(coverage coverage_transferftpcore)
+endif()
+
+# RecursiveScanCoordinator tests - isolated unit tests using mock FTP and local FS
+add_executable(test_recursivescancoordinator
+    test_recursivescancoordinator.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${MOCK_LOCAL_FS_SOURCES}
+    ${MOCK_LOCAL_FS_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${TRANSFER_CORE_SOURCES}
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+)
+target_include_directories(test_recursivescancoordinator PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_recursivescancoordinator PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+add_test(NAME RecursiveScanCoordinatorTest COMMAND test_recursivescancoordinator)
+if(BUILD_COVERAGE)
+    add_coverage_target(recursivescancoordinator test_recursivescancoordinator)
+    add_dependencies(coverage coverage_recursivescancoordinator)
+endif()
+
+# RemoteDirectoryCoordinator tests - isolated unit tests using mock FTP and local FS
+add_executable(test_remotedirectorycoordinator
+    test_remotedirectorycoordinator.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${MOCK_LOCAL_FS_SOURCES}
+    ${MOCK_LOCAL_FS_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${TRANSFER_CORE_SOURCES}
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
+)
+target_include_directories(test_remotedirectorycoordinator PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_remotedirectorycoordinator PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+add_test(NAME RemoteDirectoryCoordinatorTest COMMAND test_remotedirectorycoordinator)
+if(BUILD_COVERAGE)
+    add_coverage_target(remotedirectorycoordinator test_remotedirectorycoordinator)
+    add_dependencies(coverage coverage_remotedirectorycoordinator)
+endif()
+
+# FolderOperationCoordinator tests - isolated unit tests using mock FTP and local FS
+add_executable(test_folderoperationcoordinator
+    test_folderoperationcoordinator.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${MOCK_LOCAL_FS_SOURCES}
+    ${MOCK_LOCAL_FS_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${TRANSFER_CORE_SOURCES}
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
+)
+target_include_directories(test_folderoperationcoordinator PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_folderoperationcoordinator PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+add_test(NAME FolderOperationCoordinatorTest COMMAND test_folderoperationcoordinator)
+if(BUILD_COVERAGE)
+    add_coverage_target(folderoperationcoordinator test_folderoperationcoordinator)
+    add_dependencies(coverage coverage_folderoperationcoordinator)
+endif()
+
+# TransferDeleteHandler tests - delete orchestration using mock FTP and coordinator
+add_executable(test_transferdeletehandler
+    test_transferdeletehandler.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${MOCK_LOCAL_FS_SOURCES}
+    ${MOCK_LOCAL_FS_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${TRANSFER_CORE_SOURCES}
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
+)
+target_include_directories(test_transferdeletehandler PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_transferdeletehandler PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+add_test(NAME TransferDeleteHandlerTest COMMAND test_transferdeletehandler)
+if(BUILD_COVERAGE)
+    add_coverage_target(transferdeletehandler test_transferdeletehandler)
+    add_dependencies(coverage coverage_transferdeletehandler)
+endif()
+
+# RemoteFileBrowserController tests - pure path construction and validation logic, no I/O
+add_executable(test_remotefilebrowsercontroller
+    test_remotefilebrowsercontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowsercontroller.cpp
+)
+target_include_directories(test_remotefilebrowsercontroller PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+target_link_libraries(test_remotefilebrowsercontroller PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+add_test(NAME RemoteFileBrowserControllerTest COMMAND test_remotefilebrowsercontroller)
+if(BUILD_COVERAGE)
+    add_coverage_target(remotefilebrowsercontroller test_remotefilebrowsercontroller)
+    add_dependencies(coverage coverage_remotefilebrowsercontroller)
+endif()
+
 # RemoteFileModel tests - uses MockFtpClient via interface injection
 add_executable(test_remotefilemodel
     test_remotefilemodel.cpp
