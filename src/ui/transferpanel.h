@@ -27,10 +27,8 @@ public:
 
     explicit TransferPanel(DeviceConnectionManager *connection, RemoteFileModel *model,
                            TransferService *transferService,
-                           RemoteFileOperationsService *fileOperations, QWidget *parent = nullptr);
-
-    // Public API for MainWindow coordination
-    void setErrorHandler(ErrorHandler *handler);
+                           RemoteFileOperationsService *fileOperations, ErrorHandler *errorHandler,
+                           QWidget *parent = nullptr);
     void setCurrentLocalDir(const QString &path);
     void setCurrentRemoteDir(const QString &path) override;
     QString currentLocalDir() const;
@@ -63,7 +61,7 @@ private:
 
     // Dependencies (not owned)
     DeviceConnectionManager *deviceConnection_ = nullptr;
-    ErrorHandler *errorHandler_ = nullptr;
+    ErrorHandler *errorHandler_;
     TransferService *transferService_ = nullptr;
 
     // UI widgets

@@ -34,7 +34,8 @@
 #include <QVBoxLayout>
 
 ExplorePanel::ExplorePanel(DeviceConnectionManager *connection, RemoteFileModel *model,
-                           const ExplorePanelServices &services, QWidget *parent)
+                           const ExplorePanelServices &services, ErrorHandler *errorHandler,
+                           QWidget *parent)
     : QWidget(parent), deviceConnection_(connection), remoteFileModel_(model),
       playlistService_(services.playlistService)
 {
@@ -47,7 +48,7 @@ ExplorePanel::ExplorePanel(DeviceConnectionManager *connection, RemoteFileModel 
     Q_ASSERT(playlistService_ && "PlaylistService is required");
 
     actionController_ = new FileActionController(services.deviceActionService, deviceConnection_,
-                                                 services.configLoader, this);
+                                                 services.configLoader, errorHandler, this);
     actionController_->setPlaylistService(playlistService_);
     // selectionView_ and treeView_ are wired after setupUi() via setSelectionSource
     favoritesController_ = new ExploreFavoritesController(services.favoritesService, this);
@@ -318,11 +319,6 @@ void ExplorePanel::setMetadataServices(const MetadataServiceBundle &bundle)
         fileDetailsPanel_->setHVSCMetadataService(bundle.hvscMetadataService);
         fileDetailsPanel_->setGameBase64Service(bundle.gameBase64Service);
     }
-}
-
-void ExplorePanel::setErrorHandler(ErrorHandler *handler)
-{
-    actionController_->setErrorHandler(handler);
 }
 
 void ExplorePanel::setStreamingService(StreamingService *manager)

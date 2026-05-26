@@ -18,6 +18,7 @@
 #include "mocks/mockftpclient.h"
 #include "mocks/mockrestclient.h"
 #include "models/remotefilemodel.h"
+#include "services/errorhandler.h"
 #include "ui/remotefilebrowserwidget.h"
 
 #include <QSignalSpy>
@@ -31,6 +32,8 @@ private:
     RemoteFileModel *model_ = nullptr;
     MockFtpClient *mockFtp_ = nullptr;
     MockRestClient *mockRest_ = nullptr;
+
+    ErrorHandler *makeErrorHandler() { return new ErrorHandler(nullptr, this); }
 
 private slots:
     void init()
@@ -46,7 +49,7 @@ private slots:
 
     void testConstruct_doesNotCrash()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         QVERIFY(true);
     }
 
@@ -56,7 +59,7 @@ private slots:
 
     void testSetCurrentDirectory_EmitsCurrentDirectoryChanged()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         QSignalSpy spy(&widget, &RemoteFileBrowserWidget::currentDirectoryChanged);
 
         widget.setCurrentDirectory("/SD");
@@ -67,7 +70,7 @@ private slots:
 
     void testSetCurrentDirectory_UpdatesCurrentDirectory()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         widget.setCurrentDirectory("/SD/Games");
         QCOMPARE(widget.currentDirectory(), QString("/SD/Games"));
     }
@@ -78,7 +81,7 @@ private slots:
 
     void testOnParentFolder_AtRoot_DoesNotEmitSignal()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         // Start at root
         widget.setCurrentDirectory("/");
         QSignalSpy spy(&widget, &RemoteFileBrowserWidget::currentDirectoryChanged);
@@ -91,7 +94,7 @@ private slots:
 
     void testOnParentFolder_AtRoot_StaysAtRoot()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         widget.setCurrentDirectory("/");
 
         QMetaObject::invokeMethod(&widget, "onParentFolder");
@@ -105,7 +108,7 @@ private slots:
 
     void testOnParentFolder_OneLevelDeep_NavigatesToRoot()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         widget.setCurrentDirectory("/SD");
         QSignalSpy spy(&widget, &RemoteFileBrowserWidget::currentDirectoryChanged);
 
@@ -117,7 +120,7 @@ private slots:
 
     void testOnParentFolder_TwoLevelsDeep_NavigatesToParent()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         widget.setCurrentDirectory("/SD/Games");
         QSignalSpy spy(&widget, &RemoteFileBrowserWidget::currentDirectoryChanged);
 
@@ -133,7 +136,7 @@ private slots:
 
     void testRefreshIfStale_WhenDisconnected_NoOp()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         // Widget starts disconnected, so refreshIfStale should be a no-op
         // We verify by checking no crash and model refresh is not triggered
         widget.refreshIfStale();
@@ -146,7 +149,7 @@ private slots:
 
     void testRefreshIfStale_WhenConnected_Proceeds()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         widget.onConnectionStateChanged(true);
         // Should not crash
         widget.refreshIfStale();
@@ -159,7 +162,7 @@ private slots:
 
     void testAutoRefreshSuppressor_SuppressesRefresh()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         widget.onConnectionStateChanged(true);
 
         {
@@ -178,7 +181,7 @@ private slots:
 
     void testSelectedPath_NoSelection_ReturnsEmpty()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         QVERIFY(widget.selectedPath().isEmpty());
     }
 
@@ -188,7 +191,7 @@ private slots:
 
     void testIsSelectedDirectory_NoSelection_ReturnsFalse()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         QVERIFY(!widget.isSelectedDirectory());
     }
 
@@ -198,7 +201,7 @@ private slots:
 
     void testSelectedPaths_NoSelection_ReturnsEmpty()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         QVERIFY(widget.selectedPaths().isEmpty());
     }
 
@@ -208,7 +211,7 @@ private slots:
 
     void testSetDownloadEnabled_DoesNotCrash()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         widget.setDownloadEnabled(true);
         widget.setDownloadEnabled(false);
         QVERIFY(true);
@@ -220,14 +223,14 @@ private slots:
 
     void testOnConnectionStateChanged_Connected()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         widget.onConnectionStateChanged(true);
         QVERIFY(true);  // No crash
     }
 
     void testOnConnectionStateChanged_Disconnected()
     {
-        RemoteFileBrowserWidget widget(model_);
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
         widget.onConnectionStateChanged(true);
         widget.onConnectionStateChanged(false);
         QVERIFY(true);  // No crash

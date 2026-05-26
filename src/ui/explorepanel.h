@@ -35,7 +35,8 @@ public:
     QObject *asQObject() override { return this; }
 
     explicit ExplorePanel(DeviceConnectionManager *connection, RemoteFileModel *model,
-                          const ExplorePanelServices &services, QWidget *parent = nullptr);
+                          const ExplorePanelServices &services, ErrorHandler *errorHandler,
+                          QWidget *parent = nullptr);
 
     // Public API for MainWindow coordination
     void setCurrentDirectory(const QString &path) override;
@@ -50,9 +51,6 @@ public:
 
     // Metadata services injection (bundled)
     void setMetadataServices(const MetadataServiceBundle &bundle);
-
-    // Error handler injection (routes boot sequence errors through centralized handler)
-    void setErrorHandler(ErrorHandler *handler);
 
     // Streaming service injection (for auto-start on play/run)
     void setStreamingService(StreamingService *manager);

@@ -20,14 +20,13 @@ class ConfigPanel : public QWidget, public IPanel
     Q_OBJECT
 
 public:
-    explicit ConfigPanel(ConfigurationService *configService, QWidget *parent = nullptr);
+    explicit ConfigPanel(ConfigurationService *configService, ErrorHandler *errorHandler,
+                         QWidget *parent = nullptr);
 
     QObject *asQObject() override { return this; }
 
     // Public API for MainWindow coordination
     void refreshIfEmpty() override;
-
-    void setErrorHandler(ErrorHandler *handler);
 
 private slots:
     void onSaveToFlash();
@@ -52,7 +51,7 @@ private:
 
     // Dependencies (not owned)
     ConfigurationService *configService_ = nullptr;
-    ErrorHandler *errorHandler_ = nullptr;
+    ErrorHandler *errorHandler_;
 
     // Owned model
     ConfigurationModel *configModel_ = nullptr;

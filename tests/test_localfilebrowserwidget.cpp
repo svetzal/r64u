@@ -12,6 +12,7 @@
  * - Construction does not crash
  */
 
+#include "services/errorhandler.h"
 #include "ui/localfilebrowserwidget.h"
 
 #include <QStandardPaths>
@@ -21,6 +22,9 @@ class TestLocalFileBrowserWidget : public QObject
 {
     Q_OBJECT
 
+private:
+    ErrorHandler *makeErrorHandler() { return new ErrorHandler(nullptr, this); }
+
 private slots:
 
     // =========================================================================
@@ -29,7 +33,7 @@ private slots:
 
     void testConstruct_doesNotCrash()
     {
-        LocalFileBrowserWidget widget;
+        LocalFileBrowserWidget widget(makeErrorHandler());
         QVERIFY(true);
     }
 
@@ -39,7 +43,7 @@ private slots:
 
     void testSelectedPath_NoSelection_ReturnsEmpty()
     {
-        LocalFileBrowserWidget widget;
+        LocalFileBrowserWidget widget(makeErrorHandler());
         QVERIFY(widget.selectedPath().isEmpty());
     }
 
@@ -49,7 +53,7 @@ private slots:
 
     void testIsSelectedDirectory_NoSelection_ReturnsFalse()
     {
-        LocalFileBrowserWidget widget;
+        LocalFileBrowserWidget widget(makeErrorHandler());
         QVERIFY(!widget.isSelectedDirectory());
     }
 
@@ -59,7 +63,7 @@ private slots:
 
     void testSelectedPaths_NoSelection_ReturnsEmpty()
     {
-        LocalFileBrowserWidget widget;
+        LocalFileBrowserWidget widget(makeErrorHandler());
         QVERIFY(widget.selectedPaths().isEmpty());
     }
 
@@ -69,7 +73,7 @@ private slots:
 
     void testSetCurrentDirectory_UpdatesCurrentDirectory()
     {
-        LocalFileBrowserWidget widget;
+        LocalFileBrowserWidget widget(makeErrorHandler());
         QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
         widget.setCurrentDirectory(homePath);
         QCOMPARE(widget.currentDirectory(), homePath);
@@ -81,14 +85,14 @@ private slots:
 
     void testSetUploadEnabled_True_DoesNotCrash()
     {
-        LocalFileBrowserWidget widget;
+        LocalFileBrowserWidget widget(makeErrorHandler());
         widget.setUploadEnabled(true);
         QVERIFY(true);
     }
 
     void testSetUploadEnabled_False_DoesNotCrash()
     {
-        LocalFileBrowserWidget widget;
+        LocalFileBrowserWidget widget(makeErrorHandler());
         widget.setUploadEnabled(false);
         QVERIFY(true);
     }
@@ -99,7 +103,7 @@ private slots:
 
     void testCurrentDirectory_Initial_ReturnsHomeLocation()
     {
-        LocalFileBrowserWidget widget;
+        LocalFileBrowserWidget widget(makeErrorHandler());
         QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
         QCOMPARE(widget.currentDirectory(), homePath);
     }

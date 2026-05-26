@@ -18,10 +18,12 @@
 
 FileActionController::FileActionController(DeviceActionService *deviceActionService,
                                            DeviceConnectionManager *connection,
-                                           ConfigFileLoaderService *configLoader, QObject *parent)
+                                           ConfigFileLoaderService *configLoader,
+                                           ErrorHandler *errorHandler, QObject *parent)
     : QObject(parent), deviceActionService_(deviceActionService), deviceConnection_(connection),
-      configFileLoader_(configLoader)
+      configFileLoader_(configLoader), errorHandler_(errorHandler)
 {
+    Q_ASSERT(errorHandler_ && "ErrorHandler is required");
     bootService_ = new DiskBootSequenceService(this);
     if (deviceConnection_) {
         bootService_->setRestClient(deviceConnection_->restClient());
@@ -29,19 +31,10 @@ FileActionController::FileActionController(DeviceActionService *deviceActionServ
 
     connect(bootService_, &DiskBootSequenceService::statusMessage, this,
             [this](const QString &message, int /*timeout*/) {
-                if (errorHandler_) {
-                    errorHandler_->info(ErrorCategory::FileOperation, message);
-                }
+                errorHandler_->info(ErrorCategory::FileOperation, message);
             });
-}
-
-void FileActionController::setErrorHandler(ErrorHandler *handler)
-{
-    errorHandler_ = handler;
-    if (handler) {
-        connect(bootService_, &DiskBootSequenceService::errorOccurred, handler,
-                &ErrorHandler::handleDataError);
-    }
+    connect(bootService_, &DiskBootSequenceService::errorOccurred, errorHandler_,
+            &ErrorHandler::handleDataError);
 }
 
 void FileActionController::setStreamingService(StreamingService *manager)
@@ -183,14 +176,10 @@ void FileActionController::play(const QString &path, filetype::FileType type)
     ensureStreamingStarted();
     if (type == filetype::FileType::SidMusic) {
         deviceActionService_->playSid(path);
-        if (errorHandler_) {
-            errorHandler_->info(ErrorCategory::FileOperation, tr("Playing SID: %1").arg(path));
-        }
+        errorHandler_->info(ErrorCategory::FileOperation, tr("Playing SID: %1").arg(path));
     } else if (type == filetype::FileType::ModMusic) {
         deviceActionService_->playMod(path);
-        if (errorHandler_) {
-            errorHandler_->info(ErrorCategory::FileOperation, tr("Playing MOD: %1").arg(path));
-        }
+        errorHandler_->info(ErrorCategory::FileOperation, tr("Playing MOD: %1").arg(path));
     }
 }
 
@@ -201,14 +190,10 @@ void FileActionController::run(const QString &path, filetype::FileType type)
     ensureStreamingStarted();
     if (type == filetype::FileType::Program) {
         deviceActionService_->runPrg(path);
-        if (errorHandler_) {
-            errorHandler_->info(ErrorCategory::FileOperation, tr("Running PRG: %1").arg(path));
-        }
+        errorHandler_->info(ErrorCategory::FileOperation, tr("Running PRG: %1").arg(path));
     } else if (type == filetype::FileType::Cartridge) {
         deviceActionService_->runCrt(path);
-        if (errorHandler_) {
-            errorHandler_->info(ErrorCategory::FileOperation, tr("Running CRT: %1").arg(path));
-        }
+        errorHandler_->info(ErrorCategory::FileOperation, tr("Running CRT: %1").arg(path));
     } else if (type == filetype::FileType::DiskImage) {
         runDiskImage(path);
     }
@@ -219,33 +204,25 @@ void FileActionController::mountToDrive(const QString &path, const QString &driv
     if (!validateFileOperation(path))
         return;
     deviceActionService_->mountImage(drive, path);
-    if (errorHandler_) {
-        errorHandler_->info(ErrorCategory::FileOperation,
-                            tr("Mounting to Drive %1: %2").arg(drive.toUpper()).arg(path));
-    }
+    errorHandler_->info(ErrorCategory::FileOperation,
+                        tr("Mounting to Drive %1: %2").arg(drive.toUpper()).arg(path));
 }
 
 void FileActionController::loadConfig(const QString &path, filetype::FileType type)
 {
     if (path.isEmpty()) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
-                                       tr("No file selected"));
-        }
+        errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
+                                   tr("No file selected"));
         return;
     }
     if (type != filetype::FileType::Config) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
-                                       tr("Selected file is not a configuration file"));
-        }
+        errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
+                                   tr("Selected file is not a configuration file"));
         return;
     }
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
-                                       tr("Not connected to device"));
-        }
+        errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
+                                   tr("Not connected to device"));
         return;
     }
     if (configFileLoader_) {
@@ -258,58 +235,41 @@ void FileActionController::loadConfig(const QString &path, filetype::FileType ty
 
 void FileActionController::download(const QString &path)
 {
-    if (errorHandler_) {
-        errorHandler_->info(ErrorCategory::FileOperation,
-                            tr("Download requested for: %1").arg(path));
-    }
+    errorHandler_->info(ErrorCategory::FileOperation, tr("Download requested for: %1").arg(path));
 }
 
 void FileActionController::addToPlaylist(const QList<QPair<QString, filetype::FileType>> &items)
 {
     if (!playlistService_) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
-                                       tr("Playlist not available"));
-        }
+        errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
+                                   tr("Playlist not available"));
         return;
     }
 
     QList<filebrowser::PlaylistCandidate> candidates = filebrowser::filterPlaylistCandidates(items);
     if (candidates.isEmpty()) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
-                                       tr("No SID music files in selection"));
-        }
+        errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
+                                   tr("No SID music files in selection"));
         return;
     }
 
     for (const auto &candidate : candidates) {
         playlistService_->addItem(candidate.path);
     }
-    if (errorHandler_) {
-        errorHandler_->info(ErrorCategory::FileOperation,
-                            tr("Added %1 item(s) to playlist").arg(candidates.size()));
-    }
+    errorHandler_->info(ErrorCategory::FileOperation,
+                        tr("Added %1 item(s) to playlist").arg(candidates.size()));
 }
 
 bool FileActionController::validateFileOperation(const QString &path)
 {
     if (path.isEmpty()) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
-                                       tr("No file selected"));
-        } else {
-            emit statusMessage(tr("No file selected"));
-        }
+        errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
+                                   tr("No file selected"));
         return false;
     }
     if (!deviceActionService_ || !deviceActionService_->canPerformOperations()) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
-                                       tr("Not connected to device"));
-        } else {
-            emit statusMessage(tr("Not connected to device"));
-        }
+        errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
+                                   tr("Not connected to device"));
         return false;
     }
     return true;

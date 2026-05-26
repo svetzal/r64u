@@ -21,8 +21,9 @@
 #include <QToolBar>
 #include <QTreeView>
 
-RemoteFileBrowserWidget::RemoteFileBrowserWidget(RemoteFileModel *fileModel, QWidget *parent)
-    : FileBrowserWidget(parent), remoteFileModel_(fileModel),
+RemoteFileBrowserWidget::RemoteFileBrowserWidget(RemoteFileModel *fileModel,
+                                                 ErrorHandler *errorHandler, QWidget *parent)
+    : FileBrowserWidget(errorHandler, parent), remoteFileModel_(fileModel),
       controller_(new RemoteFileBrowserController(this)),
       refreshPolicy_(new RefreshPolicyManager(this))
 {
@@ -133,9 +134,7 @@ void RemoteFileBrowserWidget::setFileOperations(RemoteFileOperationsService *ops
                 &RemoteFileBrowserWidget::onFileRemoved);
         connect(fileOperations_, &RemoteFileOperationsService::statusMessage, this,
                 [this](const QString &message, int /*timeout*/) {
-                    if (errorHandler_) {
-                        errorHandler_->info(ErrorCategory::FileOperation, message);
-                    }
+                    errorHandler_->info(ErrorCategory::FileOperation, message);
                 });
     }
 }
@@ -163,9 +162,7 @@ void RemoteFileBrowserWidget::setCurrentDirectory(const QString &path)
         navWidget_->setPath(path);
     }
     emit currentDirectoryChanged(path);
-    if (errorHandler_) {
-        errorHandler_->info(ErrorCategory::FileOperation, tr("Upload destination: %1").arg(path));
-    }
+    errorHandler_->info(ErrorCategory::FileOperation, tr("Upload destination: %1").arg(path));
 
     // Enable/disable up button based on whether we can go up
     bool canGoUp = (path != "/" && !path.isEmpty());
@@ -300,10 +297,8 @@ void RemoteFileBrowserWidget::onDownload()
 {
     QStringList paths = selectedPaths();
     if (paths.isEmpty()) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
-                                       tr("No remote file selected"));
-        }
+        errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
+                                   tr("No remote file selected"));
         return;
     }
 
@@ -343,14 +338,12 @@ void RemoteFileBrowserWidget::onNewFolder()
     }
 
     emit createFolderRequested(newPath);
-    if (errorHandler_) {
-        QString remoteDir = currentDirectory_.isEmpty() ? QStringLiteral("/") : currentDirectory_;
-        if (!remoteDir.endsWith('/')) {
-            remoteDir += '/';
-        }
-        errorHandler_->info(ErrorCategory::FileOperation,
-                            tr("Creating folder %1 in %2...").arg(folderName).arg(remoteDir));
+    QString remoteDir = currentDirectory_.isEmpty() ? QStringLiteral("/") : currentDirectory_;
+    if (!remoteDir.endsWith('/')) {
+        remoteDir += '/';
     }
+    errorHandler_->info(ErrorCategory::FileOperation,
+                        tr("Creating folder %1 in %2...").arg(folderName).arg(remoteDir));
 }
 
 void RemoteFileBrowserWidget::onRename()
@@ -388,9 +381,7 @@ void RemoteFileBrowserWidget::onRename()
     }
 
     emit renameRequested(remotePath, newPath);
-    if (errorHandler_) {
-        errorHandler_->info(ErrorCategory::FileOperation, tr("Renaming %1...").arg(oldName));
-    }
+    errorHandler_->info(ErrorCategory::FileOperation, tr("Renaming %1...").arg(oldName));
 }
 
 void RemoteFileBrowserWidget::onDelete()
@@ -432,14 +423,12 @@ void RemoteFileBrowserWidget::onDelete()
         emit deleteRequested(remotePath, isDir);
     }
 
-    if (errorHandler_) {
-        if (paths.size() == 1) {
-            errorHandler_->info(ErrorCategory::FileOperation,
-                                tr("Deleting %1...").arg(QFileInfo(paths.first()).fileName()));
-        } else {
-            errorHandler_->info(ErrorCategory::FileOperation,
-                                tr("Deleting %1 items...").arg(paths.size()));
-        }
+    if (paths.size() == 1) {
+        errorHandler_->info(ErrorCategory::FileOperation,
+                            tr("Deleting %1...").arg(QFileInfo(paths.first()).fileName()));
+    } else {
+        errorHandler_->info(ErrorCategory::FileOperation,
+                            tr("Deleting %1 items...").arg(paths.size()));
     }
 }
 
@@ -481,10 +470,8 @@ RemoteFileBrowserWidget::AutoRefreshSuppressor RemoteFileBrowserWidget::suppress
 
 void RemoteFileBrowserWidget::onDirectoryCreated(const QString &path)
 {
-    if (errorHandler_) {
-        errorHandler_->info(ErrorCategory::FileOperation,
-                            tr("Folder created: %1").arg(QFileInfo(path).fileName()));
-    }
+    errorHandler_->info(ErrorCategory::FileOperation,
+                        tr("Folder created: %1").arg(QFileInfo(path).fileName()));
     if (!refreshPolicy_->isSuppressed() && remoteFileModel_) {
         remoteFileModel_->refresh();
     }
@@ -494,10 +481,8 @@ void RemoteFileBrowserWidget::onFileRemoved(const QString &path)
 {
     // Don't emit status messages or refresh during bulk delete operations
     if (!refreshPolicy_->isSuppressed() && remoteFileModel_) {
-        if (errorHandler_) {
-            errorHandler_->info(ErrorCategory::FileOperation,
-                                tr("Deleted: %1").arg(QFileInfo(path).fileName()));
-        }
+        errorHandler_->info(ErrorCategory::FileOperation,
+                            tr("Deleted: %1").arg(QFileInfo(path).fileName()));
         remoteFileModel_->refresh();
     }
 }
@@ -506,10 +491,8 @@ void RemoteFileBrowserWidget::onFileRenamed(const QString &oldPath, const QStrin
 {
     QString oldName = QFileInfo(oldPath).fileName();
     QString newName = QFileInfo(newPath).fileName();
-    if (errorHandler_) {
-        errorHandler_->info(ErrorCategory::FileOperation,
-                            tr("Renamed: %1 -> %2").arg(oldName).arg(newName));
-    }
+    errorHandler_->info(ErrorCategory::FileOperation,
+                        tr("Renamed: %1 -> %2").arg(oldName).arg(newName));
     if (!refreshPolicy_->isSuppressed() && remoteFileModel_) {
         remoteFileModel_->refresh();
     }

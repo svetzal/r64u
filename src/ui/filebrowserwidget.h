@@ -34,21 +34,16 @@ class FileBrowserWidget : public QWidget
 public:
     /**
      * @brief Constructs a file browser widget.
+     * @param errorHandler Error handler for routing status messages (required, not owned).
      * @param parent Optional parent widget.
      */
-    explicit FileBrowserWidget(QWidget *parent = nullptr);
+    explicit FileBrowserWidget(ErrorHandler *errorHandler, QWidget *parent = nullptr);
 
     /**
      * @brief Returns the current directory path.
      * @return The current directory path.
      */
     [[nodiscard]] QString currentDirectory() const { return currentDirectory_; }
-
-    /**
-     * @brief Sets the error handler for routing status messages.
-     * @param handler The error handler instance (not owned).
-     */
-    void setErrorHandler(ErrorHandler *handler);
 
     /**
      * @brief Returns the path of the selected item.
@@ -210,7 +205,7 @@ protected:
     QString currentDirectory_;
 
     // Error handler (not owned)
-    ErrorHandler *errorHandler_ = nullptr;
+    ErrorHandler *errorHandler_;
 
     // UI widgets (protected so subclasses can access)
     QTreeView *treeView_ = nullptr;

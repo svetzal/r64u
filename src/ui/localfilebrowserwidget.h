@@ -13,7 +13,7 @@ class LocalFileBrowserWidget : public FileBrowserWidget
     Q_OBJECT
 
 public:
-    explicit LocalFileBrowserWidget(QWidget *parent = nullptr);
+    explicit LocalFileBrowserWidget(ErrorHandler *errorHandler, QWidget *parent = nullptr);
 
     [[nodiscard]] QString selectedPath() const override;
     [[nodiscard]] bool isSelectedDirectory() const override;

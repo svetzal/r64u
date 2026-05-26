@@ -21,6 +21,7 @@
 #include "mocks/mockftpclient.h"
 #include "mocks/mockrestclient.h"
 #include "services/deviceconnectionmanager.h"
+#include "services/errorhandler.h"
 #include "services/screenshotservice.h"
 #include "services/streamingservice.h"
 #include "services/videorecordingservice.h"
@@ -46,6 +47,8 @@ private:
         return new DeviceConnectionManager(mockRest_, mockFtp_, this);
     }
 
+    ErrorHandler *makeErrorHandler() { return new ErrorHandler(nullptr, this); }
+
 private slots:
     void init()
     {
@@ -69,7 +72,7 @@ private slots:
 
     void testConstruct_doesNotCrash()
     {
-        ViewPanel panel(connection_);
+        ViewPanel panel(connection_, makeErrorHandler());
         QVERIFY(true);
     }
 
@@ -79,7 +82,7 @@ private slots:
 
     void testStopStreamingIfActive_NoStreamingService_NoOp()
     {
-        ViewPanel panel(connection_);
+        ViewPanel panel(connection_, makeErrorHandler());
         // streaming service is null — should not crash
         panel.stopStreamingIfActive();
         QVERIFY(true);
@@ -91,7 +94,7 @@ private slots:
 
     void testStopStreamingIfActive_NotStreaming_NoOp()
     {
-        ViewPanel panel(connection_);
+        ViewPanel panel(connection_, makeErrorHandler());
         // Inject a streaming service — not streaming by default
         auto *service = new StreamingService(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
                                              nullptr, this);
@@ -108,7 +111,7 @@ private slots:
 
     void testScalingMode_ReturnsValidInt()
     {
-        ViewPanel panel(connection_);
+        ViewPanel panel(connection_, makeErrorHandler());
         int mode = panel.scalingMode();
         // Valid ScalingMode values: Sharp(0), Smooth(1), Integer(2)
         QVERIFY(mode >= 0 && mode <= 2);
@@ -121,13 +124,13 @@ private slots:
     void testLoadSaveSettings_RoundTrip()
     {
         {
-            ViewPanel panel(connection_);
+            ViewPanel panel(connection_, makeErrorHandler());
             // Default is Integer (2)
             QCOMPARE(panel.scalingMode(), 2);
             panel.saveSettings();
         }
         {
-            ViewPanel panel(connection_);
+            ViewPanel panel(connection_, makeErrorHandler());
             panel.loadSettings();
             QCOMPARE(panel.scalingMode(), 2);
         }
@@ -136,7 +139,7 @@ private slots:
     void testSaveSettings_PersistsScalingMode()
     {
         {
-            ViewPanel panel(connection_);
+            ViewPanel panel(connection_, makeErrorHandler());
             // Change to Sharp via loadSettings with a preset
             QSettings settings;
             settings.setValue("view/scalingMode", 0);  // Sharp
@@ -155,7 +158,7 @@ private slots:
 
     void testSetStreamingService_AccessorReturnsSet()
     {
-        ViewPanel panel(connection_);
+        ViewPanel panel(connection_, makeErrorHandler());
         auto *service = new StreamingService(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
                                              nullptr, this);
         panel.setStreamingService(service);
@@ -164,7 +167,7 @@ private slots:
 
     void testStreamingService_InitiallyNull()
     {
-        ViewPanel panel(connection_);
+        ViewPanel panel(connection_, makeErrorHandler());
         QVERIFY(panel.streamingService() == nullptr);
     }
 
@@ -174,13 +177,13 @@ private slots:
 
     void testRecordingService_InitiallyNull()
     {
-        ViewPanel panel(connection_);
+        ViewPanel panel(connection_, makeErrorHandler());
         QVERIFY(panel.recordingService() == nullptr);
     }
 
     void testSetRecordingService_AccessorReturnsSet()
     {
-        ViewPanel panel(connection_);
+        ViewPanel panel(connection_, makeErrorHandler());
         auto *service = new VideoRecordingService(this);
         panel.setRecordingService(service);
         QCOMPARE(panel.recordingService(), service);
@@ -192,7 +195,7 @@ private slots:
 
     void testOnStartStreaming_NullStreamingService_NoOp()
     {
-        ViewPanel panel(connection_);
+        ViewPanel panel(connection_, makeErrorHandler());
         // No streaming service injected — slot should return silently
         QMetaObject::invokeMethod(&panel, "onStartStreaming");
         QVERIFY(panel.streamingService() == nullptr);
@@ -204,7 +207,7 @@ private slots:
 
     void testOnCaptureScreenshot_NullService_NoOp()
     {
-        ViewPanel panel(connection_);
+        ViewPanel panel(connection_, makeErrorHandler());
         // No screenshot service — should not crash
         QMetaObject::invokeMethod(&panel, "onCaptureScreenshot");
         QVERIFY(true);
@@ -212,7 +215,7 @@ private slots:
 
     void testOnCaptureScreenshot_WithService_UsesService()
     {
-        ViewPanel panel(connection_);
+        ViewPanel panel(connection_, makeErrorHandler());
         auto *service = new ScreenshotService(this);
         panel.setScreenshotService(service);
         // Frame is null so service should handle gracefully (no crash)
@@ -226,7 +229,7 @@ private slots:
 
     void testOnStartRecording_NullService_NoOp()
     {
-        ViewPanel panel(connection_);
+        ViewPanel panel(connection_, makeErrorHandler());
         // No recording service — should return silently
         QMetaObject::invokeMethod(&panel, "onStartRecording");
         QVERIFY(panel.recordingService() == nullptr);
@@ -238,7 +241,7 @@ private slots:
 
     void testOnStopRecording_NullService_NoOp()
     {
-        ViewPanel panel(connection_);
+        ViewPanel panel(connection_, makeErrorHandler());
         QMetaObject::invokeMethod(&panel, "onStopRecording");
         QVERIFY(true);
     }

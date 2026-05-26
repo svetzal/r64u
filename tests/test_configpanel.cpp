@@ -3,6 +3,7 @@
 #include "services/configurationservice.h"
 #include "services/deviceconnectionmanager.h"
 #include "services/devicetypes.h"
+#include "services/errorhandler.h"
 #include "ui/configpanel.h"
 
 #include <QSignalSpy>
@@ -55,6 +56,8 @@ class TestConfigPanel : public QObject
     Q_OBJECT
 
 private:
+    ErrorHandler *makeErrorHandler() { return new ErrorHandler(nullptr, this); }
+
     /**
      * @brief Creates a TrackingRestClient-backed ConfigurationService in Connected state.
      *
@@ -104,7 +107,7 @@ private slots:
     {
         TrackingRestClient *restClient = nullptr;
         auto *service = makeConnectedService(&restClient);
-        ConfigPanel panel(service);
+        ConfigPanel panel(service, makeErrorHandler());
 
         panel.refreshIfEmpty();
 
@@ -118,7 +121,7 @@ private slots:
         auto *connection = new DeviceConnectionManager(restClient, ftpClient, this);
         // Do NOT call connectToDevice() — stays Disconnected
         auto *service = new ConfigurationService(connection, this);
-        ConfigPanel panel(service);
+        ConfigPanel panel(service, makeErrorHandler());
 
         panel.refreshIfEmpty();
 
@@ -129,7 +132,7 @@ private slots:
     {
         TrackingRestClient *restClient = nullptr;
         auto *service = makeConnectedService(&restClient);
-        ConfigPanel panel(service);
+        ConfigPanel panel(service, makeErrorHandler());
 
         // Pre-populate with categories via signal — causes getConfigCategoryItems calls
         emit restClient->configCategoriesReceived({"Network", "Video"});
@@ -149,7 +152,7 @@ private slots:
     {
         TrackingRestClient *restClient = nullptr;
         auto *service = makeConnectedService(&restClient);
-        ConfigPanel panel(service);
+        ConfigPanel panel(service, makeErrorHandler());
 
         emit restClient->configCategoriesReceived({"Network", "Video", "Audio"});
 
@@ -167,7 +170,7 @@ private slots:
     {
         TrackingRestClient *restClient = nullptr;
         auto *service = makeConnectedService(&restClient);
-        ConfigPanel panel(service);
+        ConfigPanel panel(service, makeErrorHandler());
 
         emit restClient->configCategoriesReceived({});
 
@@ -182,7 +185,7 @@ private slots:
     {
         TrackingRestClient *restClient = nullptr;
         auto *service = makeConnectedService(&restClient);
-        ConfigPanel panel(service);
+        ConfigPanel panel(service, makeErrorHandler());
         panel.show();
 
         // Should not crash — clears dirty indicator
@@ -199,7 +202,7 @@ private slots:
     {
         TrackingRestClient *restClient = nullptr;
         auto *service = makeConnectedService(&restClient);
-        ConfigPanel panel(service);
+        ConfigPanel panel(service, makeErrorHandler());
 
         emit restClient->configLoadedFromFlash();
 
@@ -215,7 +218,7 @@ private slots:
     {
         TrackingRestClient *restClient = nullptr;
         auto *service = makeConnectedService(&restClient);
-        ConfigPanel panel(service);
+        ConfigPanel panel(service, makeErrorHandler());
 
         emit restClient->configResetToDefaults();
 
@@ -231,7 +234,7 @@ private slots:
     {
         TrackingRestClient *restClient = nullptr;
         auto *service = makeConnectedService(&restClient);
-        ConfigPanel panel(service);
+        ConfigPanel panel(service, makeErrorHandler());
 
         // Should not crash
         emit restClient->configItemSet("Network", "ip");
@@ -247,7 +250,7 @@ private slots:
     {
         TrackingRestClient *restClient = nullptr;
         auto *service = makeConnectedService(&restClient);
-        ConfigPanel panel(service);
+        ConfigPanel panel(service, makeErrorHandler());
         emit restClient->configCategoriesReceived({"Network"});
 
         QHash<QString, ConfigItemMetadata> items;

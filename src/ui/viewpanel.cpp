@@ -18,10 +18,12 @@
 #include <QSettings>
 #include <QVBoxLayout>
 
-ViewPanel::ViewPanel(DeviceConnectionManager *connection, QWidget *parent)
-    : QWidget(parent), deviceConnection_(connection)
+ViewPanel::ViewPanel(DeviceConnectionManager *connection, ErrorHandler *errorHandler,
+                     QWidget *parent)
+    : QWidget(parent), deviceConnection_(connection), errorHandler_(errorHandler)
 {
     Q_ASSERT(deviceConnection_ && "DeviceConnectionManager is required");
+    Q_ASSERT(errorHandler_ && "ErrorHandler is required");
     setupUi();
 }
 
@@ -152,9 +154,7 @@ void ViewPanel::setStreamingService(StreamingService *manager)
     connect(streamingService_, &StreamingService::error, this, &ViewPanel::onStreamingError);
     connect(streamingService_, &StreamingService::statusMessage, this,
             [this](const QString &msg, int /*timeout*/) {
-                if (errorHandler_) {
-                    errorHandler_->info(ErrorCategory::System, msg);
-                }
+                errorHandler_->info(ErrorCategory::System, msg);
             });
 
     // Connect video display keyboard events to keyboard service
@@ -192,11 +192,6 @@ void ViewPanel::setRecordingService(VideoRecordingService *service)
 void ViewPanel::setScreenshotService(ScreenshotService *service)
 {
     screenshotService_ = service;
-}
-
-void ViewPanel::setErrorHandler(ErrorHandler *handler)
-{
-    errorHandler_ = handler;
 }
 
 void ViewPanel::setupConnections()
@@ -272,10 +267,8 @@ int ViewPanel::scalingMode() const
 void ViewPanel::onStartStreaming()
 {
     if (!deviceConnection_ || !deviceConnection_->canPerformOperations()) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
-                                       tr("Not connected to device"));
-        }
+        errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
+                                   tr("Not connected to device"));
         return;
     }
 
@@ -388,10 +381,8 @@ void ViewPanel::onCaptureScreenshot()
 
     QImage frame = videoDisplayWidget_->currentFrame();
     if (frame.isNull()) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
-                                       tr("No frame to capture"));
-        }
+        errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
+                                   tr("No frame to capture"));
         return;
     }
 
@@ -402,15 +393,10 @@ void ViewPanel::onCaptureScreenshot()
 
     QString filename = screenshotService_->capture(frame);
     if (!filename.isEmpty()) {
-        if (errorHandler_) {
-            errorHandler_->info(ErrorCategory::FileOperation,
-                                tr("Screenshot saved: %1").arg(filename));
-        }
+        errorHandler_->info(ErrorCategory::FileOperation, tr("Screenshot saved: %1").arg(filename));
     } else {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::FileOperation, ErrorSeverity::Warning,
-                                       tr("Failed to save screenshot"));
-        }
+        errorHandler_->handleError(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                                   tr("Failed to save screenshot"));
     }
 }
 
@@ -440,9 +426,7 @@ void ViewPanel::onRecordingStarted(const QString &filePath)
     if (stopRecordingAction_) {
         stopRecordingAction_->setEnabled(true);
     }
-    if (errorHandler_) {
-        errorHandler_->info(ErrorCategory::FileOperation, tr("Recording started..."));
-    }
+    errorHandler_->info(ErrorCategory::FileOperation, tr("Recording started..."));
 }
 
 void ViewPanel::onRecordingStopped(const QString &filePath, int frameCount)
@@ -456,11 +440,9 @@ void ViewPanel::onRecordingStopped(const QString &filePath, int frameCount)
     }
 
     QFileInfo fileInfo(filePath);
-    if (errorHandler_) {
-        errorHandler_->info(
-            ErrorCategory::FileOperation,
-            tr("Recording saved: %1 (%2 frames)").arg(fileInfo.fileName()).arg(frameCount));
-    }
+    errorHandler_->info(
+        ErrorCategory::FileOperation,
+        tr("Recording saved: %1 (%2 frames)").arg(fileInfo.fileName()).arg(frameCount));
 }
 
 void ViewPanel::onRecordingError(const QString & /*error*/)

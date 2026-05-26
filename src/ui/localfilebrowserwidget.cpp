@@ -17,7 +17,8 @@
 #include <QToolBar>
 #include <QTreeView>
 
-LocalFileBrowserWidget::LocalFileBrowserWidget(QWidget *parent) : FileBrowserWidget(parent)
+LocalFileBrowserWidget::LocalFileBrowserWidget(ErrorHandler *errorHandler, QWidget *parent)
+    : FileBrowserWidget(errorHandler, parent)
 {
     currentDirectory_ = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
     // NOLINT: Qt template-method initialization pattern. These virtual methods are defined
@@ -77,15 +78,11 @@ void LocalFileBrowserWidget::setupUi()
     fileOps_ = new LocalFileOperationsService(this);
     connect(fileOps_, &LocalFileOperationsService::statusMessage, this,
             [this](const QString &message, int /*timeout*/) {
-                if (errorHandler_) {
-                    errorHandler_->info(ErrorCategory::FileOperation, message);
-                }
+                errorHandler_->info(ErrorCategory::FileOperation, message);
             });
     connect(fileOps_, &LocalFileOperationsService::operationFailed, this,
             [this](ErrorCategory category, const QString &message) {
-                if (errorHandler_) {
-                    errorHandler_->handleError(category, ErrorSeverity::Warning, message);
-                }
+                errorHandler_->handleError(category, ErrorSeverity::Warning, message);
             });
 
     LocalFileBrowserWidget::updateActions();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
@@ -203,10 +200,8 @@ void LocalFileBrowserWidget::setCurrentDirectory(const QString &path)
 
     navWidget_->setPath(displayPath);
     emit currentDirectoryChanged(path);
-    if (errorHandler_) {
-        errorHandler_->info(ErrorCategory::FileOperation,
-                            tr("Download destination: %1").arg(displayPath));
-    }
+    errorHandler_->info(ErrorCategory::FileOperation,
+                        tr("Download destination: %1").arg(displayPath));
 
     // Enable/disable up button based on whether we can go up
     QDir dir(path);
@@ -218,10 +213,8 @@ void LocalFileBrowserWidget::onUpload()
 {
     QStringList paths = selectedPaths();
     if (paths.isEmpty()) {
-        if (errorHandler_) {
-            errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
-                                       tr("No local file selected"));
-        }
+        errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
+                                   tr("No local file selected"));
         return;
     }
 

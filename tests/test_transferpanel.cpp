@@ -18,6 +18,7 @@
 #include "models/remotefilemodel.h"
 #include "models/transferqueue.h"
 #include "services/deviceconnectionmanager.h"
+#include "services/errorhandler.h"
 #include "services/remotefileoperationsservice.h"
 #include "services/transferservice.h"
 #include "ui/transferpanel.h"
@@ -40,6 +41,8 @@ private:
     TransferService *transferService_ = nullptr;
     RemoteFileOperationsService *fileOperations_ = nullptr;
 
+    ErrorHandler *makeErrorHandler() { return new ErrorHandler(nullptr, this); }
+
     TransferPanel *makePanel()
     {
         mockRest_ = new MockRestClient(this);
@@ -50,7 +53,8 @@ private:
         transferService_ = new TransferService(connection_, queue_, this);
         fileOperations_ = new RemoteFileOperationsService(mockFtp_, this);
 
-        return new TransferPanel(connection_, remoteModel_, transferService_, fileOperations_);
+        return new TransferPanel(connection_, remoteModel_, transferService_, fileOperations_,
+                                 makeErrorHandler());
     }
 
 private slots:

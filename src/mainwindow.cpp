@@ -159,13 +159,12 @@ void MainWindow::setupPanels(ServiceFactory *services)
     exploreSvcs.previewService = filePreviewService_;
     exploreSvcs.favoritesService = favoritesService_;
     exploreSvcs.playlistService = playlistService_;
-    explorePanel_ = new ExplorePanel(deviceConnection_, remoteFileModel_, exploreSvcs);
+    explorePanel_ =
+        new ExplorePanel(deviceConnection_, remoteFileModel_, exploreSvcs, errorHandler_);
     explorePanel_->setMetadataServices(metadataBundle_);
     transferPanel_ = new TransferPanel(deviceConnection_, remoteFileModel_, transferService_,
-                                       services->remoteFileOperations());
-    transferPanel_->setErrorHandler(errorHandler_);
-    viewPanel_ = new ViewPanel(deviceConnection_);
-    viewPanel_->setErrorHandler(errorHandler_);
+                                       services->remoteFileOperations(), errorHandler_);
+    viewPanel_ = new ViewPanel(deviceConnection_, errorHandler_);
 
     // Create and inject streaming services into ViewPanel
     auto *streamingService = StreamingService::createDefault(deviceConnection_, viewPanel_);
@@ -177,8 +176,7 @@ void MainWindow::setupPanels(ServiceFactory *services)
 
     // Streaming error routing is handled via ErrorHandler::connectSources() in setupConnections()
 
-    configPanel_ = new ConfigPanel(services->configurationService());
-    configPanel_->setErrorHandler(errorHandler_);
+    configPanel_ = new ConfigPanel(services->configurationService(), errorHandler_);
 
     // Wire up the streaming service for auto stream start/stop
     playlistService_->setStreamingService(viewPanel_->streamingService());
@@ -220,7 +218,6 @@ void MainWindow::setupConnections()
         metadataBundle_.gameBase64Service, transferPanel_->fileOperations(), ss,
         ss ? ss->audioPlayback() : nullptr, viewPanel_->recordingService(),
         ss ? ss->keyboardInput() : nullptr, playlistService_);
-    explorePanel_->setErrorHandler(errorHandler_);
 
     // Connection lifecycle signals (navigation / model management)
     connect(deviceConnection_, &DeviceConnectionManager::stateChanged, this,

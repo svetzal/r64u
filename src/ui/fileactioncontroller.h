@@ -26,11 +26,11 @@ class FileActionController : public QObject
 public:
     explicit FileActionController(DeviceActionService *deviceActionService,
                                   DeviceConnectionManager *connection,
-                                  ConfigFileLoaderService *configLoader, QObject *parent = nullptr);
+                                  ConfigFileLoaderService *configLoader, ErrorHandler *errorHandler,
+                                  QObject *parent = nullptr);
 
     void setStreamingService(StreamingService *manager);
     void setPlaylistService(PlaylistService *manager);
-    void setErrorHandler(ErrorHandler *handler);
     void setActions(QAction *play, QAction *run, QAction *mount);
 
     /**
@@ -83,7 +83,7 @@ private:
     StreamingService *streamingService_ = nullptr;
     PlaylistService *playlistService_ = nullptr;
     DiskBootSequenceService *bootService_ = nullptr;
-    ErrorHandler *errorHandler_ = nullptr;
+    ErrorHandler *errorHandler_;
 
     // Selection source (not owned)
     QTreeView *selectionView_ = nullptr;

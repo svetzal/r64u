@@ -13,7 +13,8 @@ class RemoteFileBrowserWidget : public FileBrowserWidget
     Q_OBJECT
 
 public:
-    explicit RemoteFileBrowserWidget(RemoteFileModel *model, QWidget *parent = nullptr);
+    explicit RemoteFileBrowserWidget(RemoteFileModel *model, ErrorHandler *errorHandler,
+                                     QWidget *parent = nullptr);
 
     [[nodiscard]] QString selectedPath() const override;
     [[nodiscard]] bool isSelectedDirectory() const override;

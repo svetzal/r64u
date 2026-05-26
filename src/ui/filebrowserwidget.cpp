@@ -16,11 +16,10 @@
 #include <QTreeView>
 #include <QVBoxLayout>
 
-FileBrowserWidget::FileBrowserWidget(QWidget *parent) : QWidget(parent) {}
-
-void FileBrowserWidget::setErrorHandler(ErrorHandler *handler)
+FileBrowserWidget::FileBrowserWidget(ErrorHandler *errorHandler, QWidget *parent)
+    : QWidget(parent), errorHandler_(errorHandler)
 {
-    errorHandler_ = handler;
+    Q_ASSERT(errorHandler_ && "ErrorHandler is required");
 }
 
 void FileBrowserWidget::setCurrentDirectory(const QString &path)

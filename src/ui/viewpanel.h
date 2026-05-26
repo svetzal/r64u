@@ -25,7 +25,8 @@ class ViewPanel : public QWidget, public IPanel
 public:
     QObject *asQObject() override { return this; }
 
-    explicit ViewPanel(DeviceConnectionManager *connection, QWidget *parent = nullptr);
+    explicit ViewPanel(DeviceConnectionManager *connection, ErrorHandler *errorHandler,
+                       QWidget *parent = nullptr);
     ~ViewPanel() override;
 
     // Public API for MainWindow coordination
@@ -61,8 +62,6 @@ public:
      */
     void setScreenshotService(ScreenshotService *service);
 
-    void setErrorHandler(ErrorHandler *handler);
-
     // Settings
     void loadSettings();
     void saveSettings();
@@ -93,7 +92,7 @@ private:
 
     // Dependencies (not owned)
     DeviceConnectionManager *deviceConnection_ = nullptr;
-    ErrorHandler *errorHandler_ = nullptr;
+    ErrorHandler *errorHandler_;
 
     // Injected services (not owned)
     StreamingService *streamingService_ = nullptr;

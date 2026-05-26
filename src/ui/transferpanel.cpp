@@ -19,19 +19,21 @@
 
 TransferPanel::TransferPanel(DeviceConnectionManager *connection, RemoteFileModel *model,
                              TransferService *transferService,
-                             RemoteFileOperationsService *fileOperations, QWidget *parent)
-    : QWidget(parent), deviceConnection_(connection), transferService_(transferService),
-      fileOperations_(fileOperations)
+                             RemoteFileOperationsService *fileOperations,
+                             ErrorHandler *errorHandler, QWidget *parent)
+    : QWidget(parent), deviceConnection_(connection), errorHandler_(errorHandler),
+      transferService_(transferService), fileOperations_(fileOperations)
 {
     // These dependencies are required - assert in debug builds
     Q_ASSERT(deviceConnection_ && "DeviceConnectionManager is required");
     Q_ASSERT(model && "RemoteFileModel is required");
     Q_ASSERT(transferService_ && "TransferService is required");
     Q_ASSERT(fileOperations_ && "RemoteFileOperations is required");
+    Q_ASSERT(errorHandler_ && "ErrorHandler is required");
 
-    remoteBrowser_ = new RemoteFileBrowserWidget(model, this);
+    remoteBrowser_ = new RemoteFileBrowserWidget(model, errorHandler_, this);
     remoteBrowser_->setFileOperations(fileOperations_);
-    localBrowser_ = new LocalFileBrowserWidget(this);
+    localBrowser_ = new LocalFileBrowserWidget(errorHandler_, this);
     progressContainer_ = new TransferProgressContainer(this);
 
     setupUi();
@@ -114,17 +116,6 @@ void TransferPanel::setupConnections()
                 remoteBrowser_->refresh();
             }
         });
-    }
-}
-
-void TransferPanel::setErrorHandler(ErrorHandler *handler)
-{
-    errorHandler_ = handler;
-    if (localBrowser_) {
-        localBrowser_->setErrorHandler(handler);
-    }
-    if (remoteBrowser_) {
-        remoteBrowser_->setErrorHandler(handler);
     }
 }
 
