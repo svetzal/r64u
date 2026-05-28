@@ -135,3 +135,16 @@ void StreamingDiagnosticsService::onAudioStatsUpdated(quint64 /*bytesReceived*/,
 }
 
 void StreamingDiagnosticsService::onAudioBufferUnderrun() {}
+
+// ---------------------------------------------------------------------------
+// StreamingService::createDefault stub
+// ---------------------------------------------------------------------------
+
+#include "services/deviceconnectionmanager.h"
+
+StreamingService *StreamingService::createDefault(DeviceConnectionManager *connection,
+                                                  QObject *parent)
+{
+    return new StreamingService(connection, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                                parent);
+}

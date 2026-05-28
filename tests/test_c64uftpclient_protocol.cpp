@@ -5,6 +5,7 @@
  * Tests verify:
  * - State machine transitions
  * - Operation guards (not-logged-in behavior)
+ * - Connected/Ready state transitions via local FTP server
  *
  * Note: FTP parsing tests (PASV response, directory listing) have been
  * migrated to test_ftpcore.cpp, where they test the pure ftp:: namespace
@@ -12,11 +13,72 @@
  */
 
 #include <QSignalSpy>
+#include <QTcpServer>
 #include <QTcpSocket>
 #include <QtTest>
 
 // Use angle brackets to force include path search order (avoids tests/services shadow)
 #include <services/c64uftpclient.h>
+
+/**
+ * @brief Minimal FTP server that handles login sequence for testing.
+ *
+ * Listens on localhost:0, accepts one connection, and performs the
+ * FTP greeting → USER → PASS exchange.
+ */
+class SimpleFtpServer : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit SimpleFtpServer(QObject *parent = nullptr) : QObject(parent)
+    {
+        server_.setMaxPendingConnections(1);
+        connect(&server_, &QTcpServer::newConnection, this, &SimpleFtpServer::onNewConnection);
+    }
+
+    bool listen() { return server_.listen(QHostAddress::LocalHost, 0); }
+
+    quint16 port() const { return server_.serverPort(); }
+
+    void closeClientConnection()
+    {
+        if (clientSocket_) {
+            clientSocket_->disconnectFromHost();
+            clientSocket_ = nullptr;
+        }
+    }
+
+private slots:
+    void onNewConnection()
+    {
+        clientSocket_ = server_.nextPendingConnection();
+        connect(clientSocket_, &QTcpSocket::readyRead, this, &SimpleFtpServer::onReadyRead);
+        clientSocket_->write("220 FTP Server Ready\r\n");
+        clientSocket_->flush();
+    }
+
+    void onReadyRead()
+    {
+        if (!clientSocket_) {
+            return;
+        }
+        while (clientSocket_->canReadLine()) {
+            const QString line = QString::fromLatin1(clientSocket_->readLine()).trimmed();
+            if (line.startsWith("USER")) {
+                clientSocket_->write("331 Password required\r\n");
+                clientSocket_->flush();
+            } else if (line.startsWith("PASS")) {
+                clientSocket_->write("230 User logged in\r\n");
+                clientSocket_->flush();
+            }
+        }
+    }
+
+private:
+    QTcpServer server_;
+    QTcpSocket *clientSocket_ = nullptr;
+};
 
 class TestC64UFtpClientProtocol : public QObject
 {
@@ -250,6 +312,107 @@ private slots:
 
         QCOMPARE(ftp->state(), IFtpClient::State::Connecting);
         QVERIFY(!ftp->isConnected());
+    }
+
+    // === Connected/Ready State Tests (via local SimpleFtpServer) ===
+
+    void testLoginSequence_StateBecomesReady()
+    {
+        SimpleFtpServer server;
+        QVERIFY(server.listen());
+
+        ftp->setHost("127.0.0.1", server.port());
+        ftp->setCredentials("user", "pass");
+        ftp->connectToHost();
+
+        QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
+        QVERIFY(ftp->isLoggedIn());
+    }
+
+    void testLoginSequence_EmitsConnected()
+    {
+        SimpleFtpServer server;
+        QVERIFY(server.listen());
+
+        QSignalSpy connectedSpy(ftp, &C64UFtpClient::connected);
+
+        ftp->setHost("127.0.0.1", server.port());
+        ftp->setCredentials("user", "pass");
+        ftp->connectToHost();
+
+        QTRY_COMPARE_WITH_TIMEOUT(connectedSpy.count(), 1, 5000);
+    }
+
+    void testList_AfterLogin_TransitionsToBusy()
+    {
+        SimpleFtpServer server;
+        QVERIFY(server.listen());
+
+        ftp->setHost("127.0.0.1", server.port());
+        ftp->setCredentials("user", "pass");
+        ftp->connectToHost();
+
+        QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
+
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        ftp->list("/");
+
+        // Guard should pass (logged in) — no error emitted
+        QCOMPARE(errorSpy.count(), 0);
+        // State transitions to Busy when an operation is pending
+        QCOMPARE(ftp->state(), IFtpClient::State::Busy);
+    }
+
+    void testList_AfterLogin_DoesNotEmitError()
+    {
+        SimpleFtpServer server;
+        QVERIFY(server.listen());
+
+        ftp->setHost("127.0.0.1", server.port());
+        ftp->setCredentials("user", "pass");
+        ftp->connectToHost();
+
+        QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
+
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        ftp->list("/");
+
+        QCOMPARE(errorSpy.count(), 0);
+    }
+
+    void testAbort_AfterLogin_ResetsToReady()
+    {
+        SimpleFtpServer server;
+        QVERIFY(server.listen());
+
+        ftp->setHost("127.0.0.1", server.port());
+        ftp->setCredentials("user", "pass");
+        ftp->connectToHost();
+
+        QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
+
+        ftp->list("/");
+        QCOMPARE(ftp->state(), IFtpClient::State::Busy);
+
+        ftp->abort();
+        QCOMPARE(ftp->state(), IFtpClient::State::Ready);
+    }
+
+    void testServerDisconnect_AfterLogin_EmitsDisconnectedSignal()
+    {
+        SimpleFtpServer server;
+        QVERIFY(server.listen());
+
+        ftp->setHost("127.0.0.1", server.port());
+        ftp->setCredentials("user", "pass");
+        ftp->connectToHost();
+
+        QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
+
+        QSignalSpy disconnectedSpy(ftp, &C64UFtpClient::disconnected);
+        server.closeClientConnection();
+
+        QTRY_COMPARE_WITH_TIMEOUT(disconnectedSpy.count(), 1, 5000);
     }
 };
 

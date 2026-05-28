@@ -66,6 +66,55 @@ private slots:
         container.setTransferService(service_);
         QVERIFY(true);
     }
+
+    void testOnOperationCompleted_EmitsStatusMessage()
+    {
+        TransferProgressContainer container;
+        QSignalSpy spy(&container, &TransferProgressContainer::statusMessage);
+
+        QMetaObject::invokeMethod(&container, "onOperationStarted", Q_ARG(QString, "test.sid"),
+                                  Q_ARG(OperationType, OperationType::Download));
+        QMetaObject::invokeMethod(&container, "onOperationCompleted", Q_ARG(QString, "test.sid"));
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("test.sid"));
+    }
+
+    void testOnOperationFailed_EmitsStatusMessage()
+    {
+        TransferProgressContainer container;
+        QSignalSpy spy(&container, &TransferProgressContainer::statusMessage);
+
+        QMetaObject::invokeMethod(&container, "onOperationFailed", Q_ARG(QString, "broken.d64"),
+                                  Q_ARG(QString, "Connection reset"));
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(1).toInt() > 0);
+    }
+
+    void testOnAllOperationsCompleted_EmitsClearAndStatus()
+    {
+        TransferProgressContainer container;
+        QSignalSpy clearSpy(&container, &TransferProgressContainer::clearStatusMessages);
+        QSignalSpy statusSpy(&container, &TransferProgressContainer::statusMessage);
+
+        QMetaObject::invokeMethod(&container, "onAllOperationsCompleted");
+
+        QCOMPARE(clearSpy.count(), 1);
+        QCOMPARE(statusSpy.count(), 1);
+    }
+
+    void testOnOperationsCancelled_EmitsClearAndStatus()
+    {
+        TransferProgressContainer container;
+        QSignalSpy clearSpy(&container, &TransferProgressContainer::clearStatusMessages);
+        QSignalSpy statusSpy(&container, &TransferProgressContainer::statusMessage);
+
+        QMetaObject::invokeMethod(&container, "onOperationsCancelled");
+
+        QCOMPARE(clearSpy.count(), 1);
+        QCOMPARE(statusSpy.count(), 1);
+    }
 };
 
 QTEST_MAIN(TestTransferProgressContainer)

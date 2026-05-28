@@ -847,15 +847,18 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_errorsourceconnector)
 endif()
 
-# RemoteFileOperationsService tests - signal emission for null FTP client guard clauses
+# RemoteFileOperationsService tests - signal emission for null FTP client guard clauses and happy path
 add_executable(test_remotefileoperationsservice
     test_remotefileoperationsservice.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
 target_include_directories(test_remotefileoperationsservice PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
 )
 
@@ -3509,4 +3512,176 @@ add_test(NAME SystemToolBarBuilderTest COMMAND test_systemtoolbarbuilder)
 if(BUILD_COVERAGE)
     add_coverage_target(systemtoolbarbuilder test_systemtoolbarbuilder)
     add_dependencies(coverage coverage_systemtoolbarbuilder)
+endif()
+
+# MainWindow integration tests - verifies construction, panel composition, and UI wiring
+add_executable(test_mainwindow
+    test_mainwindow.cpp
+    stubs/viewpanel_test_stubs.cpp
+    stubs/errorsourceconnector_stub.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/mainwindow.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/preferencesdialog.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/configitemspanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/connectionstatuswidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/drivestatuswidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/transferqueuewidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filedetailspanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/videodisplaywidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filebrowserwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/localfilebrowserwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowserwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowsercontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/refreshpolicymanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/transferprogresswidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/batchprogresswidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/transferprogresscontainer.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/transferconfirmationdialogs.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/explorepanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/explorepanelcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/fileactioncontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/dialogerrorpresenter.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/explorefavoritescontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/explorecontextmenucontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/explorenavigationcontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/navigationviewadapter.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/menubarbuilder.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/systemtoolbarbuilder.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadcontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadview.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/connectiontesthandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/previewcoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/panelcoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/connectionuicontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/transferpanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/viewpanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/configpanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/playlistwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/c64previewbase.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/textfilepreview.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/diskimagepreview.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/sidfilepreview.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/filepreview/defaultfilepreview.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/configfileloaderservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filepreviewservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/istreamcontrolclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudioplaybackservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/petsciiconverter.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/diskimagereader.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/sidfileparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/favoritesservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/favoritescore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/favoritesuicore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filebrowsercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/diskbootsequencecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/diskbootsequenceservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filemetadatacore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/streamprotocolcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/avicore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/screenshotservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfileoperationsservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferconfirmcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferlistingcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdecisioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/httpfiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/servicefactory.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/configurationservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/deviceactionservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/systemcommandcontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/streamingdiagnosticswidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/localfileproxymodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/configurationmodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
+    # Headers for AUTOMOC (stubs provide bodies for these Q_OBJECT classes)
+    ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnosticsservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
+    ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.h
+    ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.h
+)
+
+if(APPLE)
+    target_sources(test_mainwindow PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/services/platformkeychain_mac.mm
+    )
+else()
+    target_sources(test_mainwindow PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/services/platformkeychain_stub.cpp
+    )
+endif()
+
+target_include_directories(test_mainwindow PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_mainwindow PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Network
+    Qt6::Multimedia
+    Qt6::Sql
+    Qt6::Test
+    ZLIB::ZLIB
+)
+
+if(APPLE)
+    target_link_libraries(test_mainwindow PRIVATE
+        "-framework Security"
+        "-framework Foundation"
+    )
+endif()
+
+add_test(NAME MainWindowTest COMMAND test_mainwindow)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(mainwindow test_mainwindow)
+    add_dependencies(coverage coverage_mainwindow)
 endif()

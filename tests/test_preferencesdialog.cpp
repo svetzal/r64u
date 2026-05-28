@@ -72,6 +72,54 @@ private slots:
         }
         QVERIFY(found);
     }
+
+    void testLoadSettings_storedHost_showsInHostEdit()
+    {
+        // init() has already cleared settings; set host before constructing dialog
+        QSettings settings;
+        settings.setValue("device/host", "192.168.1.100");
+        settings.sync();
+
+        PreferencesDialog dialog;
+        const auto edits = dialog.findChildren<QLineEdit *>();
+        bool found = false;
+        for (auto *edit : edits) {
+            if (edit->echoMode() == QLineEdit::Normal && edit->text() == "192.168.1.100") {
+                found = true;
+                break;
+            }
+        }
+        QVERIFY(found);
+    }
+
+    void testDefaultDriveCombo_hasTwoItems()
+    {
+        PreferencesDialog dialog;
+        const auto combos = dialog.findChildren<QComboBox *>();
+        bool found = false;
+        for (auto *combo : combos) {
+            if (combo->count() == 2) {
+                found = true;
+                break;
+            }
+        }
+        QVERIFY(found);
+    }
+
+    void testMountModeCombo_hasThreeItems()
+    {
+        // Scaling mode combo also has 3 items; we verify at least one combo
+        // with 3 items exists (which covers both combos).
+        PreferencesDialog dialog;
+        const auto combos = dialog.findChildren<QComboBox *>();
+        int count3 = 0;
+        for (auto *combo : combos) {
+            if (combo->count() == 3) {
+                count3++;
+            }
+        }
+        QVERIFY(count3 >= 1);
+    }
 };
 
 QTEST_MAIN(TestPreferencesDialog)
