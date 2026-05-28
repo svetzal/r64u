@@ -28,6 +28,9 @@ public:
     // Public API for MainWindow coordination
     void refreshIfEmpty() override;
 
+signals:
+    void statusMessage(const QString &message, int timeout = 0);
+
 private slots:
     void onSaveToFlash();
     void onLoadFromFlash();

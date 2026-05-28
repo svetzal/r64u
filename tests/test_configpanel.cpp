@@ -265,6 +265,24 @@ private slots:
 
         QVERIFY(panel.isEnabled());
     }
+
+    // ==========================================================================
+    // IPanel contract — statusMessage signal required for PanelCoordinator routing
+    // ==========================================================================
+
+    void testHasStatusMessageSignal()
+    {
+        const QMetaObject *mo = &ConfigPanel::staticMetaObject;
+        bool found = false;
+        for (int i = mo->methodOffset(); i < mo->methodCount(); ++i) {
+            QMetaMethod m = mo->method(i);
+            if (m.methodType() == QMetaMethod::Signal && m.name() == "statusMessage") {
+                found = true;
+                break;
+            }
+        }
+        QVERIFY2(found, "ConfigPanel must declare statusMessage(const QString &, int) signal");
+    }
 };
 
 QTEST_MAIN(TestConfigPanel)

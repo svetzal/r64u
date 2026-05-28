@@ -245,6 +245,24 @@ private slots:
         QMetaObject::invokeMethod(&panel, "onStopRecording");
         QVERIFY(true);
     }
+
+    // =========================================================================
+    // IPanel contract — statusMessage signal required for PanelCoordinator routing
+    // =========================================================================
+
+    void testHasStatusMessageSignal()
+    {
+        const QMetaObject *mo = &ViewPanel::staticMetaObject;
+        bool found = false;
+        for (int i = mo->methodOffset(); i < mo->methodCount(); ++i) {
+            QMetaMethod m = mo->method(i);
+            if (m.methodType() == QMetaMethod::Signal && m.name() == "statusMessage") {
+                found = true;
+                break;
+            }
+        }
+        QVERIFY2(found, "ViewPanel must declare statusMessage(const QString &, int) signal");
+    }
 };
 
 QTEST_MAIN(TestViewPanel)

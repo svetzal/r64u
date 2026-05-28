@@ -67,6 +67,9 @@ public:
     void saveSettings();
     [[nodiscard]] int scalingMode() const;
 
+signals:
+    void statusMessage(const QString &message, int timeout = 0);
+
 private slots:
     void onConnectionStateChanged();
     void onStartStreaming();
