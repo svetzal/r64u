@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ifiledownloader.h"
+#include "ifiledownloaderservice.h"
 
 #include <QObject>
 #include <QString>
@@ -11,7 +11,7 @@
 /**
  * @brief Service managing the download-cache-parse lifecycle for a single file.
  *
- * Wraps IFileDownloader to provide: cache path resolution, guard against
+ * Wraps IFileDownloaderService to provide: cache path resolution, guard against
  * concurrent downloads, save-to-cache on success, parse callback invocation,
  * and signal forwarding.
  *
@@ -46,7 +46,7 @@ public:
      * @param parseCallback Called with raw bytes; returns entry count or -1.
      * @param parent        Qt parent object.
      */
-    explicit CachedDownloadService(IFileDownloader *downloader, const QString &cacheFilename,
+    explicit CachedDownloadService(IFileDownloaderService *downloader, const QString &cacheFilename,
                                    const QUrl &downloadUrl, ParseCallback parseCallback,
                                    QObject *parent = nullptr);
 
@@ -90,7 +90,7 @@ public:
     bool loadFromFile(const QString &filePath);
 
 signals:
-    /** @brief Forwarded from the underlying IFileDownloader. */
+    /** @brief Forwarded from the underlying IFileDownloaderService. */
     void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
 
     /**
@@ -111,7 +111,7 @@ private slots:
     void onDownloaderFailed(const QString &error);
 
 private:
-    IFileDownloader *downloader_;
+    IFileDownloaderService *downloader_;
     QString cacheFilename_;
     QUrl downloadUrl_;
     ParseCallback parseCallback_;

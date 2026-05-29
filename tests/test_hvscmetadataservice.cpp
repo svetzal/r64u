@@ -1,4 +1,4 @@
-#include "mocks/mockfiledownloader.h"
+#include "mocks/mockfiledownloaderservice.h"
 #include "services/hvscmetadataservice.h"
 
 #include <QtTest>
@@ -79,8 +79,8 @@ private slots:
     // STIL parsing tests
     void testParseStilEntry_simpleComment()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         // Create sample data and write to a temp file
@@ -98,8 +98,8 @@ private slots:
     void testStilLookup_existingPath()
     {
         // Test that lookupStil returns correct data for known paths
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         // Without loading data, should return not found
@@ -110,8 +110,8 @@ private slots:
 
     void testStilLookup_nonExistingPath()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         HVSCMetadataService::StilInfo info = service.lookupStil("/NON/EXISTENT/path.sid");
@@ -121,8 +121,8 @@ private slots:
 
     void testStilLookup_pathNormalization()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         // Test that paths are normalized (backslashes converted, leading slash added)
@@ -140,8 +140,8 @@ private slots:
     // BUGlist parsing tests
     void testBuglistLookup_nonExistingPath()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         HVSCMetadataService::BugInfo info = service.lookupBuglist("/NON/EXISTENT/path.sid");
@@ -152,8 +152,8 @@ private slots:
     // State tests
     void testInitialState_notLoaded()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         QVERIFY(!service.isStilLoaded());
@@ -164,8 +164,8 @@ private slots:
 
     void testCacheFilePaths_notEmpty()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         QString stilPath = service.stilCacheFilePath();
@@ -179,8 +179,8 @@ private slots:
 
     void testHasCachedFiles_withoutCache()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         // These may or may not exist depending on whether the user has downloaded them
@@ -252,8 +252,8 @@ private slots:
     // Signal existence tests
     void testSignals_exist()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         // Verify signals can be connected to
@@ -281,8 +281,8 @@ private slots:
 
     void testDownloadStil_callsDownloaderWithCorrectUrl()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         service.downloadStil();
@@ -294,8 +294,8 @@ private slots:
 
     void testDownloadBuglist_callsDownloaderWithCorrectUrl()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         service.downloadBuglist();
@@ -308,8 +308,8 @@ private slots:
 
     void testDownloadStil_ignoresWhenAlreadyDownloading()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         service.downloadStil();
@@ -320,8 +320,8 @@ private slots:
 
     void testDownloadBuglist_ignoresWhenAlreadyDownloading()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         service.downloadBuglist();
@@ -332,8 +332,8 @@ private slots:
 
     void testStilDownloadProgress_forwardsSignal()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         QSignalSpy spy(&service, &HVSCMetadataService::stilDownloadProgress);
@@ -348,8 +348,8 @@ private slots:
 
     void testBuglistDownloadProgress_forwardsSignal()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         QSignalSpy spy(&service, &HVSCMetadataService::buglistDownloadProgress);
@@ -364,8 +364,8 @@ private slots:
 
     void testStilDownloadFailed_forwardsError()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         QSignalSpy spy(&service, &HVSCMetadataService::stilDownloadFailed);
@@ -379,8 +379,8 @@ private slots:
 
     void testBuglistDownloadFailed_forwardsError()
     {
-        MockFileDownloader stilMock;
-        MockFileDownloader buglistMock;
+        MockFileDownloaderService stilMock;
+        MockFileDownloaderService buglistMock;
         HVSCMetadataService service(&stilMock, &buglistMock);
 
         QSignalSpy spy(&service, &HVSCMetadataService::buglistDownloadFailed);

@@ -1,7 +1,7 @@
 #include "ftp/recursivescancoordinator.h"
 #include "ftp/remotedirectorycoordinator.h"
 #include "mocks/mockftpclient.h"
-#include "mocks/mocklocalfilesystem.h"
+#include "mocks/mocklocalfilesystemservice.h"
 #include "models/transferftphandler.h"
 #include "services/transfercore.h"
 
@@ -15,7 +15,7 @@ class TestTransferFtpHandler : public QObject
 private:
     transfer::State state_;
     MockFtpClient *mockFtp = nullptr;
-    MockLocalFileSystem *mockFs = nullptr;
+    MockLocalFileSystemService *mockFs = nullptr;
     TransferFtpHandler *handler = nullptr;
 
 private slots:
@@ -23,7 +23,7 @@ private slots:
     {
         state_ = transfer::State();
         mockFtp = new MockFtpClient(this);
-        mockFs = new MockLocalFileSystem(this);
+        mockFs = new MockLocalFileSystemService(this);
         handler = new TransferFtpHandler(state_, this);
         handler->setFtpClient(mockFtp);
     }

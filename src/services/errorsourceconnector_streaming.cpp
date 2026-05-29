@@ -1,28 +1,28 @@
-#include "audiostreamreceiver.h"
+#include "audiostreamreceiverservice.h"
 #include "errorhandler.h"
-#include "istreamcontrolclient.h"
-#include "streamcontrolclient.h"
+#include "istreamcontrolservice.h"
+#include "streamcontrolservice.h"
 #include "streamingservice.h"
-#include "videostreamreceiver.h"
+#include "videostreamreceiverservice.h"
 
 void ErrorHandler::connectStreamingServiceSources(StreamingService *ss)
 {
     connect(ss, &StreamingService::error, this, &ErrorHandler::handleStreamingError);
     if (ss->videoReceiver()) {
-        connect(ss->videoReceiver(), &VideoStreamReceiver::socketError, this,
+        connect(ss->videoReceiver(), &VideoStreamReceiverService::socketError, this,
                 &ErrorHandler::handleStreamingError);
     }
     if (ss->audioReceiver()) {
-        connect(ss->audioReceiver(), &AudioStreamReceiver::socketError, this,
+        connect(ss->audioReceiver(), &AudioStreamReceiverService::socketError, this,
                 &ErrorHandler::handleStreamingError);
     }
-    auto *streamControl = qobject_cast<StreamControlClient *>(ss->streamControl());
+    auto *streamControl = qobject_cast<StreamControlService *>(ss->streamControl());
     if (streamControl) {
-        connect(streamControl, &StreamControlClient::connectionError, this,
+        connect(streamControl, &StreamControlService::connectionError, this,
                 &ErrorHandler::handleConnectionError);
     }
     if (ss->streamControl()) {
-        connect(ss->streamControl(), &IStreamControlClient::commandFailed, this,
+        connect(ss->streamControl(), &IStreamControlService::commandFailed, this,
                 [this](const QString &command, const QString &error) {
                     handleOperationFailed(command, error);
                 });

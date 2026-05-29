@@ -1,4 +1,4 @@
-#include "mocks/mockfiledownloader.h"
+#include "mocks/mockfiledownloaderservice.h"
 #include "services/cacheddownloadservice.h"
 
 #include <QDir>
@@ -50,7 +50,7 @@ private slots:
 
     void testConstruction_noCacheFile_doesNotCallParseCallback()
     {
-        MockFileDownloader mock;
+        MockFileDownloaderService mock;
         int callCount = 0;
 
         // Make sure no cached file exists
@@ -68,7 +68,7 @@ private slots:
 
     void testConstruction_withCacheFile_invokesParseCallbackAndEmitsLoaded()
     {
-        MockFileDownloader mock;
+        MockFileDownloaderService mock;
 
         // Write a cache file so the manager finds it on construction
         const QString cacheFilename = QStringLiteral("test_autoload.dat");
@@ -82,7 +82,7 @@ private slots:
         }
 
         int callCount = 0;
-        MockFileDownloader mock2;
+        MockFileDownloaderService mock2;
         QSignalSpy loadedSpy(nullptr, nullptr);  // placeholder; we need a real object
 
         // Create a fresh manager that will find the file and autoload
@@ -103,7 +103,7 @@ private slots:
 
     void testDownload_callsDownloaderWithCorrectUrl()
     {
-        MockFileDownloader mock;
+        MockFileDownloaderService mock;
         const QUrl url(QStringLiteral("http://example.com/data.txt"));
 
         CachedDownloadService manager(&mock, QStringLiteral("dl_test.dat"), url,
@@ -117,7 +117,7 @@ private slots:
 
     void testDownload_noOpWhenAlreadyDownloading()
     {
-        MockFileDownloader mock;
+        MockFileDownloaderService mock;
         const QUrl url(QStringLiteral("http://example.com/data.txt"));
 
         CachedDownloadService manager(&mock, QStringLiteral("dl_noop.dat"), url,
@@ -135,7 +135,7 @@ private slots:
 
     void testCancelDownload_delegatesToDownloader()
     {
-        MockFileDownloader mock;
+        MockFileDownloaderService mock;
 
         CachedDownloadService manager(&mock, QStringLiteral("cancel_test.dat"),
                                       QUrl("http://example.com/"), makeSuccessCallback(), nullptr);
@@ -153,7 +153,7 @@ private slots:
 
     void testDownloadProgress_forwardsSignal()
     {
-        MockFileDownloader mock;
+        MockFileDownloaderService mock;
 
         CachedDownloadService manager(&mock, QStringLiteral("progress_test.dat"),
                                       QUrl("http://example.com/"), makeSuccessCallback(), nullptr);
@@ -174,7 +174,7 @@ private slots:
 
     void testDownloadFinished_savesFileParsesAndEmitsSignals()
     {
-        MockFileDownloader mock;
+        MockFileDownloaderService mock;
         const QString cacheFilename = QStringLiteral("finish_success.dat");
         int parseCallCount = 0;
 
@@ -208,7 +208,7 @@ private slots:
 
     void testDownloadFinished_parseFailure_emitsDownloadFailed()
     {
-        MockFileDownloader mock;
+        MockFileDownloaderService mock;
 
         CachedDownloadService manager(&mock, QStringLiteral("finish_fail.dat"),
                                       QUrl("http://example.com/"), makeFailCallback(), nullptr);
@@ -234,7 +234,7 @@ private slots:
 
     void testDownloadFailed_forwardsErrorSignal()
     {
-        MockFileDownloader mock;
+        MockFileDownloaderService mock;
 
         CachedDownloadService manager(&mock, QStringLiteral("dl_failed.dat"),
                                       QUrl("http://example.com/"), makeSuccessCallback(), nullptr);
@@ -254,7 +254,7 @@ private slots:
 
     void testHasCachedFile_returnsFalseWhenNoFile()
     {
-        MockFileDownloader mock;
+        MockFileDownloaderService mock;
         CachedDownloadService manager(&mock, QStringLiteral("no_such_file_xyz.dat"),
                                       QUrl("http://example.com/"), makeSuccessCallback(), nullptr);
 
@@ -267,7 +267,7 @@ private slots:
 
     void testCacheFilePath_containsCacheFilename()
     {
-        MockFileDownloader mock;
+        MockFileDownloaderService mock;
         const QString filename = QStringLiteral("my_unique_filename.dat");
         CachedDownloadService manager(&mock, filename, QUrl("http://example.com/"),
                                       makeSuccessCallback(), nullptr);

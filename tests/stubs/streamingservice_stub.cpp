@@ -13,9 +13,9 @@
 #include "services/streamingservice.h"
 
 StreamingService::StreamingService(DeviceConnectionManager * /*connection*/,
-                                   IStreamControlClient * /*streamControl*/,
-                                   IVideoStreamReceiver * /*videoReceiver*/,
-                                   IAudioStreamReceiver * /*audioReceiver*/,
+                                   IStreamControlService * /*streamControl*/,
+                                   IVideoStreamReceiverService * /*videoReceiver*/,
+                                   IAudioStreamReceiverService * /*audioReceiver*/,
                                    IAudioPlaybackService * /*audioPlayback*/,
                                    KeyboardInputService * /*keyboardInput*/,
                                    INetworkInterfaceProvider * /*networkProvider*/, QObject *parent)

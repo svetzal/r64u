@@ -4,14 +4,14 @@
 
 #include "../services/ftpclientmixin.h"
 #include "../services/iftpclient.h"
-#include "../services/localfilesystem.h"
+#include "../services/localfilesystemservice.h"
 #include "../utils/logging.h"
 
 #include <QDebug>
 #include <QFileInfo>
 
 TransferManager::TransferManager(QObject *parent)
-    : QObject(parent), localFs_(new LocalFileSystem(this)),
+    : QObject(parent), localFs_(new LocalFileSystemService(this)),
       batchManager_(new BatchManager(state_, this)),
       timeoutManager_(new TransferTimeoutManager(TransferTimeoutManager::OperationTimeoutMs, this)),
       eventProcessor_(new TransferEventHandler(this)),
@@ -275,7 +275,7 @@ void TransferManager::setModelCallbacks(const ModelCallbacks &callbacks)
         qCDebug(LogTransfer) << "TransferManager: model callbacks not set (headless mode)";
 }
 
-void TransferManager::setLocalFileSystem(ILocalFileSystem *fs)
+void TransferManager::setLocalFileSystem(ILocalFileSystemService *fs)
 {
     localFs_ = fs;
     scanCoordinator_->setLocalFileSystem(fs);

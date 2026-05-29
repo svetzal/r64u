@@ -8,8 +8,8 @@
 
 #include <functional>
 
-class VideoStreamReceiver;
-class AudioStreamReceiver;
+class VideoStreamReceiverService;
+class AudioStreamReceiverService;
 class AudioPlaybackService;
 class QTimer;
 
@@ -169,13 +169,13 @@ public:
      * @brief Attaches a video stream receiver for monitoring.
      * @param receiver The video receiver to monitor.
      */
-    void attachVideoReceiver(VideoStreamReceiver *receiver);
+    void attachVideoReceiver(VideoStreamReceiverService *receiver);
 
     /**
      * @brief Attaches an audio stream receiver for monitoring.
      * @param receiver The audio receiver to monitor.
      */
-    void attachAudioReceiver(AudioStreamReceiver *receiver);
+    void attachAudioReceiver(AudioStreamReceiverService *receiver);
 
     /**
      * @brief Sets the update interval for diagnostics updates.
@@ -269,8 +269,8 @@ private:
     QElapsedTimer uptimeTimer_;
 
     // Attached receivers (not owned)
-    VideoStreamReceiver *videoReceiver_ = nullptr;
-    AudioStreamReceiver *audioReceiver_ = nullptr;
+    VideoStreamReceiverService *videoReceiver_ = nullptr;
+    AudioStreamReceiverService *audioReceiver_ = nullptr;
 
     // Video statistics
     quint64 videoPacketsReceived_ = 0;

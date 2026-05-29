@@ -6,12 +6,13 @@
 #include "remotedirectorycoordinator.h"
 
 #include "services/iftpclient.h"
-#include "services/ilocalfilesystem.h"
+#include "services/ilocalfilesystemservice.h"
 #include "utils/logging.h"
 
 RemoteDirectoryCoordinator::RemoteDirectoryCoordinator(transfer::State &state,
                                                        IFtpClient *ftpClient,
-                                                       ILocalFileSystem *localFs, QObject *parent)
+                                                       ILocalFileSystemService *localFs,
+                                                       QObject *parent)
     : QObject(parent), state_(state), ftpClient_(ftpClient), localFs_(localFs)
 {
 }
@@ -21,7 +22,7 @@ void RemoteDirectoryCoordinator::setFtpClient(IFtpClient *client)
     ftpClient_ = client;
 }
 
-void RemoteDirectoryCoordinator::setLocalFileSystem(ILocalFileSystem *fs)
+void RemoteDirectoryCoordinator::setLocalFileSystem(ILocalFileSystemService *fs)
 {
     localFs_ = fs;
 }

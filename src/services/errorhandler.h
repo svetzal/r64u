@@ -20,7 +20,7 @@ class KeyboardInputService;
 class PlaylistService;
 class RemoteFileModel;
 class RemoteFileOperationsService;
-class SonglengthsDatabase;
+class SonglengthsDatabaseService;
 class StreamingService;
 class TransferService;
 class VideoRecordingService;
@@ -99,11 +99,12 @@ public:
 
     void connectSources(DeviceConnectionManager *dc, IRestClient *restClient, RemoteFileModel *rfm,
                         IFtpClient *ftpClient, FilePreviewService *fps,
-                        ConfigFileLoaderService *cfl, TransferService *ts, SonglengthsDatabase *sld,
-                        HVSCMetadataService *hvsc, GameBase64Service *gb64,
-                        RemoteFileOperationsService *rfo = nullptr, StreamingService *ss = nullptr,
-                        IAudioPlaybackService *apb = nullptr, VideoRecordingService *vrs = nullptr,
-                        KeyboardInputService *kis = nullptr, PlaylistService *ps = nullptr);
+                        ConfigFileLoaderService *cfl, TransferService *ts,
+                        SonglengthsDatabaseService *sld, HVSCMetadataService *hvsc,
+                        GameBase64Service *gb64, RemoteFileOperationsService *rfo = nullptr,
+                        StreamingService *ss = nullptr, IAudioPlaybackService *apb = nullptr,
+                        VideoRecordingService *vrs = nullptr, KeyboardInputService *kis = nullptr,
+                        PlaylistService *ps = nullptr);
 
     /// @name Generic Error Handling
     /// @{
@@ -240,8 +241,8 @@ private:
      * @brief Wires streaming-layer error signals from a StreamingService.
      *
      * Isolated from connectSources() so tests can link without the heavy
-     * streaming infrastructure (AudioStreamReceiver, VideoStreamReceiver,
-     * StreamControlClient).
+     * streaming infrastructure (AudioStreamReceiverService, VideoStreamReceiverService,
+     * StreamControlService).
      *
      * @param ss StreamingService whose child receivers and control client to wire.
      */
@@ -251,7 +252,7 @@ private:
                               ConfigFileLoaderService *cfl);
     void connectTransferSources(IFtpClient *ftpClient, TransferService *ts);
     void connectModelSources(RemoteFileModel *rfm, FilePreviewService *fps);
-    void connectMetadataSources(SonglengthsDatabase *sld, HVSCMetadataService *hvsc,
+    void connectMetadataSources(SonglengthsDatabaseService *sld, HVSCMetadataService *hvsc,
                                 GameBase64Service *gb64);
 
     /**

@@ -10,7 +10,7 @@
 #include <functional>
 
 class IFtpClient;
-class ILocalFileSystem;
+class ILocalFileSystemService;
 class QTimer;
 
 /**
@@ -21,7 +21,7 @@ class QTimer;
  * batch state) and emits signals to request the start of each phase.
  *
  * Local file system operations (directory existence, creation, deletion) are
- * routed through ILocalFileSystem, keeping this coordinator independently
+ * routed through ILocalFileSystemService, keeping this coordinator independently
  * testable without real disk access.
  */
 class FolderOperationCoordinator : public QObject
@@ -30,10 +30,11 @@ class FolderOperationCoordinator : public QObject
 
 public:
     explicit FolderOperationCoordinator(transfer::State &state, IFtpClient *ftpClient,
-                                        ILocalFileSystem *localFs, QObject *parent = nullptr);
+                                        ILocalFileSystemService *localFs,
+                                        QObject *parent = nullptr);
 
     void setFtpClient(IFtpClient *client);
-    void setLocalFileSystem(ILocalFileSystem *fs);
+    void setLocalFileSystem(ILocalFileSystemService *fs);
 
     /// Provide a callback for creating a new batch (returns batchId)
     void setCreateBatchCallback(std::function<int(transfer::OperationType, const QString &,
@@ -98,7 +99,7 @@ private:
 
     transfer::State &state_;
     IFtpClient *ftpClient_ = nullptr;
-    ILocalFileSystem *localFs_ = nullptr;
+    ILocalFileSystemService *localFs_ = nullptr;
     QTimer *debounceTimer_ = nullptr;
     static constexpr int DebounceMs = 50;
 

@@ -17,7 +17,7 @@
 #include "services/remotefileoperations.h"
 #include "services/screenshotservice.h"
 #include "services/servicefactory.h"
-#include "services/songlengthsdatabase.h"
+#include "services/songlengthsdatabaseservice.h"
 #include "services/statusmessageservice.h"
 #include "services/streamingservice.h"
 #include "services/systemcommandcontroller.h"

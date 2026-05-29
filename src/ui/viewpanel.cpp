@@ -10,7 +10,7 @@
 #include "services/streamingdiagnosticsservice.h"
 #include "services/streamingservice.h"
 #include "services/videorecordingservice.h"
-#include "services/videostreamreceiver.h"
+#include "services/videostreamreceiverservice.h"
 #include "utils/logging.h"
 
 #include <QFileInfo>
@@ -141,7 +141,7 @@ void ViewPanel::setStreamingService(StreamingService *manager)
 
     // Connect streaming service to display
     if (streamingService_->videoReceiver() && videoDisplayWidget_) {
-        connect(streamingService_->videoReceiver(), &VideoStreamReceiver::frameReady,
+        connect(streamingService_->videoReceiver(), &VideoStreamReceiverService::frameReady,
                 videoDisplayWidget_, &VideoDisplayWidget::displayFrame);
     }
 
@@ -345,13 +345,13 @@ void ViewPanel::onStreamingError(const QString & /*error*/)
 
 void ViewPanel::onVideoFormatDetected(int format)
 {
-    auto videoFormat = static_cast<VideoStreamReceiver::VideoFormat>(format);
+    auto videoFormat = static_cast<VideoStreamReceiverService::VideoFormat>(format);
     QString formatName;
     switch (videoFormat) {
-    case VideoStreamReceiver::VideoFormat::PAL:
+    case VideoStreamReceiverService::VideoFormat::PAL:
         formatName = "PAL";
         break;
-    case VideoStreamReceiver::VideoFormat::NTSC:
+    case VideoStreamReceiverService::VideoFormat::NTSC:
         formatName = "NTSC";
         break;
     default:

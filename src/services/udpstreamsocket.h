@@ -8,7 +8,7 @@
  * @brief Shared UDP socket lifecycle helper for stream receivers.
  *
  * Owns a QUdpSocket and handles bind/close/isActive/port/readyRead in one
- * place so that AudioStreamReceiver and VideoStreamReceiver do not duplicate
+ * place so that AudioStreamReceiverService and VideoStreamReceiverService do not duplicate
  * this boilerplate.
  *
  * For each received datagram whose size matches expectedPacketSize_, the

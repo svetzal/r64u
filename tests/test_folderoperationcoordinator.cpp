@@ -1,6 +1,6 @@
 #include "ftp/folderoperationcoordinator.h"
 #include "mocks/mockftpclient.h"
-#include "mocks/mocklocalfilesystem.h"
+#include "mocks/mocklocalfilesystemservice.h"
 #include "services/transfercore.h"
 
 #include <QSignalSpy>
@@ -13,7 +13,7 @@ class TestFolderOperationCoordinator : public QObject
 private:
     transfer::State state_;
     MockFtpClient *mockFtp = nullptr;
-    MockLocalFileSystem *mockFs = nullptr;
+    MockLocalFileSystemService *mockFs = nullptr;
     FolderOperationCoordinator *coordinator = nullptr;
 
     void setupBatchCallback()
@@ -32,7 +32,7 @@ private slots:
     {
         state_ = transfer::State();
         mockFtp = new MockFtpClient(this);
-        mockFs = new MockLocalFileSystem(this);
+        mockFs = new MockLocalFileSystemService(this);
         coordinator = new FolderOperationCoordinator(state_, mockFtp, mockFs, this);
         setupBatchCallback();
         mockFtp->mockSetConnected(true);

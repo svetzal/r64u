@@ -58,7 +58,7 @@ void TransferQueue::setFtpClient(IFtpClient *client)
     orchestrator_->setFtpClient(client);
 }
 
-void TransferQueue::setLocalFileSystem(ILocalFileSystem *fs)
+void TransferQueue::setLocalFileSystem(ILocalFileSystemService *fs)
 {
     orchestrator_->setLocalFileSystem(fs);
 }

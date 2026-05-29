@@ -22,7 +22,7 @@ private slots:
     void testPalFormat_producesCorrectDimensions()
     {
         auto data = makeFrameData(kPalHeight);
-        auto frame = Vic2::convertFrame(data, IVideoStreamReceiver::VideoFormat::PAL);
+        auto frame = Vic2::convertFrame(data, IVideoStreamReceiverService::VideoFormat::PAL);
         QCOMPARE(frame.width(), kFrameWidth);
         QCOMPARE(frame.height(), kPalHeight);
         QCOMPARE(frame.format(), QImage::Format_RGB32);
@@ -31,7 +31,7 @@ private slots:
     void testNtscFormat_producesCorrectDimensions()
     {
         auto data = makeFrameData(kNtscHeight);
-        auto frame = Vic2::convertFrame(data, IVideoStreamReceiver::VideoFormat::NTSC);
+        auto frame = Vic2::convertFrame(data, IVideoStreamReceiverService::VideoFormat::NTSC);
         QCOMPARE(frame.width(), kFrameWidth);
         QCOMPARE(frame.height(), kNtscHeight);
         QCOMPARE(frame.format(), QImage::Format_RGB32);
@@ -40,14 +40,14 @@ private slots:
     void testUnknownFormat_fallsBackToPalHeight()
     {
         auto data = makeFrameData(kPalHeight);
-        auto frame = Vic2::convertFrame(data, IVideoStreamReceiver::VideoFormat::Unknown);
+        auto frame = Vic2::convertFrame(data, IVideoStreamReceiverService::VideoFormat::Unknown);
         QCOMPARE(frame.height(), kPalHeight);
     }
 
     void testEmptyBuffer_returnsCorrectSizeWithoutCrash()
     {
         QByteArray empty;
-        auto frame = Vic2::convertFrame(empty, IVideoStreamReceiver::VideoFormat::PAL);
+        auto frame = Vic2::convertFrame(empty, IVideoStreamReceiverService::VideoFormat::PAL);
         QCOMPARE(frame.width(), kFrameWidth);
         QCOMPARE(frame.height(), kPalHeight);
         QCOMPARE(frame.format(), QImage::Format_RGB32);
@@ -56,7 +56,7 @@ private slots:
     void testTruncatedBuffer_doesNotCrash()
     {
         QByteArray partial(kBytesPerLine * 10, '\x00');
-        auto frame = Vic2::convertFrame(partial, IVideoStreamReceiver::VideoFormat::PAL);
+        auto frame = Vic2::convertFrame(partial, IVideoStreamReceiverService::VideoFormat::PAL);
         QCOMPARE(frame.width(), kFrameWidth);
         QCOMPARE(frame.height(), kPalHeight);
     }
@@ -64,7 +64,7 @@ private slots:
     void testFirstByteAllZeros_pixel0And1AreBlack()
     {
         auto data = makeFrameData(kPalHeight, 0x00);
-        auto frame = Vic2::convertFrame(data, IVideoStreamReceiver::VideoFormat::PAL);
+        auto frame = Vic2::convertFrame(data, IVideoStreamReceiverService::VideoFormat::PAL);
         QCOMPARE(frame.pixel(0, 0), qRgb(0x00, 0x00, 0x00));
         QCOMPARE(frame.pixel(1, 0), qRgb(0x00, 0x00, 0x00));
     }
@@ -73,7 +73,7 @@ private slots:
     {
         auto data = makeFrameData(kPalHeight, 0x00);
         data[0] = static_cast<char>(0x11);
-        auto frame = Vic2::convertFrame(data, IVideoStreamReceiver::VideoFormat::PAL);
+        auto frame = Vic2::convertFrame(data, IVideoStreamReceiverService::VideoFormat::PAL);
         QCOMPARE(frame.pixel(0, 0), qRgb(0xFF, 0xFF, 0xFF));
         QCOMPARE(frame.pixel(1, 0), qRgb(0xFF, 0xFF, 0xFF));
     }
@@ -82,7 +82,7 @@ private slots:
     {
         auto data = makeFrameData(kPalHeight, 0x00);
         data[0] = static_cast<char>(0x21);
-        auto frame = Vic2::convertFrame(data, IVideoStreamReceiver::VideoFormat::PAL);
+        auto frame = Vic2::convertFrame(data, IVideoStreamReceiverService::VideoFormat::PAL);
         QCOMPARE(frame.pixel(0, 0), qRgb(0xFF, 0xFF, 0xFF));
         QCOMPARE(frame.pixel(1, 0), qRgb(0x9F, 0x4E, 0x44));
     }

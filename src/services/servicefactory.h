@@ -16,8 +16,8 @@ class ErrorHandler;
 class StatusMessageService;
 class FavoritesService;
 class PlaylistService;
-class HttpFileDownloader;
-class SonglengthsDatabase;
+class HttpFileDownloaderService;
+class SonglengthsDatabaseService;
 class HVSCMetadataService;
 class GameBase64Service;
 class ConfigurationService;
@@ -72,17 +72,17 @@ public:
     /// @brief Returns the playlist service.
     [[nodiscard]] PlaylistService *playlistService() const;
     /// @brief Returns the HTTP downloader used for HVSC song lengths.
-    [[nodiscard]] HttpFileDownloader *songlengthsDownloader() const;
+    [[nodiscard]] HttpFileDownloaderService *songlengthsDownloader() const;
     /// @brief Returns the song lengths database.
-    [[nodiscard]] SonglengthsDatabase *songlengthsDatabase() const;
+    [[nodiscard]] SonglengthsDatabaseService *songlengthsDatabase() const;
     /// @brief Returns the HTTP downloader used for the HVSC STIL file.
-    [[nodiscard]] HttpFileDownloader *stilDownloader() const;
+    [[nodiscard]] HttpFileDownloaderService *stilDownloader() const;
     /// @brief Returns the HTTP downloader used for the HVSC bug list.
-    [[nodiscard]] HttpFileDownloader *buglistDownloader() const;
+    [[nodiscard]] HttpFileDownloaderService *buglistDownloader() const;
     /// @brief Returns the HVSC metadata service.
     [[nodiscard]] HVSCMetadataService *hvscMetadataService() const;
     /// @brief Returns the HTTP downloader used for GameBase64 data.
-    [[nodiscard]] HttpFileDownloader *gameBase64Downloader() const;
+    [[nodiscard]] HttpFileDownloaderService *gameBase64Downloader() const;
     /// @brief Returns the GameBase64 service.
     [[nodiscard]] GameBase64Service *gameBase64Service() const;
 
@@ -109,12 +109,12 @@ private:
     StatusMessageService *statusMessageService_ = nullptr;
     FavoritesService *favoritesService_ = nullptr;
     PlaylistService *playlistService_ = nullptr;
-    HttpFileDownloader *songlengthsDownloader_ = nullptr;
-    SonglengthsDatabase *songlengthsDatabase_ = nullptr;
-    HttpFileDownloader *stilDownloader_ = nullptr;
-    HttpFileDownloader *buglistDownloader_ = nullptr;
+    HttpFileDownloaderService *songlengthsDownloader_ = nullptr;
+    SonglengthsDatabaseService *songlengthsDatabase_ = nullptr;
+    HttpFileDownloaderService *stilDownloader_ = nullptr;
+    HttpFileDownloaderService *buglistDownloader_ = nullptr;
     HVSCMetadataService *hvscMetadataService_ = nullptr;
-    HttpFileDownloader *gameBase64Downloader_ = nullptr;
+    HttpFileDownloaderService *gameBase64Downloader_ = nullptr;
     GameBase64Service *gameBase64Service_ = nullptr;
     ConfigurationService *configurationService_ = nullptr;
     DeviceActionService *deviceActionService_ = nullptr;

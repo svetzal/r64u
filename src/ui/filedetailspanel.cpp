@@ -5,7 +5,7 @@
 #include "services/filemetadatacore.h"
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
-#include "services/songlengthsdatabase.h"
+#include "services/songlengthsdatabaseservice.h"
 
 #include <QFileInfo>
 #include <QFont>
@@ -20,7 +20,7 @@ FileDetailsPanel::FileDetailsPanel(QWidget *parent) : QWidget(parent)
     setupUi();
 }
 
-void FileDetailsPanel::setSonglengthsDatabase(SonglengthsDatabase *database)
+void FileDetailsPanel::setSonglengthsDatabase(SonglengthsDatabaseService *database)
 {
     songlengthsDatabase_ = database;
 }

@@ -10,7 +10,7 @@
 #include <QDialog>
 #include <QLineEdit>
 
-class SonglengthsDatabase;
+class SonglengthsDatabaseService;
 class HVSCMetadataService;
 class GameBase64Service;
 class DatabaseDownloadController;
@@ -24,7 +24,7 @@ public:
     explicit PreferencesDialog(QWidget *parent = nullptr);
     ~PreferencesDialog() override;
 
-    void setSonglengthsDatabase(SonglengthsDatabase *database);
+    void setSonglengthsDatabase(SonglengthsDatabaseService *database);
     void setHVSCMetadataService(HVSCMetadataService *service);
     void setGameBase64Service(GameBase64Service *service);
 

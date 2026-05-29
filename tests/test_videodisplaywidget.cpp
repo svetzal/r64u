@@ -107,7 +107,7 @@ private slots:
     void testVideoFormat_defaultIsUnknown()
     {
         VideoDisplayWidget widget;
-        QCOMPARE(widget.videoFormat(), VideoStreamReceiver::VideoFormat::Unknown);
+        QCOMPARE(widget.videoFormat(), VideoStreamReceiverService::VideoFormat::Unknown);
     }
 };
 

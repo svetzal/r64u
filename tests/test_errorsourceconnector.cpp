@@ -1,4 +1,4 @@
-#include "mocks/mockfiledownloader.h"
+#include "mocks/mockfiledownloaderservice.h"
 #include "mocks/mockrestclient.h"
 #include "models/remotefilemodel.h"
 #include "services/configfileloader.h"
@@ -10,7 +10,7 @@
 #include "services/iftpclient.h"
 #include "services/keyboardinputservice.h"
 #include "services/remotefileoperations.h"
-#include "services/songlengthsdatabase.h"
+#include "services/songlengthsdatabaseservice.h"
 #include "services/videorecordingservice.h"
 
 #include <QSignalSpy>
@@ -82,13 +82,13 @@ public:
     void emitLoadFailed(const QString &path, const QString &err) { emit loadFailed(path, err); }
 };
 
-class SignallingSonglengthsDatabase : public SonglengthsDatabase
+class SignallingSonglengthsDatabase : public SonglengthsDatabaseService
 {
     Q_OBJECT
 
 public:
-    explicit SignallingSonglengthsDatabase(IFileDownloader *dl, QObject *parent = nullptr)
-        : SonglengthsDatabase(dl, parent)
+    explicit SignallingSonglengthsDatabase(IFileDownloaderService *dl, QObject *parent = nullptr)
+        : SonglengthsDatabaseService(dl, parent)
     {
     }
     void emitDownloadFailed(const QString &err) { emit downloadFailed(err); }
@@ -99,7 +99,7 @@ class SignallingHVSCMetadataService : public HVSCMetadataService
     Q_OBJECT
 
 public:
-    explicit SignallingHVSCMetadataService(IFileDownloader *s, IFileDownloader *b,
+    explicit SignallingHVSCMetadataService(IFileDownloaderService *s, IFileDownloaderService *b,
                                            QObject *parent = nullptr)
         : HVSCMetadataService(s, b, parent)
     {
@@ -113,7 +113,7 @@ class SignallingGameBase64Service : public GameBase64Service
     Q_OBJECT
 
 public:
-    explicit SignallingGameBase64Service(IFileDownloader *dl, QObject *parent = nullptr)
+    explicit SignallingGameBase64Service(IFileDownloaderService *dl, QObject *parent = nullptr)
         : GameBase64Service(dl, parent)
     {
     }
@@ -146,9 +146,9 @@ class TestErrorSourceConnector : public QObject
 
 private:
     ErrorHandler *handler_ = nullptr;
-    MockFileDownloader *downloader1_ = nullptr;
-    MockFileDownloader *downloader2_ = nullptr;
-    MockFileDownloader *downloader3_ = nullptr;
+    MockFileDownloaderService *downloader1_ = nullptr;
+    MockFileDownloaderService *downloader2_ = nullptr;
+    MockFileDownloaderService *downloader3_ = nullptr;
 
 private slots:
     void init();
@@ -175,9 +175,9 @@ private slots:
 void TestErrorSourceConnector::init()
 {
     handler_ = new ErrorHandler(nullptr);
-    downloader1_ = new MockFileDownloader();
-    downloader2_ = new MockFileDownloader();
-    downloader3_ = new MockFileDownloader();
+    downloader1_ = new MockFileDownloaderService();
+    downloader2_ = new MockFileDownloaderService();
+    downloader3_ = new MockFileDownloaderService();
 }
 
 void TestErrorSourceConnector::cleanup()

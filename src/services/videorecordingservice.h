@@ -4,7 +4,7 @@
 class StreamingService;
 
 #include "avicore.h"
-#include "ivideostreamreceiver.h"
+#include "ivideostreamreceiverservice.h"
 
 #include <QDateTime>
 #include <QFile>
@@ -119,7 +119,7 @@ signals:
 
 private slots:
     void onRawFrameReady(const QByteArray &frameData, quint16 frameNumber,
-                         IVideoStreamReceiver::VideoFormat format);
+                         IVideoStreamReceiverService::VideoFormat format);
 
 private:
     void writeAviHeader();

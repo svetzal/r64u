@@ -12,36 +12,36 @@ set(MOCK_FTP_HEADERS
     mocks/mockftpclient.h
 )
 
-# Mock local file system - implements ILocalFileSystem for runtime injection
+# Mock local file system - implements ILocalFileSystemService for runtime injection
 set(MOCK_LOCAL_FS_SOURCES
-    mocks/mocklocalfilesystem.cpp
+    mocks/mocklocalfilesystemservice.cpp
 )
 
 set(MOCK_LOCAL_FS_HEADERS
-    mocks/mocklocalfilesystem.h
+    mocks/mocklocalfilesystemservice.h
 )
 
-# Mock file downloader - implements IFileDownloader for runtime injection
+# Mock file downloader - implements IFileDownloaderService for runtime injection
 set(MOCK_FILE_DOWNLOADER_SOURCES
-    mocks/mockfiledownloader.cpp
+    mocks/mockfiledownloaderservice.cpp
 )
 
 set(MOCK_FILE_DOWNLOADER_HEADERS
-    mocks/mockfiledownloader.h
+    mocks/mockfiledownloaderservice.h
 )
 
 # Streaming interface mock sources (Q_OBJECT mocks need .cpp for MOC)
 set(MOCK_STREAMING_SOURCES
-    mocks/mockstreamcontrolclient.cpp
-    mocks/mockvideostreamreceiver.cpp
-    mocks/mockaudiostreamreceiver.cpp
+    mocks/mockstreamcontrolservice.cpp
+    mocks/mockvideostreamreceiverservice.cpp
+    mocks/mockaudiostreamreceiverservice.cpp
     mocks/mockaudioplaybackservice.cpp
 )
 
 set(MOCK_STREAMING_HEADERS
-    mocks/mockstreamcontrolclient.h
-    mocks/mockvideostreamreceiver.h
-    mocks/mockaudiostreamreceiver.h
+    mocks/mockstreamcontrolservice.h
+    mocks/mockvideostreamreceiverservice.h
+    mocks/mockaudiostreamreceiverservice.h
     mocks/mockaudioplaybackservice.h
     mocks/mocknetworkinterfaceprovider.h
 )
@@ -110,16 +110,16 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_batchmanager)
 endif()
 
-# TransferQueue tests - uses MockFtpClient and LocalFileSystem (production) via interface injection
+# TransferQueue tests - uses MockFtpClient and LocalFileSystemService (production) via interface injection
 add_executable(test_transferqueue
     test_transferqueue.cpp
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
-    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -159,9 +159,9 @@ add_executable(test_transfermanager
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
-    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
@@ -191,7 +191,7 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_transfermanager)
 endif()
 
-# Coordinator tests - isolated unit tests using MockLocalFileSystem (no real disk I/O)
+# Coordinator tests - isolated unit tests using MockLocalFileSystemService (no real disk I/O)
 add_executable(test_coordinators
     test_coordinators.cpp
     ${MOCK_FTP_SOURCES}
@@ -200,7 +200,7 @@ add_executable(test_coordinators
     ${MOCK_LOCAL_FS_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
@@ -307,7 +307,7 @@ add_executable(test_recursivescancoordinator
     ${MOCK_LOCAL_FS_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
 )
@@ -334,7 +334,7 @@ add_executable(test_remotedirectorycoordinator
     ${MOCK_LOCAL_FS_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
 )
@@ -361,7 +361,7 @@ add_executable(test_folderoperationcoordinator
     ${MOCK_LOCAL_FS_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
@@ -390,7 +390,7 @@ add_executable(test_transferdeletehandler
     ${MOCK_LOCAL_FS_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
@@ -651,32 +651,32 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_localfileproxymodel)
 endif()
 
-# VideoStreamReceiver tests
-add_executable(test_videostreamreceiver
-    test_videostreamreceiver.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
+# VideoStreamReceiverService tests
+add_executable(test_videostreamreceiverservice
+    test_videostreamreceiverservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/udpstreamsocket.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
 )
 
-target_include_directories(test_videostreamreceiver PRIVATE
+target_include_directories(test_videostreamreceiverservice PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(test_videostreamreceiver PRIVATE
+target_link_libraries(test_videostreamreceiverservice PRIVATE
     Qt6::Core
     Qt6::Test
     Qt6::Network
 )
 
 # Register test with CTest
-add_test(NAME VideoStreamReceiverTest COMMAND test_videostreamreceiver)
+add_test(NAME VideoStreamReceiverServiceTest COMMAND test_videostreamreceiverservice)
 
 # Add coverage target if coverage is enabled
 if(BUILD_COVERAGE)
-    add_coverage_target(videostreamreceiver test_videostreamreceiver)
-    add_dependencies(coverage coverage_videostreamreceiver)
+    add_coverage_target(videostreamreceiverservice test_videostreamreceiverservice)
+    add_dependencies(coverage coverage_videostreamreceiverservice)
 endif()
 
 # FilePreviewService tests - uses MockFtpClient via interface injection
@@ -724,9 +724,9 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
-    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
@@ -803,14 +803,14 @@ add_executable(test_errorsourceconnector
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filepreviewservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/configfileloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
@@ -821,7 +821,7 @@ add_executable(test_errorsourceconnector
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.h
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.h
     ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
-    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.h
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.h
     ${CMAKE_SOURCE_DIR}/src/services/iaudioplaybackservice.h
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.h
 )
@@ -1149,12 +1149,12 @@ add_executable(test_streamingdiagnosticsservice
     test_streamingdiagnosticsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnosticsservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/udpstreamsocket.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiverservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
 )
 
@@ -1183,7 +1183,7 @@ add_executable(test_hvscmetadataservice
     test_hvscmetadataservice.cpp
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
-    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
@@ -1263,9 +1263,9 @@ add_executable(test_streamingmanager
     ${MOCK_STREAMING_HEADERS}
     mocks/mockrestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/istreamcontrolclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/istreamcontrolservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iaudioplaybackservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
@@ -1279,12 +1279,12 @@ add_executable(test_streamingmanager
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/streamcontrolclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/streamcontrolservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamprotocolcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/udpstreamsocket.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audioplaybackservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnosticsservice.cpp
@@ -1519,9 +1519,9 @@ add_executable(test_filemetadatacore
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
@@ -1598,12 +1598,12 @@ add_executable(test_playlistservice
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
     # Headers listed here so AUTOMOC generates moc files needed by stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.h
 )
 
 target_include_directories(test_playlistservice PRIVATE
@@ -1675,7 +1675,7 @@ add_executable(test_gamebase64service
     test_gamebase64service.cpp
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
-    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -1708,7 +1708,7 @@ add_executable(test_cacheddownloadservice
     test_cacheddownloadservice.cpp
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
-    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
@@ -1733,36 +1733,36 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_cacheddownloadservice)
 endif()
 
-# SonglengthsDatabase tests
-add_executable(test_songlengthsdatabase
-    test_songlengthsdatabase.cpp
+# SonglengthsDatabaseService tests
+add_executable(test_songlengthsdatabaseservice
+    test_songlengthsdatabaseservice.cpp
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
-    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
-target_include_directories(test_songlengthsdatabase PRIVATE
+target_include_directories(test_songlengthsdatabaseservice PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(test_songlengthsdatabase PRIVATE
+target_link_libraries(test_songlengthsdatabaseservice PRIVATE
     Qt6::Core
     Qt6::Test
     Qt6::Network
 )
 
 # Register test with CTest
-add_test(NAME SonglengthsDatabaseTest COMMAND test_songlengthsdatabase)
+add_test(NAME SonglengthsDatabaseServiceTest COMMAND test_songlengthsdatabaseservice)
 
 # Add coverage target if coverage is enabled
 if(BUILD_COVERAGE)
-    add_coverage_target(songlengthsdatabase test_songlengthsdatabase)
-    add_dependencies(coverage coverage_songlengthsdatabase)
+    add_coverage_target(songlengthsdatabaseservice test_songlengthsdatabaseservice)
+    add_dependencies(coverage coverage_songlengthsdatabaseservice)
 endif()
 
 # FavoritesService tests - imperative shell around favorites:: core, QSettings I/O
@@ -1816,11 +1816,11 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_diskbootsequenceservice)
 endif()
 
-# HttpFileDownloader tests - thin HTTP downloader shell, uses local QTcpServer
+# HttpFileDownloaderService tests - thin HTTP downloader shell, uses local QTcpServer
 add_executable(test_httpfiledownloader
     test_httpfiledownloader.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/httpfiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/httpfiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
@@ -1841,29 +1841,29 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_httpfiledownloader)
 endif()
 
-# StreamControlClient tests - TCP stream control client
-add_executable(test_streamcontrolclient
-    test_streamcontrolclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/istreamcontrolclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/streamcontrolclient.cpp
+# StreamControlService tests - TCP stream control client
+add_executable(test_streamcontrolservice
+    test_streamcontrolservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/istreamcontrolservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/streamcontrolservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamprotocolcore.cpp
 )
 
-target_include_directories(test_streamcontrolclient PRIVATE
+target_include_directories(test_streamcontrolservice PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(test_streamcontrolclient PRIVATE
+target_link_libraries(test_streamcontrolservice PRIVATE
     Qt6::Core
     Qt6::Test
     Qt6::Network
 )
 
-add_test(NAME StreamControlClientTest COMMAND test_streamcontrolclient)
+add_test(NAME StreamControlServiceTest COMMAND test_streamcontrolservice)
 
 if(BUILD_COVERAGE)
-    add_coverage_target(streamcontrolclient test_streamcontrolclient)
-    add_dependencies(coverage coverage_streamcontrolclient)
+    add_coverage_target(streamcontrolservice test_streamcontrolservice)
+    add_dependencies(coverage coverage_streamcontrolservice)
 endif()
 
 # UdpStreamSocket tests - shared UDP socket lifecycle helper
@@ -1889,30 +1889,30 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_udpstreamsocket)
 endif()
 
-# AudioStreamReceiver tests - UDP audio receiver with jitter buffer
-add_executable(test_audiostreamreceiver
-    test_audiostreamreceiver.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
+# AudioStreamReceiverService tests - UDP audio receiver with jitter buffer
+add_executable(test_audiostreamreceiverservice
+    test_audiostreamreceiverservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/udpstreamsocket.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
 )
 
-target_include_directories(test_audiostreamreceiver PRIVATE
+target_include_directories(test_audiostreamreceiverservice PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(test_audiostreamreceiver PRIVATE
+target_link_libraries(test_audiostreamreceiverservice PRIVATE
     Qt6::Core
     Qt6::Test
     Qt6::Network
 )
 
-add_test(NAME AudioStreamReceiverTest COMMAND test_audiostreamreceiver)
+add_test(NAME AudioStreamReceiverServiceTest COMMAND test_audiostreamreceiverservice)
 
 if(BUILD_COVERAGE)
-    add_coverage_target(audiostreamreceiver test_audiostreamreceiver)
-    add_dependencies(coverage coverage_audiostreamreceiver)
+    add_coverage_target(audiostreamreceiverservice test_audiostreamreceiverservice)
+    add_dependencies(coverage coverage_audiostreamreceiverservice)
 endif()
 
 # AudioPlaybackService tests - Qt Multimedia audio playback service
@@ -1946,8 +1946,8 @@ add_executable(test_videorecordingservice
     ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/avicore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/vic2frameconverter.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
@@ -2071,7 +2071,7 @@ add_executable(test_transferftphandler
     ${MOCK_LOCAL_FS_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
@@ -2151,7 +2151,7 @@ add_executable(test_fileactioncontroller
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.h
 )
 
 target_include_directories(test_fileactioncontroller PRIVATE
@@ -2221,7 +2221,7 @@ add_executable(test_previewcoordinator
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.h
 )
 
 target_include_directories(test_previewcoordinator PRIVATE
@@ -2284,12 +2284,12 @@ add_executable(test_databasedownloadcontroller
     ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadview.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
@@ -2585,17 +2585,17 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/services/favoritescore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/httpfiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/httpfiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
@@ -2610,7 +2610,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.h
 )
 
 target_include_directories(test_servicefactory PRIVATE
@@ -2663,13 +2663,13 @@ add_executable(test_playlistwidget
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/playlistwidget.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.h
 )
 
 target_include_directories(test_playlistwidget PRIVATE
@@ -2710,8 +2710,8 @@ add_executable(test_viewpanel
     ${CMAKE_SOURCE_DIR}/src/services/screenshotservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/viewpanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/videodisplaywidget.cpp
@@ -2764,8 +2764,8 @@ add_executable(test_transferpanel
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
@@ -2894,9 +2894,9 @@ add_executable(test_filedetailspanel
     # Headers listed so AUTOMOC generates moc files for Q_OBJECT stubs
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.h
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.h
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.h
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filemetadatacore.cpp
@@ -2964,9 +2964,9 @@ add_executable(test_transferqueuewidget
     test_transferqueuewidget.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
-    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -3035,9 +3035,9 @@ add_executable(test_batchprogresswidget
     test_batchprogresswidget.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
-    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -3173,7 +3173,7 @@ add_executable(test_videodisplaywidget
     test_videodisplaywidget.cpp
     stubs/viewpanel_test_stubs.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/videodisplaywidget.cpp
     # Headers for AUTOMOC (stubs provide bodies for these Q_OBJECT classes)
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
@@ -3206,7 +3206,7 @@ add_executable(test_streamingdiagnosticswidget
     test_streamingdiagnosticswidget.cpp
     stubs/viewpanel_test_stubs.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/streamingdiagnosticswidget.cpp
     # Headers for AUTOMOC (stubs provide bodies for these Q_OBJECT classes)
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
@@ -3277,8 +3277,8 @@ add_executable(test_transferprogresswidget
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
@@ -3333,8 +3333,8 @@ add_executable(test_transferprogresscontainer
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
@@ -3382,8 +3382,8 @@ add_executable(test_preferencesdialog
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/videodisplaywidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/preferencesdialog.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/connectiontesthandler.cpp
@@ -3393,7 +3393,7 @@ add_executable(test_preferencesdialog
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnosticsservice.h
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.h
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.h
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.h
 )
@@ -3573,9 +3573,9 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/istreamcontrolclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiver.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiver.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/istreamcontrolservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iaudioplaybackservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
     ${CMAKE_SOURCE_DIR}/src/core/petsciiconverter.cpp
@@ -3609,13 +3609,13 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/services/transferlistingcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferdecisioncore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferftpcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/localfilesystem.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloader.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/httpfiledownloader.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/httpfiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
@@ -3641,7 +3641,7 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnosticsservice.h
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabase.h
+    ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.h
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.h
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.h
 )

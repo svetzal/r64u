@@ -1,8 +1,8 @@
 #ifndef METADATASERVICEBUNDLE_H
 #define METADATASERVICEBUNDLE_H
 
-class HttpFileDownloader;
-class SonglengthsDatabase;
+class HttpFileDownloaderService;
+class SonglengthsDatabaseService;
 class HVSCMetadataService;
 class GameBase64Service;
 
@@ -11,12 +11,12 @@ class GameBase64Service;
 /// and are always passed together to panels and dialogs.
 struct MetadataServiceBundle
 {
-    HttpFileDownloader *songlengthsDownloader = nullptr;
-    SonglengthsDatabase *songlengthsDatabase = nullptr;
-    HttpFileDownloader *stilDownloader = nullptr;
-    HttpFileDownloader *buglistDownloader = nullptr;
+    HttpFileDownloaderService *songlengthsDownloader = nullptr;
+    SonglengthsDatabaseService *songlengthsDatabase = nullptr;
+    HttpFileDownloaderService *stilDownloader = nullptr;
+    HttpFileDownloaderService *buglistDownloader = nullptr;
     HVSCMetadataService *hvscMetadataService = nullptr;
-    HttpFileDownloader *gameBase64Downloader = nullptr;
+    HttpFileDownloaderService *gameBase64Downloader = nullptr;
     GameBase64Service *gameBase64Service = nullptr;
 };
 

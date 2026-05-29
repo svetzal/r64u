@@ -8,7 +8,7 @@
 #include "deviceconnectionmanager.h"
 #include "iftpclient.h"
 #include "playlistcore.h"
-#include "songlengthsdatabase.h"
+#include "songlengthsdatabaseservice.h"
 #include "streamingservice.h"
 
 #include "utils/logging.h"
@@ -37,7 +37,7 @@ PlaylistService::PlaylistService(DeviceConnectionManager *connection, QObject *p
     loadSettings();
 }
 
-void PlaylistService::setSonglengthsDatabase(SonglengthsDatabase *database)
+void PlaylistService::setSonglengthsDatabase(SonglengthsDatabaseService *database)
 {
     songlengthsDatabase_ = database;
 }
@@ -274,7 +274,7 @@ void PlaylistService::updateDurationFromData(const QString &path, const QByteArr
         return;
     }
 
-    SonglengthsDatabase::SongLengths lengths = songlengthsDatabase_->lookupByData(sidData);
+    SonglengthsDatabaseService::SongLengths lengths = songlengthsDatabase_->lookupByData(sidData);
     if (!lengths.found || lengths.durations.isEmpty()) {
         return;
     }
@@ -447,7 +447,7 @@ void PlaylistService::onSidDataReceived(const QString &remotePath, const QByteAr
         return;
     }
 
-    SonglengthsDatabase::SongLengths lengths = songlengthsDatabase_->lookupByData(data);
+    SonglengthsDatabaseService::SongLengths lengths = songlengthsDatabase_->lookupByData(data);
     if (!lengths.found || lengths.durations.isEmpty()) {
         return;
     }

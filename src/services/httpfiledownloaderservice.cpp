@@ -1,0 +1,83 @@
+#include "httpfiledownloaderservice.h"
+
+#include "utils/logging.h"
+
+#include <QNetworkReply>
+#include <QNetworkRequest>
+
+HttpFileDownloaderService::HttpFileDownloaderService(QObject *parent)
+    : IFileDownloaderService(parent), networkManager_(new QNetworkAccessManager(this))
+{
+}
+
+void HttpFileDownloaderService::download(const QUrl &url)
+{
+    if (currentReply_ != nullptr) {
+        qCWarning(LogMetadata) << "download() called while already downloading, ignoring";
+        emit downloadFailed(tr("Download already in progress"));
+        return;
+    }
+
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("r64u/1.0"));
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::NoLessSafeRedirectPolicy);
+
+    currentReply_ = networkManager_->get(request);
+
+    connect(currentReply_, &QNetworkReply::downloadProgress, this,
+            &HttpFileDownloaderService::onReplyProgress);
+    connect(currentReply_, &QNetworkReply::finished, this,
+            &HttpFileDownloaderService::onReplyFinished);
+}
+
+void HttpFileDownloaderService::cancel()
+{
+    if (currentReply_ == nullptr) {
+        return;
+    }
+    // Capture pointer before abort(): abort() can emit finished() synchronously,
+    // which calls onReplyFinished() and nulls currentReply_.  If we called
+    // currentReply_->deleteLater() after abort() we would dereference a null pointer.
+    QNetworkReply *reply = currentReply_;
+    currentReply_ = nullptr;
+    reply->abort();
+    reply->deleteLater();
+}
+
+bool HttpFileDownloaderService::isDownloading() const
+{
+    return currentReply_ != nullptr;
+}
+
+void HttpFileDownloaderService::onReplyProgress(qint64 bytesReceived, qint64 bytesTotal)
+{
+    emit downloadProgress(bytesReceived, bytesTotal);
+}
+
+void HttpFileDownloaderService::onReplyFinished()
+{
+    if (currentReply_ == nullptr) {
+        return;
+    }
+
+    QNetworkReply *reply = currentReply_;
+    currentReply_ = nullptr;
+
+    if (reply->error() != QNetworkReply::NoError) {
+        const QString error = reply->errorString();
+        reply->deleteLater();
+        emit downloadFailed(error);
+        return;
+    }
+
+    const QByteArray data = reply->readAll();
+    reply->deleteLater();
+
+    if (data.isEmpty()) {
+        emit downloadFailed(tr("Downloaded file is empty"));
+        return;
+    }
+
+    emit downloadFinished(data);
+}

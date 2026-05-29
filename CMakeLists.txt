@@ -94,15 +94,15 @@ set(SOURCES
     src/services/errorsourceconnector.cpp
     src/services/errorsourceconnector_streaming.cpp
     src/services/statusmessageservice.cpp
-    src/services/istreamcontrolclient.cpp
-    src/services/ivideostreamreceiver.cpp
-    src/services/iaudiostreamreceiver.cpp
+    src/services/istreamcontrolservice.cpp
+    src/services/ivideostreamreceiverservice.cpp
+    src/services/iaudiostreamreceiverservice.cpp
     src/services/iaudioplaybackservice.cpp
-    src/services/streamcontrolclient.cpp
+    src/services/streamcontrolservice.cpp
     src/services/streamingservice.cpp
     src/services/udpstreamsocket.cpp
-    src/services/videostreamreceiver.cpp
-    src/services/audiostreamreceiver.cpp
+    src/services/videostreamreceiverservice.cpp
+    src/services/audiostreamreceiverservice.cpp
     src/services/audioplaybackservice.cpp
     src/services/keyboardinputservice.cpp
     src/core/petsciiconverter.cpp
@@ -138,13 +138,13 @@ set(SOURCES
     src/services/transferlistingcore.cpp
     src/services/transferdecisioncore.cpp
     src/services/transferftpcore.cpp
-    src/services/ilocalfilesystem.cpp
-    src/services/localfilesystem.cpp
-    src/services/ifiledownloader.cpp
-    src/services/httpfiledownloader.cpp
+    src/services/ilocalfilesystemservice.cpp
+    src/services/localfilesystemservice.cpp
+    src/services/ifiledownloaderservice.cpp
+    src/services/httpfiledownloaderservice.cpp
     src/services/cacheddownloadservice.cpp
     src/services/songlengthsparser.cpp
-    src/services/songlengthsdatabase.cpp
+    src/services/songlengthsdatabaseservice.cpp
     src/services/hvscparser.cpp
     src/services/hvscmetadataservice.cpp
     src/services/gamebase64service.cpp
@@ -229,17 +229,17 @@ set(HEADERS
     src/services/platformkeychain.h
     src/services/icredentialstore.h
     src/services/systemcredentialstore.h
-    src/services/istreamcontrolclient.h
-    src/services/ivideostreamreceiver.h
-    src/services/iaudiostreamreceiver.h
+    src/services/istreamcontrolservice.h
+    src/services/ivideostreamreceiverservice.h
+    src/services/iaudiostreamreceiverservice.h
     src/services/iaudioplaybackservice.h
     src/services/inetworkinterfaceprovider.h
     src/services/networkinterfaceprovider.h
-    src/services/streamcontrolclient.h
+    src/services/streamcontrolservice.h
     src/services/streamingservice.h
     src/services/udpstreamsocket.h
-    src/services/videostreamreceiver.h
-    src/services/audiostreamreceiver.h
+    src/services/videostreamreceiverservice.h
+    src/services/audiostreamreceiverservice.h
     src/services/audioplaybackservice.h
     src/services/keyboardinputservice.h
     src/core/petsciiconverter.h
@@ -268,12 +268,12 @@ set(HEADERS
     src/services/playlistservice.h
     src/services/playlistcore.h
     src/services/transfercore.h
-    src/services/ilocalfilesystem.h
-    src/services/localfilesystem.h
-    src/services/ifiledownloader.h
-    src/services/httpfiledownloader.h
+    src/services/ilocalfilesystemservice.h
+    src/services/localfilesystemservice.h
+    src/services/ifiledownloaderservice.h
+    src/services/httpfiledownloaderservice.h
     src/services/cacheddownloadservice.h
-    src/services/songlengthsdatabase.h
+    src/services/songlengthsdatabaseservice.h
     src/services/hvscmetadataservice.h
     src/services/gamebase64service.h
     src/services/servicefactory.h

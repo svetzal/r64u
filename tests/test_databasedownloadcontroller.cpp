@@ -60,7 +60,7 @@ private slots:
 
     void testDownloadFinished_emitsShowInfo()
     {
-        // Simulate SonglengthsDatabase emitting downloadFinished
+        // Simulate SonglengthsDatabaseService emitting downloadFinished
         // We invoke the private slot directly via Qt's signal/slot mechanism
         // by calling the slot directly on the controller.
         QMetaObject::invokeMethod(controller, "onDatabaseDownloadFinished", Qt::DirectConnection,

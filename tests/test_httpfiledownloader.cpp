@@ -1,6 +1,6 @@
 /**
  * @file test_httpfiledownloader.cpp
- * @brief Unit tests for HttpFileDownloader.
+ * @brief Unit tests for HttpFileDownloaderService.
  *
  * Uses a local QTcpServer to serve controlled HTTP responses, so no external
  * network access is required.  Tests cover:
@@ -13,7 +13,7 @@
  * - Duplicate download() while active is a no-op (does not start a second request)
  */
 
-#include "services/httpfiledownloader.h"
+#include "services/httpfiledownloaderservice.h"
 
 #include <QSignalSpy>
 #include <QTcpServer>
@@ -115,7 +115,7 @@ private slots:
     void init()
     {
         server_ = new TestHttpServer(this);
-        downloader_ = new HttpFileDownloader(this);
+        downloader_ = new HttpFileDownloaderService(this);
     }
 
     void cleanup()
@@ -148,7 +148,7 @@ private slots:
     void testDownload_WhileActive_EmitsDownloadFailed()
     {
         server_->setResponse(200, QByteArray("data"));
-        QSignalSpy failedSpy(downloader_, &HttpFileDownloader::downloadFailed);
+        QSignalSpy failedSpy(downloader_, &HttpFileDownloaderService::downloadFailed);
 
         downloader_->download(server_->url());
         QVERIFY(downloader_->isDownloading());
@@ -167,7 +167,7 @@ private slots:
     {
         const QByteArray payload("Hello SID world");
         server_->setResponse(200, payload);
-        QSignalSpy spy(downloader_, &HttpFileDownloader::downloadFinished);
+        QSignalSpy spy(downloader_, &HttpFileDownloaderService::downloadFinished);
 
         downloader_->download(server_->url());
         QTRY_COMPARE_WITH_TIMEOUT(spy.count(), 1, 3000);
@@ -178,7 +178,7 @@ private slots:
     void testDownload_Success_NotDownloadingAfterCompletion()
     {
         server_->setResponse(200, QByteArray("payload data"));
-        QSignalSpy spy(downloader_, &HttpFileDownloader::downloadFinished);
+        QSignalSpy spy(downloader_, &HttpFileDownloaderService::downloadFinished);
 
         downloader_->download(server_->url());
         QTRY_COMPARE_WITH_TIMEOUT(spy.count(), 1, 3000);
@@ -189,8 +189,8 @@ private slots:
     void testDownload_Success_DoesNotEmitDownloadFailed()
     {
         server_->setResponse(200, QByteArray("payload data"));
-        QSignalSpy failedSpy(downloader_, &HttpFileDownloader::downloadFailed);
-        QSignalSpy finishedSpy(downloader_, &HttpFileDownloader::downloadFinished);
+        QSignalSpy failedSpy(downloader_, &HttpFileDownloaderService::downloadFailed);
+        QSignalSpy finishedSpy(downloader_, &HttpFileDownloaderService::downloadFinished);
 
         downloader_->download(server_->url());
         QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, 3000);
@@ -205,7 +205,7 @@ private slots:
     void testDownload_EmptyBody_EmitsDownloadFailed()
     {
         server_->setResponse(200, QByteArray());  // empty body
-        QSignalSpy spy(downloader_, &HttpFileDownloader::downloadFailed);
+        QSignalSpy spy(downloader_, &HttpFileDownloaderService::downloadFailed);
 
         downloader_->download(server_->url());
         QTRY_COMPARE_WITH_TIMEOUT(spy.count(), 1, 3000);
@@ -236,7 +236,7 @@ private slots:
     void testCancel_DoesNotEmitDownloadFinished()
     {
         server_->setResponse(200, QByteArray("data"));
-        QSignalSpy finishedSpy(downloader_, &HttpFileDownloader::downloadFinished);
+        QSignalSpy finishedSpy(downloader_, &HttpFileDownloaderService::downloadFinished);
 
         downloader_->download(server_->url());
         downloader_->cancel();
@@ -254,8 +254,8 @@ private slots:
     void testDownload_EmitsDownloadProgress()
     {
         server_->setResponse(200, QByteArray(1024, 'X'));
-        QSignalSpy progressSpy(downloader_, &HttpFileDownloader::downloadProgress);
-        QSignalSpy finishedSpy(downloader_, &HttpFileDownloader::downloadFinished);
+        QSignalSpy progressSpy(downloader_, &HttpFileDownloaderService::downloadProgress);
+        QSignalSpy finishedSpy(downloader_, &HttpFileDownloaderService::downloadFinished);
 
         downloader_->download(server_->url());
         QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, 3000);
@@ -265,7 +265,7 @@ private slots:
 
 private:
     TestHttpServer *server_ = nullptr;
-    HttpFileDownloader *downloader_ = nullptr;
+    HttpFileDownloaderService *downloader_ = nullptr;
 };
 
 QTEST_MAIN(TestHttpFileDownloader)

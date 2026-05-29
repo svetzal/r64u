@@ -4,7 +4,7 @@
 #include "core/sidfileparser.h"
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
-#include "services/songlengthsdatabase.h"
+#include "services/songlengthsdatabaseservice.h"
 
 #include <QString>
 
@@ -29,7 +29,7 @@ struct SidDisplayContext
     bool songlengthsServicePresent = false;  ///< Service is wired up (not null)
     bool songlengthsDatabaseLoaded = false;  ///< Database has been loaded from disk
     /// Songlengths lookup result (songLengths.found = false if DB not loaded or not found)
-    SonglengthsDatabase::SongLengths songLengths;
+    SonglengthsDatabaseService::SongLengths songLengths;
 
     // ── HVSC STIL / BUGlist ───────────────────────────────────────────────
     bool stilLoaded = false;     ///< STIL database has been loaded

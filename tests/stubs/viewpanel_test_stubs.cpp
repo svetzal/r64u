@@ -7,9 +7,9 @@
  * etc.).  The stubs here satisfy linker symbol requirements without pulling in
  * those chains.  All method bodies are no-ops or return safe defaults.
  *
- * StreamingDiagnosticsServiceService requires VideoStreamReceiver and AudioStreamReceiver
- * concrete types.  Since we include mock versions of those (from MOCK_STREAMING),
- * we only need to stub the StreamingDiagnosticsServiceService attachment hooks.
+ * StreamingDiagnosticsServiceService requires VideoStreamReceiverService and
+ * AudioStreamReceiverService concrete types.  Since we include mock versions of those (from
+ * MOCK_STREAMING), we only need to stub the StreamingDiagnosticsServiceService attachment hooks.
  */
 
 #include "services/streamingservice.h"
@@ -20,9 +20,9 @@
 // ---------------------------------------------------------------------------
 
 StreamingService::StreamingService(DeviceConnectionManager * /*connection*/,
-                                   IStreamControlClient * /*streamControl*/,
-                                   IVideoStreamReceiver * /*videoReceiver*/,
-                                   IAudioStreamReceiver * /*audioReceiver*/,
+                                   IStreamControlService * /*streamControl*/,
+                                   IVideoStreamReceiverService * /*videoReceiver*/,
+                                   IAudioStreamReceiverService * /*audioReceiver*/,
                                    IAudioPlaybackService * /*audioPlayback*/,
                                    KeyboardInputService * /*keyboardInput*/,
                                    INetworkInterfaceProvider * /*networkProvider*/, QObject *parent)
@@ -73,7 +73,7 @@ void VideoRecordingService::addAudioSamples(const QByteArray & /*samples*/, int 
 
 void VideoRecordingService::onRawFrameReady(const QByteArray & /*frameData*/,
                                             quint16 /*frameNumber*/,
-                                            IVideoStreamReceiver::VideoFormat /*format*/)
+                                            IVideoStreamReceiverService::VideoFormat /*format*/)
 {
 }
 
@@ -89,7 +89,7 @@ QString VideoRecordingService::prepareRecordingPath()
 #include "services/vic2frameconverter.h"
 
 QImage Vic2::convertFrame(const QByteArray & /*frameData*/,
-                          IVideoStreamReceiver::VideoFormat /*format*/)
+                          IVideoStreamReceiverService::VideoFormat /*format*/)
 {
     return QImage();
 }
@@ -106,9 +106,9 @@ StreamingDiagnosticsService::~StreamingDiagnosticsService() = default;
 
 void StreamingDiagnosticsService::reset() {}
 
-void StreamingDiagnosticsService::attachVideoReceiver(VideoStreamReceiver * /*receiver*/) {}
+void StreamingDiagnosticsService::attachVideoReceiver(VideoStreamReceiverService * /*receiver*/) {}
 
-void StreamingDiagnosticsService::attachAudioReceiver(AudioStreamReceiver * /*receiver*/) {}
+void StreamingDiagnosticsService::attachAudioReceiver(AudioStreamReceiverService * /*receiver*/) {}
 
 QString StreamingDiagnosticsService::qualityLevelString(QualityLevel /*level*/)
 {

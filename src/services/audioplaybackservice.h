@@ -27,7 +27,7 @@
  *
  * if (playback->start()) {
  *     // Connect to audio receiver
- *     connect(receiver, &AudioStreamReceiver::samplesReady,
+ *     connect(receiver, &AudioStreamReceiverService::samplesReady,
  *             playback, &AudioPlaybackService::writeSamples);
  * }
  * @endcode

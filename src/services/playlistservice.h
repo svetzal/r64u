@@ -10,7 +10,7 @@
 #include <QTimer>
 
 class DeviceConnectionManager;
-class SonglengthsDatabase;
+class SonglengthsDatabaseService;
 class StreamingService;
 
 /**
@@ -50,7 +50,7 @@ public:
      * @brief Sets the songlengths database for duration lookup.
      * @param database The database (not owned by PlaylistService).
      */
-    void setSonglengthsDatabase(SonglengthsDatabase *database);
+    void setSonglengthsDatabase(SonglengthsDatabaseService *database);
 
     /**
      * @brief Sets the streaming service for automatic stream start/stop.
@@ -290,7 +290,7 @@ private:
     void ensureStreamingStarted();
 
     DeviceConnectionManager *deviceConnection_ = nullptr;
-    SonglengthsDatabase *songlengthsDatabase_ = nullptr;
+    SonglengthsDatabaseService *songlengthsDatabase_ = nullptr;
     StreamingService *streamingService_ = nullptr;
 
     playlist::State state_;

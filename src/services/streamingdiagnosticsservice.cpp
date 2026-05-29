@@ -5,8 +5,8 @@
 
 #include "streamingdiagnosticsservice.h"
 
-#include "audiostreamreceiver.h"
-#include "videostreamreceiver.h"
+#include "audiostreamreceiverservice.h"
+#include "videostreamreceiverservice.h"
 
 #include "utils/logging.h"
 
@@ -40,7 +40,7 @@ void StreamingDiagnosticsService::setEnabled(bool enabled)
     }
 }
 
-void StreamingDiagnosticsService::attachVideoReceiver(VideoStreamReceiver *receiver)
+void StreamingDiagnosticsService::attachVideoReceiver(VideoStreamReceiverService *receiver)
 {
     if (videoReceiver_) {
         disconnect(videoReceiver_, nullptr, this, nullptr);
@@ -49,12 +49,12 @@ void StreamingDiagnosticsService::attachVideoReceiver(VideoStreamReceiver *recei
     videoReceiver_ = receiver;
 
     if (videoReceiver_) {
-        connect(videoReceiver_, &VideoStreamReceiver::statsUpdated, this,
+        connect(videoReceiver_, &VideoStreamReceiverService::statsUpdated, this,
                 &StreamingDiagnosticsService::onVideoStatsUpdated);
     }
 }
 
-void StreamingDiagnosticsService::attachAudioReceiver(AudioStreamReceiver *receiver)
+void StreamingDiagnosticsService::attachAudioReceiver(AudioStreamReceiverService *receiver)
 {
     if (audioReceiver_) {
         disconnect(audioReceiver_, nullptr, this, nullptr);
@@ -63,9 +63,9 @@ void StreamingDiagnosticsService::attachAudioReceiver(AudioStreamReceiver *recei
     audioReceiver_ = receiver;
 
     if (audioReceiver_) {
-        connect(audioReceiver_, &AudioStreamReceiver::statsUpdated, this,
+        connect(audioReceiver_, &AudioStreamReceiverService::statsUpdated, this,
                 &StreamingDiagnosticsService::onAudioStatsUpdated);
-        connect(audioReceiver_, &AudioStreamReceiver::bufferUnderrun, this,
+        connect(audioReceiver_, &AudioStreamReceiverService::bufferUnderrun, this,
                 &StreamingDiagnosticsService::onAudioBufferUnderrun);
 
         audioBufferTarget_ = audioReceiver_->jitterBufferSize();

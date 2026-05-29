@@ -1,6 +1,6 @@
 #include "services/deviceconnectionmanager.h"
 #include "services/errorhandler.h"
-#include "services/ivideostreamreceiver.h"
+#include "services/ivideostreamreceiverservice.h"
 #include "services/playlistservice.h"
 #include "services/transferservice.h"
 #include "services/videorecordingservice.h"
@@ -9,7 +9,7 @@
 // DeviceConnectionManager and TransferService are QSKIP-ed in test_errorsourceconnector
 // because they require heavy dependency chains or show blocking dialogs.
 // VideoRecordingService is stubbed here to avoid pulling in StreamingService and
-// AudioStreamReceiver/VideoStreamReceiver chains.
+// AudioStreamReceiverService/VideoStreamReceiverService chains.
 // These stubs supply just enough to satisfy link-time symbol resolution.
 
 class StreamingService;
@@ -31,7 +31,7 @@ void VideoRecordingService::addFrame(const QImage & /*frame*/) {}
 void VideoRecordingService::addAudioSamples(const QByteArray & /*samples*/, int /*sampleCount*/) {}
 void VideoRecordingService::onRawFrameReady(const QByteArray & /*frameData*/,
                                             quint16 /*frameNumber*/,
-                                            IVideoStreamReceiver::VideoFormat /*format*/)
+                                            IVideoStreamReceiverService::VideoFormat /*format*/)
 {
 }
 
@@ -84,7 +84,7 @@ PlaylistService::PlaylistService(DeviceConnectionManager * /*connection*/, QObje
 {
 }
 
-void PlaylistService::setSonglengthsDatabase(SonglengthsDatabase * /*database*/) {}
+void PlaylistService::setSonglengthsDatabase(SonglengthsDatabaseService * /*database*/) {}
 void PlaylistService::setStreamingService(StreamingService * /*manager*/) {}
 void PlaylistService::addItem(const QString & /*path*/, int /*subsong*/) {}
 void PlaylistService::addItem(const PlaylistItem & /*item*/) {}

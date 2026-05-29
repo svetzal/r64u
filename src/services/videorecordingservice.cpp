@@ -5,10 +5,10 @@
 
 #include "videorecordingservice.h"
 
-#include "audiostreamreceiver.h"
+#include "audiostreamreceiverservice.h"
 #include "streamingservice.h"
 #include "vic2frameconverter.h"
-#include "videostreamreceiver.h"
+#include "videostreamreceiverservice.h"
 
 #include "utils/logging.h"
 
@@ -42,17 +42,17 @@ QString VideoRecordingService::prepareRecordingPath()
 void VideoRecordingService::connectToStreaming(StreamingService *manager)
 {
     if (manager && manager->videoReceiver()) {
-        connect(manager->videoReceiver(), &VideoStreamReceiver::frameReady, this,
+        connect(manager->videoReceiver(), &VideoStreamReceiverService::frameReady, this,
                 &VideoRecordingService::onRawFrameReady);
     }
     if (manager && manager->audioReceiver()) {
-        connect(manager->audioReceiver(), &AudioStreamReceiver::samplesReady, this,
+        connect(manager->audioReceiver(), &AudioStreamReceiverService::samplesReady, this,
                 &VideoRecordingService::addAudioSamples);
     }
 }
 
 void VideoRecordingService::onRawFrameReady(const QByteArray &frameData, quint16 frameNumber,
-                                            IVideoStreamReceiver::VideoFormat format)
+                                            IVideoStreamReceiverService::VideoFormat format)
 {
     Q_UNUSED(frameNumber)
     if (!recording_) {

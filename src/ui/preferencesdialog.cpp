@@ -201,7 +201,7 @@ void PreferencesDialog::onTestConnection()
     connectionTester_->startTest(hostEdit_->text().trimmed(), passwordEdit_->text());
 }
 
-void PreferencesDialog::setSonglengthsDatabase(SonglengthsDatabase *database)
+void PreferencesDialog::setSonglengthsDatabase(SonglengthsDatabaseService *database)
 {
     downloadController_->setSonglengthsDatabase(database);
 }

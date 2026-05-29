@@ -7,7 +7,7 @@
 
 #include <memory>
 
-class SonglengthsDatabase;
+class SonglengthsDatabaseService;
 class HVSCMetadataService;
 class GameBase64Service;
 class IMessagePresenter;
@@ -30,7 +30,7 @@ public:
     /// Creates and returns the databases widget for embedding in PreferencesDialog.
     QWidget *createWidgets();
 
-    void setSonglengthsDatabase(SonglengthsDatabase *database);
+    void setSonglengthsDatabase(SonglengthsDatabaseService *database);
     void setHVSCMetadataService(HVSCMetadataService *service);
     void setGameBase64Service(GameBase64Service *service);
 
@@ -78,7 +78,7 @@ private:
     /// Owned message presenter; defaults to QMessageBoxPresenter, replaceable in tests.
     std::unique_ptr<IMessagePresenter> messagePresenter_;
 
-    SonglengthsDatabase *songlengthsDatabase_ = nullptr;
+    SonglengthsDatabaseService *songlengthsDatabase_ = nullptr;
     HVSCMetadataService *hvscMetadataService_ = nullptr;
     GameBase64Service *gameBase64Service_ = nullptr;
 };

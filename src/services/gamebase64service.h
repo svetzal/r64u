@@ -67,7 +67,7 @@ public:
         QList<GameInfo> games;
     };
 
-    explicit GameBase64Service(IFileDownloader *downloader, QObject *parent = nullptr);
+    explicit GameBase64Service(IFileDownloaderService *downloader, QObject *parent = nullptr);
     ~GameBase64Service() override;
 
     // Database state

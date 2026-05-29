@@ -7,9 +7,10 @@ static constexpr int kPalHeight = 272;
 static constexpr int kNtscHeight = 240;
 static constexpr int kBytesPerLine = 192;
 
-QImage convertFrame(const QByteArray &frameData, IVideoStreamReceiver::VideoFormat format)
+QImage convertFrame(const QByteArray &frameData, IVideoStreamReceiverService::VideoFormat format)
 {
-    int height = (format == IVideoStreamReceiver::VideoFormat::NTSC) ? kNtscHeight : kPalHeight;
+    int height =
+        (format == IVideoStreamReceiverService::VideoFormat::NTSC) ? kNtscHeight : kPalHeight;
 
     QImage frame(kFrameWidth, height, QImage::Format_RGB32);
 

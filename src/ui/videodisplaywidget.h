@@ -1,7 +1,7 @@
 #ifndef VIDEODISPLAYWIDGET_H
 #define VIDEODISPLAYWIDGET_H
 
-#include "services/videostreamreceiver.h"
+#include "services/videostreamreceiverservice.h"
 
 #include <QElapsedTimer>
 #include <QImage>
@@ -26,7 +26,7 @@
  * VideoDisplayWidget *display = new VideoDisplayWidget(this);
  *
  * // Connect to video receiver
- * connect(receiver, &VideoStreamReceiver::frameReady,
+ * connect(receiver, &VideoStreamReceiverService::frameReady,
  *         display, &VideoDisplayWidget::displayFrame);
  * @endcode
  */
@@ -81,7 +81,10 @@ public:
      * @brief Returns the current video format.
      * @return The video format (PAL, NTSC, or Unknown).
      */
-    [[nodiscard]] VideoStreamReceiver::VideoFormat videoFormat() const { return videoFormat_; }
+    [[nodiscard]] VideoStreamReceiverService::VideoFormat videoFormat() const
+    {
+        return videoFormat_;
+    }
 
     /**
      * @brief Returns the current scaling mode.
@@ -158,7 +161,7 @@ public slots:
      * @param format The video format (PAL or NTSC).
      */
     void displayFrame(const QByteArray &frameData, quint16 frameNumber,
-                      VideoStreamReceiver::VideoFormat format);
+                      VideoStreamReceiverService::VideoFormat format);
 
     /**
      * @brief Clears the display to black.
@@ -170,7 +173,7 @@ signals:
      * @brief Emitted when the video format changes.
      * @param format The new video format.
      */
-    void formatChanged(VideoStreamReceiver::VideoFormat format);
+    void formatChanged(VideoStreamReceiverService::VideoFormat format);
 
     /**
      * @brief Emitted when a key is pressed while the widget has focus.
@@ -199,7 +202,7 @@ private:
     {
         QByteArray frameData;
         quint16 frameNumber;
-        VideoStreamReceiver::VideoFormat format;
+        VideoStreamReceiverService::VideoFormat format;
     };
 
     void convertFrameToRgb(const QByteArray &frameData, int height);
@@ -210,7 +213,8 @@ private:
 
     // Display state
     QImage displayImage_;
-    VideoStreamReceiver::VideoFormat videoFormat_ = VideoStreamReceiver::VideoFormat::Unknown;
+    VideoStreamReceiverService::VideoFormat videoFormat_ =
+        VideoStreamReceiverService::VideoFormat::Unknown;
     ScalingMode scalingMode_ = ScalingMode::Integer;
     bool hasFrame_ = false;
 

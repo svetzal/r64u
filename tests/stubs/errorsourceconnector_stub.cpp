@@ -13,7 +13,7 @@ class KeyboardInputService;
 class PlaylistService;
 class RemoteFileModel;
 class RemoteFileOperationsService;
-class SonglengthsDatabase;
+class SonglengthsDatabaseService;
 class StreamingService;
 class TransferService;
 class VideoRecordingService;
@@ -21,7 +21,7 @@ class VideoRecordingService;
 void ErrorHandler::connectSources(DeviceConnectionManager * /*dc*/, IRestClient * /*restClient*/,
                                   RemoteFileModel * /*rfm*/, IFtpClient *ftpClient,
                                   FilePreviewService * /*fps*/, ConfigFileLoaderService * /*cfl*/,
-                                  TransferService * /*ts*/, SonglengthsDatabase * /*sld*/,
+                                  TransferService * /*ts*/, SonglengthsDatabaseService * /*sld*/,
                                   HVSCMetadataService * /*hvsc*/, GameBase64Service * /*gb64*/,
                                   RemoteFileOperationsService * /*rfo*/, StreamingService * /*ss*/,
                                   IAudioPlaybackService * /*apb*/, VideoRecordingService * /*vrs*/,
@@ -47,7 +47,7 @@ void ErrorHandler::connectTransferSources(IFtpClient *ftpClient, TransferService
 
 void ErrorHandler::connectModelSources(RemoteFileModel * /*rfm*/, FilePreviewService * /*fps*/) {}
 
-void ErrorHandler::connectMetadataSources(SonglengthsDatabase * /*sld*/,
+void ErrorHandler::connectMetadataSources(SonglengthsDatabaseService * /*sld*/,
                                           HVSCMetadataService * /*hvsc*/,
                                           GameBase64Service * /*gb64*/)
 {

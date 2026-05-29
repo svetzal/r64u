@@ -1,6 +1,6 @@
 #include "ftp/recursivescancoordinator.h"
 #include "mocks/mockftpclient.h"
-#include "mocks/mocklocalfilesystem.h"
+#include "mocks/mocklocalfilesystemservice.h"
 #include "services/ftpentry.h"
 #include "services/transfercore.h"
 
@@ -14,7 +14,7 @@ class TestRecursiveScanCoordinator : public QObject
 private:
     transfer::State state_;
     MockFtpClient *mockFtp = nullptr;
-    MockLocalFileSystem *mockFs = nullptr;
+    MockLocalFileSystemService *mockFs = nullptr;
     RecursiveScanCoordinator *scanner = nullptr;
 
     static FtpEntry makeDir(const QString &name)
@@ -39,7 +39,7 @@ private slots:
     {
         state_ = transfer::State();
         mockFtp = new MockFtpClient(this);
-        mockFs = new MockLocalFileSystem(this);
+        mockFs = new MockLocalFileSystemService(this);
         scanner = new RecursiveScanCoordinator(state_, mockFtp, mockFs, this);
         mockFtp->mockSetConnected(true);
         connect(mockFtp, &IFtpClient::directoryListed, scanner,

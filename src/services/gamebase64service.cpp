@@ -13,7 +13,7 @@
 // For gzip decompression
 #include <zlib.h>
 
-GameBase64Service::GameBase64Service(IFileDownloader *downloader, QObject *parent)
+GameBase64Service::GameBase64Service(IFileDownloaderService *downloader, QObject *parent)
     : QObject(parent), connectionName_(QUuid::createUuid().toString())
 {
     manager_ = new CachedDownloadService(

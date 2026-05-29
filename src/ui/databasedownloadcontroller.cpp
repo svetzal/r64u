@@ -5,7 +5,7 @@
 
 #include "../services/gamebase64service.h"
 #include "../services/hvscmetadataservice.h"
-#include "../services/songlengthsdatabase.h"
+#include "../services/songlengthsdatabaseservice.h"
 
 DatabaseDownloadController::DatabaseDownloadController(QWidget *parentWidget, QObject *parent)
     : QObject(parent), parentWidget_(parentWidget), view_(new DatabaseDownloadView(this)),
@@ -41,7 +41,7 @@ void DatabaseDownloadController::setMessagePresenter(std::unique_ptr<IMessagePre
 // Service injection
 // ============================================================
 
-void DatabaseDownloadController::setSonglengthsDatabase(SonglengthsDatabase *database)
+void DatabaseDownloadController::setSonglengthsDatabase(SonglengthsDatabaseService *database)
 {
     if (songlengthsDatabase_ != nullptr) {
         disconnect(songlengthsDatabase_, nullptr, this, nullptr);
@@ -50,11 +50,11 @@ void DatabaseDownloadController::setSonglengthsDatabase(SonglengthsDatabase *dat
     songlengthsDatabase_ = database;
 
     if (songlengthsDatabase_ != nullptr) {
-        connect(songlengthsDatabase_, &SonglengthsDatabase::downloadProgress, this,
+        connect(songlengthsDatabase_, &SonglengthsDatabaseService::downloadProgress, this,
                 &DatabaseDownloadController::onDatabaseDownloadProgress);
-        connect(songlengthsDatabase_, &SonglengthsDatabase::downloadFinished, this,
+        connect(songlengthsDatabase_, &SonglengthsDatabaseService::downloadFinished, this,
                 &DatabaseDownloadController::onDatabaseDownloadFinished);
-        connect(songlengthsDatabase_, &SonglengthsDatabase::downloadFailed, this,
+        connect(songlengthsDatabase_, &SonglengthsDatabaseService::downloadFailed, this,
                 &DatabaseDownloadController::onDatabaseDownloadFailed);
 
         if (songlengthsDatabase_->isLoaded()) {
@@ -186,7 +186,7 @@ void DatabaseDownloadController::handleDownloadFailed(DownloadWidgetGroup &group
 }
 
 // ============================================================
-// SonglengthsDatabase slots
+// SonglengthsDatabaseService slots
 // ============================================================
 
 void DatabaseDownloadController::onDownloadDatabase()

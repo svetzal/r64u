@@ -12,7 +12,7 @@
 #include "ftp/remotedirectorycoordinator.h"
 #include "services/ftpentry.h"
 #include "services/iftpclient.h"
-#include "services/ilocalfilesystem.h"
+#include "services/ilocalfilesystemservice.h"
 #include "services/transfercore.h"
 
 #include <QObject>
@@ -71,7 +71,7 @@ public:
     void setModelCallbacks(const ModelCallbacks &callbacks);
 
     void setFtpClient(IFtpClient *client);
-    void setLocalFileSystem(ILocalFileSystem *fs);
+    void setLocalFileSystem(ILocalFileSystemService *fs);
 
     void enqueueUpload(const QString &localPath, const QString &remotePath, int targetBatchId = -1);
     void enqueueDownload(const QString &remotePath, const QString &localPath,
@@ -195,7 +195,7 @@ private:
     void markCurrentComplete(TransferItem::Status status);
 
     QPointer<IFtpClient> ftpClient_;
-    ILocalFileSystem *localFs_ = nullptr;
+    ILocalFileSystemService *localFs_ = nullptr;
 
     transfer::State state_;
 

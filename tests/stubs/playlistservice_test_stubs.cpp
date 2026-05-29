@@ -2,7 +2,7 @@
  * @file playlistservice_test_stubs.cpp
  * @brief Link-time stubs for PlaylistService unit tests.
  *
- * PlaylistService includes StreamingService and SonglengthsDatabase headers
+ * PlaylistService includes StreamingService and SonglengthsDatabaseService headers
  * and calls their methods only when those pointers are non-null.  In tests
  * we always pass nullptr for both, so the method bodies are never reached —
  * but the linker still demands their symbols from the TUs that include the
@@ -10,23 +10,24 @@
  *
  * Stubs here satisfy those demands without pulling in the full dependency
  * trees of StreamingService (Qt Multimedia, network, etc.) or
- * SonglengthsDatabase (MD5, ZLIB, SQL, etc.).
+ * SonglengthsDatabaseService (MD5, ZLIB, SQL, etc.).
  */
 
-#include "services/songlengthsdatabase.h"
+#include "services/songlengthsdatabaseservice.h"
 #include "services/streamingservice.h"
 
 // ---------------------------------------------------------------------------
-// SonglengthsDatabase stubs
+// SonglengthsDatabaseService stubs
 // ---------------------------------------------------------------------------
 
-SonglengthsDatabase::SonglengthsDatabase(IFileDownloader * /*downloader*/, QObject *parent)
+SonglengthsDatabaseService::SonglengthsDatabaseService(IFileDownloaderService * /*downloader*/,
+                                                       QObject *parent)
     : QObject(parent), manager_(nullptr)
 {
 }
 
-SonglengthsDatabase::SongLengths
-SonglengthsDatabase::lookupByData(const QByteArray & /*sidData*/) const
+SonglengthsDatabaseService::SongLengths
+SonglengthsDatabaseService::lookupByData(const QByteArray & /*sidData*/) const
 {
     return {};
 }
@@ -36,9 +37,9 @@ SonglengthsDatabase::lookupByData(const QByteArray & /*sidData*/) const
 // ---------------------------------------------------------------------------
 
 StreamingService::StreamingService(DeviceConnectionManager * /*connection*/,
-                                   IStreamControlClient * /*streamControl*/,
-                                   IVideoStreamReceiver * /*videoReceiver*/,
-                                   IAudioStreamReceiver * /*audioReceiver*/,
+                                   IStreamControlService * /*streamControl*/,
+                                   IVideoStreamReceiverService * /*videoReceiver*/,
+                                   IAudioStreamReceiverService * /*audioReceiver*/,
                                    IAudioPlaybackService * /*audioPlayback*/,
                                    KeyboardInputService * /*keyboardInput*/,
                                    INetworkInterfaceProvider * /*networkProvider*/, QObject *parent)
@@ -64,7 +65,7 @@ void StreamingService::onStreamCommandFailed(const QString & /*command*/, const 
 }
 
 // ---------------------------------------------------------------------------
-// SonglengthsDatabase public slot stubs
+// SonglengthsDatabaseService public slot stubs
 // ---------------------------------------------------------------------------
 
-void SonglengthsDatabase::downloadDatabase() {}
+void SonglengthsDatabaseService::downloadDatabase() {}

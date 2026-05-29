@@ -9,7 +9,7 @@
 #include <QTextBrowser>
 #include <QWidget>
 
-class SonglengthsDatabase;
+class SonglengthsDatabaseService;
 class HVSCMetadataService;
 class GameBase64Service;
 
@@ -23,7 +23,7 @@ public:
     /**
      * @brief Sets the songlengths database for SID duration lookup.
      */
-    void setSonglengthsDatabase(SonglengthsDatabase *database);
+    void setSonglengthsDatabase(SonglengthsDatabaseService *database);
 
     /**
      * @brief Sets the HVSC metadata service for STIL/BUGlist lookup.
@@ -83,7 +83,7 @@ private:
     QString currentPath_;
 
     // Optional songlengths database (not owned)
-    SonglengthsDatabase *songlengthsDatabase_ = nullptr;
+    SonglengthsDatabaseService *songlengthsDatabase_ = nullptr;
 
     // Optional HVSC metadata service (not owned)
     HVSCMetadataService *hvscMetadataService_ = nullptr;

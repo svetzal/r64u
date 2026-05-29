@@ -44,7 +44,7 @@ public:
 
     void setFtpClient(IFtpClient *client);
 
-    void setLocalFileSystem(ILocalFileSystem *fs);
+    void setLocalFileSystem(ILocalFileSystemService *fs);
 
     // Queue operations
     void enqueueUpload(const QString &localPath, const QString &remotePath, int targetBatchId = -1);

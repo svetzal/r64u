@@ -10,12 +10,12 @@
 #include "services/favoritesservice.h"
 #include "services/filepreviewservice.h"
 #include "services/gamebase64service.h"
-#include "services/httpfiledownloader.h"
+#include "services/httpfiledownloaderservice.h"
 #include "services/hvscmetadataservice.h"
 #include "services/ierrorpresenter.h"
 #include "services/playlistservice.h"
 #include "services/remotefileoperationsservice.h"
-#include "services/songlengthsdatabase.h"
+#include "services/songlengthsdatabaseservice.h"
 #include "services/statusmessageservice.h"
 #include "services/systemcommandcontroller.h"
 #include "services/transferservice.h"
@@ -37,12 +37,12 @@ ServiceFactory::ServiceFactory(QObject *parent) : QObject(parent)
     statusMessageService_ = new StatusMessageService(this);
     favoritesService_ = new FavoritesService(this);
     playlistService_ = new PlaylistService(deviceConnection_, this);
-    songlengthsDownloader_ = new HttpFileDownloader(this);
-    songlengthsDatabase_ = new SonglengthsDatabase(songlengthsDownloader_, this);
-    stilDownloader_ = new HttpFileDownloader(this);
-    buglistDownloader_ = new HttpFileDownloader(this);
+    songlengthsDownloader_ = new HttpFileDownloaderService(this);
+    songlengthsDatabase_ = new SonglengthsDatabaseService(songlengthsDownloader_, this);
+    stilDownloader_ = new HttpFileDownloaderService(this);
+    buglistDownloader_ = new HttpFileDownloaderService(this);
     hvscMetadataService_ = new HVSCMetadataService(stilDownloader_, buglistDownloader_, this);
-    gameBase64Downloader_ = new HttpFileDownloader(this);
+    gameBase64Downloader_ = new HttpFileDownloaderService(this);
     gameBase64Service_ = new GameBase64Service(gameBase64Downloader_, this);
     playlistService_->setSonglengthsDatabase(songlengthsDatabase_);
     configFileLoader_->setFtpClient(deviceConnection_->ftpClient());
@@ -110,22 +110,22 @@ PlaylistService *ServiceFactory::playlistService() const
     return playlistService_;
 }
 
-HttpFileDownloader *ServiceFactory::songlengthsDownloader() const
+HttpFileDownloaderService *ServiceFactory::songlengthsDownloader() const
 {
     return songlengthsDownloader_;
 }
 
-SonglengthsDatabase *ServiceFactory::songlengthsDatabase() const
+SonglengthsDatabaseService *ServiceFactory::songlengthsDatabase() const
 {
     return songlengthsDatabase_;
 }
 
-HttpFileDownloader *ServiceFactory::stilDownloader() const
+HttpFileDownloaderService *ServiceFactory::stilDownloader() const
 {
     return stilDownloader_;
 }
 
-HttpFileDownloader *ServiceFactory::buglistDownloader() const
+HttpFileDownloaderService *ServiceFactory::buglistDownloader() const
 {
     return buglistDownloader_;
 }
@@ -135,7 +135,7 @@ HVSCMetadataService *ServiceFactory::hvscMetadataService() const
     return hvscMetadataService_;
 }
 
-HttpFileDownloader *ServiceFactory::gameBase64Downloader() const
+HttpFileDownloaderService *ServiceFactory::gameBase64Downloader() const
 {
     return gameBase64Downloader_;
 }

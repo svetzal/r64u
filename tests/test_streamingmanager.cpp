@@ -8,12 +8,12 @@
  */
 
 #include "mocks/mockaudioplaybackservice.h"
-#include "mocks/mockaudiostreamreceiver.h"
+#include "mocks/mockaudiostreamreceiverservice.h"
 #include "mocks/mockftpclient.h"
 #include "mocks/mocknetworkinterfaceprovider.h"
 #include "mocks/mockrestclient.h"
-#include "mocks/mockstreamcontrolclient.h"
-#include "mocks/mockvideostreamreceiver.h"
+#include "mocks/mockstreamcontrolservice.h"
+#include "mocks/mockvideostreamreceiverservice.h"
 #include "services/deviceconnectionmanager.h"
 #include "services/devicetypes.h"
 #include "services/keyboardinputservice.h"
@@ -33,9 +33,9 @@ private:
     DeviceConnectionManager *conn_ = nullptr;
     MockRestClient *mockRest_ = nullptr;
     MockFtpClient *mockFtp_ = nullptr;
-    MockStreamControlClient *mockControl_ = nullptr;
-    MockVideoStreamReceiver *mockVideo_ = nullptr;
-    MockAudioStreamReceiver *mockAudio_ = nullptr;
+    MockStreamControlService *mockControl_ = nullptr;
+    MockVideoStreamReceiverService *mockVideo_ = nullptr;
+    MockAudioStreamReceiverService *mockAudio_ = nullptr;
     MockAudioPlaybackService *mockPlayback_ = nullptr;
     MockNetworkInterfaceProvider *mockNetwork_ = nullptr;
     KeyboardInputService *keyboardService_ = nullptr;
@@ -73,9 +73,9 @@ private slots:
         conn_->setHost("192.168.1.64");
         conn_->setAutoReconnect(false);
 
-        mockControl_ = new MockStreamControlClient();
-        mockVideo_ = new MockVideoStreamReceiver();
-        mockAudio_ = new MockAudioStreamReceiver();
+        mockControl_ = new MockStreamControlService();
+        mockVideo_ = new MockVideoStreamReceiverService();
+        mockAudio_ = new MockAudioStreamReceiverService();
         mockPlayback_ = new MockAudioPlaybackService();
         mockNetwork_ = new MockNetworkInterfaceProvider();
         keyboardService_ = new KeyboardInputService(mockRest_);
@@ -226,31 +226,31 @@ private slots:
 
     void testVideoFormatPAL_setsAudioFormatPAL()
     {
-        mockVideo_->mockEmitFormatDetected(IVideoStreamReceiver::VideoFormat::PAL);
+        mockVideo_->mockEmitFormatDetected(IVideoStreamReceiverService::VideoFormat::PAL);
         QCOMPARE(mockAudio_->mockSetAudioFormatCallCount(), 1);
-        QCOMPARE(mockAudio_->mockLastAudioFormat(), IAudioStreamReceiver::AudioFormat::PAL);
+        QCOMPARE(mockAudio_->mockLastAudioFormat(), IAudioStreamReceiverService::AudioFormat::PAL);
     }
 
     void testVideoFormatNTSC_setsAudioFormatNTSC()
     {
-        mockVideo_->mockEmitFormatDetected(IVideoStreamReceiver::VideoFormat::NTSC);
+        mockVideo_->mockEmitFormatDetected(IVideoStreamReceiverService::VideoFormat::NTSC);
         QCOMPARE(mockAudio_->mockSetAudioFormatCallCount(), 1);
-        QCOMPARE(mockAudio_->mockLastAudioFormat(), IAudioStreamReceiver::AudioFormat::NTSC);
+        QCOMPARE(mockAudio_->mockLastAudioFormat(), IAudioStreamReceiverService::AudioFormat::NTSC);
     }
 
     void testVideoFormatUnknown_doesNotSetAudioFormat()
     {
-        mockVideo_->mockEmitFormatDetected(IVideoStreamReceiver::VideoFormat::Unknown);
+        mockVideo_->mockEmitFormatDetected(IVideoStreamReceiverService::VideoFormat::Unknown);
         QCOMPARE(mockAudio_->mockSetAudioFormatCallCount(), 0);
     }
 
     void testVideoFormatDetected_emitsVideoFormatDetectedSignal()
     {
         QSignalSpy formatSpy(manager_, &StreamingService::videoFormatDetected);
-        mockVideo_->mockEmitFormatDetected(IVideoStreamReceiver::VideoFormat::PAL);
+        mockVideo_->mockEmitFormatDetected(IVideoStreamReceiverService::VideoFormat::PAL);
         QCOMPARE(formatSpy.count(), 1);
         QCOMPARE(formatSpy.first().first().toInt(),
-                 static_cast<int>(IVideoStreamReceiver::VideoFormat::PAL));
+                 static_cast<int>(IVideoStreamReceiverService::VideoFormat::PAL));
     }
 
     // -----------------------------------------------------------------------
@@ -264,7 +264,7 @@ private slots:
 
     void testVideoReceiverAccessor_returnsNullForMock()
     {
-        // concreteVideoReceiver_ is null when using a mock (not a VideoStreamReceiver)
+        // concreteVideoReceiver_ is null when using a mock (not a VideoStreamReceiverService)
         QVERIFY(manager_->videoReceiver() == nullptr);
     }
 
@@ -280,9 +280,9 @@ private slots:
     void testDestructor_whenNotStreaming_doesNotCallStop()
     {
         // Create a fresh manager and destroy it without streaming
-        auto *control = new MockStreamControlClient();
-        auto *video = new MockVideoStreamReceiver();
-        auto *audio = new MockAudioStreamReceiver();
+        auto *control = new MockStreamControlService();
+        auto *video = new MockVideoStreamReceiverService();
+        auto *audio = new MockAudioStreamReceiverService();
         auto *playback = new MockAudioPlaybackService();
         auto *keyboard = new KeyboardInputService(mockRest_);
         auto *network = new MockNetworkInterfaceProvider();

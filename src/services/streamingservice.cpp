@@ -6,19 +6,19 @@
 #include "streamingservice.h"
 
 #include "audioplaybackservice.h"
-#include "audiostreamreceiver.h"
+#include "audiostreamreceiverservice.h"
 #include "deviceconnectionmanager.h"
 #include "iaudioplaybackservice.h"
-#include "iaudiostreamreceiver.h"
+#include "iaudiostreamreceiverservice.h"
 #include "inetworkinterfaceprovider.h"
 #include "irestclient.h"
-#include "istreamcontrolclient.h"
-#include "ivideostreamreceiver.h"
+#include "istreamcontrolservice.h"
+#include "ivideostreamreceiverservice.h"
 #include "keyboardinputservice.h"
 #include "networkinterfaceprovider.h"
-#include "streamcontrolclient.h"
+#include "streamcontrolservice.h"
 #include "streamingdiagnosticsservice.h"
-#include "videostreamreceiver.h"
+#include "videostreamreceiverservice.h"
 
 #include "utils/logging.h"
 
@@ -26,34 +26,34 @@
 #include <QUrl>
 
 StreamingService::StreamingService(DeviceConnectionManager *connection,
-                                   IStreamControlClient *streamControl,
-                                   IVideoStreamReceiver *videoReceiver,
-                                   IAudioStreamReceiver *audioReceiver,
+                                   IStreamControlService *streamControl,
+                                   IVideoStreamReceiverService *videoReceiver,
+                                   IAudioStreamReceiverService *audioReceiver,
                                    IAudioPlaybackService *audioPlayback,
                                    KeyboardInputService *keyboardInput,
                                    INetworkInterfaceProvider *networkProvider, QObject *parent)
     : QObject(parent), deviceConnection_(connection), streamControl_(streamControl),
       videoReceiver_(videoReceiver), audioReceiver_(audioReceiver), audioPlayback_(audioPlayback),
       keyboardInput_(keyboardInput), networkProvider_(networkProvider),
-      concreteVideoReceiver_(qobject_cast<VideoStreamReceiver *>(videoReceiver)),
-      concreteAudioReceiver_(qobject_cast<AudioStreamReceiver *>(audioReceiver))
+      concreteVideoReceiver_(qobject_cast<VideoStreamReceiverService *>(videoReceiver)),
+      concreteAudioReceiver_(qobject_cast<AudioStreamReceiverService *>(audioReceiver))
 {
     Q_ASSERT(deviceConnection_ && "DeviceConnectionManager is required");
 
     // Connect video receiver format detection
-    connect(videoReceiver_, &IVideoStreamReceiver::formatDetected, this,
-            [this](IVideoStreamReceiver::VideoFormat format) {
+    connect(videoReceiver_, &IVideoStreamReceiverService::formatDetected, this,
+            [this](IVideoStreamReceiverService::VideoFormat format) {
                 onVideoFormatDetected(static_cast<int>(format));
             });
 
     // Connect audio receiver to playback
-    connect(audioReceiver_, &IAudioStreamReceiver::samplesReady, audioPlayback_,
+    connect(audioReceiver_, &IAudioStreamReceiverService::samplesReady, audioPlayback_,
             &IAudioPlaybackService::writeSamples);
 
     // Connect stream control signals
-    connect(streamControl_, &IStreamControlClient::commandSucceeded, this,
+    connect(streamControl_, &IStreamControlService::commandSucceeded, this,
             &StreamingService::onStreamCommandSucceeded);
-    connect(streamControl_, &IStreamControlClient::commandFailed, this,
+    connect(streamControl_, &IStreamControlService::commandFailed, this,
             &StreamingService::onStreamCommandFailed);
 }
 
@@ -61,9 +61,9 @@ StreamingService *StreamingService::createDefault(DeviceConnectionManager *conne
                                                   QObject *parent)
 {
     // Create owned streaming services (parented to manager)
-    auto *streamControl = new StreamControlClient(nullptr);
-    auto *videoReceiver = new VideoStreamReceiver(nullptr);
-    auto *audioReceiver = new AudioStreamReceiver(nullptr);
+    auto *streamControl = new StreamControlService(nullptr);
+    auto *videoReceiver = new VideoStreamReceiverService(nullptr);
+    auto *audioReceiver = new AudioStreamReceiverService(nullptr);
     auto *audioPlayback = new AudioPlaybackService(nullptr);
     IRestClient *restClient = connection ? connection->restClient() : nullptr;
     auto *keyboardInput = new KeyboardInputService(restClient, nullptr);
@@ -177,10 +177,10 @@ bool StreamingService::startStreaming()
     // Send stream start commands to the device
     LOG_VERBOSE() << "StreamingService::startStreaming: Sending stream commands to device"
                   << deviceHost << "- target:" << targetHost
-                  << "video port:" << VideoStreamReceiver::DefaultPort
-                  << "audio port:" << AudioStreamReceiver::DefaultPort;
-    streamControl_->startAllStreams(targetHost, VideoStreamReceiver::DefaultPort,
-                                    AudioStreamReceiver::DefaultPort);
+                  << "video port:" << VideoStreamReceiverService::DefaultPort
+                  << "audio port:" << AudioStreamReceiverService::DefaultPort;
+    streamControl_->startAllStreams(targetHost, VideoStreamReceiverService::DefaultPort,
+                                    AudioStreamReceiverService::DefaultPort);
 
     isStreaming_ = true;
     currentTargetHost_ = targetHost;
@@ -222,13 +222,13 @@ void StreamingService::stopStreaming()
 
 void StreamingService::onVideoFormatDetected(int format)
 {
-    auto videoFormat = static_cast<IVideoStreamReceiver::VideoFormat>(format);
+    auto videoFormat = static_cast<IVideoStreamReceiverService::VideoFormat>(format);
     switch (videoFormat) {
-    case IVideoStreamReceiver::VideoFormat::PAL:
-        audioReceiver_->setAudioFormat(IAudioStreamReceiver::AudioFormat::PAL);
+    case IVideoStreamReceiverService::VideoFormat::PAL:
+        audioReceiver_->setAudioFormat(IAudioStreamReceiverService::AudioFormat::PAL);
         break;
-    case IVideoStreamReceiver::VideoFormat::NTSC:
-        audioReceiver_->setAudioFormat(IAudioStreamReceiver::AudioFormat::NTSC);
+    case IVideoStreamReceiverService::VideoFormat::NTSC:
+        audioReceiver_->setAudioFormat(IAudioStreamReceiverService::AudioFormat::NTSC);
         break;
     default:
         break;

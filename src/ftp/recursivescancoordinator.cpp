@@ -6,14 +6,15 @@
 #include "recursivescancoordinator.h"
 
 #include "services/iftpclient.h"
-#include "services/ilocalfilesystem.h"
+#include "services/ilocalfilesystemservice.h"
 #include "services/transfercore.h"
 #include "utils/logging.h"
 
 #include <QFileInfo>
 
 RecursiveScanCoordinator::RecursiveScanCoordinator(transfer::State &state, IFtpClient *ftpClient,
-                                                   ILocalFileSystem *localFs, QObject *parent)
+                                                   ILocalFileSystemService *localFs,
+                                                   QObject *parent)
     : QObject(parent), state_(state), ftpClient_(ftpClient), localFs_(localFs)
 {
 }
@@ -23,7 +24,7 @@ void RecursiveScanCoordinator::setFtpClient(IFtpClient *client)
     ftpClient_ = client;
 }
 
-void RecursiveScanCoordinator::setLocalFileSystem(ILocalFileSystem *fs)
+void RecursiveScanCoordinator::setLocalFileSystem(ILocalFileSystemService *fs)
 {
     localFs_ = fs;
 }

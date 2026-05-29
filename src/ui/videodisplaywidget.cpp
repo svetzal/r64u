@@ -43,7 +43,8 @@ VideoDisplayWidget::~VideoDisplayWidget()
 QSize VideoDisplayWidget::sizeHint() const
 {
     // Return native resolution based on format
-    int height = (videoFormat_ == VideoStreamReceiver::VideoFormat::NTSC) ? NtscHeight : PalHeight;
+    int height =
+        (videoFormat_ == VideoStreamReceiverService::VideoFormat::NTSC) ? NtscHeight : PalHeight;
     return {FrameWidth, height};
 }
 
@@ -54,7 +55,7 @@ QSize VideoDisplayWidget::minimumSizeHint() const
 }
 
 void VideoDisplayWidget::displayFrame(const QByteArray &frameData, quint16 frameNumber,
-                                      VideoStreamReceiver::VideoFormat format)
+                                      VideoStreamReceiverService::VideoFormat format)
 {
     static int frameCount = 0;
     frameCount++;
@@ -64,11 +65,12 @@ void VideoDisplayWidget::displayFrame(const QByteArray &frameData, quint16 frame
     }
 
     // Handle format change - this affects timing so handle before buffering
-    if (format != videoFormat_ && format != VideoStreamReceiver::VideoFormat::Unknown) {
+    if (format != videoFormat_ && format != VideoStreamReceiverService::VideoFormat::Unknown) {
         LOG_VERBOSE() << "VideoDisplayWidget: Format changed to"
-                      << (format == VideoStreamReceiver::VideoFormat::PAL ? "PAL" : "NTSC");
+                      << (format == VideoStreamReceiverService::VideoFormat::PAL ? "PAL" : "NTSC");
         videoFormat_ = format;
-        int height = (format == VideoStreamReceiver::VideoFormat::NTSC) ? NtscHeight : PalHeight;
+        int height =
+            (format == VideoStreamReceiverService::VideoFormat::NTSC) ? NtscHeight : PalHeight;
         displayImage_ = QImage(FrameWidth, height, QImage::Format_RGB32);
 
         // Restart timer with new frame rate if running
@@ -167,9 +169,9 @@ void VideoDisplayWidget::paintEvent(QPaintEvent * /*event*/)
 
 void VideoDisplayWidget::convertFrameToRgb(const QByteArray &frameData, int height)
 {
-    IVideoStreamReceiver::VideoFormat fmt = (height == NtscHeight)
-                                                ? IVideoStreamReceiver::VideoFormat::NTSC
-                                                : IVideoStreamReceiver::VideoFormat::PAL;
+    IVideoStreamReceiverService::VideoFormat fmt =
+        (height == NtscHeight) ? IVideoStreamReceiverService::VideoFormat::NTSC
+                               : IVideoStreamReceiverService::VideoFormat::PAL;
     displayImage_ = Vic2::convertFrame(frameData, fmt);
 }
 
@@ -302,7 +304,8 @@ void VideoDisplayWidget::onDisplayTimer()
 void VideoDisplayWidget::displayBufferedFrame(const BufferedFrame &frame)
 {
     // Convert and display
-    int height = (videoFormat_ == VideoStreamReceiver::VideoFormat::NTSC) ? NtscHeight : PalHeight;
+    int height =
+        (videoFormat_ == VideoStreamReceiverService::VideoFormat::NTSC) ? NtscHeight : PalHeight;
     convertFrameToRgb(frame.frameData, height);
     hasFrame_ = true;
 
@@ -320,8 +323,9 @@ void VideoDisplayWidget::startDisplayTimer()
     if (!displayTimer_->isActive()) {
         // Calculate interval based on video format
         // PAL: 50 Hz = 20ms, NTSC: 60 Hz ≈ 16.67ms
-        double frameRate =
-            (videoFormat_ == VideoStreamReceiver::VideoFormat::NTSC) ? NtscFrameRate : PalFrameRate;
+        double frameRate = (videoFormat_ == VideoStreamReceiverService::VideoFormat::NTSC)
+                               ? NtscFrameRate
+                               : PalFrameRate;
         int intervalMs = static_cast<int>(1000.0 / frameRate);
         displayTimer_->start(intervalMs);
     }

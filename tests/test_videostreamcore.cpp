@@ -15,7 +15,7 @@ class TestVideoStreamCore : public QObject
     Q_OBJECT
 
 private:
-    /// Build a VideoStreamReceiver-sized (780 byte) packet with the given header fields.
+    /// Build a VideoStreamReceiverService-sized (780 byte) packet with the given header fields.
     static QByteArray makePacket(quint16 seqNum, quint16 frameNum, quint16 lineNum,
                                  quint8 linesPerPacket = 4, bool lastPacket = false)
     {

@@ -6,7 +6,7 @@
 #include "folderoperationcoordinator.h"
 
 #include "services/iftpclient.h"
-#include "services/ilocalfilesystem.h"
+#include "services/ilocalfilesystemservice.h"
 
 #include <QDebug>
 #include <QFileInfo>
@@ -14,7 +14,8 @@
 
 FolderOperationCoordinator::FolderOperationCoordinator(transfer::State &state,
                                                        IFtpClient *ftpClient,
-                                                       ILocalFileSystem *localFs, QObject *parent)
+                                                       ILocalFileSystemService *localFs,
+                                                       QObject *parent)
     : QObject(parent), state_(state), ftpClient_(ftpClient), localFs_(localFs),
       debounceTimer_(new QTimer(this))
 {
@@ -27,7 +28,7 @@ void FolderOperationCoordinator::setFtpClient(IFtpClient *client)
     ftpClient_ = client;
 }
 
-void FolderOperationCoordinator::setLocalFileSystem(ILocalFileSystem *fs)
+void FolderOperationCoordinator::setLocalFileSystem(ILocalFileSystemService *fs)
 {
     localFs_ = fs;
 }

@@ -5,13 +5,13 @@
 #include <QString>
 
 class DeviceConnectionManager;
-class IStreamControlClient;
-class IVideoStreamReceiver;
-class IAudioStreamReceiver;
+class IStreamControlService;
+class IVideoStreamReceiverService;
+class IAudioStreamReceiverService;
 class IAudioPlaybackService;
 class INetworkInterfaceProvider;
-class VideoStreamReceiver;
-class AudioStreamReceiver;
+class VideoStreamReceiverService;
+class AudioStreamReceiverService;
 class KeyboardInputService;
 class StreamingDiagnosticsService;
 
@@ -65,15 +65,15 @@ public:
      * @param parent Optional parent QObject for memory management.
      */
     explicit StreamingService(
-        DeviceConnectionManager *connection, IStreamControlClient *streamControl,
-        IVideoStreamReceiver *videoReceiver, IAudioStreamReceiver *audioReceiver,
+        DeviceConnectionManager *connection, IStreamControlService *streamControl,
+        IVideoStreamReceiverService *videoReceiver, IAudioStreamReceiverService *audioReceiver,
         IAudioPlaybackService *audioPlayback, KeyboardInputService *keyboardInput,
         INetworkInterfaceProvider *networkProvider, QObject *parent = nullptr);
 
     /**
      * @brief Factory method that creates a StreamingService with production dependencies.
      *
-     * Creates concrete implementations (StreamControlClient, VideoStreamReceiver, etc.)
+     * Creates concrete implementations (StreamControlService, VideoStreamReceiverService, etc.)
      * and wires them together. This is the preferred way to create a StreamingService
      * in production code.
      *
@@ -116,7 +116,7 @@ public:
      * @brief Returns the stream control client.
      * @return Pointer to the stream control client interface.
      */
-    [[nodiscard]] IStreamControlClient *streamControl() const { return streamControl_; }
+    [[nodiscard]] IStreamControlService *streamControl() const { return streamControl_; }
 
     /**
      * @brief Returns the audio playback service.
@@ -126,9 +126,12 @@ public:
 
     /**
      * @brief Returns the video receiver for UI signal connections.
-     * @return Pointer to the concrete VideoStreamReceiver (may be nullptr in tests).
+     * @return Pointer to the concrete VideoStreamReceiverService (may be nullptr in tests).
      */
-    [[nodiscard]] VideoStreamReceiver *videoReceiver() const { return concreteVideoReceiver_; }
+    [[nodiscard]] VideoStreamReceiverService *videoReceiver() const
+    {
+        return concreteVideoReceiver_;
+    }
 
     /**
      * @brief Returns the keyboard input service for UI connection.
@@ -138,9 +141,12 @@ public:
 
     /**
      * @brief Returns the audio receiver for recording support.
-     * @return Pointer to the concrete AudioStreamReceiver (may be nullptr in tests).
+     * @return Pointer to the concrete AudioStreamReceiverService (may be nullptr in tests).
      */
-    [[nodiscard]] AudioStreamReceiver *audioReceiver() const { return concreteAudioReceiver_; }
+    [[nodiscard]] AudioStreamReceiverService *audioReceiver() const
+    {
+        return concreteAudioReceiver_;
+    }
 
     /**
      * @brief Returns the streaming diagnostics service.
@@ -193,9 +199,9 @@ private:
     DeviceConnectionManager *deviceConnection_ = nullptr;
 
     // Injected streaming service interfaces (lifetime managed via Qt parent/child)
-    IStreamControlClient *streamControl_ = nullptr;
-    IVideoStreamReceiver *videoReceiver_ = nullptr;
-    IAudioStreamReceiver *audioReceiver_ = nullptr;
+    IStreamControlService *streamControl_ = nullptr;
+    IVideoStreamReceiverService *videoReceiver_ = nullptr;
+    IAudioStreamReceiverService *audioReceiver_ = nullptr;
     IAudioPlaybackService *audioPlayback_ = nullptr;
     KeyboardInputService *keyboardInput_ = nullptr;
 
@@ -203,8 +209,8 @@ private:
     INetworkInterfaceProvider *networkProvider_ = nullptr;
 
     // Concrete typed pointers (may be nullptr when using mocks in tests)
-    VideoStreamReceiver *concreteVideoReceiver_ = nullptr;
-    AudioStreamReceiver *concreteAudioReceiver_ = nullptr;
+    VideoStreamReceiverService *concreteVideoReceiver_ = nullptr;
+    AudioStreamReceiverService *concreteAudioReceiver_ = nullptr;
 
     // Owned streaming services (created by createDefault)
     StreamingDiagnosticsService *diagnostics_ = nullptr;

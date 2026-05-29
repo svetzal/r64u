@@ -1,6 +1,6 @@
 #include "ftp/remotedirectorycoordinator.h"
 #include "mocks/mockftpclient.h"
-#include "mocks/mocklocalfilesystem.h"
+#include "mocks/mocklocalfilesystemservice.h"
 #include "services/transfercore.h"
 
 #include <QSignalSpy>
@@ -13,7 +13,7 @@ class TestRemoteDirectoryCoordinator : public QObject
 private:
     transfer::State state_;
     MockFtpClient *mockFtp = nullptr;
-    MockLocalFileSystem *mockFs = nullptr;
+    MockLocalFileSystemService *mockFs = nullptr;
     RemoteDirectoryCoordinator *creator = nullptr;
 
 private slots:
@@ -21,7 +21,7 @@ private slots:
     {
         state_ = transfer::State();
         mockFtp = new MockFtpClient(this);
-        mockFs = new MockLocalFileSystem(this);
+        mockFs = new MockLocalFileSystemService(this);
         creator = new RemoteDirectoryCoordinator(state_, mockFtp, mockFs, this);
         mockFtp->mockSetConnected(true);
     }

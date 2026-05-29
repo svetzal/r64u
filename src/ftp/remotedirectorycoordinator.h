@@ -7,7 +7,7 @@
 #include <QString>
 
 class IFtpClient;
-class ILocalFileSystem;
+class ILocalFileSystemService;
 
 /**
  * @brief Coordinator for creating remote directory hierarchies before uploads.
@@ -16,7 +16,7 @@ class ILocalFileSystem;
  * creation is complete or when each directory is successfully created.
  *
  * Local file system queries (enumerating subdirectories) are routed through
- * ILocalFileSystem, keeping this coordinator independently testable.
+ * ILocalFileSystemService, keeping this coordinator independently testable.
  */
 class RemoteDirectoryCoordinator : public QObject
 {
@@ -24,10 +24,11 @@ class RemoteDirectoryCoordinator : public QObject
 
 public:
     explicit RemoteDirectoryCoordinator(transfer::State &state, IFtpClient *ftpClient,
-                                        ILocalFileSystem *localFs, QObject *parent = nullptr);
+                                        ILocalFileSystemService *localFs,
+                                        QObject *parent = nullptr);
 
     void setFtpClient(IFtpClient *client);
-    void setLocalFileSystem(ILocalFileSystem *fs);
+    void setLocalFileSystem(ILocalFileSystemService *fs);
 
     /// Queue all directories for a local→remote upload
     void queueDirectoriesForUpload(const QString &localDir, const QString &remoteDir);
@@ -46,7 +47,7 @@ signals:
 private:
     transfer::State &state_;
     IFtpClient *ftpClient_ = nullptr;
-    ILocalFileSystem *localFs_ = nullptr;
+    ILocalFileSystemService *localFs_ = nullptr;
 };
 
 #endif  // REMOTEDIRECTORYCOORDINATOR_H

@@ -11,17 +11,17 @@
 #include <QFile>
 #include <QStandardPaths>
 
-CachedDownloadService::CachedDownloadService(IFileDownloader *downloader,
+CachedDownloadService::CachedDownloadService(IFileDownloaderService *downloader,
                                              const QString &cacheFilename, const QUrl &downloadUrl,
                                              ParseCallback parseCallback, QObject *parent)
     : QObject(parent), downloader_(downloader), cacheFilename_(cacheFilename),
       downloadUrl_(downloadUrl), parseCallback_(std::move(parseCallback))
 {
-    connect(downloader_, &IFileDownloader::downloadProgress, this,
+    connect(downloader_, &IFileDownloaderService::downloadProgress, this,
             &CachedDownloadService::onDownloaderProgress);
-    connect(downloader_, &IFileDownloader::downloadFinished, this,
+    connect(downloader_, &IFileDownloaderService::downloadFinished, this,
             &CachedDownloadService::onDownloaderFinished);
-    connect(downloader_, &IFileDownloader::downloadFailed, this,
+    connect(downloader_, &IFileDownloaderService::downloadFailed, this,
             &CachedDownloadService::onDownloaderFailed);
 
     if (hasCachedFile()) {

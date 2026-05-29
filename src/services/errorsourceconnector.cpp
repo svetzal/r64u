@@ -10,7 +10,7 @@
 #include "keyboardinputservice.h"
 #include "playlistservice.h"
 #include "remotefileoperationsservice.h"
-#include "songlengthsdatabase.h"
+#include "songlengthsdatabaseservice.h"
 #include "transferservice.h"
 #include "videorecordingservice.h"
 
@@ -21,7 +21,7 @@
 void ErrorHandler::connectSources(DeviceConnectionManager *dc, IRestClient *restClient,
                                   RemoteFileModel *rfm, IFtpClient *ftpClient,
                                   FilePreviewService *fps, ConfigFileLoaderService *cfl,
-                                  TransferService *ts, SonglengthsDatabase *sld,
+                                  TransferService *ts, SonglengthsDatabaseService *sld,
                                   HVSCMetadataService *hvsc, GameBase64Service *gb64,
                                   RemoteFileOperationsService *rfo, StreamingService *ss,
                                   IAudioPlaybackService *apb, VideoRecordingService *vrs,
@@ -95,13 +95,14 @@ void ErrorHandler::connectModelSources(RemoteFileModel *rfm, FilePreviewService 
     }
 }
 
-void ErrorHandler::connectMetadataSources(SonglengthsDatabase *sld, HVSCMetadataService *hvsc,
-                                          GameBase64Service *gb64)
+void ErrorHandler::connectMetadataSources(SonglengthsDatabaseService *sld,
+                                          HVSCMetadataService *hvsc, GameBase64Service *gb64)
 {
     if (sld) {
-        connect(sld, &SonglengthsDatabase::downloadFailed, this, [this](const QString &error) {
-            handleDownloadError(tr("Song lengths database"), error);
-        });
+        connect(sld, &SonglengthsDatabaseService::downloadFailed, this,
+                [this](const QString &error) {
+                    handleDownloadError(tr("Song lengths database"), error);
+                });
     }
     if (hvsc) {
         connect(hvsc, &HVSCMetadataService::stilDownloadFailed, this,

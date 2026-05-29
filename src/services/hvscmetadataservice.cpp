@@ -10,8 +10,8 @@
 
 #include <QFile>
 
-HVSCMetadataService::HVSCMetadataService(IFileDownloader *stilDownloader,
-                                         IFileDownloader *buglistDownloader, QObject *parent)
+HVSCMetadataService::HVSCMetadataService(IFileDownloaderService *stilDownloader,
+                                         IFileDownloaderService *buglistDownloader, QObject *parent)
     : QObject(parent)
 {
     stilManager_ = new CachedDownloadService(

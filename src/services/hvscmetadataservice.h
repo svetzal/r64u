@@ -38,8 +38,9 @@ public:
     using BugEntry = hvsc::BugEntry;
     using BugInfo = hvsc::BugInfo;
 
-    explicit HVSCMetadataService(IFileDownloader *stilDownloader,
-                                 IFileDownloader *buglistDownloader, QObject *parent = nullptr);
+    explicit HVSCMetadataService(IFileDownloaderService *stilDownloader,
+                                 IFileDownloaderService *buglistDownloader,
+                                 QObject *parent = nullptr);
     ~HVSCMetadataService() override = default;
 
     /**

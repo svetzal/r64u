@@ -3,20 +3,20 @@
  * @brief Link-time stubs for FileDetailsPanel unit tests.
  *
  * FileDetailsPanel optionally uses GameBase64Service, HVSCMetadataService, and
- * SonglengthsDatabase.  These services have heavy dependencies (SQL, zlib, network).
+ * SonglengthsDatabaseService.  These services have heavy dependencies (SQL, zlib, network).
  * The stubs here satisfy linker symbol requirements without pulling in those chains.
  * All method bodies return empty/default values.
  */
 
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
-#include "services/songlengthsdatabase.h"
+#include "services/songlengthsdatabaseservice.h"
 
 // ---------------------------------------------------------------------------
 // GameBase64Service stubs
 // ---------------------------------------------------------------------------
 
-GameBase64Service::GameBase64Service(IFileDownloader * /*downloader*/, QObject *parent)
+GameBase64Service::GameBase64Service(IFileDownloaderService * /*downloader*/, QObject *parent)
     : QObject(parent)
 {
 }
@@ -88,8 +88,9 @@ bool GameBase64Service::decompressGzip(const QString & /*gzipPath*/, const QStri
 // HVSCMetadataService stubs
 // ---------------------------------------------------------------------------
 
-HVSCMetadataService::HVSCMetadataService(IFileDownloader * /*stilDownloader*/,
-                                         IFileDownloader * /*buglistDownloader*/, QObject *parent)
+HVSCMetadataService::HVSCMetadataService(IFileDownloaderService * /*stilDownloader*/,
+                                         IFileDownloaderService * /*buglistDownloader*/,
+                                         QObject *parent)
     : QObject(parent)
 {
 }
@@ -159,38 +160,39 @@ bool HVSCMetadataService::parseBuglistFile(const QString & /*filePath*/)
 }
 
 // ---------------------------------------------------------------------------
-// SonglengthsDatabase stubs
+// SonglengthsDatabaseService stubs
 // ---------------------------------------------------------------------------
 
-SonglengthsDatabase::SonglengthsDatabase(IFileDownloader * /*downloader*/, QObject *parent)
+SonglengthsDatabaseService::SonglengthsDatabaseService(IFileDownloaderService * /*downloader*/,
+                                                       QObject *parent)
     : QObject(parent), manager_(nullptr)
 {
 }
 
-bool SonglengthsDatabase::hasCachedDatabase() const
+bool SonglengthsDatabaseService::hasCachedDatabase() const
 {
     return false;
 }
 
-bool SonglengthsDatabase::loadFromCache()
+bool SonglengthsDatabaseService::loadFromCache()
 {
     return false;
 }
 
-SonglengthsDatabase::SongLengths
-SonglengthsDatabase::lookupByData(const QByteArray & /*sidData*/) const
+SonglengthsDatabaseService::SongLengths
+SonglengthsDatabaseService::lookupByData(const QByteArray & /*sidData*/) const
 {
     return {};
 }
 
-void SonglengthsDatabase::downloadDatabase() {}
+void SonglengthsDatabaseService::downloadDatabase() {}
 
-bool SonglengthsDatabase::parseDatabaseData(const QByteArray & /*data*/)
+bool SonglengthsDatabaseService::parseDatabaseData(const QByteArray & /*data*/)
 {
     return false;
 }
 
-bool SonglengthsDatabase::parseDatabaseFile(const QString & /*filePath*/)
+bool SonglengthsDatabaseService::parseDatabaseFile(const QString & /*filePath*/)
 {
     return false;
 }
