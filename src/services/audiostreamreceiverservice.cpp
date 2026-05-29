@@ -1,5 +1,5 @@
 /**
- * @file audiostreamreceiver.cpp
+ * @file audiostreamreceiverservice.cpp
  * @brief Implementation of the UDP audio stream receiver.
  */
 

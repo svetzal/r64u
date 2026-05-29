@@ -1,5 +1,5 @@
 /**
- * @file istreamcontrolclient.cpp
+ * @file istreamcontrolservice.cpp
  * @brief MOC implementation for IStreamControlService interface.
  */
 

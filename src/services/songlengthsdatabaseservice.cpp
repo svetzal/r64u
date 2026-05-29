@@ -1,5 +1,5 @@
 /**
- * @file songlengthsdatabase.cpp
+ * @file songlengthsdatabaseservice.cpp
  * @brief Implementation of the SonglengthsDatabaseService service.
  */
 

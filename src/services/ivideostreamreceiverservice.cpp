@@ -1,5 +1,5 @@
 /**
- * @file ivideostreamreceiver.cpp
+ * @file ivideostreamreceiverservice.cpp
  * @brief MOC implementation for IVideoStreamReceiverService interface.
  */
 

@@ -1,5 +1,5 @@
 /**
- * @file videostreamreceiver.cpp
+ * @file videostreamreceiverservice.cpp
  * @brief Implementation of the UDP video stream receiver.
  */
 

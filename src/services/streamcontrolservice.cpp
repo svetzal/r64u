@@ -1,5 +1,5 @@
 /**
- * @file streamcontrolclient.cpp
+ * @file streamcontrolservice.cpp
  * @brief Implementation of the stream control TCP client.
  */
 

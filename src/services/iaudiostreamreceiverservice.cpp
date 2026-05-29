@@ -1,5 +1,5 @@
 /**
- * @file iaudiostreamreceiver.cpp
+ * @file iaudiostreamreceiverservice.cpp
  * @brief MOC implementation for IAudioStreamReceiverService interface.
  */
 
