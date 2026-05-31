@@ -5,19 +5,17 @@
 TransferQueue::TransferQueue(QObject *parent)
     : QAbstractListModel(parent), orchestrator_(new TransferManager(this))
 {
-    TransferManager::ModelCallbacks callbacks;
-    callbacks.beginInsertRows = [this](int first, int last) {
-        beginInsertRows(QModelIndex(), first, last);
-    };
-    callbacks.endInsertRows = [this]() { endInsertRows(); };
-    callbacks.dataChangedRow = [this](int row) { emit dataChanged(index(row), index(row)); };
-    callbacks.beginResetModel = [this]() { beginResetModel(); };
-    callbacks.endResetModel = [this]() { endResetModel(); };
-    callbacks.beginRemoveRows = [this](int first, int last) {
-        beginRemoveRows(QModelIndex(), first, last);
-    };
-    callbacks.endRemoveRows = [this]() { endRemoveRows(); };
-    orchestrator_->setModelCallbacks(callbacks);
+    connect(orchestrator_, &TransferManager::itemsAboutToBeInserted, this,
+            [this](int first, int last) { beginInsertRows(QModelIndex(), first, last); });
+    connect(orchestrator_, &TransferManager::itemsInserted, this, [this]() { endInsertRows(); });
+    connect(orchestrator_, &TransferManager::itemDataChanged, this,
+            [this](int row) { emit dataChanged(index(row), index(row)); });
+    connect(orchestrator_, &TransferManager::modelAboutToReset, this,
+            [this]() { beginResetModel(); });
+    connect(orchestrator_, &TransferManager::modelReset, this, [this]() { endResetModel(); });
+    connect(orchestrator_, &TransferManager::itemsAboutToBeRemoved, this,
+            [this](int first, int last) { beginRemoveRows(QModelIndex(), first, last); });
+    connect(orchestrator_, &TransferManager::itemsRemoved, this, [this]() { endRemoveRows(); });
     setupSignalForwarding();
 }
 

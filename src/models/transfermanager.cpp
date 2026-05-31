@@ -21,40 +21,42 @@ TransferManager::TransferManager(QObject *parent)
 {
     deleteHandler_ = new TransferDeleteHandler(state_, this);
 
-    setupBatchManager();
-    setupTimeoutManager();
-    setupScanCoordinator();
-    setupDirectoryCreator();
-    setupFolderOperationCoordinator();
-    setupFtpHandler();
-    setupDeleteHandler();
+    ftpHandler_ = new TransferFtpHandler(state_, this);
+    ftpHandler_->setTimeoutManager(timeoutManager_);
+    ftpHandler_->setDirCreator(dirCreator_);
+    ftpHandler_->setScanCoordinator(scanCoordinator_);
+
+    deleteHandler_->setScanCoordinator(scanCoordinator_);
+    deleteHandler_->setDirCreator(dirCreator_);
+    deleteHandler_->setCreateBatchCallback([this](OperationType type, const QString &description,
+                                                  const QString &folderName,
+                                                  const QString &sourcePath) {
+        return createBatch(type, description, folderName, sourcePath);
+    });
+    folderCoordinator_->setCreateBatchCallback(
+        [this](transfer::OperationType type, const QString &description, const QString &folderName,
+               const QString &sourcePath) {
+            return createBatch(type, description, folderName, sourcePath);
+        });
+
+    connectCollaborators();
 }
 
-void TransferManager::setupBatchManager()
+void TransferManager::connectCollaborators()
 {
-    batchManager_->setModelResetCallbacks(
-        [this]() {
-            if (modelCallbacks_.beginResetModel)
-                modelCallbacks_.beginResetModel();
-        },
-        [this]() {
-            if (modelCallbacks_.endResetModel)
-                modelCallbacks_.endResetModel();
-        });
-    batchManager_->setRowRemovalCallbacks(
-        [this](int first, int last) {
-            if (modelCallbacks_.beginRemoveRows)
-                modelCallbacks_.beginRemoveRows(first, last);
-        },
-        [this]() {
-            if (modelCallbacks_.endRemoveRows)
-                modelCallbacks_.endRemoveRows();
-        });
-    batchManager_->setStopTimeoutCallback([this]() { stopOperationTimeout(); });
-    batchManager_->setFolderOpCompleteCallback(
-        [this]() { folderCoordinator_->onFolderOperationComplete(); });
-    batchManager_->setScheduleProcessNextCallback([this]() { scheduleProcessNext(); });
-
+    // --- BatchManager ---
+    connect(batchManager_, &BatchManager::modelAboutToReset, this,
+            &TransferManager::modelAboutToReset);
+    connect(batchManager_, &BatchManager::modelReset, this, &TransferManager::modelReset);
+    connect(batchManager_, &BatchManager::rowsAboutToBeRemoved, this,
+            &TransferManager::itemsAboutToBeRemoved);
+    connect(batchManager_, &BatchManager::rowsRemoved, this, &TransferManager::itemsRemoved);
+    connect(batchManager_, &BatchManager::stopTimeoutRequested, this,
+            &TransferManager::stopOperationTimeout);
+    connect(batchManager_, &BatchManager::folderOpCompleteRequested, this,
+            [this]() { folderCoordinator_->onFolderOperationComplete(); });
+    connect(batchManager_, &BatchManager::scheduleProcessNextRequested, this,
+            [this]() { scheduleProcessNext(); });
     connect(batchManager_, &BatchManager::batchStarted, this, &TransferManager::batchStarted);
     connect(batchManager_, &BatchManager::batchProgressUpdate, this,
             &TransferManager::batchProgressUpdate);
@@ -62,16 +64,12 @@ void TransferManager::setupBatchManager()
     connect(batchManager_, &BatchManager::allOperationsCompleted, this,
             &TransferManager::allOperationsCompleted);
     connect(batchManager_, &BatchManager::queueChanged, this, &TransferManager::queueChanged);
-}
 
-void TransferManager::setupTimeoutManager()
-{
+    // --- TransferTimeoutManager ---
     connect(timeoutManager_, &TransferTimeoutManager::operationTimedOut, this,
             &TransferManager::onOperationTimeout);
-}
 
-void TransferManager::setupScanCoordinator()
-{
+    // --- RecursiveScanCoordinator ---
     connect(scanCoordinator_, &RecursiveScanCoordinator::downloadFileDiscovered, this,
             [this](const QString &remotePath, const QString &localPath, int batchId) {
                 enqueueDownload(remotePath, localPath, batchId);
@@ -79,24 +77,15 @@ void TransferManager::setupScanCoordinator()
     connect(scanCoordinator_, &RecursiveScanCoordinator::completeBatchRequested, this,
             [this](int batchId) { completeBatch(batchId); });
     connect(scanCoordinator_, &RecursiveScanCoordinator::scheduleProcessNextRequested, this,
-            [this]() {
-                if (TransferBatch *batch = findBatch(state_.currentFolderOp.batchId)) {
-                    batch->scanned = true;
-                }
-                transitionTo(QueueState::Idle);
-                scheduleProcessNext();
-            });
+            &TransferManager::onScanCompleted);
     connect(scanCoordinator_, &RecursiveScanCoordinator::statusMessage, this,
             &TransferManager::statusMessage);
     connect(scanCoordinator_, &RecursiveScanCoordinator::scanningStarted, this,
             &TransferManager::scanningStarted);
     connect(scanCoordinator_, &RecursiveScanCoordinator::scanningProgress, this,
             &TransferManager::scanningProgress);
-    connect(scanCoordinator_, &RecursiveScanCoordinator::deleteScanComplete, this, [this]() {
-        transitionTo(QueueState::Deleting);
-        emit queueChanged();
-        deleteHandler_->processNextDelete();
-    });
+    connect(scanCoordinator_, &RecursiveScanCoordinator::deleteScanComplete, this,
+            &TransferManager::onDeleteScanComplete);
     connect(scanCoordinator_, &RecursiveScanCoordinator::folderCheckComplete, this,
             [this](const QString & /*path*/) { folderCoordinator_->resumeAfterFolderCheck(); });
     connect(scanCoordinator_, &RecursiveScanCoordinator::uploadCheckFileExists, this,
@@ -105,42 +94,18 @@ void TransferManager::setupScanCoordinator()
             });
     connect(scanCoordinator_, &RecursiveScanCoordinator::uploadCheckNoConflict, this,
             [this]() { scheduleProcessNext(); });
-}
 
-void TransferManager::setupDirectoryCreator()
-{
+    // --- RemoteDirectoryCoordinator ---
     connect(dirCreator_, &RemoteDirectoryCoordinator::directoryCreationProgress, this,
             &TransferManager::directoryCreationProgress);
     connect(dirCreator_, &RemoteDirectoryCoordinator::allDirectoriesCreated, this,
             [this]() { finishDirectoryCreation(); });
-}
 
-void TransferManager::setupFolderOperationCoordinator()
-{
-    folderCoordinator_->setCreateBatchCallback(
-        [this](transfer::OperationType type, const QString &description, const QString &folderName,
-               const QString &sourcePath) {
-            return createBatch(type, description, folderName, sourcePath);
-        });
+    // --- FolderOperationCoordinator ---
     connect(folderCoordinator_, &FolderOperationCoordinator::startDownloadScanRequested, this,
-            [this](const QString &remotePath, const QString &localBase, const QString &remoteBase,
-                   int batchId) {
-                transitionTo(QueueState::Scanning);
-                scanCoordinator_->startDownloadScan(remotePath, localBase, remoteBase, batchId);
-            });
+            &TransferManager::onStartDownloadScanRequested);
     connect(folderCoordinator_, &FolderOperationCoordinator::startDirectoryCreationRequested, this,
-            [this](const QString &localDir, const QString &remoteDir) {
-                dirCreator_->queueDirectoriesForUpload(localDir, remoteDir);
-                if (!state_.pendingMkdirs.isEmpty()) {
-                    transitionTo(QueueState::CreatingDirectories);
-                    dirCreator_->createNextDirectory();
-                } else {
-                    if (TransferBatch *batch = findBatch(state_.currentFolderOp.batchId)) {
-                        batch->scanned = true;
-                    }
-                    finishDirectoryCreation();
-                }
-            });
+            &TransferManager::onStartDirectoryCreationRequested);
     connect(folderCoordinator_, &FolderOperationCoordinator::startDeleteRequested, this,
             [this](const QString &remotePath) { enqueueRecursiveDelete(remotePath); });
     connect(folderCoordinator_, &FolderOperationCoordinator::pendingUploadAfterDeleteSet, this,
@@ -159,17 +124,10 @@ void TransferManager::setupFolderOperationCoordinator()
             &TransferManager::operationFailed);
     connect(folderCoordinator_, &FolderOperationCoordinator::scheduleProcessNextRequested, this,
             [this]() { scheduleProcessNext(); });
-}
 
-void TransferManager::setupFtpHandler()
-{
-    ftpHandler_ = new TransferFtpHandler(state_, this);
-    ftpHandler_->setTimeoutManager(timeoutManager_);
-    ftpHandler_->setDirCreator(dirCreator_);
-    ftpHandler_->setScanCoordinator(scanCoordinator_);
-
+    // --- TransferFtpHandler ---
     connect(ftpHandler_, &TransferFtpHandler::itemDataChanged, this,
-            [this](int row) { notifyDataChanged(row); });
+            [this](int row) { emit itemDataChanged(row); });
     connect(ftpHandler_, &TransferFtpHandler::operationCompleted, this,
             &TransferManager::operationCompleted);
     connect(ftpHandler_, &TransferFtpHandler::operationFailed, this,
@@ -187,23 +145,16 @@ void TransferManager::setupFtpHandler()
             [this](int batchId, bool isComplete, bool includeFailed) {
                 emitBatchProgressAndComplete(batchId, isComplete, includeFailed);
             });
-}
 
-void TransferManager::setupDeleteHandler()
-{
-    deleteHandler_->setScanCoordinator(scanCoordinator_);
-    deleteHandler_->setDirCreator(dirCreator_);
-    deleteHandler_->setCreateBatchCallback([this](OperationType type, const QString &description,
-                                                  const QString &folderName,
-                                                  const QString &sourcePath) {
-        return createBatch(type, description, folderName, sourcePath);
-    });
-    deleteHandler_->setBeginInsertCallback(
-        [this](int first, int last) { notifyBeginInsert(first, last); });
-    deleteHandler_->setEndInsertCallback([this]() { notifyEndInsert(); });
-    deleteHandler_->setTransitionToCallback([this](QueueState s) { transitionTo(s); });
-    deleteHandler_->setScheduleProcessNextCallback([this]() { scheduleProcessNext(); });
-
+    // --- TransferDeleteHandler ---
+    connect(deleteHandler_, &TransferDeleteHandler::rowsAboutToBeInserted, this,
+            &TransferManager::itemsAboutToBeInserted);
+    connect(deleteHandler_, &TransferDeleteHandler::rowsInserted, this,
+            &TransferManager::itemsInserted);
+    connect(deleteHandler_, &TransferDeleteHandler::transitionToRequested, this,
+            [this](QueueState s) { transitionTo(s); });
+    connect(deleteHandler_, &TransferDeleteHandler::scheduleProcessNextRequested, this,
+            [this]() { scheduleProcessNext(); });
     connect(deleteHandler_, &TransferDeleteHandler::operationFailed, this,
             &TransferManager::operationFailed);
     connect(deleteHandler_, &TransferDeleteHandler::operationCompleted, this,
@@ -217,16 +168,7 @@ void TransferManager::setupDeleteHandler()
     connect(deleteHandler_, &TransferDeleteHandler::batchStarted, this,
             &TransferManager::batchStarted);
     connect(deleteHandler_, &TransferDeleteHandler::startDirectoryCreationAfterDeleteRequested,
-            this, [this]() {
-                dirCreator_->queueDirectoriesForUpload(state_.currentFolderOp.sourcePath,
-                                                       state_.currentFolderOp.targetPath);
-                if (!state_.pendingMkdirs.isEmpty()) {
-                    transitionTo(QueueState::CreatingDirectories);
-                    dirCreator_->createNextDirectory();
-                } else {
-                    finishDirectoryCreation();
-                }
-            });
+            this, &TransferManager::onStartDirectoryCreationAfterDeleteRequested);
 }
 
 TransferManager::~TransferManager()
@@ -235,44 +177,58 @@ TransferManager::~TransferManager()
 }
 
 // ============================================================================
-// Model notification helpers
+// Orchestration slots
 // ============================================================================
 
-void TransferManager::notifyBeginInsert(int first, int last)
+void TransferManager::onScanCompleted()
 {
-    if (modelCallbacks_.beginInsertRows)
-        modelCallbacks_.beginInsertRows(first, last);
+    if (TransferBatch *batch = findBatch(state_.currentFolderOp.batchId)) {
+        batch->scanned = true;
+    }
+    transitionTo(QueueState::Idle);
+    scheduleProcessNext();
 }
 
-void TransferManager::notifyEndInsert()
+void TransferManager::onDeleteScanComplete()
 {
-    if (modelCallbacks_.endInsertRows)
-        modelCallbacks_.endInsertRows();
+    transitionTo(QueueState::Deleting);
+    emit queueChanged();
+    deleteHandler_->processNextDelete();
 }
 
-void TransferManager::notifyDataChanged(int row)
+void TransferManager::onStartDownloadScanRequested(const QString &remotePath,
+                                                   const QString &localBase,
+                                                   const QString &remoteBase, int batchId)
 {
-    if (modelCallbacks_.dataChangedRow)
-        modelCallbacks_.dataChangedRow(row);
+    transitionTo(QueueState::Scanning);
+    scanCoordinator_->startDownloadScan(remotePath, localBase, remoteBase, batchId);
 }
 
-void TransferManager::notifyBeginReset()
+void TransferManager::onStartDirectoryCreationRequested(const QString &localDir,
+                                                        const QString &remoteDir)
 {
-    if (modelCallbacks_.beginResetModel)
-        modelCallbacks_.beginResetModel();
+    dirCreator_->queueDirectoriesForUpload(localDir, remoteDir);
+    if (!state_.pendingMkdirs.isEmpty()) {
+        transitionTo(QueueState::CreatingDirectories);
+        dirCreator_->createNextDirectory();
+    } else {
+        if (TransferBatch *batch = findBatch(state_.currentFolderOp.batchId)) {
+            batch->scanned = true;
+        }
+        finishDirectoryCreation();
+    }
 }
 
-void TransferManager::notifyEndReset()
+void TransferManager::onStartDirectoryCreationAfterDeleteRequested()
 {
-    if (modelCallbacks_.endResetModel)
-        modelCallbacks_.endResetModel();
-}
-
-void TransferManager::setModelCallbacks(const ModelCallbacks &callbacks)
-{
-    modelCallbacks_ = callbacks;
-    if (!modelCallbacks_.beginResetModel)
-        qCDebug(LogTransfer) << "TransferManager: model callbacks not set (headless mode)";
+    dirCreator_->queueDirectoriesForUpload(state_.currentFolderOp.sourcePath,
+                                           state_.currentFolderOp.targetPath);
+    if (!state_.pendingMkdirs.isEmpty()) {
+        transitionTo(QueueState::CreatingDirectories);
+        dirCreator_->createNextDirectory();
+    } else {
+        finishDirectoryCreation();
+    }
 }
 
 void TransferManager::setLocalFileSystem(ILocalFileSystemService *fs)
@@ -391,11 +347,11 @@ void TransferManager::enqueueUpload(const QString &localPath, const QString &rem
     item.totalBytes = localFs_->fileSize(localPath);
     item.batchId = state_.batches[batchIdx].batchId;
 
-    notifyBeginInsert(state_.items.size(), state_.items.size());
+    emit itemsAboutToBeInserted(state_.items.size(), state_.items.size());
     auto enqResult = transfer::enqueueItem(state_, item, batchIdx);
     state_ = enqResult.newState;
     batchIdx = enqResult.batchIdx;
-    notifyEndInsert();
+    emit itemsInserted();
     activateAndSchedule(batchIdx);
 }
 
@@ -431,11 +387,11 @@ void TransferManager::enqueueDownload(const QString &remotePath, const QString &
     item.status = TransferItem::Status::Pending;
     item.batchId = state_.batches[batchIdx].batchId;
 
-    notifyBeginInsert(state_.items.size(), state_.items.size());
+    emit itemsAboutToBeInserted(state_.items.size(), state_.items.size());
     auto enqResult = transfer::enqueueItem(state_, item, batchIdx);
     state_ = enqResult.newState;
     batchIdx = enqResult.batchIdx;
-    notifyEndInsert();
+    emit itemsInserted();
     activateAndSchedule(batchIdx);
 }
 
@@ -585,7 +541,7 @@ void TransferManager::processNext()
         state_.items[i].status = TransferItem::Status::InProgress;
         transitionTo(QueueState::Transferring);
 
-        notifyDataChanged(i);
+        emit itemDataChanged(i);
         emit operationStarted(decision.fileNameForSignal, state_.items[i].operationType);
 
         startOperationTimeout();
@@ -639,7 +595,7 @@ void TransferManager::respondToOverwrite(OverwriteResponse response)
 
     if (!state_.items.isEmpty()) {
         for (int i = 0; i < state_.items.size(); ++i) {
-            notifyDataChanged(i);
+            emit itemDataChanged(i);
         }
     }
 
@@ -701,7 +657,7 @@ void TransferManager::markCurrentComplete(TransferItem::Status status)
     auto result = transfer::markItemComplete(state_, completedIndex, status);
     state_ = result.newState;
 
-    notifyDataChanged(completedIndex);
+    emit itemDataChanged(completedIndex);
 
     if (result.batchId >= 0) {
         emitBatchProgressAndComplete(result.batchId, result.batchIsComplete);
@@ -734,9 +690,9 @@ int TransferManager::findItemIndex(const QString &localPath, const QString &remo
 
 void TransferManager::clear()
 {
-    notifyBeginReset();
+    emit modelAboutToReset();
     state_ = transfer::clearAll(state_);
-    notifyEndReset();
+    emit modelReset();
 
     folderCoordinator_->stopDebounce();
     emit queueChanged();
@@ -754,7 +710,7 @@ void TransferManager::cancelAll()
     folderCoordinator_->stopDebounce();
 
     for (int i = 0; i < state_.items.size(); ++i) {
-        notifyDataChanged(i);
+        emit itemDataChanged(i);
     }
     emit queueChanged();
     emit operationsCancelled();
@@ -779,7 +735,7 @@ void TransferManager::cancelBatch(int batchId)
     state_ = result.newState;
 
     for (int i = 0; i < state_.items.size(); ++i) {
-        notifyDataChanged(i);
+        emit itemDataChanged(i);
     }
     emit queueChanged();
 
@@ -876,7 +832,7 @@ void TransferManager::onOperationTimeout()
                                          ? state_.items[originalIndex].remotePath
                                          : state_.items[originalIndex].localPath)
                                .fileName();
-        notifyDataChanged(originalIndex);
+        emit itemDataChanged(originalIndex);
         emit operationFailed(fileName, errorMessage);
     }
 

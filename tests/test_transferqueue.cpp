@@ -79,13 +79,22 @@ private slots:
 
         mockFtp->mockSetDownloadData(remotePath, content);
 
+        QSignalSpy rowsInsertedSpy(queue, &TransferQueue::rowsInserted);
+        QSignalSpy dataChangedSpy(queue, &TransferQueue::dataChanged);
+
         queue->enqueueDownload(remotePath, localPath);
+
+        // rowsInserted should have fired when item was added via Qt signal chain
+        QVERIFY(rowsInsertedSpy.count() >= 1);
 
         // Item is immediately InProgress (not Pending) because processNext() is called
         QCOMPARE(queue->rowCount(), 1);
 
         // Process the download
         flushAndProcess();
+
+        // dataChanged should have fired for status updates
+        QVERIFY(dataChangedSpy.count() >= 1);
 
         // Item is now Completed
         QCOMPARE(queue->rowCount(), 1);  // Still there but completed
@@ -95,6 +104,25 @@ private slots:
         QVERIFY(file.exists());
         QVERIFY(file.open(QIODevice::ReadOnly));
         QCOMPARE(file.readAll(), content);
+    }
+
+    // Verify model notification signals flow through Qt signals (not callbacks)
+    void testModelResetSignalFiresOnClear()
+    {
+        QString remotePath = "/test/file.txt";
+        QString localPath = tempDir.path() + "/file.txt";
+        mockFtp->mockSetDownloadData(remotePath, "data");
+
+        queue->enqueueDownload(remotePath, localPath);
+        QCOMPARE(queue->rowCount(), 1);
+
+        QSignalSpy modelResetSpy(queue, &TransferQueue::modelReset);
+
+        queue->clear();
+
+        // modelReset (endResetModel) should have fired once
+        QCOMPARE(modelResetSpy.count(), 1);
+        QCOMPARE(queue->rowCount(), 0);
     }
 
     // Test that recursive download scans ALL directories before starting downloads

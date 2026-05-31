@@ -13,8 +13,10 @@ using transfer::TransferBatch;
 
 /// Manages the lifecycle of transfer batches: creation, activation, completion, and progress.
 /// Operates on a shared transfer::State by reference (same pattern as the coordinator objects).
-/// Uses callbacks for operations that belong to the owning TransferQueue (model resets,
-/// timeout stop, folder-op notification, and process scheduling).
+/// Uses Qt signals for operations that belong to the owning TransferManager (model resets,
+/// timeout stop, folder-op notification, and process scheduling). The setStopTimeoutCallback,
+/// setFolderOpCompleteCallback, and setScheduleProcessNextCallback setters are kept for
+/// unit tests that verify those behaviors without a full TransferManager.
 class BatchManager : public QObject
 {
     Q_OBJECT
@@ -25,12 +27,8 @@ public:
 
     explicit BatchManager(transfer::State &state, QObject *parent = nullptr);
 
-    // Callbacks set by TransferQueue for operations BatchManager cannot own directly
-    void setModelResetCallbacks(VoidCallback beginReset, VoidCallback endReset);
+    // Kept for purgeBatch unit tests that verify row-removal callbacks are interleaved correctly
     void setRowRemovalCallbacks(RowRangeCallback beginRemove, VoidCallback endRemove);
-    void setStopTimeoutCallback(VoidCallback stopTimeout);
-    void setFolderOpCompleteCallback(VoidCallback folderOpComplete);
-    void setScheduleProcessNextCallback(VoidCallback scheduleNext);
 
     // Batch lifecycle
     int createBatch(OperationType type, const QString &description, const QString &folderName,
@@ -62,16 +60,22 @@ signals:
     void allOperationsCompleted();
     void queueChanged();
 
+    /// Model-notification signals — connect to TransferManager's model signals
+    void modelAboutToReset();
+    void modelReset();
+    void rowsAboutToBeRemoved(int first, int last);
+    void rowsRemoved();
+
+    /// Orchestration signals — connect to TransferManager private slots
+    void stopTimeoutRequested();
+    void folderOpCompleteRequested();
+    void scheduleProcessNextRequested();
+
 private:
     transfer::State &state_;
 
-    VoidCallback beginResetCb_;
-    VoidCallback endResetCb_;
     RowRangeCallback beginRemoveCb_;
     VoidCallback endRemoveCb_;
-    VoidCallback stopTimeoutCb_;
-    VoidCallback folderOpCompleteCb_;
-    VoidCallback scheduleNextCb_;
 };
 
 #endif  // BATCHMANAGER_H

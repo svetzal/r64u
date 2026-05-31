@@ -81,12 +81,11 @@ void TestBatchManager::testCompleteBatch_callsStopTimeoutCallback()
     transfer::State state = makeCompletedBatchState(1);
     BatchManager bm(state);
 
-    bool called = false;
-    bm.setStopTimeoutCallback([&called]() { called = true; });
+    QSignalSpy spy(&bm, &BatchManager::stopTimeoutRequested);
 
     bm.completeBatch(1);
 
-    QVERIFY(called);
+    QCOMPARE(spy.count(), 1);
 }
 
 void TestBatchManager::testCompleteBatch_emitsBatchCompleted()
@@ -134,12 +133,11 @@ void TestBatchManager::testCompleteBatch_folderOperation_callsFolderOpCompleteCa
     state.currentFolderOp.batchId = 5;
     BatchManager bm(state);
 
-    bool folderOpCalled = false;
-    bm.setFolderOpCompleteCallback([&folderOpCalled]() { folderOpCalled = true; });
+    QSignalSpy spy(&bm, &BatchManager::folderOpCompleteRequested);
 
     bm.completeBatch(5);
 
-    QVERIFY(folderOpCalled);
+    QCOMPARE(spy.count(), 1);
 }
 
 void TestBatchManager::testCompleteBatch_folderOperation_doesNotEmitAllOperationsCompleted()
@@ -222,12 +220,11 @@ void TestBatchManager::testCompleteBatch_withNextBatch_callsScheduleNextCallback
 
     BatchManager bm(state);
 
-    bool scheduleCalled = false;
-    bm.setScheduleProcessNextCallback([&scheduleCalled]() { scheduleCalled = true; });
+    QSignalSpy spy(&bm, &BatchManager::scheduleProcessNextRequested);
 
     bm.completeBatch(1);
 
-    QVERIFY(scheduleCalled);
+    QCOMPARE(spy.count(), 1);
 }
 
 void TestBatchManager::testCompleteBatch_withNextBatch_doesNotEmitAllOperationsCompleted()
@@ -274,21 +271,18 @@ void TestBatchManager::testPurgeBatch_removesItemsAndCallsModelSignals()
     transfer::State state = makeCompletedBatchState(1);
     BatchManager bm(state);
 
-    QList<QPair<int, int>> beginCalls;
-    int endCallCount = 0;
-    bm.setRowRemovalCallbacks(
-        [&beginCalls](int first, int last) { beginCalls.append({first, last}); },
-        [&endCallCount]() { ++endCallCount; });
+    QSignalSpy rowsAboutToBeRemovedSpy(&bm, &BatchManager::rowsAboutToBeRemoved);
+    QSignalSpy rowsRemovedSpy(&bm, &BatchManager::rowsRemoved);
 
     bm.purgeBatch(1);
 
     QCOMPARE(state.items.size(), 0);
     QCOMPARE(state.batches.size(), 0);
-    QCOMPARE(beginCalls.size(), 1);
-    QCOMPARE(endCallCount, 1);
+    QCOMPARE(rowsAboutToBeRemovedSpy.count(), 1);
+    QCOMPARE(rowsRemovedSpy.count(), 1);
     // Signal was for row 0
-    QCOMPARE(beginCalls[0].first, 0);
-    QCOMPARE(beginCalls[0].second, 0);
+    QCOMPARE(rowsAboutToBeRemovedSpy[0][0].toInt(), 0);
+    QCOMPARE(rowsAboutToBeRemovedSpy[0][1].toInt(), 0);
 }
 
 void TestBatchManager::testPurgeBatch_adjustsCurrentIndex()

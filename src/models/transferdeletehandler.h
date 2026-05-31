@@ -21,8 +21,11 @@ using transfer::QueueState;
  *
  * Encapsulates enqueueDelete(), enqueueRecursiveDelete(), and processNextDelete()
  * that were previously part of TransferManager. Operates on the shared
- * transfer::State by reference, and signals back to the orchestrator for
- * model notifications, state transitions, and scheduling.
+ * transfer::State by reference. Emits Qt signals for model notifications
+ * (rowsAboutToBeInserted / rowsInserted) and orchestration callbacks
+ * (transitionToRequested, scheduleProcessNextRequested) that TransferManager
+ * connects to. The createBatch factory delegate is kept as std::function because
+ * it returns an int and acts as a factory, not a notification.
  */
 class TransferDeleteHandler : public QObject
 {
@@ -31,8 +34,6 @@ class TransferDeleteHandler : public QObject
 public:
     using CreateBatchFn =
         std::function<int(OperationType, const QString &, const QString &, const QString &)>;
-    using NotifyInsertFn = std::function<void(int, int)>;
-    using VoidFn = std::function<void()>;
 
     explicit TransferDeleteHandler(transfer::State &state, QObject *parent = nullptr);
 
@@ -40,12 +41,8 @@ public:
     void setScanCoordinator(RecursiveScanCoordinator *coordinator);
     void setDirCreator(RemoteDirectoryCoordinator *creator);
 
-    /// Callbacks for orchestrator operations that cannot be signalled.
+    /// Factory callback: kept as std::function because it returns an int (factory pattern).
     void setCreateBatchCallback(CreateBatchFn fn);
-    void setBeginInsertCallback(NotifyInsertFn fn);
-    void setEndInsertCallback(VoidFn fn);
-    void setTransitionToCallback(std::function<void(QueueState)> fn);
-    void setScheduleProcessNextCallback(VoidFn fn);
 
     void enqueueDelete(const QString &remotePath, bool isDirectory);
     void enqueueRecursiveDelete(const QString &remotePath);
@@ -60,6 +57,14 @@ signals:
     void batchStarted(int batchId);
     void startDirectoryCreationAfterDeleteRequested();
 
+    /// Model-notification signals for row insertions during enqueueDelete
+    void rowsAboutToBeInserted(int first, int last);
+    void rowsInserted();
+
+    /// Orchestration signals — connect to TransferManager private slots
+    void transitionToRequested(QueueState newState);
+    void scheduleProcessNextRequested();
+
 private:
     transfer::State &state_;
     QPointer<IFtpClient> ftpClient_;
@@ -67,10 +72,6 @@ private:
     RemoteDirectoryCoordinator *dirCreator_ = nullptr;
 
     CreateBatchFn createBatchCb_;
-    NotifyInsertFn beginInsertCb_;
-    VoidFn endInsertCb_;
-    std::function<void(QueueState)> transitionToCb_;
-    VoidFn scheduleProcessNextCb_;
 };
 
 #endif  // TRANSFERDELETEHANDLER_H

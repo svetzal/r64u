@@ -10,44 +10,19 @@ BatchManager::BatchManager(transfer::State &state, QObject *parent) : QObject(pa
 {
 }
 
-void BatchManager::setModelResetCallbacks(VoidCallback beginReset, VoidCallback endReset)
-{
-    beginResetCb_ = std::move(beginReset);
-    endResetCb_ = std::move(endReset);
-}
-
 void BatchManager::setRowRemovalCallbacks(RowRangeCallback beginRemove, VoidCallback endRemove)
 {
     beginRemoveCb_ = std::move(beginRemove);
     endRemoveCb_ = std::move(endRemove);
 }
 
-void BatchManager::setStopTimeoutCallback(VoidCallback stopTimeout)
-{
-    stopTimeoutCb_ = std::move(stopTimeout);
-}
-
-void BatchManager::setFolderOpCompleteCallback(VoidCallback folderOpComplete)
-{
-    folderOpCompleteCb_ = std::move(folderOpComplete);
-}
-
-void BatchManager::setScheduleProcessNextCallback(VoidCallback scheduleNext)
-{
-    scheduleNextCb_ = std::move(scheduleNext);
-}
-
 int BatchManager::createBatch(OperationType type, const QString &description,
                               const QString &folderName, const QString &sourcePath)
 {
-    if (beginResetCb_) {
-        beginResetCb_();
-    }
+    emit modelAboutToReset();
     auto result = transfer::createBatch(state_, type, description, folderName, sourcePath);
     state_ = result.newState;
-    if (endResetCb_) {
-        endResetCb_();
-    }
+    emit modelReset();
 
     qCDebug(LogTransfer) << "BatchManager: Created batch" << result.batchId << ":" << description;
     emit queueChanged();
@@ -83,16 +58,11 @@ void BatchManager::completeBatch(int batchId)
     auto result = transfer::completeBatch(state_, batchId);
     state_ = result.newState;
 
-    if (stopTimeoutCb_) {
-        stopTimeoutCb_();
-    }
-
+    emit stopTimeoutRequested();
     emit batchCompleted(batchId);
 
     if (result.isFolderOperation) {
-        if (folderOpCompleteCb_) {
-            folderOpCompleteCb_();
-        }
+        emit folderOpCompleteRequested();
         return;
     }
 
@@ -110,9 +80,7 @@ void BatchManager::completeBatch(int batchId)
         qCDebug(LogTransfer) << "BatchManager: All batches complete";
         emit allOperationsCompleted();
     } else if (state_.activeBatchIndex >= 0) {
-        if (scheduleNextCb_) {
-            scheduleNextCb_();
-        }
+        emit scheduleProcessNextRequested();
     }
 }
 
@@ -128,10 +96,12 @@ void BatchManager::purgeBatch(int batchId)
     qCDebug(LogTransfer) << "BatchManager: Purging batch" << batchId;
 
     for (int idx : plan.itemIndicesToRemove) {
+        emit rowsAboutToBeRemoved(idx, idx);
         if (beginRemoveCb_) {
             beginRemoveCb_(idx, idx);
         }
         state_.items.removeAt(idx);
+        emit rowsRemoved();
         if (endRemoveCb_) {
             endRemoveCb_();
         }

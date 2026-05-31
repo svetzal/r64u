@@ -19,10 +19,6 @@ private:
     RecursiveScanCoordinator *scanCoordinator = nullptr;
     RemoteDirectoryCoordinator *dirCreator = nullptr;
     TransferDeleteHandler *handler = nullptr;
-    bool processNextScheduled = false;
-    transfer::QueueState transitionedTo = transfer::QueueState::Idle;
-    bool insertEndCalled = false;
-
     void setupCallbacks()
     {
         handler->setCreateBatchCallback([this](transfer::OperationType type, const QString &desc,
@@ -31,10 +27,6 @@ private:
             state_ = r.newState;
             return r.batchId;
         });
-        handler->setBeginInsertCallback([](int, int) {});
-        handler->setEndInsertCallback([this]() { insertEndCalled = true; });
-        handler->setTransitionToCallback([this](transfer::QueueState s) { transitionedTo = s; });
-        handler->setScheduleProcessNextCallback([this]() { processNextScheduled = true; });
     }
 
 private slots:
@@ -49,9 +41,6 @@ private slots:
         handler->setFtpClient(mockFtp);
         handler->setScanCoordinator(scanCoordinator);
         handler->setDirCreator(dirCreator);
-        processNextScheduled = false;
-        transitionedTo = transfer::QueueState::Idle;
-        insertEndCalled = false;
         setupCallbacks();
         mockFtp->mockSetConnected(true);
     }
@@ -79,20 +68,29 @@ private slots:
         QCOMPARE(state_.items[0].operationType, transfer::OperationType::Delete);
     }
 
-    void testEnqueueDelete_callsEndInsertCallback()
+    void testEnqueueDelete_emitsRowsInsertedSignal()
     {
+        QSignalSpy insertedSpy(handler, &TransferDeleteHandler::rowsInserted);
+        QSignalSpy aboutToInsertSpy(handler, &TransferDeleteHandler::rowsAboutToBeInserted);
+
         handler->enqueueDelete("/remote/file.prg", false);
 
-        QVERIFY(insertEndCalled);
+        QCOMPARE(aboutToInsertSpy.count(), 1);
+        QCOMPARE(insertedSpy.count(), 1);
+        // Signal carries row range 0..0 for first item
+        QCOMPARE(aboutToInsertSpy[0][0].toInt(), 0);
+        QCOMPARE(aboutToInsertSpy[0][1].toInt(), 0);
     }
 
     void testEnqueueDelete_idleState_schedulesProcessNext()
     {
         state_.queueState = transfer::QueueState::Idle;
 
+        QSignalSpy spy(handler, &TransferDeleteHandler::scheduleProcessNextRequested);
+
         handler->enqueueDelete("/remote/file.prg", false);
 
-        QVERIFY(processNextScheduled);
+        QCOMPARE(spy.count(), 1);
     }
 
     void testEnqueueDelete_emitsQueueChanged()
@@ -117,21 +115,26 @@ private slots:
 
     void testEnqueueRecursiveDelete_connected_transitionsToScanning()
     {
+        QSignalSpy spy(handler, &TransferDeleteHandler::transitionToRequested);
+
         handler->enqueueRecursiveDelete("/remote/Games");
 
-        QCOMPARE(transitionedTo, transfer::QueueState::Scanning);
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy[0][0].value<transfer::QueueState>(), transfer::QueueState::Scanning);
     }
 
     void testProcessNextDelete_notConnected_transitionsToIdleAndEmitsFailed()
     {
         mockFtp->mockSetConnected(false);
 
-        QSignalSpy spy(handler, &TransferDeleteHandler::operationFailed);
+        QSignalSpy failedSpy(handler, &TransferDeleteHandler::operationFailed);
+        QSignalSpy transitionSpy(handler, &TransferDeleteHandler::transitionToRequested);
 
         handler->processNextDelete();
 
-        QCOMPARE(transitionedTo, transfer::QueueState::Idle);
-        QCOMPARE(spy.count(), 1);
+        QCOMPARE(transitionSpy.count(), 1);
+        QCOMPARE(transitionSpy[0][0].value<transfer::QueueState>(), transfer::QueueState::Idle);
+        QCOMPARE(failedSpy.count(), 1);
     }
 
     void testProcessNextDelete_emptyDeleteQueue_emitsOperationCompleted()

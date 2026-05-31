@@ -19,8 +19,6 @@
 #include <QPointer>
 #include <QString>
 
-#include <functional>
-
 using transfer::BatchProgress;
 using transfer::ConfirmationContext;
 using transfer::DeleteItem;
@@ -41,34 +39,17 @@ using transfer::TransferItem;
  * TransferManager manages the lifecycle of file transfers: enqueuing uploads,
  * downloads, and deletes; coordinating recursive folder scans and directory creation;
  * handling overwrite and folder-exists confirmations; and delegating actual FTP I/O
- * to TransferFtpHandler. Model notifications are routed back to the owning
- * QAbstractListModel via the ModelCallbacks struct so the orchestrator itself has
- * no dependency on Qt's model infrastructure.
+ * to TransferFtpHandler. Model notifications are emitted as Qt signals so that the
+ * owning QAbstractListModel (TransferQueue) can connect to them and drive
+ * QAbstractListModel calls without TransferManager depending on Qt model infrastructure.
  */
 class TransferManager : public QObject
 {
     Q_OBJECT
 
 public:
-    /**
-     * @brief Callbacks the owning model registers so the orchestrator can drive
-     *        QAbstractListModel notifications without depending on it directly.
-     */
-    struct ModelCallbacks
-    {
-        std::function<void(int first, int last)> beginInsertRows;
-        std::function<void()> endInsertRows;
-        std::function<void(int row)> dataChangedRow;
-        std::function<void()> beginResetModel;
-        std::function<void()> endResetModel;
-        std::function<void(int first, int last)> beginRemoveRows;
-        std::function<void()> endRemoveRows;
-    };
-
     explicit TransferManager(QObject *parent = nullptr);
     ~TransferManager() override;
-
-    void setModelCallbacks(const ModelCallbacks &callbacks);
 
     void setFtpClient(IFtpClient *client);
     void setLocalFileSystem(ILocalFileSystemService *fs);
@@ -133,6 +114,14 @@ public:
     [[nodiscard]] const TransferBatch *findBatch(int batchId) const;
 
 signals:
+    void itemsAboutToBeInserted(int first, int last);
+    void itemsInserted();
+    void itemDataChanged(int row);
+    void modelAboutToReset();
+    void modelReset();
+    void itemsAboutToBeRemoved(int first, int last);
+    void itemsRemoved();
+
     void operationStarted(const QString &fileName, OperationType type);
     void operationCompleted(const QString &fileName);
     void operationFailed(const QString &fileName, const QString &error);
@@ -156,20 +145,16 @@ signals:
 private slots:
     void onOperationTimeout();
 
-private:
-    void setupBatchManager();
-    void setupTimeoutManager();
-    void setupScanCoordinator();
-    void setupDirectoryCreator();
-    void setupFolderOperationCoordinator();
-    void setupFtpHandler();
-    void setupDeleteHandler();
+    // Orchestration slots — bound to collaborator signals in connectCollaborators()
+    void onScanCompleted();
+    void onDeleteScanComplete();
+    void onStartDownloadScanRequested(const QString &remotePath, const QString &localBase,
+                                      const QString &remoteBase, int batchId);
+    void onStartDirectoryCreationRequested(const QString &localDir, const QString &remoteDir);
+    void onStartDirectoryCreationAfterDeleteRequested();
 
-    void notifyBeginInsert(int first, int last);
-    void notifyEndInsert();
-    void notifyDataChanged(int row);
-    void notifyBeginReset();
-    void notifyEndReset();
+private:
+    void connectCollaborators();
 
     void processNext();
     void scheduleProcessNext();
@@ -198,8 +183,6 @@ private:
     ILocalFileSystemService *localFs_ = nullptr;
 
     transfer::State state_;
-
-    ModelCallbacks modelCallbacks_;
 
     BatchManager *batchManager_ = nullptr;
     TransferTimeoutManager *timeoutManager_ = nullptr;
