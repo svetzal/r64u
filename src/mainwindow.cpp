@@ -346,7 +346,7 @@ void MainWindow::onPreferences()
     if (preferencesDialog_->exec() == QDialog::Accepted) {
         QSettings settings;
         const QString host = settings.value("device/host").toString();
-        const QString password = settings.value("device/password").toString();
+        const QString password = PlatformKeychain::retrievePassword("r64u", host);
         deviceConnection_->setHost(host);
         deviceConnection_->setPassword(password);
     }
@@ -366,7 +366,7 @@ void MainWindow::onConnect()
     }
 
     deviceConnection_->setHost(host);
-    deviceConnection_->setPassword(settings.value("device/password").toString());
+    deviceConnection_->setPassword(PlatformKeychain::retrievePassword("r64u", host));
     deviceConnection_->connectToDevice();
 }
 
