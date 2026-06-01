@@ -2,6 +2,7 @@
 #define TRANSFERMANAGER_H
 
 #include "batchmanager.h"
+#include "singlefileenqueuehandler.h"
 #include "transferdeletehandler.h"
 #include "transferdispatchhandler.h"
 #include "transfereventhandler.h"
@@ -164,9 +165,6 @@ private:
     void startOperationTimeout();
     void stopOperationTimeout();
 
-    [[nodiscard]] int findBatchIndex(int batchId) const;
-    void activateAndSchedule(int batchIdx);
-
     int createBatch(OperationType type, const QString &description, const QString &folderName,
                     const QString &sourcePath = QString());
     void activateNextBatch();
@@ -195,6 +193,7 @@ private:
     TransferFtpHandler *ftpHandler_ = nullptr;
     TransferDeleteHandler *deleteHandler_ = nullptr;
     TransferDispatchHandler *dispatchHandler_ = nullptr;
+    SingleFileEnqueueHandler *enqueueHandler_ = nullptr;
 };
 
 #endif  // TRANSFERMANAGER_H

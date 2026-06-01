@@ -1,5 +1,6 @@
 #include "transfermanager.h"
 
+#include "singlefileenqueuehandler.h"
 #include "transferdispatchhandler.h"
 #include "transferftphandler.h"
 
@@ -43,6 +44,13 @@ TransferManager::TransferManager(QObject *parent)
                const QString &sourcePath) {
             return createBatch(type, description, folderName, sourcePath);
         });
+
+    enqueueHandler_ = new SingleFileEnqueueHandler(state_, localFs_, this);
+    enqueueHandler_->setCreateBatchCallback([this](OperationType type, const QString &description,
+                                                   const QString &folderName,
+                                                   const QString &sourcePath) {
+        return createBatch(type, description, folderName, sourcePath);
+    });
 
     connectCollaborators();
 }
@@ -194,6 +202,20 @@ void TransferManager::connectCollaborators()
             &TransferManager::batchStarted);
     connect(deleteHandler_, &TransferDeleteHandler::startDirectoryCreationAfterDeleteRequested,
             this, &TransferManager::onStartDirectoryCreationAfterDeleteRequested);
+
+    // --- SingleFileEnqueueHandler ---
+    connect(enqueueHandler_, &SingleFileEnqueueHandler::itemsAboutToBeInserted, this,
+            &TransferManager::itemsAboutToBeInserted);
+    connect(enqueueHandler_, &SingleFileEnqueueHandler::itemsInserted, this,
+            &TransferManager::itemsInserted);
+    connect(enqueueHandler_, &SingleFileEnqueueHandler::queueChanged, this,
+            &TransferManager::queueChanged);
+    connect(enqueueHandler_, &SingleFileEnqueueHandler::batchStarted, this,
+            &TransferManager::batchStarted);
+    connect(enqueueHandler_, &SingleFileEnqueueHandler::operationFailed, this,
+            &TransferManager::operationFailed);
+    connect(enqueueHandler_, &SingleFileEnqueueHandler::scheduleProcessNextRequested, this,
+            [this]() { scheduleProcessNext(); });
 }
 
 TransferManager::~TransferManager()
@@ -263,6 +285,7 @@ void TransferManager::setLocalFileSystem(ILocalFileSystemService *fs)
     dirCreator_->setLocalFileSystem(fs);
     folderCoordinator_->setLocalFileSystem(fs);
     dispatchHandler_->setLocalFileSystem(fs);
+    enqueueHandler_->setLocalFileSystem(fs);
 }
 
 // ============================================================================
@@ -305,113 +328,19 @@ void TransferManager::setFtpClient(IFtpClient *client)
 }
 
 // ============================================================================
-// Enqueue helpers
-// ============================================================================
-
-int TransferManager::findBatchIndex(int batchId) const
-{
-    for (int i = 0; i < state_.batches.size(); ++i) {
-        if (state_.batches[i].batchId == batchId)
-            return i;
-    }
-    return -1;
-}
-
-void TransferManager::activateAndSchedule(int batchIdx)
-{
-    if (state_.activeBatchIndex < 0) {
-        state_.activeBatchIndex = batchIdx;
-        state_.batches[batchIdx].scanned = true;
-        state_.batches[batchIdx].folderConfirmed = true;
-        emit batchStarted(state_.batches[batchIdx].batchId);
-    }
-    emit queueChanged();
-    if (state_.queueState == QueueState::Idle)
-        scheduleProcessNext();
-}
-
-// ============================================================================
-// Single-file enqueue operations
+// Single-file enqueue operations (delegated to enqueueHandler_)
 // ============================================================================
 
 void TransferManager::enqueueUpload(const QString &localPath, const QString &remotePath,
                                     int targetBatchId)
 {
-    int batchIdx = (targetBatchId >= 0) ? findBatchIndex(targetBatchId) : -1;
-
-    if (batchIdx < 0) {
-        batchIdx = state_.activeBatchIndex;
-        if (batchIdx < 0 || state_.batches[batchIdx].operationType != OperationType::Upload) {
-            QString fileName = QFileInfo(localPath).fileName();
-            QString sourcePath = state_.currentFolderOp.sourcePath.isEmpty()
-                                     ? QString()
-                                     : state_.currentFolderOp.sourcePath;
-            int batchId = createBatch(OperationType::Upload, tr("Uploading %1").arg(fileName),
-                                      fileName, sourcePath);
-            batchIdx = findBatchIndex(batchId);
-        }
-    }
-
-    if (batchIdx < 0 || batchIdx >= state_.batches.size()) {
-        qCWarning(LogTransfer) << "TransferManager::enqueueUpload - no valid batch";
-        emit operationFailed(QFileInfo(localPath).fileName(), tr("Failed to create upload batch"));
-        return;
-    }
-
-    TransferItem item;
-    item.localPath = localPath;
-    item.remotePath = remotePath;
-    item.operationType = OperationType::Upload;
-    item.status = TransferItem::Status::Pending;
-    item.totalBytes = localFs_->fileSize(localPath);
-    item.batchId = state_.batches[batchIdx].batchId;
-
-    emit itemsAboutToBeInserted(state_.items.size(), state_.items.size());
-    auto enqResult = transfer::enqueueItem(state_, item, batchIdx);
-    state_ = enqResult.newState;
-    batchIdx = enqResult.batchIdx;
-    emit itemsInserted();
-    activateAndSchedule(batchIdx);
+    enqueueHandler_->enqueueUpload(localPath, remotePath, targetBatchId);
 }
 
 void TransferManager::enqueueDownload(const QString &remotePath, const QString &localPath,
                                       int targetBatchId)
 {
-    int batchIdx = (targetBatchId >= 0) ? findBatchIndex(targetBatchId) : -1;
-
-    if (batchIdx < 0) {
-        batchIdx = state_.activeBatchIndex;
-        if (batchIdx < 0 || state_.batches[batchIdx].operationType != OperationType::Download) {
-            QString fileName = QFileInfo(remotePath).fileName();
-            QString sourcePath = (state_.queueState == QueueState::Scanning)
-                                     ? state_.currentFolderOp.sourcePath
-                                     : QString();
-            int batchId = createBatch(OperationType::Download, tr("Downloading %1").arg(fileName),
-                                      fileName, sourcePath);
-            batchIdx = findBatchIndex(batchId);
-        }
-    }
-
-    if (batchIdx < 0 || batchIdx >= state_.batches.size()) {
-        qCWarning(LogTransfer) << "TransferManager::enqueueDownload - no valid batch";
-        emit operationFailed(QFileInfo(remotePath).fileName(),
-                             tr("Failed to create download batch"));
-        return;
-    }
-
-    TransferItem item;
-    item.localPath = localPath;
-    item.remotePath = remotePath;
-    item.operationType = OperationType::Download;
-    item.status = TransferItem::Status::Pending;
-    item.batchId = state_.batches[batchIdx].batchId;
-
-    emit itemsAboutToBeInserted(state_.items.size(), state_.items.size());
-    auto enqResult = transfer::enqueueItem(state_, item, batchIdx);
-    state_ = enqResult.newState;
-    batchIdx = enqResult.batchIdx;
-    emit itemsInserted();
-    activateAndSchedule(batchIdx);
+    enqueueHandler_->enqueueDownload(remotePath, localPath, targetBatchId);
 }
 
 // ============================================================================

@@ -158,6 +158,7 @@ set(SOURCES
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
     src/models/transfermanager.cpp
+    src/models/singlefileenqueuehandler.cpp
     src/models/transferdeletehandler.cpp
     src/models/transferdispatchhandler.cpp
     src/models/transferftphandler.cpp
@@ -290,6 +291,7 @@ set(HEADERS
     src/models/localfileproxymodel.h
     src/models/transferqueue.h
     src/models/transfermanager.h
+    src/models/singlefileenqueuehandler.h
     src/models/transferdeletehandler.h
     src/models/transferdispatchhandler.h
     src/models/transferftphandler.h
