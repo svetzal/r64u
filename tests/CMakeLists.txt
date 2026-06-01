@@ -122,6 +122,7 @@ add_executable(test_transferqueue
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
     ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -165,6 +166,7 @@ add_executable(test_transfermanager
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
     ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -734,6 +736,7 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
     ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -1042,6 +1045,7 @@ if(BUILD_INTEGRATION_TESTS)
         ${TRANSFER_CORE_SOURCES}
         ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+        ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
         ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -2671,6 +2675,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
     ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -2844,6 +2849,7 @@ add_executable(test_transferpanel
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
     ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -3044,6 +3050,7 @@ add_executable(test_transferqueuewidget
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
     ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -3117,6 +3124,7 @@ add_executable(test_batchprogresswidget
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
     ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -3361,6 +3369,7 @@ add_executable(test_transferprogresswidget
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
     ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -3419,6 +3428,7 @@ add_executable(test_transferprogresscontainer
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
     ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
@@ -3711,6 +3721,7 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/models/localfileproxymodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
     ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp

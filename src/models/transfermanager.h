@@ -21,6 +21,12 @@
 #include <QPointer>
 #include <QString>
 
+// Forward declarations needed for the friend declaration below.
+class TransferManager;
+namespace transferwiring {
+void connectAll(TransferManager &);
+}
+
 using transfer::BatchProgress;
 using transfer::ConfirmationContext;
 using transfer::DeleteItem;
@@ -155,9 +161,9 @@ private slots:
     void onStartDirectoryCreationRequested(const QString &localDir, const QString &remoteDir);
     void onStartDirectoryCreationAfterDeleteRequested();
 
-private:
-    void connectCollaborators();
+    friend void transferwiring::connectAll(TransferManager &);
 
+private:
     void processNext();
     void scheduleProcessNext();
     void transitionTo(QueueState newState);

@@ -165,8 +165,7 @@ private slots:
         state_.queueState = transfer::QueueState::Idle;
         mockFs->mockSetFileExists("/local/file.txt", true);
 
-        QSignalSpy overwriteSpy(handler,
-                                &TransferDispatchHandler::overwriteConfirmationNeeded);
+        QSignalSpy overwriteSpy(handler, &TransferDispatchHandler::overwriteConfirmationNeeded);
 
         handler->processNext();
 
