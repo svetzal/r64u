@@ -41,6 +41,11 @@ public:
     void emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
                                       bool includeFailed = false);
 
+    /// Check whether the batch for a skipped item is now complete and, if so,
+    /// emit progress and complete it. Returns true when the batch was complete
+    /// (caller should early-return its own handler), false otherwise.
+    bool handleSkipBatchCompletion(int batchId);
+
     // Find / access
     [[nodiscard]] TransferBatch *findBatch(int batchId);
     [[nodiscard]] const TransferBatch *findBatch(int batchId) const;

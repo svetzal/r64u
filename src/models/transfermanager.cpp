@@ -433,12 +433,7 @@ void TransferManager::respondToOverwrite(OverwriteResponse response)
     }
 
     if (response == OverwriteResponse::Skip && affectedBatchId >= 0) {
-        bool batchIsComplete = false;
-        if (const TransferBatch *batch = findBatch(affectedBatchId)) {
-            batchIsComplete = batch->isComplete();
-        }
-        emitBatchProgressAndComplete(affectedBatchId, batchIsComplete);
-        if (batchIsComplete) {
+        if (batchManager_->handleSkipBatchCompletion(affectedBatchId)) {
             return;
         }
     }

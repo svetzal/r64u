@@ -123,6 +123,19 @@ void BatchManager::purgeBatch(int batchId)
     emit queueChanged();
 }
 
+bool BatchManager::handleSkipBatchCompletion(int batchId)
+{
+    if (batchId < 0) {
+        return false;
+    }
+    const TransferBatch *batch = findBatch(batchId);
+    if (!batch || !batch->isComplete()) {
+        return false;
+    }
+    emitBatchProgressAndComplete(batchId, true);
+    return true;
+}
+
 void BatchManager::emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
                                                 bool includeFailed)
 {

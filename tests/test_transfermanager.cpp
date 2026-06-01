@@ -233,6 +233,36 @@ private slots:
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.first().at(1).toString(), tr("Not connected to device"));
     }
+
+    void testRespondToOverwrite_Skip_lastItemInBatch_emitsBatchCompleted()
+    {
+        // Arrange: disable auto-overwrite so the overwrite dialog is triggered,
+        // then enqueue a single download whose local destination already exists.
+        orchestrator->setAutoOverwrite(false);
+        QString remotePath = "/remote/file.txt";
+        QString localPath = tempDir.path() + "/file.txt";
+
+        // Create the local file so the "file exists" check triggers the overwrite dialog
+        QFile existingFile(localPath);
+        QVERIFY(existingFile.open(QIODevice::WriteOnly));
+        existingFile.write("existing content");
+        existingFile.close();
+
+        orchestrator->enqueueDownload(remotePath, localPath);
+
+        // Flush so processNext runs and reaches AwaitingFileConfirm
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(orchestrator->state().queueState, transfer::QueueState::AwaitingFileConfirm);
+
+        QSignalSpy batchCompletedSpy(orchestrator, &TransferManager::batchCompleted);
+
+        // Act: skip the only item in the batch — this should complete the batch
+        orchestrator->respondToOverwrite(OverwriteResponse::Skip);
+
+        // Assert: batchCompleted was emitted for the batch that contained the skipped item
+        QCOMPARE(batchCompletedSpy.count(), 1);
+    }
 };
 
 QTEST_MAIN(TestTransferManager)
