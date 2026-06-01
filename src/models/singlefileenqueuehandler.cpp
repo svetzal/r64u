@@ -113,6 +113,7 @@ void SingleFileEnqueueHandler::finishDirectoryCreation()
     }
 
     emit transitionToIdleRequested();
+    emit scheduleProcessNextRequested();
 }
 
 // ============================================================================
