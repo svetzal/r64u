@@ -139,6 +139,7 @@ private:
     ILocalFileSystemService *localFs_ = nullptr;
     CreateBatchFn createBatchCb_;
     std::function<void(int)> completeBatchCb_;
+    bool m_bulkQueuing = false;
 };
 
 #endif  // SINGLEFILEENQUEUEHANDLER_H

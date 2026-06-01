@@ -56,7 +56,7 @@ void SingleFileEnqueueHandler::activateAndSchedule(int batchIdx)
         state_.batches[batchIdx].folderConfirmed = true;
         emit batchStarted(state_.batches[batchIdx].batchId);
         emit queueChanged();
-        if (state_.queueState == QueueState::Idle)
+        if (!m_bulkQueuing && state_.queueState == QueueState::Idle)
             emit scheduleProcessNextRequested();
     } else {
         emit queueChanged();
@@ -88,6 +88,7 @@ void SingleFileEnqueueHandler::finishDirectoryCreation()
 
     const QStringList files = localFs_->listFilesRecursively(sourcePath);
     int fileCount = 0;
+    m_bulkQueuing = true;
     for (const QString &filePath : files) {
         const QString relativePath = localFs_->relativePath(sourcePath, filePath);
         const QString remotePath = state_.currentFolderOp.targetPath + '/' + relativePath;
@@ -95,6 +96,7 @@ void SingleFileEnqueueHandler::finishDirectoryCreation()
         enqueueUpload(filePath, remotePath, state_.currentFolderOp.batchId);
         fileCount++;
     }
+    m_bulkQueuing = false;
 
     qCDebug(LogTransfer) << "SingleFileEnqueueHandler: Queued" << fileCount << "files for upload";
 
