@@ -175,7 +175,6 @@ private:
     void emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
                                       bool includeFailed = false);
 
-    void finishDirectoryCreation();
     void markCurrentComplete(TransferItem::Status status);
 
     QPointer<IFtpClient> ftpClient_;

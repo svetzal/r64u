@@ -11,6 +11,8 @@
 
 #include <QFileInfo>
 
+#include <algorithm>
+
 SingleFileEnqueueHandler::SingleFileEnqueueHandler(transfer::State &state,
                                                    ILocalFileSystemService *localFs,
                                                    QObject *parent)
@@ -21,6 +23,11 @@ SingleFileEnqueueHandler::SingleFileEnqueueHandler(transfer::State &state,
 void SingleFileEnqueueHandler::setCreateBatchCallback(CreateBatchFn fn)
 {
     createBatchCb_ = std::move(fn);
+}
+
+void SingleFileEnqueueHandler::setCompleteBatchCallback(std::function<void(int)> cb)
+{
+    completeBatchCb_ = std::move(cb);
 }
 
 void SingleFileEnqueueHandler::setLocalFileSystem(ILocalFileSystemService *fs)
@@ -52,6 +59,59 @@ void SingleFileEnqueueHandler::activateAndSchedule(int batchIdx)
     emit queueChanged();
     if (state_.queueState == QueueState::Idle)
         emit scheduleProcessNextRequested();
+}
+
+// ============================================================================
+// Post-directory-creation file queuing
+// ============================================================================
+
+void SingleFileEnqueueHandler::finishDirectoryCreation()
+{
+    qCDebug(LogTransfer)
+        << "SingleFileEnqueueHandler: All directories created, queueing files for upload";
+
+    for (auto &b : state_.batches) {
+        if (b.batchId == state_.currentFolderOp.batchId) {
+            b.scanned = true;
+            break;
+        }
+    }
+
+    const QString &sourcePath = state_.currentFolderOp.sourcePath;
+    if (!localFs_->directoryExists(sourcePath)) {
+        qCWarning(LogTransfer) << "SingleFileEnqueueHandler: Source directory doesn't exist:"
+                               << sourcePath;
+        return;
+    }
+
+    const QStringList files = localFs_->listFilesRecursively(sourcePath);
+    int fileCount = 0;
+    for (const QString &filePath : files) {
+        const QString relativePath = localFs_->relativePath(sourcePath, filePath);
+        const QString remotePath = state_.currentFolderOp.targetPath + '/' + relativePath;
+
+        enqueueUpload(filePath, remotePath, state_.currentFolderOp.batchId);
+        fileCount++;
+    }
+
+    qCDebug(LogTransfer) << "SingleFileEnqueueHandler: Queued" << fileCount << "files for upload";
+
+    if (fileCount == 0) {
+        bool batchExists = std::any_of(state_.batches.cbegin(), state_.batches.cend(),
+                                       [this](const transfer::TransferBatch &b) {
+                                           return b.batchId == state_.currentFolderOp.batchId;
+                                       });
+        if (batchExists) {
+            qCDebug(LogTransfer) << "SingleFileEnqueueHandler: Empty folder upload batch"
+                                 << state_.currentFolderOp.batchId;
+            if (completeBatchCb_)
+                completeBatchCb_(state_.currentFolderOp.batchId);
+            return;
+        }
+    }
+
+    emit transitionToIdleRequested();
+    emit scheduleProcessNextRequested();
 }
 
 // ============================================================================
@@ -122,9 +182,8 @@ void SingleFileEnqueueHandler::enqueueDownload(const QString &remotePath, const 
             QString sourcePath = (state_.queueState == QueueState::Scanning)
                                      ? state_.currentFolderOp.sourcePath
                                      : QString();
-            int batchId =
-                createBatchCb_(OperationType::Download, tr("Downloading %1").arg(fileName),
-                                fileName, sourcePath);
+            int batchId = createBatchCb_(OperationType::Download,
+                                         tr("Downloading %1").arg(fileName), fileName, sourcePath);
             batchIdx = findBatchIndex(batchId);
         }
     }

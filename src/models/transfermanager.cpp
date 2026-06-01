@@ -51,6 +51,7 @@ TransferManager::TransferManager(QObject *parent)
                                                    const QString &sourcePath) {
         return createBatch(type, description, folderName, sourcePath);
     });
+    enqueueHandler_->setCompleteBatchCallback([this](int batchId) { completeBatch(batchId); });
 
     connectCollaborators();
 }
@@ -112,7 +113,7 @@ void TransferManager::connectCollaborators()
     connect(dirCreator_, &RemoteDirectoryCoordinator::directoryCreationProgress, this,
             &TransferManager::directoryCreationProgress);
     connect(dirCreator_, &RemoteDirectoryCoordinator::allDirectoriesCreated, this,
-            [this]() { finishDirectoryCreation(); });
+            [this]() { enqueueHandler_->finishDirectoryCreation(); });
 
     // --- FolderOperationCoordinator ---
     connect(folderCoordinator_, &FolderOperationCoordinator::startDownloadScanRequested, this,
@@ -216,6 +217,8 @@ void TransferManager::connectCollaborators()
             &TransferManager::operationFailed);
     connect(enqueueHandler_, &SingleFileEnqueueHandler::scheduleProcessNextRequested, this,
             [this]() { scheduleProcessNext(); });
+    connect(enqueueHandler_, &SingleFileEnqueueHandler::transitionToIdleRequested, this,
+            [this]() { transitionTo(QueueState::Idle); });
 }
 
 TransferManager::~TransferManager()
@@ -259,10 +262,7 @@ void TransferManager::onStartDirectoryCreationRequested(const QString &localDir,
         transitionTo(QueueState::CreatingDirectories);
         dirCreator_->createNextDirectory();
     } else {
-        if (TransferBatch *batch = findBatch(state_.currentFolderOp.batchId)) {
-            batch->scanned = true;
-        }
-        finishDirectoryCreation();
+        enqueueHandler_->finishDirectoryCreation();
     }
 }
 
@@ -274,7 +274,7 @@ void TransferManager::onStartDirectoryCreationAfterDeleteRequested()
         transitionTo(QueueState::CreatingDirectories);
         dirCreator_->createNextDirectory();
     } else {
-        finishDirectoryCreation();
+        enqueueHandler_->finishDirectoryCreation();
     }
 }
 
@@ -379,49 +379,6 @@ void TransferManager::enqueueRecursiveDownload(const QString &remoteDir, const Q
 void TransferManager::respondToFolderExists(FolderExistsResponse response)
 {
     folderCoordinator_->respondToFolderExists(response);
-}
-
-// ============================================================================
-// Coordinator helpers
-// ============================================================================
-
-void TransferManager::finishDirectoryCreation()
-{
-    qCDebug(LogTransfer) << "TransferManager: All directories created, queueing files for upload";
-
-    if (TransferBatch *batch = findBatch(state_.currentFolderOp.batchId)) {
-        batch->scanned = true;
-    }
-
-    const QString &sourcePath = state_.currentFolderOp.sourcePath;
-    if (!localFs_->directoryExists(sourcePath)) {
-        qCWarning(LogTransfer) << "TransferManager: Source directory doesn't exist:" << sourcePath;
-        return;
-    }
-
-    const QStringList files = localFs_->listFilesRecursively(sourcePath);
-    int fileCount = 0;
-    for (const QString &filePath : files) {
-        const QString relativePath = localFs_->relativePath(sourcePath, filePath);
-        const QString remotePath = state_.currentFolderOp.targetPath + '/' + relativePath;
-
-        enqueueUpload(filePath, remotePath, state_.currentFolderOp.batchId);
-        fileCount++;
-    }
-
-    qCDebug(LogTransfer) << "TransferManager: Queued" << fileCount << "files for upload";
-
-    if (fileCount == 0) {
-        if (findBatch(state_.currentFolderOp.batchId)) {
-            qCDebug(LogTransfer) << "TransferManager: Empty folder upload batch"
-                                 << state_.currentFolderOp.batchId;
-            completeBatch(state_.currentFolderOp.batchId);
-            return;
-        }
-    }
-
-    transitionTo(QueueState::Idle);
-    scheduleProcessNext();
 }
 
 // ============================================================================

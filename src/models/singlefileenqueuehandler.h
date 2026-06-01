@@ -1,12 +1,14 @@
 /**
  * @file singlefileenqueuehandler.h
- * @brief Handler for single-file upload and download enqueue operations.
+ * @brief Handler for single-file upload and download enqueue operations,
+ *        and post-directory-creation file queuing.
  *
- * SingleFileEnqueueHandler encapsulates the logic for enqueueUpload() and
- * enqueueDownload() that were previously part of TransferManager. It operates
- * on the shared transfer::State by reference and emits Qt signals for all
- * side-effects so that TransferManager can remain the single owner of shared
- * state while keeping enqueue logic isolated and independently testable.
+ * SingleFileEnqueueHandler encapsulates the logic for enqueueUpload(),
+ * enqueueDownload(), and finishDirectoryCreation() that were previously part
+ * of TransferManager. It operates on the shared transfer::State by reference
+ * and emits Qt signals for all side-effects so that TransferManager can remain
+ * the single owner of shared state while keeping enqueue logic isolated and
+ * independently testable.
  */
 
 #ifndef SINGLEFILEENQUEUEHANDLER_H
@@ -61,6 +63,15 @@ public:
     void setCreateBatchCallback(CreateBatchFn fn);
 
     /**
+     * @brief Sets the callback invoked when an empty-folder upload batch should
+     *        be completed without enqueuing any transfer items.
+     *
+     * The callback receives the batch ID. It must remain valid for the lifetime
+     * of this handler.
+     */
+    void setCompleteBatchCallback(std::function<void(int)> cb);
+
+    /**
      * @brief Updates the local file system pointer (e.g. after injection in tests).
      */
     void setLocalFileSystem(ILocalFileSystemService *fs);
@@ -75,8 +86,7 @@ public:
      * @param remotePath Absolute path on the remote device.
      * @param targetBatchId Batch to append to, or -1 to auto-select.
      */
-    void enqueueUpload(const QString &localPath, const QString &remotePath,
-                       int targetBatchId = -1);
+    void enqueueUpload(const QString &localPath, const QString &remotePath, int targetBatchId = -1);
 
     /**
      * @brief Enqueue a single file download.
@@ -91,6 +101,20 @@ public:
     void enqueueDownload(const QString &remotePath, const QString &localPath,
                          int targetBatchId = -1);
 
+public slots:
+    /**
+     * @brief Called after all remote directories have been created to queue the
+     *        actual file upload items.
+     *
+     * Reads the list of local files from state_.currentFolderOp.sourcePath,
+     * enqueues each as an upload into state_.currentFolderOp.batchId, then either
+     * emits transitionToIdleRequested + scheduleProcessNextRequested (non-empty
+     * folder) or invokes the completeBatch callback (empty folder).
+     *
+     * Corresponds to TransferManager::finishDirectoryCreation() prior to extraction.
+     */
+    void finishDirectoryCreation();
+
 signals:
     /// Emitted before items are inserted into the model.
     void itemsAboutToBeInserted(int first, int last);
@@ -104,6 +128,8 @@ signals:
     void operationFailed(const QString &fileName, const QString &error);
     /// Request TransferManager to schedule a processNext() call.
     void scheduleProcessNextRequested();
+    /// Request TransferManager to transition the queue state to Idle.
+    void transitionToIdleRequested();
 
 private:
     [[nodiscard]] int findBatchIndex(int batchId) const;
@@ -112,6 +138,7 @@ private:
     transfer::State &state_;
     ILocalFileSystemService *localFs_ = nullptr;
     CreateBatchFn createBatchCb_;
+    std::function<void(int)> completeBatchCb_;
 };
 
 #endif  // SINGLEFILEENQUEUEHANDLER_H
