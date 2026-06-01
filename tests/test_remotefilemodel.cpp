@@ -650,6 +650,24 @@ private slots:
         QVERIFY(model->canFetchMore(QModelIndex()));
     }
 
+    void testFetchMoreWithNullFtpClientEmitsError()
+    {
+        // Model with no FTP client configured — user-initiated directory expansion
+        RemoteFileModel *unconnectedModel = new RemoteFileModel(this);
+
+        QSignalSpy errorSpy(unconnectedModel, &RemoteFileModel::errorOccurred);
+        QSignalSpy loadingFinishedSpy(unconnectedModel, &RemoteFileModel::loadingFinished);
+
+        unconnectedModel->fetchMore(QModelIndex());
+
+        QCOMPARE(errorSpy.count(), 1);
+        QVERIFY(!errorSpy.first().first().toString().isEmpty());
+        // loadingFinished must NOT be emitted (loadingStarted was never emitted)
+        QCOMPARE(loadingFinishedSpy.count(), 0);
+
+        delete unconnectedModel;
+    }
+
     // === Invalid Index Handling ===
 
     void testDataWithInvalidIndex()

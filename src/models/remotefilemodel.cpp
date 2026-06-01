@@ -232,7 +232,7 @@ void RemoteFileModel::fetchMore(const QModelIndex &parent)
     }
     if (!ftpClient_) {
         qCWarning(LogFileOps) << "fetchMore: ftpClient_ is null, cannot fetch" << node->fullPath;
-        emit loadingFinished(node->fullPath);
+        emit errorOccurred(tr("Cannot list %1: not connected to device").arg(node->fullPath));
         return;
     }
 
