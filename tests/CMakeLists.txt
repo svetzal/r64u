@@ -122,6 +122,7 @@ add_executable(test_transferqueue
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
@@ -163,6 +164,7 @@ add_executable(test_transfermanager
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
@@ -730,6 +732,7 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
@@ -1036,6 +1039,7 @@ if(BUILD_INTEGRATION_TESTS)
         ${TRANSFER_CORE_SOURCES}
         ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
         ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
         ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
@@ -2062,6 +2066,41 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_transfereventhandler)
 endif()
 
+# TransferDispatchHandler tests - processNext dispatch loop
+add_executable(test_transferdispatchhandler
+    test_transferdispatchhandler.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${MOCK_LOCAL_FS_SOURCES}
+    ${MOCK_LOCAL_FS_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
+    ${TRANSFER_CORE_SOURCES}
+    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
+)
+
+target_include_directories(test_transferdispatchhandler PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_transferdispatchhandler PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME TransferDispatchHandlerTest COMMAND test_transferdispatchhandler)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(transferdispatchhandler test_transferdispatchhandler)
+    add_dependencies(coverage coverage_transferdispatchhandler)
+endif()
+
 # TransferFtpHandler tests - FTP event translation layer
 add_executable(test_transferftphandler
     test_transferftphandler.cpp
@@ -2600,6 +2639,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
@@ -2771,6 +2811,7 @@ add_executable(test_transferpanel
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
@@ -2969,6 +3010,7 @@ add_executable(test_transferqueuewidget
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
@@ -3040,6 +3082,7 @@ add_executable(test_batchprogresswidget
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
@@ -3282,6 +3325,7 @@ add_executable(test_transferprogresswidget
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
@@ -3338,6 +3382,7 @@ add_executable(test_transferprogresscontainer
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
@@ -3628,6 +3673,7 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/models/localfileproxymodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp

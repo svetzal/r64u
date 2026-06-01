@@ -3,6 +3,7 @@
 
 #include "batchmanager.h"
 #include "transferdeletehandler.h"
+#include "transferdispatchhandler.h"
 #include "transfereventhandler.h"
 #include "transferftphandler.h"
 #include "transfertimeoutmanager.h"
@@ -193,6 +194,7 @@ private:
     FolderOperationCoordinator *folderCoordinator_ = nullptr;
     TransferFtpHandler *ftpHandler_ = nullptr;
     TransferDeleteHandler *deleteHandler_ = nullptr;
+    TransferDispatchHandler *dispatchHandler_ = nullptr;
 };
 
 #endif  // TRANSFERMANAGER_H

@@ -159,6 +159,7 @@ set(SOURCES
     src/models/transferqueue.cpp
     src/models/transfermanager.cpp
     src/models/transferdeletehandler.cpp
+    src/models/transferdispatchhandler.cpp
     src/models/transferftphandler.cpp
     src/models/batchmanager.cpp
     src/models/transfertimeoutmanager.cpp
@@ -290,6 +291,7 @@ set(HEADERS
     src/models/transferqueue.h
     src/models/transfermanager.h
     src/models/transferdeletehandler.h
+    src/models/transferdispatchhandler.h
     src/models/transferftphandler.h
     src/models/batchmanager.h
     src/models/transfertimeoutmanager.h

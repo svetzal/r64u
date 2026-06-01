@@ -1,5 +1,6 @@
 #include "transfermanager.h"
 
+#include "transferdispatchhandler.h"
 #include "transferftphandler.h"
 
 #include "../services/ftpclientmixin.h"
@@ -25,6 +26,10 @@ TransferManager::TransferManager(QObject *parent)
     ftpHandler_->setTimeoutManager(timeoutManager_);
     ftpHandler_->setDirCreator(dirCreator_);
     ftpHandler_->setScanCoordinator(scanCoordinator_);
+
+    dispatchHandler_ = new TransferDispatchHandler(state_, this);
+    dispatchHandler_->setLocalFileSystem(localFs_);
+    dispatchHandler_->setFolderCoordinator(folderCoordinator_);
 
     deleteHandler_->setScanCoordinator(scanCoordinator_);
     deleteHandler_->setDirCreator(dirCreator_);
@@ -146,6 +151,26 @@ void TransferManager::connectCollaborators()
                 emitBatchProgressAndComplete(batchId, isComplete, includeFailed);
             });
 
+    // --- TransferDispatchHandler ---
+    connect(dispatchHandler_, &TransferDispatchHandler::operationStarted, this,
+            &TransferManager::operationStarted);
+    connect(dispatchHandler_, &TransferDispatchHandler::itemDataChanged, this,
+            &TransferManager::itemDataChanged);
+    connect(dispatchHandler_, &TransferDispatchHandler::statusMessage, this,
+            &TransferManager::statusMessage);
+    connect(dispatchHandler_, &TransferDispatchHandler::operationFailed, this,
+            &TransferManager::operationFailed);
+    connect(dispatchHandler_, &TransferDispatchHandler::overwriteConfirmationNeeded, this,
+            &TransferManager::overwriteConfirmationNeeded);
+    connect(dispatchHandler_, &TransferDispatchHandler::allOperationsCompleted, this,
+            &TransferManager::allOperationsCompleted);
+    connect(dispatchHandler_, &TransferDispatchHandler::startTimeoutRequested, this,
+            [this]() { startOperationTimeout(); });
+    connect(dispatchHandler_, &TransferDispatchHandler::stopTimeoutRequested, this,
+            [this]() { stopOperationTimeout(); });
+    connect(dispatchHandler_, &TransferDispatchHandler::scheduleProcessNextRequested, this,
+            [this]() { scheduleProcessNext(); });
+
     // --- TransferDeleteHandler ---
     connect(deleteHandler_, &TransferDeleteHandler::rowsAboutToBeInserted, this,
             &TransferManager::itemsAboutToBeInserted);
@@ -237,6 +262,7 @@ void TransferManager::setLocalFileSystem(ILocalFileSystemService *fs)
     scanCoordinator_->setLocalFileSystem(fs);
     dirCreator_->setLocalFileSystem(fs);
     folderCoordinator_->setLocalFileSystem(fs);
+    dispatchHandler_->setLocalFileSystem(fs);
 }
 
 // ============================================================================
@@ -259,15 +285,7 @@ void TransferManager::flushEventQueue()
 
 void TransferManager::transitionTo(QueueState newState)
 {
-    if (state_.queueState == newState) {
-        return;
-    }
-
-    qCDebug(LogTransfer) << "TransferManager: State transition"
-                         << queueStateToString(state_.queueState) << "->"
-                         << queueStateToString(newState);
-
-    state_.queueState = newState;
+    dispatchHandler_->transitionTo(newState);
 }
 
 // ============================================================================
@@ -283,6 +301,7 @@ void TransferManager::setFtpClient(IFtpClient *client)
     folderCoordinator_->setFtpClient(client);
     ftpHandler_->setFtpClient(client);
     deleteHandler_->setFtpClient(client);
+    dispatchHandler_->setFtpClient(client);
 }
 
 // ============================================================================
@@ -496,79 +515,7 @@ void TransferManager::enqueueRecursiveDelete(const QString &remotePath)
 
 void TransferManager::processNext()
 {
-    qCDebug(LogTransfer) << "TransferManager: processNext, state:"
-                         << queueStateToString(state_.queueState);
-
-    bool ftpReady = ftpClient_ && ftpClient_->isConnected();
-
-    auto decision = transfer::decideNextAction(
-        state_, ftpReady, [this](const QString &path) { return localFs_->fileExists(path); });
-
-    switch (decision.action) {
-    case transfer::ProcessNextAction::Blocked:
-        qCDebug(LogTransfer) << "TransferManager: processNext blocked by state:"
-                             << queueStateToString(state_.queueState);
-        emit statusMessage(tr("Transfer queue is busy"));
-        return;
-
-    case transfer::ProcessNextAction::NoFtpClient:
-        qCDebug(LogTransfer) << "TransferManager: FTP client not ready";
-        emit operationFailed(QString(), tr("Not connected to device"));
-        return;
-
-    case transfer::ProcessNextAction::StartFolderOp: {
-        folderCoordinator_->startNextPendingFolderOp();
-        return;
-    }
-
-    case transfer::ProcessNextAction::NeedOverwriteCheck_Download:
-        transitionTo(QueueState::AwaitingFileConfirm);
-        state_.currentIndex = decision.itemIndex;
-        state_.pendingConfirmation.itemIndex = decision.itemIndex;
-        state_.pendingConfirmation.opType = OperationType::Download;
-        emit overwriteConfirmationNeeded(decision.fileNameForSignal, OperationType::Download);
-        return;
-
-    case transfer::ProcessNextAction::NeedOverwriteCheck_Upload:
-        state_.currentIndex = decision.itemIndex;
-        state_.requestedUploadFileCheckListings.insert(decision.uploadCheckDir);
-        ftpClient_->list(decision.uploadCheckDir);
-        return;
-
-    case transfer::ProcessNextAction::StartTransfer: {
-        int i = decision.itemIndex;
-        state_.currentIndex = i;
-        state_.items[i].status = TransferItem::Status::InProgress;
-        transitionTo(QueueState::Transferring);
-
-        emit itemDataChanged(i);
-        emit operationStarted(decision.fileNameForSignal, state_.items[i].operationType);
-
-        startOperationTimeout();
-
-        if (state_.items[i].operationType == OperationType::Upload) {
-            ftpClient_->upload(state_.items[i].localPath, state_.items[i].remotePath);
-        } else if (state_.items[i].operationType == OperationType::Download) {
-            ftpClient_->download(state_.items[i].remotePath, state_.items[i].localPath);
-        } else if (state_.items[i].operationType == OperationType::Delete) {
-            if (state_.items[i].isDirectory) {
-                ftpClient_->removeDirectory(state_.items[i].remotePath);
-            } else {
-                ftpClient_->remove(state_.items[i].remotePath);
-            }
-        }
-        return;
-    }
-
-    case transfer::ProcessNextAction::NoPending:
-        qCDebug(LogTransfer) << "TransferManager: No more pending items";
-        stopOperationTimeout();
-        state_.currentIndex = -1;
-        if (state_.batches.isEmpty()) {
-            emit allOperationsCompleted();
-        }
-        return;
-    }
+    dispatchHandler_->processNext();
 }
 
 // ============================================================================
