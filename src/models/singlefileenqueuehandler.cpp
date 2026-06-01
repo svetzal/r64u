@@ -55,10 +55,12 @@ void SingleFileEnqueueHandler::activateAndSchedule(int batchIdx)
         state_.batches[batchIdx].scanned = true;
         state_.batches[batchIdx].folderConfirmed = true;
         emit batchStarted(state_.batches[batchIdx].batchId);
+        emit queueChanged();
+        if (state_.queueState == QueueState::Idle)
+            emit scheduleProcessNextRequested();
+    } else {
+        emit queueChanged();
     }
-    emit queueChanged();
-    if (state_.queueState == QueueState::Idle)
-        emit scheduleProcessNextRequested();
 }
 
 // ============================================================================
@@ -111,7 +113,6 @@ void SingleFileEnqueueHandler::finishDirectoryCreation()
     }
 
     emit transitionToIdleRequested();
-    emit scheduleProcessNextRequested();
 }
 
 // ============================================================================
