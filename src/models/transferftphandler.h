@@ -53,6 +53,7 @@ private:
     void markCurrentComplete(transfer::TransferItem::Status status);
     void startTimeout();
     void stopTimeout();
+    void notifyQueueChanged();
 
     transfer::State &state_;
     QPointer<IFtpClient> ftpClient_;

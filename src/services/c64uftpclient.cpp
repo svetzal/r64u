@@ -501,16 +501,23 @@ void C64UFtpClient::performDisconnectCleanup()
     setState(State::Disconnected);
 }
 
+bool C64UFtpClient::ensureLoggedIn(const QString &operation)
+{
+    if (!loggedIn_) {
+        emit error(tr("Cannot %1: not connected to server").arg(operation));
+        return false;
+    }
+    return true;
+}
+
 // ============================================================================
 // Public interface methods
 // ============================================================================
 
 void C64UFtpClient::list(const QString &path)
 {
-    if (!loggedIn_) {
-        emit error(tr("Cannot list directory: not connected to server"));
+    if (!ensureLoggedIn(tr("list directory")))
         return;
-    }
     queueCommand(Command::Type, "A");
     queueCommand(Command::Pasv);
     queueCommand(Command::List, path);
@@ -518,37 +525,29 @@ void C64UFtpClient::list(const QString &path)
 
 void C64UFtpClient::changeDirectory(const QString &path)
 {
-    if (!loggedIn_) {
-        emit error(tr("Cannot change directory: not connected to server"));
+    if (!ensureLoggedIn(tr("change directory")))
         return;
-    }
     queueCommand(Command::Cwd, path);
 }
 
 void C64UFtpClient::makeDirectory(const QString &path)
 {
-    if (!loggedIn_) {
-        emit error(tr("Cannot create directory: not connected to server"));
+    if (!ensureLoggedIn(tr("create directory")))
         return;
-    }
     queueCommand(Command::Mkd, path);
 }
 
 void C64UFtpClient::removeDirectory(const QString &path)
 {
-    if (!loggedIn_) {
-        emit error(tr("Cannot remove directory: not connected to server"));
+    if (!ensureLoggedIn(tr("remove directory")))
         return;
-    }
     queueCommand(Command::Rmd, path);
 }
 
 void C64UFtpClient::download(const QString &remotePath, const QString &localPath)
 {
-    if (!loggedIn_) {
-        emit error(tr("Cannot download file: not connected to server"));
+    if (!ensureLoggedIn(tr("download file")))
         return;
-    }
 
     auto file = std::make_shared<QFile>(localPath);
     if (!file->open(QIODevice::WriteOnly)) {
@@ -564,10 +563,8 @@ void C64UFtpClient::download(const QString &remotePath, const QString &localPath
 
 void C64UFtpClient::downloadToMemory(const QString &remotePath)
 {
-    if (!loggedIn_) {
-        emit error(tr("Cannot download file: not connected to server"));
+    if (!ensureLoggedIn(tr("download file")))
         return;
-    }
 
     transferState_.clearRetrBuffer();
     transferState_.setTransferSize(0);
@@ -578,10 +575,8 @@ void C64UFtpClient::downloadToMemory(const QString &remotePath)
 
 void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
 {
-    if (!loggedIn_) {
-        emit error(tr("Cannot upload file: not connected to server"));
+    if (!ensureLoggedIn(tr("upload file")))
         return;
-    }
 
     auto file = std::make_shared<QFile>(localPath);
     if (!file->open(QIODevice::ReadOnly)) {
@@ -597,19 +592,15 @@ void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
 
 void C64UFtpClient::remove(const QString &path)
 {
-    if (!loggedIn_) {
-        emit error(tr("Cannot delete file: not connected to server"));
+    if (!ensureLoggedIn(tr("delete file")))
         return;
-    }
     queueCommand(Command::Dele, path);
 }
 
 void C64UFtpClient::rename(const QString &oldPath, const QString &newPath)
 {
-    if (!loggedIn_) {
-        emit error(tr("Cannot rename file: not connected to server"));
+    if (!ensureLoggedIn(tr("rename file")))
         return;
-    }
     queueCommand(Command::RnFr, oldPath, oldPath);  // Store oldPath for signal
     queueCommand(Command::RnTo, newPath);
 }

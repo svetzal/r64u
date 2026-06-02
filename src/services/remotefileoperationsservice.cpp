@@ -17,22 +17,26 @@ RemoteFileOperationsService::RemoteFileOperationsService(IFtpClient *ftpClient, 
     }
 }
 
-void RemoteFileOperationsService::createFolder(const QString &path)
+bool RemoteFileOperationsService::ensureFtpClient(const QString &operationLabel)
 {
     if (!ftpClient_) {
-        qCWarning(LogFileOps) << "createFolder skipped: FTP client not configured";
-        emit operationFailed(tr("Create folder"), tr("FTP client not configured"));
-        return;
+        qCWarning(LogFileOps) << operationLabel << "skipped: FTP client not configured";
+        emit operationFailed(operationLabel, tr("FTP client not configured"));
+        return false;
     }
+    return true;
+}
+
+void RemoteFileOperationsService::createFolder(const QString &path)
+{
+    if (!ensureFtpClient(tr("Create folder")))
+        return;
     ftpClient_->makeDirectory(path);
 }
 
 void RemoteFileOperationsService::renameItem(const QString &oldPath, const QString &newPath)
 {
-    if (!ftpClient_) {
-        qCWarning(LogFileOps) << "renameItem skipped: FTP client not configured";
-        emit operationFailed(tr("Rename"), tr("FTP client not configured"));
+    if (!ensureFtpClient(tr("Rename")))
         return;
-    }
     ftpClient_->rename(oldPath, newPath);
 }

@@ -182,6 +182,7 @@ private:
     void drainCommandQueue();
     void resetTransferState();
     void performDisconnectCleanup();
+    [[nodiscard]] bool ensureLoggedIn(const QString &operation);
 
     /// Builds a context snapshot for the response handler.
     [[nodiscard]] FtpResponseContext buildContext() const;

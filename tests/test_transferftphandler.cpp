@@ -78,8 +78,8 @@ private slots:
 
         QCOMPARE(completedSpy.count(), 1);
         QCOMPARE(completedSpy.at(0).at(0).toString(), QString("file.txt"));
-        QVERIFY(queueSpy.count() >= 1);
-        QVERIFY(schedSpy.count() >= 1);
+        QCOMPARE(queueSpy.count(), 1);
+        QCOMPARE(schedSpy.count(), 1);
         QCOMPARE(state_.items[0].status, transfer::TransferItem::Status::Completed);
     }
 
@@ -122,8 +122,8 @@ private slots:
 
         QCOMPARE(completedSpy.count(), 1);
         QCOMPARE(completedSpy.at(0).at(0).toString(), QString("file.txt"));
-        QVERIFY(queueSpy.count() >= 1);
-        QVERIFY(schedSpy.count() >= 1);
+        QCOMPARE(queueSpy.count(), 1);
+        QCOMPARE(schedSpy.count(), 1);
         QCOMPARE(state_.items[0].status, transfer::TransferItem::Status::Completed);
     }
 
@@ -181,9 +181,9 @@ private slots:
 
         emit mockFtp->fileRemoved("/remote/file.txt");
 
-        QVERIFY(completedSpy.count() >= 1);
-        QVERIFY(queueSpy.count() >= 1);
-        QVERIFY(schedSpy.count() >= 1);
+        QCOMPARE(completedSpy.count(), 1);
+        QCOMPARE(queueSpy.count(), 1);
+        QCOMPARE(schedSpy.count(), 1);
     }
 
     void testDirectoryCreatedDelegatesToDirCreator()

@@ -25,6 +25,7 @@ signals:
 
 private:
     IFtpClient *ftpClient_ = nullptr;
+    [[nodiscard]] bool ensureFtpClient(const QString &operationLabel);
 };
 
 #endif  // REMOTEFILEOPERATIONSSERVICE_H

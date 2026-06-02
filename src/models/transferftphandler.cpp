@@ -75,6 +75,12 @@ void TransferFtpHandler::stopTimeout()
     timeoutManager_->stop();
 }
 
+void TransferFtpHandler::notifyQueueChanged()
+{
+    emit queueChanged();
+    emit scheduleProcessNextRequested();
+}
+
 void TransferFtpHandler::markCurrentComplete(transfer::TransferItem::Status status)
 {
     if (state_.currentIndex < 0 || state_.currentIndex >= state_.items.size()) {
@@ -126,8 +132,7 @@ void TransferFtpHandler::onUploadFinished(const QString &localPath, const QStrin
     auto result = transfer::completeTransferOperation(state_);
     state_ = result.newState;
 
-    emit queueChanged();
-    emit scheduleProcessNextRequested();
+    notifyQueueChanged();
 }
 
 void TransferFtpHandler::onDownloadProgress(const QString &file, qint64 received, qint64 total)
@@ -158,8 +163,7 @@ void TransferFtpHandler::onDownloadFinished(const QString &remotePath, const QSt
     auto result = transfer::completeTransferOperation(state_);
     state_ = result.newState;
 
-    emit queueChanged();
-    emit scheduleProcessNextRequested();
+    notifyQueueChanged();
 }
 
 void TransferFtpHandler::onFtpError(const QString &message)
@@ -252,8 +256,7 @@ void TransferFtpHandler::onFileRemoved(const QString &path)
         auto completeResult = transfer::completeTransferOperation(state_);
         state_ = completeResult.newState;
 
-        emit queueChanged();
-        emit scheduleProcessNextRequested();
+        notifyQueueChanged();
         return;
     }
 }
