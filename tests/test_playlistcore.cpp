@@ -6,7 +6,7 @@
  * Qt signals, timers, or network access.
  */
 
-#include "services/playlistcore.h"
+#include "core/playlistcore.h"
 
 #include <QtTest>
 

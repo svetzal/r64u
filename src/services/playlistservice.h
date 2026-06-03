@@ -1,7 +1,7 @@
 #ifndef PLAYLISTSERVICE_H
 #define PLAYLISTSERVICE_H
 
-#include "playlistcore.h"
+#include "core/playlistcore.h"
 
 #include <QList>
 #include <QObject>

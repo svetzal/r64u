@@ -1457,7 +1457,7 @@ endif()
 # FavoritesCore tests - pure favorites logic, no I/O dependencies
 add_executable(test_favoritescore
     test_favoritescore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/favoritescore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/favoritescore.cpp
 )
 
 target_include_directories(test_favoritescore PRIVATE
@@ -1584,7 +1584,7 @@ endif()
 # PlaylistCore tests - pure playlist logic, no I/O dependencies
 add_executable(test_playlistcore
     test_playlistcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/playlistcore.cpp
 )
 
 target_include_directories(test_playlistcore PRIVATE
@@ -1612,7 +1612,7 @@ add_executable(test_playlistservice
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/playlistcore.cpp
     # Headers listed here so AUTOMOC generates moc files needed by stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.h
@@ -1781,7 +1781,7 @@ endif()
 add_executable(test_favoritesservice
     test_favoritesservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/favoritesservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/favoritescore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/favoritescore.cpp
 )
 
 target_include_directories(test_favoritesservice PRIVATE
@@ -1998,7 +1998,7 @@ endif()
 # FavoritesUICore tests - pure favorites display logic, no I/O dependencies
 add_executable(test_favoritesuicore
     test_favoritesuicore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/favoritesuicore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/favoritesuicore.cpp
 )
 target_include_directories(test_favoritesuicore PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_favoritesuicore PRIVATE Qt6::Core Qt6::Test)
@@ -2216,7 +2216,7 @@ add_executable(test_fileactioncontroller
     ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/filebrowsercore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/diskbootsequenceservice.cpp
     ${CMAKE_SOURCE_DIR}/src/core/diskbootsequencecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/configfileloaderservice.cpp
@@ -2291,7 +2291,7 @@ add_executable(test_previewcoordinator
     ${CMAKE_SOURCE_DIR}/src/core/fileactioncore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/previewcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
@@ -2489,8 +2489,8 @@ add_executable(test_explorefavoritescontroller
     test_explorefavoritescontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/explorefavoritescontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/services/favoritesservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/favoritescore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/favoritesuicore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/favoritescore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/favoritesuicore.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
@@ -2657,9 +2657,9 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/favoritesservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/favoritescore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/favoritescore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/httpfiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
@@ -2743,7 +2743,7 @@ add_executable(test_playlistwidget
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/playlistwidget.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
@@ -3675,8 +3675,8 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/core/diskimagereader.cpp
     ${CMAKE_SOURCE_DIR}/src/core/sidfileparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/favoritesservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/favoritescore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/favoritesuicore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/favoritescore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/favoritesuicore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/filebrowsercore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/fileactioncore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
@@ -3696,7 +3696,7 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/services/localfileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/transfercore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/transferconfirmcore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/transferlistingcore.cpp

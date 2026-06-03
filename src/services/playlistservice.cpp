@@ -7,7 +7,7 @@
 
 #include "deviceconnectionmanager.h"
 #include "iftpclient.h"
-#include "playlistcore.h"
+#include "core/playlistcore.h"
 #include "songlengthsdatabaseservice.h"
 #include "streamingservice.h"
 

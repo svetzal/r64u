@@ -6,7 +6,7 @@
  * or Qt widget dependencies.
  */
 
-#include "services/favoritesuicore.h"
+#include "core/favoritesuicore.h"
 
 #include <QtTest>
 

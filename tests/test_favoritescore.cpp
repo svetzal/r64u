@@ -6,7 +6,7 @@
  * or QSettings access.
  */
 
-#include "services/favoritescore.h"
+#include "core/favoritescore.h"
 
 #include <QtTest>
 

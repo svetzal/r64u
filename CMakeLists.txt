@@ -109,8 +109,8 @@ set(SOURCES
     src/core/diskimagereader.cpp
     src/core/sidfileparser.cpp
     src/services/favoritesservice.cpp
-    src/services/favoritescore.cpp
-    src/services/favoritesuicore.cpp
+    src/core/favoritescore.cpp
+    src/core/favoritesuicore.cpp
     src/core/filebrowsercore.cpp
     src/core/fileactioncore.cpp
     src/core/filetypecore.cpp
@@ -132,7 +132,7 @@ set(SOURCES
     src/services/vic2frameconverter.cpp
     src/services/remotefileoperationsservice.cpp
     src/services/playlistservice.cpp
-    src/services/playlistcore.cpp
+    src/core/playlistcore.cpp
     src/core/transfercore.cpp
     src/core/transferconfirmcore.cpp
     src/core/transferlistingcore.cpp
@@ -249,8 +249,8 @@ set(HEADERS
     src/core/diskimagereader.h
     src/core/sidfileparser.h
     src/services/favoritesservice.h
-    src/services/favoritescore.h
-    src/services/favoritesuicore.h
+    src/core/favoritescore.h
+    src/core/favoritesuicore.h
     src/core/filebrowsercore.h
     src/core/fileactioncore.h
     src/core/filetypecore.h
@@ -269,7 +269,7 @@ set(HEADERS
     src/services/vic2frameconverter.h
     src/services/remotefileoperationsservice.h
     src/services/playlistservice.h
-    src/services/playlistcore.h
+    src/core/playlistcore.h
     src/core/transfercore.h
     src/services/ilocalfilesystemservice.h
     src/services/localfilesystemservice.h

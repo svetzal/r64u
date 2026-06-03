@@ -5,7 +5,7 @@
 
 #include "favoritesservice.h"
 
-#include "favoritescore.h"
+#include "core/favoritescore.h"
 
 #include <QSettings>
 
