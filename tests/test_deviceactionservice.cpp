@@ -52,6 +52,7 @@ private slots:
         service.playSid("/music/song.sid");
 
         QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QString("Play SID"));
     }
 
     void testPlaySid_WithRestClient_DoesNotEmitOperationNotAvailable()
@@ -77,6 +78,7 @@ private slots:
         service.playMod("/music/tune.mod");
 
         QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QString("Play MOD"));
     }
 
     void testPlayMod_WithRestClient_DoesNotEmitOperationNotAvailable()
@@ -102,6 +104,7 @@ private slots:
         service.runPrg("/games/game.prg");
 
         QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QString("Run PRG"));
     }
 
     // ==========================================================================
@@ -116,6 +119,7 @@ private slots:
         service.runCrt("/games/game.crt");
 
         QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QString("Run CRT"));
     }
 
     // ==========================================================================
@@ -130,6 +134,7 @@ private slots:
         service.mountImage("A", "/disks/game.d64");
 
         QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QString("Mount image"));
     }
 
     void testMountImage_WithRestClient_DoesNotEmitOperationNotAvailable()

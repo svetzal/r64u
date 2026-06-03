@@ -13,47 +13,46 @@ bool DeviceActionService::canPerformOperations() const
     return deviceConnection_ && deviceConnection_->restClient();
 }
 
-void DeviceActionService::playSid(const QString &path, int songNumber)
+bool DeviceActionService::ensureCanPerformOperations(const QString &operation)
 {
     if (!canPerformOperations()) {
-        emit operationNotAvailable(tr("Play SID"));
-        return;
+        emit operationNotAvailable(operation);
+        return false;
     }
+    return true;
+}
+
+void DeviceActionService::playSid(const QString &path, int songNumber)
+{
+    if (!ensureCanPerformOperations(tr("Play SID")))
+        return;
     deviceConnection_->restClient()->playSid(path, songNumber);
 }
 
 void DeviceActionService::playMod(const QString &path)
 {
-    if (!canPerformOperations()) {
-        emit operationNotAvailable(tr("Play MOD"));
+    if (!ensureCanPerformOperations(tr("Play MOD")))
         return;
-    }
     deviceConnection_->restClient()->playMod(path);
 }
 
 void DeviceActionService::runPrg(const QString &path)
 {
-    if (!canPerformOperations()) {
-        emit operationNotAvailable(tr("Run PRG"));
+    if (!ensureCanPerformOperations(tr("Run PRG")))
         return;
-    }
     deviceConnection_->restClient()->runPrg(path);
 }
 
 void DeviceActionService::runCrt(const QString &path)
 {
-    if (!canPerformOperations()) {
-        emit operationNotAvailable(tr("Run CRT"));
+    if (!ensureCanPerformOperations(tr("Run CRT")))
         return;
-    }
     deviceConnection_->restClient()->runCrt(path);
 }
 
 void DeviceActionService::mountImage(const QString &drive, const QString &path)
 {
-    if (!canPerformOperations()) {
-        emit operationNotAvailable(tr("Mount image"));
+    if (!ensureCanPerformOperations(tr("Mount image")))
         return;
-    }
     deviceConnection_->restClient()->mountImage(drive, path);
 }

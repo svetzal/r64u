@@ -51,6 +51,7 @@ private slots:
         service.getConfigCategories();
 
         QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QString("Get config categories"));
     }
 
     void testGetConfigCategories_NullConnection_EmitsOperationNotAvailable()
@@ -61,6 +62,7 @@ private slots:
         service.getConfigCategories();
 
         QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QString("Get config categories"));
     }
 
     // ==========================================================================
@@ -76,6 +78,7 @@ private slots:
         service.getConfigCategoryItems("Network");
 
         QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QString("Get config category items"));
     }
 
     // ==========================================================================
@@ -91,6 +94,7 @@ private slots:
         service.setConfigItem("Network", "ip", "192.168.1.1");
 
         QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QString("Set config item"));
     }
 
     // ==========================================================================
@@ -106,6 +110,7 @@ private slots:
         service.saveConfigToFlash();
 
         QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QString("Save config to flash"));
     }
 
     // ==========================================================================
@@ -121,6 +126,7 @@ private slots:
         service.loadConfigFromFlash();
 
         QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QString("Load config from flash"));
     }
 
     // ==========================================================================
@@ -136,6 +142,7 @@ private slots:
         service.resetConfigToDefaults();
 
         QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QString("Reset config to defaults"));
     }
 
     // ==========================================================================

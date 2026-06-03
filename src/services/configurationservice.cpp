@@ -28,57 +28,54 @@ bool ConfigurationService::canPerformOperations() const
     return deviceConnection_ && deviceConnection_->canPerformOperations();
 }
 
-void ConfigurationService::getConfigCategories()
+bool ConfigurationService::ensureCanPerformOperations(const QString &operation)
 {
     if (!canPerformOperations()) {
-        emit operationNotAvailable(tr("Get config categories"));
-        return;
+        emit operationNotAvailable(operation);
+        return false;
     }
+    return true;
+}
+
+void ConfigurationService::getConfigCategories()
+{
+    if (!ensureCanPerformOperations(tr("Get config categories")))
+        return;
     deviceConnection_->restClient()->getConfigCategories();
 }
 
 void ConfigurationService::getConfigCategoryItems(const QString &category)
 {
-    if (!canPerformOperations()) {
-        emit operationNotAvailable(tr("Get config category items"));
+    if (!ensureCanPerformOperations(tr("Get config category items")))
         return;
-    }
     deviceConnection_->restClient()->getConfigCategoryItems(category);
 }
 
 void ConfigurationService::setConfigItem(const QString &category, const QString &item,
                                          const QVariant &value)
 {
-    if (!canPerformOperations()) {
-        emit operationNotAvailable(tr("Set config item"));
+    if (!ensureCanPerformOperations(tr("Set config item")))
         return;
-    }
     deviceConnection_->restClient()->setConfigItem(category, item, value);
 }
 
 void ConfigurationService::saveConfigToFlash()
 {
-    if (!canPerformOperations()) {
-        emit operationNotAvailable(tr("Save config to flash"));
+    if (!ensureCanPerformOperations(tr("Save config to flash")))
         return;
-    }
     deviceConnection_->restClient()->saveConfigToFlash();
 }
 
 void ConfigurationService::loadConfigFromFlash()
 {
-    if (!canPerformOperations()) {
-        emit operationNotAvailable(tr("Load config from flash"));
+    if (!ensureCanPerformOperations(tr("Load config from flash")))
         return;
-    }
     deviceConnection_->restClient()->loadConfigFromFlash();
 }
 
 void ConfigurationService::resetConfigToDefaults()
 {
-    if (!canPerformOperations()) {
-        emit operationNotAvailable(tr("Reset config to defaults"));
+    if (!ensureCanPerformOperations(tr("Reset config to defaults")))
         return;
-    }
     deviceConnection_->restClient()->resetConfigToDefaults();
 }

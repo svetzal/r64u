@@ -106,6 +106,8 @@ signals:
     void operationNotAvailable(const QString &operation);
 
 private:
+    [[nodiscard]] bool ensureCanPerformOperations(const QString &operation);
+
     DeviceConnectionManager *deviceConnection_ = nullptr;
 };
 
