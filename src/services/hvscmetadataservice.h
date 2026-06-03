@@ -2,7 +2,7 @@
 #define HVSCMETADATASERVICE_H
 
 #include "cacheddownloadservice.h"
-#include "hvscparser.h"
+#include "core/hvscparser.h"
 
 #include <QHash>
 #include <QList>

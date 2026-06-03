@@ -5,7 +5,7 @@
 #include "transferftphandler.h"
 #include "transferwiring.h"
 
-#include "../services/ftpclientmixin.h"
+#include "../core/ftpclientmixin.h"
 #include "../services/iftpclient.h"
 #include "../services/localfilesystemservice.h"
 #include "../utils/logging.h"

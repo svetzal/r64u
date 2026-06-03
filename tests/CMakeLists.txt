@@ -820,9 +820,9 @@ add_executable(test_errorsourceconnector
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/hvscparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
     ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
@@ -1198,7 +1198,7 @@ add_executable(test_hvscmetadataservice
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/hvscparser.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
@@ -1225,7 +1225,7 @@ endif()
 # HVSCParser tests - pure parsing functions, no I/O dependencies
 add_executable(test_hvscparser
     test_hvscparser.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/hvscparser.cpp
 )
 
 target_include_directories(test_hvscparser PRIVATE
@@ -1247,7 +1247,7 @@ endif()
 # SonglengthsParser tests - pure parsing functions, no I/O dependencies
 add_executable(test_songlengthsparser
     test_songlengthsparser.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/songlengthsparser.cpp
 )
 
 target_include_directories(test_songlengthsparser PRIVATE
@@ -1530,9 +1530,9 @@ add_executable(test_filemetadatacore
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/hvscparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${MOCK_FILE_DOWNLOADER_SOURCES}
@@ -1753,7 +1753,7 @@ add_executable(test_songlengthsdatabaseservice
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
@@ -2360,9 +2360,9 @@ add_executable(test_databasedownloadcontroller
     ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadview.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/hvscparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -2664,9 +2664,9 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/services/httpfiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/hvscparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
     ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
@@ -3707,9 +3707,9 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/httpfiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/songlengthsparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/songlengthsparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/hvscparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
     ${CMAKE_SOURCE_DIR}/src/services/servicefactory.cpp

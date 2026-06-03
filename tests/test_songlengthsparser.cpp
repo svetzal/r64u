@@ -1,4 +1,4 @@
-#include "services/songlengthsparser.h"
+#include "core/songlengthsparser.h"
 
 #include <QtTest>
 

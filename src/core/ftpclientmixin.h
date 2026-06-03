@@ -1,7 +1,7 @@
 #ifndef FTPCLIENTMIXIN_H
 #define FTPCLIENTMIXIN_H
 
-#include "iftpclient.h"
+#include "services/iftpclient.h"
 
 #include <QObject>
 #include <QPointer>

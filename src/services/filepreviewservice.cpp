@@ -1,6 +1,6 @@
 #include "filepreviewservice.h"
 
-#include "ftpclientmixin.h"
+#include "core/ftpclientmixin.h"
 #include "iftpclient.h"
 
 FilePreviewService::FilePreviewService(IFtpClient *ftpClient, QObject *parent)

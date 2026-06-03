@@ -1,6 +1,6 @@
 #include "c64urestclient.h"
 
-#include "networkerrorutils.h"
+#include "core/networkerrorutils.h"
 #include "core/restresponsecore.h"
 
 #include <QJsonDocument>

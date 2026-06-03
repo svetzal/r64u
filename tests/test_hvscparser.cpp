@@ -1,4 +1,4 @@
-#include "services/hvscparser.h"
+#include "core/hvscparser.h"
 
 #include <QtTest>
 

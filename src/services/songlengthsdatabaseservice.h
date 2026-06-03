@@ -2,7 +2,7 @@
 #define SONGLENGTHSDATABASESERVICE_H
 
 #include "cacheddownloadservice.h"
-#include "songlengthsparser.h"
+#include "core/songlengthsparser.h"
 
 #include <QList>
 #include <QObject>

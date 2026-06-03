@@ -4,7 +4,7 @@
 
 #include "../ftp/recursivescancoordinator.h"
 #include "../ftp/remotedirectorycoordinator.h"
-#include "../services/ftpclientmixin.h"
+#include "../core/ftpclientmixin.h"
 #include "../utils/logging.h"
 
 #include <QFileInfo>

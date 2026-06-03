@@ -143,9 +143,9 @@ set(SOURCES
     src/services/ifiledownloaderservice.cpp
     src/services/httpfiledownloaderservice.cpp
     src/services/cacheddownloadservice.cpp
-    src/services/songlengthsparser.cpp
+    src/core/songlengthsparser.cpp
     src/services/songlengthsdatabaseservice.cpp
-    src/services/hvscparser.cpp
+    src/core/hvscparser.cpp
     src/services/hvscmetadataservice.cpp
     src/services/gamebase64service.cpp
     src/services/servicefactory.cpp
