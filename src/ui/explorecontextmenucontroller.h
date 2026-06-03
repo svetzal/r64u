@@ -3,7 +3,7 @@
 
 #include "explorepanelcore.h"
 
-#include "services/filetypecore.h"
+#include "core/filetypecore.h"
 
 #include <QObject>
 

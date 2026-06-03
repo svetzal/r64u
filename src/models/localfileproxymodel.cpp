@@ -1,6 +1,6 @@
 #include "localfileproxymodel.h"
 
-#include "services/filetypecore.h"
+#include "core/filetypecore.h"
 
 LocalFileProxyModel::LocalFileProxyModel(QObject *parent) : QSortFilterProxyModel(parent) {}
 

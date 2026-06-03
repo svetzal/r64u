@@ -1,6 +1,6 @@
 #include "c64uftpclient.h"
 
-#include "ftpcore.h"
+#include "core/ftpcore.h"
 #include "ftpresponsehandler.h"
 
 #include "utils/logging.h"

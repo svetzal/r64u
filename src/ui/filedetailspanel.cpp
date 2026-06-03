@@ -1,8 +1,8 @@
 #include "filedetailspanel.h"
 
 #include "core/diskimagereader.h"
-#include "services/fileactioncore.h"
-#include "services/filemetadatacore.h"
+#include "core/fileactioncore.h"
+#include "core/filemetadatacore.h"
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
 #include "services/songlengthsdatabaseservice.h"

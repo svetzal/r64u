@@ -6,7 +6,7 @@
  * No Qt widgets, no network, no filesystem — pure unit tests.
  */
 
-#include "services/fileactioncore.h"
+#include "core/fileactioncore.h"
 
 #include <QByteArray>
 #include <QTest>

@@ -6,7 +6,7 @@
  * or Qt widget dependencies.
  */
 
-#include "services/filebrowsercore.h"
+#include "core/filebrowsercore.h"
 
 #include <QtTest>
 

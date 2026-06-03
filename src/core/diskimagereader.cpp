@@ -2,7 +2,7 @@
 
 #include "petsciiconverter.h"
 
-#include "services/filetypecore.h"
+#include "core/filetypecore.h"
 
 diskimage::DiskImageReader::DiskImageReader() = default;
 

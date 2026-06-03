@@ -1,7 +1,7 @@
 #ifndef PREVIEWCOORDINATOR_H
 #define PREVIEWCOORDINATOR_H
 
-#include "services/filetypecore.h"
+#include "core/filetypecore.h"
 
 #include <QModelIndex>
 #include <QObject>

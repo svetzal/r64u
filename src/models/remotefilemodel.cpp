@@ -1,6 +1,6 @@
 #include "remotefilemodel.h"
 
-#include "services/filetypecore.h"
+#include "core/filetypecore.h"
 #include "services/ftpclientmixin.h"
 #include "utils/logging.h"
 

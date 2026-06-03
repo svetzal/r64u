@@ -2,7 +2,7 @@
 #define EXPLOREPANELCORE_H
 
 #include "services/devicetypes.h"
-#include "services/filetypecore.h"
+#include "core/filetypecore.h"
 
 #include <QList>
 #include <QString>

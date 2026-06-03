@@ -1,6 +1,6 @@
 #include "sidfileparser.h"
 
-#include "services/filetypecore.h"
+#include "core/filetypecore.h"
 
 bool sidfile::SidFileParser::isSidFile(const QString &path)
 {

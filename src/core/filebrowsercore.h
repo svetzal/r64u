@@ -1,7 +1,7 @@
 #ifndef FILEBROWSERCORE_H
 #define FILEBROWSERCORE_H
 
-#include "services/filetypecore.h"
+#include "core/filetypecore.h"
 
 #include <QList>
 #include <QString>

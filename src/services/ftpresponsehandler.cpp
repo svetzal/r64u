@@ -1,6 +1,6 @@
 #include "ftpresponsehandler.h"
 
-#include "ftpcore.h"
+#include "core/ftpcore.h"
 
 #include <QDebug>
 #include <QRegularExpression>

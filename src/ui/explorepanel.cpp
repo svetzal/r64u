@@ -19,7 +19,7 @@
 #include "services/errorhandler.h"
 #include "services/explorepanelservices.h"
 #include "services/favoritesservice.h"
-#include "services/filebrowsercore.h"
+#include "core/filebrowsercore.h"
 #include "services/filepreviewservice.h"
 #include "services/metadataservicebundle.h"
 #include "services/playlistservice.h"

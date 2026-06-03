@@ -7,7 +7,7 @@
  * All tests are purely in-process with no UI, no database, no network.
  */
 
-#include "services/filemetadatacore.h"
+#include "core/filemetadatacore.h"
 
 #include <QTest>
 

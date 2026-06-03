@@ -111,13 +111,13 @@ set(SOURCES
     src/services/favoritesservice.cpp
     src/services/favoritescore.cpp
     src/services/favoritesuicore.cpp
-    src/services/filebrowsercore.cpp
-    src/services/fileactioncore.cpp
-    src/services/filetypecore.cpp
-    src/services/diskbootsequencecore.cpp
+    src/core/filebrowsercore.cpp
+    src/core/fileactioncore.cpp
+    src/core/filetypecore.cpp
+    src/core/diskbootsequencecore.cpp
     src/services/diskbootsequenceservice.cpp
-    src/services/filemetadatacore.cpp
-    src/services/ftpcore.cpp
+    src/core/filemetadatacore.cpp
+    src/core/ftpcore.cpp
     src/services/ftpcommandqueue.cpp
     src/services/ftptransferstate.cpp
     src/services/ftpresponsehandler.cpp
@@ -251,13 +251,13 @@ set(HEADERS
     src/services/favoritesservice.h
     src/services/favoritescore.h
     src/services/favoritesuicore.h
-    src/services/filebrowsercore.h
-    src/services/fileactioncore.h
-    src/services/filetypecore.h
-    src/services/diskbootsequencecore.h
+    src/core/filebrowsercore.h
+    src/core/fileactioncore.h
+    src/core/filetypecore.h
+    src/core/diskbootsequencecore.h
     src/services/diskbootsequenceservice.h
-    src/services/filemetadatacore.h
-    src/services/ftpcore.h
+    src/core/filemetadatacore.h
+    src/core/ftpcore.h
     src/services/ftpcommandqueue.h
     src/services/ftptransferstate.h
     src/services/streamprotocolcore.h

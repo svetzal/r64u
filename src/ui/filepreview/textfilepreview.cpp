@@ -1,6 +1,6 @@
 #include "textfilepreview.h"
 
-#include "services/fileactioncore.h"
+#include "core/fileactioncore.h"
 
 #include <QFileInfo>
 

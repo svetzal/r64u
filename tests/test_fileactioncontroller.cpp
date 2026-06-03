@@ -3,7 +3,7 @@
 #include "services/deviceactionservice.h"
 #include "services/deviceconnectionmanager.h"
 #include "services/errorhandler.h"
-#include "services/filetypecore.h"
+#include "core/filetypecore.h"
 #include "services/playlistservice.h"
 #include "ui/fileactioncontroller.h"
 

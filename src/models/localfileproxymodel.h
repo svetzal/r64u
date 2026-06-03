@@ -1,7 +1,7 @@
 #ifndef LOCALFILEPROXYMODEL_H
 #define LOCALFILEPROXYMODEL_H
 
-#include "services/filetypecore.h"
+#include "core/filetypecore.h"
 
 #include <QFileSystemModel>
 #include <QSortFilterProxyModel>

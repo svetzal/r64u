@@ -1,7 +1,7 @@
 #ifndef FTPCORE_H
 #define FTPCORE_H
 
-#include "ftpentry.h"
+#include "services/ftpentry.h"
 
 #include <QByteArray>
 #include <QList>

@@ -6,7 +6,7 @@
  * model, or UI dependencies.
  */
 
-#include "services/filetypecore.h"
+#include "core/filetypecore.h"
 
 #include <QtTest>
 

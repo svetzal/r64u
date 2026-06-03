@@ -2,7 +2,7 @@
 #define FILEACTIONCONTROLLER_H
 
 #include "services/errorhandler.h"
-#include "services/filetypecore.h"
+#include "core/filetypecore.h"
 
 #include <QList>
 #include <QObject>

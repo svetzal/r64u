@@ -7,7 +7,7 @@
  * with no timers, no Qt event loop, and no REST client.
  */
 
-#include "services/diskbootsequencecore.h"
+#include "core/diskbootsequencecore.h"
 
 #include <QTest>
 

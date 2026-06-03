@@ -1,7 +1,7 @@
 #ifndef DISKBOOTSEQUENCESERVICE_H
 #define DISKBOOTSEQUENCESERVICE_H
 
-#include "diskbootsequencecore.h"
+#include "core/diskbootsequencecore.h"
 
 #include <QObject>
 #include <QTimer>

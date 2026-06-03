@@ -442,7 +442,7 @@ add_executable(test_remotefilemodel
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
 )
 
@@ -477,7 +477,7 @@ add_executable(test_deviceconnectionmanager
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
@@ -555,7 +555,7 @@ endif()
 add_executable(test_sidfileparser
     test_sidfileparser.cpp
     ${CMAKE_SOURCE_DIR}/src/core/sidfileparser.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
 )
 
 target_include_directories(test_sidfileparser PRIVATE
@@ -610,7 +610,7 @@ add_executable(test_diskimagereader
     test_diskimagereader.cpp
     ${CMAKE_SOURCE_DIR}/src/core/diskimagereader.cpp
     ${CMAKE_SOURCE_DIR}/src/core/petsciiconverter.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
 )
 
 target_include_directories(test_diskimagereader PRIVATE
@@ -634,7 +634,7 @@ endif()
 # LocalFileProxyModel tests
 add_executable(test_localfileproxymodel
     test_localfileproxymodel.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/localfileproxymodel.cpp
 )
 
@@ -726,7 +726,7 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
@@ -816,7 +816,7 @@ add_executable(test_errorsourceconnector
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filepreviewservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/configfileloaderservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.cpp
@@ -911,7 +911,7 @@ endif()
 add_executable(test_c64uftpclient_protocol
     test_c64uftpclient_protocol.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
@@ -950,8 +950,8 @@ add_executable(test_filepreviewstrategies
     ${CMAKE_SOURCE_DIR}/src/core/diskimagereader.cpp
     ${CMAKE_SOURCE_DIR}/src/core/sidfileparser.cpp
     ${CMAKE_SOURCE_DIR}/src/core/petsciiconverter.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/fileactioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
 )
 
 target_include_directories(test_filepreviewstrategies BEFORE PRIVATE
@@ -976,7 +976,7 @@ endif()
 # FtpResponseParser tests - pure FTP response parsing functions (in ftpcore)
 add_executable(test_ftpresponseparser
     test_ftpresponseparser.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
 )
 target_include_directories(test_ftpresponseparser PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_ftpresponseparser PRIVATE Qt6::Core Qt6::Test)
@@ -1018,7 +1018,7 @@ add_executable(test_ftpresponsehandler
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
 )
 target_include_directories(test_ftpresponsehandler PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_ftpresponsehandler PRIVATE Qt6::Core Qt6::Test Qt6::Network)
@@ -1037,7 +1037,7 @@ if(BUILD_INTEGRATION_TESTS)
         integration/test_realdevice_download.cpp
         ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
         ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-        ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+        ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
         ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
         ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
         ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
@@ -1080,7 +1080,7 @@ add_executable(test_filebrowsersync
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
 )
@@ -1285,7 +1285,7 @@ add_executable(test_streamingmanager
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
@@ -1435,7 +1435,7 @@ endif()
 # FtpCore tests - pure FTP protocol parsing, no I/O dependencies
 add_executable(test_ftpcore
     test_ftpcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
 )
 
 target_include_directories(test_ftpcore PRIVATE
@@ -1479,8 +1479,8 @@ endif()
 # FileActionCore tests - pure preview type detection and routing, no I/O dependencies
 add_executable(test_fileactioncore
     test_fileactioncore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/fileactioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
 )
 
 target_include_directories(test_fileactioncore PRIVATE
@@ -1502,7 +1502,7 @@ endif()
 # DiskBootSequenceCore tests - pure C64 boot sequence state machine, no I/O dependencies
 add_executable(test_diskbootsequencecore
     test_diskbootsequencecore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/diskbootsequencecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/diskbootsequencecore.cpp
 )
 
 target_include_directories(test_diskbootsequencecore PRIVATE
@@ -1524,9 +1524,9 @@ endif()
 # FileMetadataCore tests - pure SID/disk metadata formatting, no I/O dependencies
 add_executable(test_filemetadatacore
     test_filemetadatacore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filemetadatacore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filemetadatacore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/sidfileparser.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
@@ -1562,7 +1562,7 @@ endif()
 # FileTypeCore tests - pure file type detection and capabilities, no I/O dependencies
 add_executable(test_filetypecore
     test_filetypecore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
 )
 
 target_include_directories(test_filetypecore PRIVATE
@@ -1805,7 +1805,7 @@ add_executable(test_diskbootsequenceservice
     test_diskbootsequenceservice.cpp
     mocks/mockrestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/diskbootsequenceservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/diskbootsequencecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/diskbootsequencecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
@@ -1984,8 +1984,8 @@ endif()
 # FileBrowserCore tests - pure file browser action routing, no I/O dependencies
 add_executable(test_filebrowsercore
     test_filebrowsercore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filebrowsercore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filebrowsercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
 )
 target_include_directories(test_filebrowsercore PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_filebrowsercore PRIVATE Qt6::Core Qt6::Test)
@@ -2209,16 +2209,16 @@ add_executable(test_fileactioncontroller
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filebrowsercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filebrowsercore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/diskbootsequenceservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/diskbootsequencecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/diskbootsequencecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/configfileloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
@@ -2288,8 +2288,8 @@ add_executable(test_previewcoordinator
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/filepreviewservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/fileactioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/previewcoordinator.cpp
@@ -2331,7 +2331,7 @@ add_executable(test_connectionuicontroller
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
@@ -2404,13 +2404,13 @@ add_executable(test_panelcoordinator
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/panelcoordinator.cpp
     # Header listed so AUTOMOC generates moc file for TransferService (Q_OBJECT vtable)
@@ -2440,7 +2440,7 @@ endif()
 add_executable(test_explorepanelcore
     test_explorepanelcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/explorepanelcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
 )
 
 target_include_directories(test_explorepanelcore PRIVATE
@@ -2464,7 +2464,7 @@ add_executable(test_explorecontextmenucontroller
     test_explorecontextmenucontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/explorecontextmenucontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/explorepanelcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
 )
 
 target_include_directories(test_explorecontextmenucontroller PRIVATE
@@ -2524,7 +2524,7 @@ add_executable(test_configurationservice
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
@@ -2561,7 +2561,7 @@ add_executable(test_deviceactionservice
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
@@ -2600,7 +2600,7 @@ add_executable(test_configpanel
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
@@ -2647,7 +2647,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
@@ -2668,7 +2668,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/services/hvscmetadataservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/hvscparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
@@ -2781,7 +2781,7 @@ add_executable(test_viewpanel
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
@@ -2834,7 +2834,7 @@ add_executable(test_transferpanel
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
@@ -2845,7 +2845,7 @@ add_executable(test_transferpanel
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
@@ -2903,7 +2903,7 @@ add_executable(test_remotefilebrowserwidget
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
@@ -2942,7 +2942,7 @@ add_executable(test_localfilebrowserwidget
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfileoperationsservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/localfileproxymodel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/localfilebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filebrowserwidget.cpp
@@ -2978,9 +2978,9 @@ add_executable(test_filedetailspanel
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.h
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filemetadatacore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/fileactioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filemetadatacore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/diskimagereader.cpp
     ${CMAKE_SOURCE_DIR}/src/core/sidfileparser.cpp
     ${CMAKE_SOURCE_DIR}/src/core/petsciiconverter.cpp
@@ -3019,8 +3019,8 @@ add_executable(test_filepreviewfactory
     ${CMAKE_SOURCE_DIR}/src/core/diskimagereader.cpp
     ${CMAKE_SOURCE_DIR}/src/core/sidfileparser.cpp
     ${CMAKE_SOURCE_DIR}/src/core/petsciiconverter.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/fileactioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
 )
 
 target_include_directories(test_filepreviewfactory BEFORE PRIVATE
@@ -3357,7 +3357,7 @@ add_executable(test_transferprogresswidget
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
@@ -3416,7 +3416,7 @@ add_executable(test_transferprogresscontainer
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
@@ -3576,7 +3576,7 @@ add_executable(test_systemtoolbarbuilder
     ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
@@ -3677,13 +3677,13 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/services/favoritesservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/favoritescore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/favoritesuicore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filebrowsercore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/fileactioncore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filetypecore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/diskbootsequencecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filebrowsercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/fileactioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/diskbootsequencecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/diskbootsequenceservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/filemetadatacore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filemetadatacore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp

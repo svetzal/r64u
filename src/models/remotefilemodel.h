@@ -1,7 +1,7 @@
 #ifndef REMOTEFILEMODEL_H
 #define REMOTEFILEMODEL_H
 
-#include "services/filetypecore.h"
+#include "core/filetypecore.h"
 #include "services/iftpclient.h"
 
 #include <QAbstractItemModel>

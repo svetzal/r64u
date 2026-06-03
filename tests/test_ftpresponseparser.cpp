@@ -3,7 +3,7 @@
  * @brief Tests for pure FTP response parsing functions in ftpcore.
  */
 
-#include "services/ftpcore.h"
+#include "core/ftpcore.h"
 
 #include <QtTest/QtTest>
 

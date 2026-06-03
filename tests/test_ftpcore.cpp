@@ -9,7 +9,7 @@
 
 #include <QtTest>
 
-#include <services/ftpcore.h>
+#include "core/ftpcore.h"
 
 class TestFtpCore : public QObject
 {

@@ -8,7 +8,7 @@
  */
 
 #include "services/devicetypes.h"
-#include "services/filetypecore.h"
+#include "core/filetypecore.h"
 #include "ui/explorepanelcore.h"
 
 #include <QtTest>

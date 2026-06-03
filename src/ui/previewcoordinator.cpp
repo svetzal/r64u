@@ -1,7 +1,7 @@
 #include "previewcoordinator.h"
 
 #include "models/remotefilemodel.h"
-#include "services/fileactioncore.h"
+#include "core/fileactioncore.h"
 #include "services/filepreviewservice.h"
 #include "services/playlistservice.h"
 #include "ui/idetailsdisplay.h"
