@@ -8,7 +8,7 @@
 
 #include <QtTest>
 
-#include <services/videostreamcore.h>
+#include "core/videostreamcore.h"
 
 class TestVideoStreamCore : public QObject
 {

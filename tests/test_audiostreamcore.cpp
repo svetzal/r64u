@@ -8,7 +8,7 @@
 
 #include <QtTest>
 
-#include <services/audiostreamcore.h>
+#include "core/audiostreamcore.h"
 
 class TestAudioStreamCore : public QObject
 {

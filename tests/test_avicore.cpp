@@ -9,7 +9,7 @@
 
 #include <QtTest>
 
-#include <services/avicore.h>
+#include "core/avicore.h"
 
 class TestAviCore : public QObject
 {

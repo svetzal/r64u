@@ -474,7 +474,7 @@ add_executable(test_deviceconnectionmanager
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
@@ -663,7 +663,7 @@ add_executable(test_videostreamreceiverservice
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/udpstreamsocket.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiverservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/videostreamcore.cpp
 )
 
 target_include_directories(test_videostreamreceiverservice PRIVATE
@@ -724,7 +724,7 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
@@ -1164,10 +1164,10 @@ add_executable(test_streamingdiagnosticsservice
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/udpstreamsocket.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiverservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/videostreamcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiverservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/audiostreamcore.cpp
 )
 
 target_include_directories(test_streamingdiagnosticsservice PRIVATE
@@ -1283,7 +1283,7 @@ add_executable(test_streamingmanager
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
@@ -1292,12 +1292,12 @@ add_executable(test_streamingmanager
     ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamcontrolservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/streamprotocolcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/streamprotocolcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/udpstreamsocket.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videostreamreceiverservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/videostreamcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiverservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/audiostreamcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audioplaybackservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnosticsservice.cpp
 )
@@ -1325,7 +1325,7 @@ endif()
 # AviCore tests - pure AVI RIFF container format logic, no I/O dependencies
 add_executable(test_avicore
     test_avicore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/avicore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/avicore.cpp
 )
 
 target_include_directories(test_avicore PRIVATE
@@ -1347,7 +1347,7 @@ endif()
 # AudioStreamCore tests - pure audio packet parsing and rate calculation, no I/O dependencies
 add_executable(test_audiostreamcore
     test_audiostreamcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/audiostreamcore.cpp
 )
 
 target_include_directories(test_audiostreamcore PRIVATE
@@ -1369,7 +1369,7 @@ endif()
 # VideoStreamCore tests - pure video packet parsing and format detection, no I/O dependencies
 add_executable(test_videostreamcore
     test_videostreamcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/videostreamcore.cpp
 )
 
 target_include_directories(test_videostreamcore PRIVATE
@@ -1391,7 +1391,7 @@ endif()
 # RestResponseCore tests - pure REST JSON response parsing, no I/O dependencies
 add_executable(test_restresponsecore
     test_restresponsecore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
 )
 
 target_include_directories(test_restresponsecore PRIVATE
@@ -1413,7 +1413,7 @@ endif()
 # StreamProtocolCore tests - pure stream control protocol serialisation, no I/O dependencies
 add_executable(test_streamprotocolcore
     test_streamprotocolcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/streamprotocolcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/streamprotocolcore.cpp
 )
 
 target_include_directories(test_streamprotocolcore PRIVATE
@@ -1662,7 +1662,7 @@ add_executable(test_c64urestclient
     test_c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
 )
 
 target_include_directories(test_c64urestclient PRIVATE
@@ -1858,7 +1858,7 @@ add_executable(test_streamcontrolservice
     test_streamcontrolservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/istreamcontrolservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamcontrolservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/streamprotocolcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/streamprotocolcore.cpp
 )
 
 target_include_directories(test_streamcontrolservice PRIVATE
@@ -1907,7 +1907,7 @@ add_executable(test_audiostreamreceiverservice
     ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/udpstreamsocket.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audiostreamreceiverservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/audiostreamcore.cpp
 )
 
 target_include_directories(test_audiostreamreceiverservice PRIVATE
@@ -1956,7 +1956,7 @@ endif()
 add_executable(test_videorecordingservice
     test_videorecordingservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/avicore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/avicore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/vic2frameconverter.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iaudiostreamreceiverservice.cpp
@@ -2206,7 +2206,7 @@ add_executable(test_fileactioncontroller
     ${CMAKE_SOURCE_DIR}/src/services/deviceactionservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
@@ -2328,7 +2328,7 @@ add_executable(test_connectionuicontroller
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
@@ -2401,7 +2401,7 @@ add_executable(test_panelcoordinator
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
@@ -2521,7 +2521,7 @@ add_executable(test_configurationservice
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
@@ -2558,7 +2558,7 @@ add_executable(test_deviceactionservice
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
@@ -2597,7 +2597,7 @@ add_executable(test_configpanel
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
@@ -2644,7 +2644,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
@@ -2778,7 +2778,7 @@ add_executable(test_viewpanel
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
@@ -2831,7 +2831,7 @@ add_executable(test_transferpanel
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
@@ -3090,7 +3090,7 @@ add_executable(test_connectiontesthandler
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/connectiontesthandler.cpp
 )
 
@@ -3354,7 +3354,7 @@ add_executable(test_transferprogresswidget
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
@@ -3413,7 +3413,7 @@ add_executable(test_transferprogresscontainer
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
@@ -3472,7 +3472,7 @@ add_executable(test_preferencesdialog
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
@@ -3536,7 +3536,7 @@ add_executable(test_menubarbuilder
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/systemcommandcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/menubarbuilder.cpp
@@ -3573,7 +3573,7 @@ add_executable(test_systemtoolbarbuilder
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
@@ -3687,11 +3687,11 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/services/ftpcommandqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/streamprotocolcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/restresponsecore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/audiostreamcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/videostreamcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/avicore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/streamprotocolcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/audiostreamcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/videostreamcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/avicore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/screenshotservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp

@@ -1,7 +1,7 @@
 #ifndef RESTRESPONSECORE_H
 #define RESTRESPONSECORE_H
 
-#include "devicetypes.h"
+#include "services/devicetypes.h"
 
 #include <QHash>
 #include <QJsonObject>

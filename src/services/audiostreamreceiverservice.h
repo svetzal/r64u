@@ -1,7 +1,7 @@
 #ifndef AUDIOSTREAMRECEIVERSERVICE_H
 #define AUDIOSTREAMRECEIVERSERVICE_H
 
-#include "audiostreamcore.h"
+#include "core/audiostreamcore.h"
 #include "iaudiostreamreceiverservice.h"
 #include "udpstreamsocket.h"
 

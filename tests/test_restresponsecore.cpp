@@ -12,7 +12,7 @@
 #include <QJsonObject>
 #include <QtTest>
 
-#include <services/restresponsecore.h>
+#include "core/restresponsecore.h"
 
 class TestRestResponseCore : public QObject
 {

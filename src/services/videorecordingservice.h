@@ -3,7 +3,7 @@
 
 class StreamingService;
 
-#include "avicore.h"
+#include "core/avicore.h"
 #include "ivideostreamreceiverservice.h"
 
 #include <QDateTime>

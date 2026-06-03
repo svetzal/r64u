@@ -121,11 +121,11 @@ set(SOURCES
     src/services/ftpcommandqueue.cpp
     src/services/ftptransferstate.cpp
     src/services/ftpresponsehandler.cpp
-    src/services/streamprotocolcore.cpp
-    src/services/restresponsecore.cpp
-    src/services/audiostreamcore.cpp
-    src/services/videostreamcore.cpp
-    src/services/avicore.cpp
+    src/core/streamprotocolcore.cpp
+    src/core/restresponsecore.cpp
+    src/core/audiostreamcore.cpp
+    src/core/videostreamcore.cpp
+    src/core/avicore.cpp
     src/services/videorecordingservice.cpp
     src/services/screenshotservice.cpp
     src/services/localfileoperationsservice.cpp
@@ -260,11 +260,11 @@ set(HEADERS
     src/core/ftpcore.h
     src/services/ftpcommandqueue.h
     src/services/ftptransferstate.h
-    src/services/streamprotocolcore.h
-    src/services/restresponsecore.h
-    src/services/audiostreamcore.h
-    src/services/videostreamcore.h
-    src/services/avicore.h
+    src/core/streamprotocolcore.h
+    src/core/restresponsecore.h
+    src/core/audiostreamcore.h
+    src/core/videostreamcore.h
+    src/core/avicore.h
     src/services/videorecordingservice.h
     src/services/vic2frameconverter.h
     src/services/remotefileoperationsservice.h

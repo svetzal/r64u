@@ -9,7 +9,7 @@
 
 #include <QtTest>
 
-#include <services/streamprotocolcore.h>
+#include "core/streamprotocolcore.h"
 
 class TestStreamProtocolCore : public QObject
 {

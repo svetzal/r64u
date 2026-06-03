@@ -1,7 +1,7 @@
 #include "c64urestclient.h"
 
 #include "networkerrorutils.h"
-#include "restresponsecore.h"
+#include "core/restresponsecore.h"
 
 #include <QJsonDocument>
 #include <QTimer>
