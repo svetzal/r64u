@@ -7,12 +7,12 @@
  * parseConfigCategoryItemsResponse.
  */
 
+#include "core/restresponsecore.h"
+
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QtTest>
-
-#include "core/restresponsecore.h"
 
 class TestRestResponseCore : public QObject
 {

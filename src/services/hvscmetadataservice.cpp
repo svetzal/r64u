@@ -6,6 +6,7 @@
 #include "hvscmetadataservice.h"
 
 #include "cacheddownloadservice.h"
+
 #include "core/hvscparser.h"
 
 #include <QFile>

@@ -1,9 +1,9 @@
 #include "configfileloaderservice.h"
 
-#include "core/ftpclientmixin.h"
 #include "iftpclient.h"
 #include "irestclient.h"
 
+#include "core/ftpclientmixin.h"
 #include "utils/logging.h"
 
 #include <QJsonDocument>

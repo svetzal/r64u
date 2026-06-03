@@ -1,9 +1,10 @@
 #ifndef AUDIOSTREAMRECEIVERSERVICE_H
 #define AUDIOSTREAMRECEIVERSERVICE_H
 
-#include "core/audiostreamcore.h"
 #include "iaudiostreamreceiverservice.h"
 #include "udpstreamsocket.h"
+
+#include "core/audiostreamcore.h"
 
 #include <QByteArray>
 #include <QElapsedTimer>

@@ -1,5 +1,5 @@
-#include "../src/services/ftpresponsehandler.h"
 #include "../src/ftp/ftptransferstate.h"
+#include "../src/services/ftpresponsehandler.h"
 
 #include <QtTest>
 

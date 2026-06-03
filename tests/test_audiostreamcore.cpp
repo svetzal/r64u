@@ -6,9 +6,9 @@
  * Exercises packet parsing, sequence number analysis, and flush interval calculation.
  */
 
-#include <QtTest>
-
 #include "core/audiostreamcore.h"
+
+#include <QtTest>
 
 class TestAudioStreamCore : public QObject
 {

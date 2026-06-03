@@ -7,10 +7,10 @@
 
 #include "deviceconnectionmanager.h"
 #include "iftpclient.h"
-#include "core/playlistcore.h"
 #include "songlengthsdatabaseservice.h"
 #include "streamingservice.h"
 
+#include "core/playlistcore.h"
 #include "utils/logging.h"
 
 #include <QFile>

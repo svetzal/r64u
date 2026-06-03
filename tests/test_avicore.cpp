@@ -7,9 +7,9 @@
  * idx1 index, fps calculation, and header construction.
  */
 
-#include <QtTest>
-
 #include "core/avicore.h"
+
+#include <QtTest>
 
 class TestAviCore : public QObject
 {

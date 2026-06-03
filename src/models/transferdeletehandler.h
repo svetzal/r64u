@@ -1,8 +1,8 @@
 #ifndef TRANSFERDELETEHANDLER_H
 #define TRANSFERDELETEHANDLER_H
 
-#include "services/iftpclient.h"
 #include "core/transfercore.h"
+#include "services/iftpclient.h"
 
 #include <QObject>
 #include <QPointer>

@@ -3,6 +3,7 @@
 
 #include "ivideostreamreceiverservice.h"
 #include "udpstreamsocket.h"
+
 #include "core/videostreamcore.h"
 
 #include <QByteArray>

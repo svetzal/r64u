@@ -6,6 +6,7 @@
 #include "songlengthsdatabaseservice.h"
 
 #include "cacheddownloadservice.h"
+
 #include "core/songlengthsparser.h"
 
 #include <QCryptographicHash>

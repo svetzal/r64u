@@ -10,13 +10,13 @@
  * with a real LocalFileSystemService and a mock FTP client.
  */
 
+#include "core/transfercore.h"
 #include "ftp/folderoperationcoordinator.h"
+#include "ftp/ftpentry.h"
 #include "ftp/recursivescancoordinator.h"
 #include "ftp/remotedirectorycoordinator.h"
 #include "mocks/mockftpclient.h"
 #include "mocks/mocklocalfilesystemservice.h"
-#include "ftp/ftpentry.h"
-#include "core/transfercore.h"
 
 #include <QSignalSpy>
 #include <QtTest>

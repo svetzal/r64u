@@ -7,10 +7,10 @@
  * and error paths.
  */
 
-#include "mocks/mocklocalfilesystemservice.h"
-#include "models/singlefileenqueuehandler.h"
 #include "core/transfercore.h"
 #include "core/transferftpcore.h"
+#include "mocks/mocklocalfilesystemservice.h"
+#include "models/singlefileenqueuehandler.h"
 
 #include <QSignalSpy>
 #include <QtTest>

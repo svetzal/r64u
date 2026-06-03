@@ -1,8 +1,8 @@
 #ifndef FILEACTIONCONTROLLER_H
 #define FILEACTIONCONTROLLER_H
 
-#include "services/errorhandler.h"
 #include "core/filetypecore.h"
+#include "services/errorhandler.h"
 
 #include <QList>
 #include <QObject>

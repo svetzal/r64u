@@ -5,10 +5,10 @@
 
 #include "transferdispatchhandler.h"
 
+#include "core/transferdecisioncore.h"
 #include "ftp/folderoperationcoordinator.h"
 #include "services/iftpclient.h"
 #include "services/ilocalfilesystemservice.h"
-#include "core/transferdecisioncore.h"
 #include "utils/logging.h"
 
 #include <QFileInfo>

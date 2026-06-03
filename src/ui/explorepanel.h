@@ -1,8 +1,8 @@
 #ifndef EXPLOREPANEL_H
 #define EXPLOREPANEL_H
 
-#include "services/explorepanelservices.h"
 #include "core/filetypecore.h"
+#include "services/explorepanelservices.h"
 #include "services/metadataservicebundle.h"
 #include "ui/ipanel.h"
 

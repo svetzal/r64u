@@ -1,8 +1,8 @@
 #include "c64uftpclient.h"
 
-#include "core/ftpcore.h"
 #include "ftpresponsehandler.h"
 
+#include "core/ftpcore.h"
 #include "utils/logging.h"
 
 #include <QDebug>

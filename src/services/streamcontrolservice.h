@@ -2,6 +2,7 @@
 #define STREAMCONTROLSERVICE_H
 
 #include "istreamcontrolservice.h"
+
 #include "core/streamprotocolcore.h"
 
 #include <QHostAddress>

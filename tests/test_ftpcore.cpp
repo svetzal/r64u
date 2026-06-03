@@ -7,9 +7,9 @@
  * return std::optional<ftp::PassiveResult> instead of using out-params.
  */
 
-#include <QtTest>
-
 #include "core/ftpcore.h"
+
+#include <QtTest>
 
 class TestFtpCore : public QObject
 {

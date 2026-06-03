@@ -1,9 +1,10 @@
 #ifndef FTPRESPONSEHANDLER_H
 #define FTPRESPONSEHANDLER_H
 
+#include "iftpclient.h"
+
 #include "ftp/ftpcommandqueue.h"
 #include "ftp/ftptransferstate.h"
-#include "iftpclient.h"
 
 #include <QObject>
 #include <QString>

@@ -1,8 +1,8 @@
+#include "core/transfercore.h"
+#include "ftp/ftpentry.h"
 #include "ftp/recursivescancoordinator.h"
 #include "mocks/mockftpclient.h"
 #include "mocks/mocklocalfilesystemservice.h"
-#include "ftp/ftpentry.h"
-#include "core/transfercore.h"
 
 #include <QSignalSpy>
 #include <QtTest>

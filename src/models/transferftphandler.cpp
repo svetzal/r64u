@@ -2,9 +2,9 @@
 
 #include "transfertimeoutmanager.h"
 
+#include "../core/ftpclientmixin.h"
 #include "../ftp/recursivescancoordinator.h"
 #include "../ftp/remotedirectorycoordinator.h"
-#include "../core/ftpclientmixin.h"
 #include "../utils/logging.h"
 
 #include <QFileInfo>

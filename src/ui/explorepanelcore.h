@@ -1,8 +1,8 @@
 #ifndef EXPLOREPANELCORE_H
 #define EXPLOREPANELCORE_H
 
-#include "services/devicetypes.h"
 #include "core/filetypecore.h"
+#include "services/devicetypes.h"
 
 #include <QList>
 #include <QString>

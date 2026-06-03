@@ -1,7 +1,7 @@
 #include "explorefavoritescontroller.h"
 
-#include "services/favoritesservice.h"
 #include "core/favoritesuicore.h"
+#include "services/favoritesservice.h"
 #include "utils/logging.h"
 
 #include <QAction>

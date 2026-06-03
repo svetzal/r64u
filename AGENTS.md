@@ -263,6 +263,21 @@ Each suffix or prefix represents a distinct architectural role. New classes must
 - `PlatformKeychain`: The platform-specific static keychain utility (distinct from `ICredentialStore` interface and `SystemCredentialStore` adapter).
 - Do not use `*Strategy` suffix — use the `I*` prefix for all abstract contracts.
 
+## Source Directory Layout
+
+The project uses three directories for production code beneath `src/`:
+
+| Directory | Contains |
+|-----------|----------|
+| `src/core/` | All `*Core` namespaces (pure functions and data types, no I/O or state) and pure-function/data-structure utility classes. Includes parsers (`HvscParser`, `SonglengthsParser`), type-safe helpers (`FtpClientMixin`, `NetworkErrorUtils`), and every `*core.h/.cpp` pair. New pure logic belongs here. |
+| `src/ftp/` | FTP protocol value types with no service-layer dependencies: `FtpEntry`, `FtpCommandQueue`, `FtpTransferState`, and FTP coordinator classes (`RecursiveScanCoordinator`, `RemoteDirectoryCoordinator`, `FolderOperationCoordinator`). |
+| `src/services/` | Stateful `*Service` classes, gateway interfaces (`I*`), and service-wiring types only. No `*core.h` files live here. |
+
+Include paths reflect these boundaries:
+- Code in `src/core/` uses `"core/<name>.h"` when referencing other `src/core/` files from outside that directory.
+- Code in `src/ftp/` uses `"ftp/<name>.h"` when referenced from outside `src/ftp/`.
+- `src/services/` headers that are not yet in `src/core/` or `src/ftp/` use `"services/<name>.h"` from other directories.
+
 ## Error Handling Strategy
 
 All error conditions must reach the user through the signal chain:

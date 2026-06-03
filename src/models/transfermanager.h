@@ -9,13 +9,13 @@
 #include "transferftphandler.h"
 #include "transfertimeoutmanager.h"
 
+#include "core/transfercore.h"
 #include "ftp/folderoperationcoordinator.h"
+#include "ftp/ftpentry.h"
 #include "ftp/recursivescancoordinator.h"
 #include "ftp/remotedirectorycoordinator.h"
-#include "ftp/ftpentry.h"
 #include "services/iftpclient.h"
 #include "services/ilocalfilesystemservice.h"
-#include "core/transfercore.h"
 
 #include <QObject>
 #include <QPointer>

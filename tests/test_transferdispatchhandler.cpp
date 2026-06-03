@@ -3,11 +3,11 @@
  * @brief Unit tests for TransferDispatchHandler covering each processNext action branch.
  */
 
+#include "core/transfercore.h"
 #include "ftp/folderoperationcoordinator.h"
 #include "mocks/mockftpclient.h"
 #include "mocks/mocklocalfilesystemservice.h"
 #include "models/transferdispatchhandler.h"
-#include "core/transfercore.h"
 
 #include <QSignalSpy>
 #include <QtTest>

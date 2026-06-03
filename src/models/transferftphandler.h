@@ -1,9 +1,9 @@
 #ifndef TRANSFERFTPHANDLER_H
 #define TRANSFERFTPHANDLER_H
 
+#include "core/transfercore.h"
 #include "ftp/ftpentry.h"
 #include "services/iftpclient.h"
-#include "core/transfercore.h"
 
 #include <QObject>
 #include <QPointer>

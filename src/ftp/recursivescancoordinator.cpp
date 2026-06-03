@@ -5,9 +5,9 @@
 
 #include "recursivescancoordinator.h"
 
+#include "core/transfercore.h"
 #include "services/iftpclient.h"
 #include "services/ilocalfilesystemservice.h"
-#include "core/transfercore.h"
 #include "utils/logging.h"
 
 #include <QFileInfo>

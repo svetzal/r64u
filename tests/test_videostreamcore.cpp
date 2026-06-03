@@ -6,9 +6,9 @@
  * Exercises header parsing, sequence number analysis, and frame line computation.
  */
 
-#include <QtTest>
-
 #include "core/videostreamcore.h"
+
+#include <QtTest>
 
 class TestVideoStreamCore : public QObject
 {

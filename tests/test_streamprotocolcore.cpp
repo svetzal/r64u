@@ -7,9 +7,9 @@
  * byte-level encoding.
  */
 
-#include <QtTest>
-
 #include "core/streamprotocolcore.h"
+
+#include <QtTest>
 
 class TestStreamProtocolCore : public QObject
 {

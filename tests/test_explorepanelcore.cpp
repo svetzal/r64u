@@ -7,8 +7,8 @@
  * always produce same outputs — so they are straightforward to test directly.
  */
 
-#include "services/devicetypes.h"
 #include "core/filetypecore.h"
+#include "services/devicetypes.h"
 #include "ui/explorepanelcore.h"
 
 #include <QtTest>
