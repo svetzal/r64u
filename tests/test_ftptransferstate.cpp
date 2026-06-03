@@ -3,7 +3,7 @@
  * @brief Tests for FtpTransferState.
  */
 
-#include "services/ftptransferstate.h"
+#include "ftp/ftptransferstate.h"
 
 #include <QTemporaryFile>
 #include <QtTest/QtTest>

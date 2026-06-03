@@ -12,7 +12,7 @@
 #include "ftp/folderoperationcoordinator.h"
 #include "ftp/recursivescancoordinator.h"
 #include "ftp/remotedirectorycoordinator.h"
-#include "services/ftpentry.h"
+#include "ftp/ftpentry.h"
 #include "services/iftpclient.h"
 #include "services/ilocalfilesystemservice.h"
 #include "core/transfercore.h"

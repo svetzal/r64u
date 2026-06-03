@@ -1,7 +1,7 @@
 #ifndef RECURSIVESCANCOORDINATOR_H
 #define RECURSIVESCANCOORDINATOR_H
 
-#include "services/ftpentry.h"
+#include "ftp/ftpentry.h"
 #include "core/transfercore.h"
 
 #include <QObject>

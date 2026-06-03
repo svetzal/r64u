@@ -1,7 +1,7 @@
 #ifndef TRANSFERFTPHANDLER_H
 #define TRANSFERFTPHANDLER_H
 
-#include "services/ftpentry.h"
+#include "ftp/ftpentry.h"
 #include "services/iftpclient.h"
 #include "core/transfercore.h"
 

@@ -1,9 +1,9 @@
 #ifndef C64UFTPCLIENT_H
 #define C64UFTPCLIENT_H
 
-#include "ftpcommandqueue.h"
+#include "ftp/ftpcommandqueue.h"
 #include "ftpresponsehandler.h"
-#include "ftptransferstate.h"
+#include "ftp/ftptransferstate.h"
 #include "iftpclient.h"
 
 #include <QDateTime>

@@ -1,7 +1,7 @@
 #ifndef IFTPCLIENT_H
 #define IFTPCLIENT_H
 
-#include "ftpentry.h"
+#include "ftp/ftpentry.h"
 
 #include <QList>
 #include <QObject>

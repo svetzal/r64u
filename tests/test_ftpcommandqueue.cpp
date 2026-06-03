@@ -3,7 +3,7 @@
  * @brief Tests for FtpCommandQueue.
  */
 
-#include "services/ftpcommandqueue.h"
+#include "ftp/ftpcommandqueue.h"
 
 #include <QFile>
 #include <QTemporaryFile>

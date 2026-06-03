@@ -1,7 +1,7 @@
 #include "ftp/recursivescancoordinator.h"
 #include "mocks/mockftpclient.h"
 #include "mocks/mocklocalfilesystemservice.h"
-#include "services/ftpentry.h"
+#include "ftp/ftpentry.h"
 #include "core/transfercore.h"
 
 #include <QSignalSpy>
