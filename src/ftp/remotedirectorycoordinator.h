@@ -1,7 +1,7 @@
 #ifndef REMOTEDIRECTORYCOORDINATOR_H
 #define REMOTEDIRECTORYCOORDINATOR_H
 
-#include "services/transfercore.h"
+#include "core/transfercore.h"
 
 #include <QObject>
 #include <QString>

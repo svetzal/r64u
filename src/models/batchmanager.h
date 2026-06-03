@@ -1,7 +1,7 @@
 #ifndef BATCHMANAGER_H
 #define BATCHMANAGER_H
 
-#include "services/transfercore.h"
+#include "core/transfercore.h"
 
 #include <QObject>
 

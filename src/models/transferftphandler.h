@@ -3,7 +3,7 @@
 
 #include "services/ftpentry.h"
 #include "services/iftpclient.h"
-#include "services/transfercore.h"
+#include "core/transfercore.h"
 
 #include <QObject>
 #include <QPointer>

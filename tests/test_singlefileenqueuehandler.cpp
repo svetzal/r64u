@@ -9,8 +9,8 @@
 
 #include "mocks/mocklocalfilesystemservice.h"
 #include "models/singlefileenqueuehandler.h"
-#include "services/transfercore.h"
-#include "services/transferftpcore.h"
+#include "core/transfercore.h"
+#include "core/transferftpcore.h"
 
 #include <QSignalSpy>
 #include <QtTest>

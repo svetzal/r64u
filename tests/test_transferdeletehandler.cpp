@@ -3,7 +3,7 @@
 #include "mocks/mockftpclient.h"
 #include "mocks/mocklocalfilesystemservice.h"
 #include "models/transferdeletehandler.h"
-#include "services/transfercore.h"
+#include "core/transfercore.h"
 
 #include <QSignalSpy>
 #include <QtTest>

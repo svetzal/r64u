@@ -14,7 +14,7 @@
 #ifndef SINGLEFILEENQUEUEHANDLER_H
 #define SINGLEFILEENQUEUEHANDLER_H
 
-#include "services/transfercore.h"
+#include "core/transfercore.h"
 
 #include <QObject>
 #include <QString>

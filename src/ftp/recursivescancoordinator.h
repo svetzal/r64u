@@ -2,7 +2,7 @@
 #define RECURSIVESCANCOORDINATOR_H
 
 #include "services/ftpentry.h"
-#include "services/transfercore.h"
+#include "core/transfercore.h"
 
 #include <QObject>
 #include <QString>

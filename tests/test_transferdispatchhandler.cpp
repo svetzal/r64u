@@ -7,7 +7,7 @@
 #include "mocks/mockftpclient.h"
 #include "mocks/mocklocalfilesystemservice.h"
 #include "models/transferdispatchhandler.h"
-#include "services/transfercore.h"
+#include "core/transfercore.h"
 
 #include <QSignalSpy>
 #include <QtTest>

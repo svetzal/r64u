@@ -1,7 +1,7 @@
 #ifndef FOLDEROPERATIONCOORDINATOR_H
 #define FOLDEROPERATIONCOORDINATOR_H
 
-#include "services/transfercore.h"
+#include "core/transfercore.h"
 
 #include <QObject>
 #include <QString>

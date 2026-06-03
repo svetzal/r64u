@@ -12,7 +12,7 @@
 #ifndef TRANSFERDISPATCHHANDLER_H
 #define TRANSFERDISPATCHHANDLER_H
 
-#include "services/transfercore.h"
+#include "core/transfercore.h"
 
 #include <QObject>
 #include <QPointer>

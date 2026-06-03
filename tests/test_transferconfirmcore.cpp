@@ -1,4 +1,4 @@
-#include "services/transferconfirmcore.h"
+#include "core/transferconfirmcore.h"
 
 #include <QTest>
 

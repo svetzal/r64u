@@ -57,11 +57,11 @@ set(LEGACY_MOCK_HEADERS
 
 # All transfer core implementation files (split from transfercore.cpp for cohesion)
 set(TRANSFER_CORE_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transferconfirmcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transferlistingcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transferdecisioncore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transferftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/transferconfirmcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/transferlistingcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/transferdecisioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/transferftpcore.cpp
 )
 
 # TransferCore tests - pure transfer logic, no I/O dependencies
@@ -3697,11 +3697,11 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/playlistcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transfercore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transferconfirmcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transferlistingcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transferdecisioncore.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/transferftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/transferconfirmcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/transferlistingcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/transferdecisioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/transferftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp

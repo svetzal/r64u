@@ -1,7 +1,7 @@
 #ifndef TRANSFERCORE_H
 #define TRANSFERCORE_H
 
-#include "ftpentry.h"
+#include "services/ftpentry.h"
 
 #include <QAbstractItemModel>
 #include <QList>

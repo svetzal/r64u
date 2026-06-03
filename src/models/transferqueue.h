@@ -3,7 +3,7 @@
 
 #include "transfermanager.h"
 
-#include "services/transfercore.h"
+#include "core/transfercore.h"
 
 #include <QAbstractListModel>
 #include <QString>

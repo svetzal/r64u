@@ -6,7 +6,7 @@
 #include "singlefileenqueuehandler.h"
 
 #include "services/ilocalfilesystemservice.h"
-#include "services/transferftpcore.h"
+#include "core/transferftpcore.h"
 #include "utils/logging.h"
 
 #include <QFileInfo>

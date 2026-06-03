@@ -1,4 +1,4 @@
-#include "services/transfercore.h"
+#include "core/transfercore.h"
 
 #include <QTest>
 

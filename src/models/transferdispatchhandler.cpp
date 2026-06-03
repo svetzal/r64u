@@ -8,7 +8,7 @@
 #include "ftp/folderoperationcoordinator.h"
 #include "services/iftpclient.h"
 #include "services/ilocalfilesystemservice.h"
-#include "services/transferdecisioncore.h"
+#include "core/transferdecisioncore.h"
 #include "utils/logging.h"
 
 #include <QFileInfo>

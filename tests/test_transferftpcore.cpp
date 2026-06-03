@@ -1,4 +1,4 @@
-#include "services/transferftpcore.h"
+#include "core/transferftpcore.h"
 
 #include <QTest>
 

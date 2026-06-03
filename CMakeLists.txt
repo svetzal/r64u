@@ -133,11 +133,11 @@ set(SOURCES
     src/services/remotefileoperationsservice.cpp
     src/services/playlistservice.cpp
     src/services/playlistcore.cpp
-    src/services/transfercore.cpp
-    src/services/transferconfirmcore.cpp
-    src/services/transferlistingcore.cpp
-    src/services/transferdecisioncore.cpp
-    src/services/transferftpcore.cpp
+    src/core/transfercore.cpp
+    src/core/transferconfirmcore.cpp
+    src/core/transferlistingcore.cpp
+    src/core/transferdecisioncore.cpp
+    src/core/transferftpcore.cpp
     src/services/ilocalfilesystemservice.cpp
     src/services/localfilesystemservice.cpp
     src/services/ifiledownloaderservice.cpp
@@ -270,7 +270,7 @@ set(HEADERS
     src/services/remotefileoperationsservice.h
     src/services/playlistservice.h
     src/services/playlistcore.h
-    src/services/transfercore.h
+    src/core/transfercore.h
     src/services/ilocalfilesystemservice.h
     src/services/localfilesystemservice.h
     src/services/ifiledownloaderservice.h
