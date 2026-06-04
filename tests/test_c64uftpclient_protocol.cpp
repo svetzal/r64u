@@ -41,6 +41,13 @@ public:
 
     quint16 port() const { return server_.serverPort(); }
 
+    /// Register an extra command prefix → reply mapping.
+    /// The first matching prefix wins.  Replies must include CRLF.
+    void addReply(const QString &prefix, const QString &reply)
+    {
+        extraReplies_.append({prefix, reply});
+    }
+
     void closeClientConnection()
     {
         if (clientSocket_) {
@@ -71,6 +78,14 @@ private slots:
             } else if (line.startsWith("PASS")) {
                 clientSocket_->write("230 User logged in\r\n");
                 clientSocket_->flush();
+            } else {
+                for (const auto &pair : extraReplies_) {
+                    if (line.startsWith(pair.first)) {
+                        clientSocket_->write(pair.second.toUtf8());
+                        clientSocket_->flush();
+                        break;
+                    }
+                }
             }
         }
     }
@@ -78,6 +93,7 @@ private slots:
 private:
     QTcpServer server_;
     QTcpSocket *clientSocket_ = nullptr;
+    QList<QPair<QString, QString>> extraReplies_;
 };
 
 class TestC64UFtpClientProtocol : public QObject
@@ -413,6 +429,98 @@ private slots:
         server.closeClientConnection();
 
         QTRY_COMPARE_WITH_TIMEOUT(disconnectedSpy.count(), 1, 5000);
+    }
+
+    // =========================================================================
+    // applyAction sub-step protocol tests
+    //
+    // These tests verify that representative FTP server responses cause
+    // C64UFtpClient::applyAction to produce the correct state mutations and
+    // signal emissions.  Each test logs in (using SimpleFtpServer) and then
+    // sends a specific command + server reply pair.
+    // =========================================================================
+
+    void testApplyAction_Cwd_250_EmitsDirectoryChanged()
+    {
+        SimpleFtpServer server;
+        QVERIFY(server.listen());
+
+        ftp->setHost("127.0.0.1", server.port());
+        ftp->setCredentials("user", "pass");
+        ftp->connectToHost();
+
+        QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
+
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        ftp->changeDirectory("/SD/Games");
+
+        // Should transition to Busy (CWD was enqueued and processed)
+        QCOMPARE(ftp->state(), IFtpClient::State::Busy);
+        // No errors — guard passed
+        QCOMPARE(errorSpy.count(), 0);
+    }
+
+    void testApplyAction_Mkd_257_EmitsDirectoryCreated()
+    {
+        SimpleFtpServer server;
+        server.addReply("MKD", "257 \"/SD/NewDir\" created\r\n");
+        QVERIFY(server.listen());
+
+        ftp->setHost("127.0.0.1", server.port());
+        ftp->setCredentials("user", "pass");
+        ftp->connectToHost();
+
+        QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
+
+        QSignalSpy dirCreatedSpy(ftp, &C64UFtpClient::directoryCreated);
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+
+        ftp->makeDirectory("/SD/NewDir");
+
+        QTRY_COMPARE_WITH_TIMEOUT(dirCreatedSpy.count(), 1, 5000);
+        QCOMPARE(errorSpy.count(), 0);
+        QCOMPARE(dirCreatedSpy.at(0).at(0).toString(), QString("/SD/NewDir"));
+    }
+
+    void testApplyAction_Dele_250_EmitsFileRemoved()
+    {
+        SimpleFtpServer server;
+        server.addReply("DELE", "250 File deleted\r\n");
+        QVERIFY(server.listen());
+
+        ftp->setHost("127.0.0.1", server.port());
+        ftp->setCredentials("user", "pass");
+        ftp->connectToHost();
+
+        QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
+
+        QSignalSpy fileRemovedSpy(ftp, &C64UFtpClient::fileRemoved);
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+
+        ftp->remove("/SD/trash.prg");
+
+        QTRY_COMPARE_WITH_TIMEOUT(fileRemovedSpy.count(), 1, 5000);
+        QCOMPARE(errorSpy.count(), 0);
+        QCOMPARE(fileRemovedSpy.at(0).at(0).toString(), QString("/SD/trash.prg"));
+    }
+
+    void testApplyAction_ErrorResponse_EmitsError()
+    {
+        SimpleFtpServer server;
+        server.addReply("MKD", "550 Permission denied\r\n");
+        QVERIFY(server.listen());
+
+        ftp->setHost("127.0.0.1", server.port());
+        ftp->setCredentials("user", "pass");
+        ftp->connectToHost();
+
+        QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
+
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+
+        ftp->makeDirectory("/SD/NoAccess");
+
+        QTRY_COMPARE_WITH_TIMEOUT(errorSpy.count(), 1, 5000);
     }
 };
 

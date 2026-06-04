@@ -157,61 +157,23 @@ void C64UFtpClient::processNextCommand()
     currentArg_ = pending.arg;
     currentLocalPath_ = pending.localPath;
 
-    switch (currentCommand_) {
-    case Command::User:
-        sendCommand("USER " + user_);
-        break;
-    case Command::Pass:
-        sendCommand("PASS " + password_);
-        break;
-    case Command::Pwd:
-        sendCommand("PWD");
-        break;
-    case Command::Cwd:
-        sendCommand("CWD " + currentArg_);
-        break;
-    case Command::Type:
-        sendCommand("TYPE " + currentArg_);
-        break;
-    case Command::Pasv:
-        sendCommand("PASV");
-        break;
-    case Command::List:
-        sendCommand("LIST" + (currentArg_.isEmpty() ? "" : " " + currentArg_));
-        break;
-    case Command::Retr:
+    // RETR and STOR require transfer-state mutation before sending the wire command
+    if (currentCommand_ == Command::Retr) {
         transferState_.setCurrentRetrFile(std::move(pending.transferFile),
                                           pending.isMemoryDownload);
         qDebug() << "FTP: Processing RETR, file:" << transferState_.currentRetrFile().get()
                  << "isMemory:" << transferState_.isCurrentRetrMemory();
-        sendCommand("RETR " + currentArg_);
-        break;
-    case Command::Stor:
+    } else if (currentCommand_ == Command::Stor) {
         transferState_.setCurrentStorFile(std::move(pending.transferFile));
         qDebug() << "FTP: Processing STOR, file:" << transferState_.currentStorFile().get();
-        sendCommand("STOR " + currentArg_);
-        break;
-    case Command::Mkd:
-        sendCommand("MKD " + currentArg_);
-        break;
-    case Command::Rmd:
-        sendCommand("RMD " + currentArg_);
-        break;
-    case Command::Dele:
-        sendCommand("DELE " + currentArg_);
-        break;
-    case Command::RnFr:
-        sendCommand("RNFR " + currentArg_);
-        break;
-    case Command::RnTo:
-        sendCommand("RNTO " + currentArg_);
-        break;
-    case Command::Quit:
-        sendCommand("QUIT");
-        break;
-    default:
+    }
+
+    QString wireCommand = ftp::formatCommand(currentCommand_, currentArg_, user_, password_);
+    if (!wireCommand.isEmpty()) {
+        sendCommand(wireCommand);
+    } else {
+        // Command::None or any unrecognised command — skip and process the next one
         processNextCommand();
-        break;
     }
 }
 

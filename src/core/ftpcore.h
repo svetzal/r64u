@@ -1,6 +1,7 @@
 #ifndef FTPCORE_H
 #define FTPCORE_H
 
+#include "ftp/ftpcommandqueue.h"
 #include "ftp/ftpentry.h"
 
 #include <QByteArray>
@@ -40,6 +41,30 @@ struct FtpResponseParse
     QList<FtpResponseLine> lines;  ///< Complete, non-continuation response lines
     QString remainingBuffer;       ///< Bytes that did not form a complete line
 };
+
+// ---------------------------------------------------------------------------
+// Command wire-formatting
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief Formats the wire string for an FTP command.
+ *
+ * Maps an FtpCommandQueue::Command to the corresponding FTP wire command
+ * string.  For USER and PASS the supplied @p user / @p password arguments
+ * are interpolated.  For commands that carry a remote-path argument the
+ * @p arg string is appended.
+ *
+ * Returns an empty string for Command::None and any unrecognised command
+ * value — callers should treat an empty result as a no-op.
+ *
+ * @param cmd      The command type to format.
+ * @param arg      The primary argument (remote path, type string, etc.).
+ * @param user     The FTP user name, used only for the USER command.
+ * @param password The FTP password, used only for the PASS command.
+ * @return The formatted FTP wire string (without the trailing CRLF).
+ */
+[[nodiscard]] QString formatCommand(FtpCommandQueue::Command cmd, const QString &arg,
+                                    const QString &user, const QString &password);
 
 // ---------------------------------------------------------------------------
 // Protocol parsing

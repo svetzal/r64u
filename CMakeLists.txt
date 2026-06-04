@@ -118,6 +118,7 @@ set(SOURCES
     src/services/diskbootsequenceservice.cpp
     src/core/filemetadatacore.cpp
     src/core/ftpcore.cpp
+    src/core/remotefiletreecore.cpp
     src/ftp/ftpcommandqueue.cpp
     src/ftp/ftptransferstate.cpp
     src/services/ftpresponsehandler.cpp
@@ -258,6 +259,7 @@ set(HEADERS
     src/services/diskbootsequenceservice.h
     src/core/filemetadatacore.h
     src/core/ftpcore.h
+    src/core/remotefiletreecore.h
     src/ftp/ftpcommandqueue.h
     src/ftp/ftptransferstate.h
     src/core/streamprotocolcore.h

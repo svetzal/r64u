@@ -2,12 +2,12 @@
 
 #include "core/filetypecore.h"
 #include "core/ftpclientmixin.h"
+#include "core/remotefiletreecore.h"
 #include "utils/logging.h"
 
 #include <QApplication>
 #include <QStyle>
 
-#include <algorithm>
 #include <functional>
 
 RemoteFileModel::RemoteFileModel(QObject *parent)
@@ -380,20 +380,11 @@ void RemoteFileModel::invalidatePath(const QString &path)
 bool RemoteFileModel::isStale(const QModelIndex &index) const
 {
     TreeNode *node = nodeFromIndex(index);
-    if (!node || !node->isDirectory || !node->fetched) {
-        return false;  // Not fetched yet, so not "stale"
+    if (!node || !node->isDirectory) {
+        return false;
     }
-
-    if (cacheTtlSeconds_ <= 0) {
-        return false;  // TTL disabled, never stale
-    }
-
-    if (!node->fetchedAt.isValid()) {
-        return true;  // No timestamp, treat as stale
-    }
-
-    qint64 ageSeconds = node->fetchedAt.secsTo(QDateTime::currentDateTime());
-    return ageSeconds >= cacheTtlSeconds_;
+    return remotefiletree::isStale(node->fetched, node->fetchedAt, QDateTime::currentDateTime(),
+                                   cacheTtlSeconds_);
 }
 
 void RemoteFileModel::refreshIfStale()
@@ -416,30 +407,8 @@ filetype::FileType RemoteFileModel::detectFileType(const QString &filename)
 
 QIcon RemoteFileModel::iconForFileType(filetype::FileType type)
 {
-    // Use standard icons as placeholders - can be replaced with custom icons
     QStyle *style = QApplication::style();
-
-    switch (type) {
-    case filetype::FileType::Directory:
-        return style->standardIcon(QStyle::SP_DirIcon);
-    case filetype::FileType::SidMusic:
-    case filetype::FileType::ModMusic:
-        return style->standardIcon(QStyle::SP_MediaVolume);
-    case filetype::FileType::Program:
-        return style->standardIcon(QStyle::SP_FileIcon);
-    case filetype::FileType::Cartridge:
-        return style->standardIcon(QStyle::SP_DriveHDIcon);
-    case filetype::FileType::DiskImage:
-        return style->standardIcon(QStyle::SP_DriveFDIcon);
-    case filetype::FileType::TapeImage:
-        return style->standardIcon(QStyle::SP_DriveCDIcon);
-    case filetype::FileType::Rom:
-        return style->standardIcon(QStyle::SP_FileDialogDetailedView);
-    case filetype::FileType::Config:
-        return style->standardIcon(QStyle::SP_FileDialogInfoView);
-    default:
-        return style->standardIcon(QStyle::SP_FileIcon);
-    }
+    return style->standardIcon(remotefiletree::standardPixmapFor(type));
 }
 
 QString RemoteFileModel::fileTypeString(filetype::FileType type)
@@ -578,16 +547,7 @@ void RemoteFileModel::populateNode(TreeNode *node, const QList<FtpEntry> &entrie
 
     if (!entries.isEmpty()) {
         // Sort entries: directories first, then alphabetically by name (case-insensitive)
-        QList<FtpEntry> sortedEntries = entries;
-        std::sort(sortedEntries.begin(), sortedEntries.end(),
-                  [](const FtpEntry &a, const FtpEntry &b) {
-                      // Directories come before files
-                      if (a.isDirectory != b.isDirectory) {
-                          return a.isDirectory;  // true (dir) < false (file)
-                      }
-                      // Same type: sort alphabetically (case-insensitive)
-                      return a.name.compare(b.name, Qt::CaseInsensitive) < 0;
-                  });
+        QList<FtpEntry> sortedEntries = remotefiletree::sortEntries(entries);
 
         qCDebug(LogFileOps) << "Model: beginInsertRows parentIndex:" << parentIndex << "rows 0 to"
                             << sortedEntries.count() - 1;
@@ -599,13 +559,7 @@ void RemoteFileModel::populateNode(TreeNode *node, const QList<FtpEntry> &entrie
             child->isDirectory = entry.isDirectory;
             child->size = entry.size;
             child->parent = node;
-
-            // Build full path
-            QString parentPath = node->fullPath;
-            if (!parentPath.endsWith('/')) {
-                parentPath += '/';
-            }
-            child->fullPath = parentPath + entry.name;
+            child->fullPath = remotefiletree::childPath(node->fullPath, entry.name);
 
             // Detect file type
             if (entry.isDirectory) {

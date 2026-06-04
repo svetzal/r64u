@@ -259,6 +259,110 @@ private slots:
         QCOMPARE(entries.size(), 1);
         QVERIFY(!entries[0].name.isEmpty());
     }
+
+    // =========================================================================
+    // formatCommand — FTP wire-string formatting
+    // =========================================================================
+
+    void formatCommand_User_IncludesUsername()
+    {
+        QString result = ftp::formatCommand(FtpCommandQueue::Command::User, {}, "alice", "secret");
+        QCOMPARE(result, QString("USER alice"));
+    }
+
+    void formatCommand_Pass_IncludesPassword()
+    {
+        QString result = ftp::formatCommand(FtpCommandQueue::Command::Pass, {}, "alice", "secret");
+        QCOMPARE(result, QString("PASS secret"));
+    }
+
+    void formatCommand_Pwd_NoArguments()
+    {
+        QString result = ftp::formatCommand(FtpCommandQueue::Command::Pwd, {}, {}, {});
+        QCOMPARE(result, QString("PWD"));
+    }
+
+    void formatCommand_Cwd_IncludesPath()
+    {
+        QString result = ftp::formatCommand(FtpCommandQueue::Command::Cwd, "/SD/Games", "u", "p");
+        QCOMPARE(result, QString("CWD /SD/Games"));
+    }
+
+    void formatCommand_Type_IncludesTypeArg()
+    {
+        QCOMPARE(ftp::formatCommand(FtpCommandQueue::Command::Type, "I", {}, {}),
+                 QString("TYPE I"));
+        QCOMPARE(ftp::formatCommand(FtpCommandQueue::Command::Type, "A", {}, {}),
+                 QString("TYPE A"));
+    }
+
+    void formatCommand_Pasv_NoArguments()
+    {
+        QCOMPARE(ftp::formatCommand(FtpCommandQueue::Command::Pasv, {}, {}, {}), QString("PASV"));
+    }
+
+    void formatCommand_List_WithPath()
+    {
+        QCOMPARE(ftp::formatCommand(FtpCommandQueue::Command::List, "/SD", {}, {}),
+                 QString("LIST /SD"));
+    }
+
+    void formatCommand_List_EmptyPath_NoTrailingSpace()
+    {
+        QCOMPARE(ftp::formatCommand(FtpCommandQueue::Command::List, {}, {}, {}), QString("LIST"));
+    }
+
+    void formatCommand_Retr_IncludesRemotePath()
+    {
+        QCOMPARE(ftp::formatCommand(FtpCommandQueue::Command::Retr, "/SD/file.prg", {}, {}),
+                 QString("RETR /SD/file.prg"));
+    }
+
+    void formatCommand_Stor_IncludesRemotePath()
+    {
+        QCOMPARE(ftp::formatCommand(FtpCommandQueue::Command::Stor, "/SD/upload.prg", {}, {}),
+                 QString("STOR /SD/upload.prg"));
+    }
+
+    void formatCommand_Mkd_IncludesPath()
+    {
+        QCOMPARE(ftp::formatCommand(FtpCommandQueue::Command::Mkd, "/SD/NewDir", {}, {}),
+                 QString("MKD /SD/NewDir"));
+    }
+
+    void formatCommand_Rmd_IncludesPath()
+    {
+        QCOMPARE(ftp::formatCommand(FtpCommandQueue::Command::Rmd, "/SD/OldDir", {}, {}),
+                 QString("RMD /SD/OldDir"));
+    }
+
+    void formatCommand_Dele_IncludesPath()
+    {
+        QCOMPARE(ftp::formatCommand(FtpCommandQueue::Command::Dele, "/SD/trash.prg", {}, {}),
+                 QString("DELE /SD/trash.prg"));
+    }
+
+    void formatCommand_RnFr_IncludesOldPath()
+    {
+        QCOMPARE(ftp::formatCommand(FtpCommandQueue::Command::RnFr, "/SD/old.prg", {}, {}),
+                 QString("RNFR /SD/old.prg"));
+    }
+
+    void formatCommand_RnTo_IncludesNewPath()
+    {
+        QCOMPARE(ftp::formatCommand(FtpCommandQueue::Command::RnTo, "/SD/new.prg", {}, {}),
+                 QString("RNTO /SD/new.prg"));
+    }
+
+    void formatCommand_Quit_NoArguments()
+    {
+        QCOMPARE(ftp::formatCommand(FtpCommandQueue::Command::Quit, {}, {}, {}), QString("QUIT"));
+    }
+
+    void formatCommand_None_ReturnsEmptyString()
+    {
+        QVERIFY(ftp::formatCommand(FtpCommandQueue::Command::None, {}, {}, {}).isEmpty());
+    }
 };
 
 QTEST_MAIN(TestFtpCore)

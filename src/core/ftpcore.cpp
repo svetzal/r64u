@@ -9,6 +9,45 @@
 
 namespace ftp {
 
+QString formatCommand(FtpCommandQueue::Command cmd, const QString &arg, const QString &user,
+                      const QString &password)
+{
+    switch (cmd) {
+    case FtpCommandQueue::Command::User:
+        return "USER " + user;
+    case FtpCommandQueue::Command::Pass:
+        return "PASS " + password;
+    case FtpCommandQueue::Command::Pwd:
+        return "PWD";
+    case FtpCommandQueue::Command::Cwd:
+        return "CWD " + arg;
+    case FtpCommandQueue::Command::Type:
+        return "TYPE " + arg;
+    case FtpCommandQueue::Command::Pasv:
+        return "PASV";
+    case FtpCommandQueue::Command::List:
+        return "LIST" + (arg.isEmpty() ? QString() : " " + arg);
+    case FtpCommandQueue::Command::Retr:
+        return "RETR " + arg;
+    case FtpCommandQueue::Command::Stor:
+        return "STOR " + arg;
+    case FtpCommandQueue::Command::Mkd:
+        return "MKD " + arg;
+    case FtpCommandQueue::Command::Rmd:
+        return "RMD " + arg;
+    case FtpCommandQueue::Command::Dele:
+        return "DELE " + arg;
+    case FtpCommandQueue::Command::RnFr:
+        return "RNFR " + arg;
+    case FtpCommandQueue::Command::RnTo:
+        return "RNTO " + arg;
+    case FtpCommandQueue::Command::Quit:
+        return "QUIT";
+    default:
+        return {};
+    }
+}
+
 std::optional<PassiveResult> parsePassiveResponse(const QString &text)
 {
     // Parse response like: 227 Entering Passive Mode (h1,h2,h3,h4,p1,p2)
