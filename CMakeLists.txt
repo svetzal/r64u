@@ -273,6 +273,7 @@ set(HEADERS
     src/services/playlistservice.h
     src/core/playlistcore.h
     src/core/transfercore.h
+    src/core/transfertypes.h
     src/services/ilocalfilesystemservice.h
     src/services/localfilesystemservice.h
     src/services/ifiledownloaderservice.h

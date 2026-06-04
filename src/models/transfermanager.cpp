@@ -22,38 +22,7 @@ TransferManager::TransferManager(QObject *parent)
       dirCreator_(new RemoteDirectoryCoordinator(state_, nullptr, localFs_, this)),
       folderCoordinator_(new FolderOperationCoordinator(state_, nullptr, localFs_, this))
 {
-    deleteHandler_ = new TransferDeleteHandler(state_, this);
-
-    ftpHandler_ = new TransferFtpHandler(state_, this);
-    ftpHandler_->setTimeoutManager(timeoutManager_);
-    ftpHandler_->setDirCreator(dirCreator_);
-    ftpHandler_->setScanCoordinator(scanCoordinator_);
-
-    dispatchHandler_ = new TransferDispatchHandler(state_, this);
-    dispatchHandler_->setLocalFileSystem(localFs_);
-    dispatchHandler_->setFolderCoordinator(folderCoordinator_);
-
-    deleteHandler_->setScanCoordinator(scanCoordinator_);
-    deleteHandler_->setDirCreator(dirCreator_);
-    deleteHandler_->setCreateBatchCallback([this](OperationType type, const QString &description,
-                                                  const QString &folderName,
-                                                  const QString &sourcePath) {
-        return createBatch(type, description, folderName, sourcePath);
-    });
-    folderCoordinator_->setCreateBatchCallback(
-        [this](transfer::OperationType type, const QString &description, const QString &folderName,
-               const QString &sourcePath) {
-            return createBatch(type, description, folderName, sourcePath);
-        });
-
-    enqueueHandler_ = new SingleFileEnqueueHandler(state_, localFs_, this);
-    enqueueHandler_->setCreateBatchCallback([this](OperationType type, const QString &description,
-                                                   const QString &folderName,
-                                                   const QString &sourcePath) {
-        return createBatch(type, description, folderName, sourcePath);
-    });
-    enqueueHandler_->setCompleteBatchCallback([this](int batchId) { completeBatch(batchId); });
-
+    transferwiring::buildCollaborators(*this);
     transferwiring::connectAll(*this);
 }
 
