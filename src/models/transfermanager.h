@@ -26,7 +26,7 @@ class TransferManager;
 namespace transferwiring {
 void buildCollaborators(TransferManager &);
 void connectAll(TransferManager &);
-}
+}  // namespace transferwiring
 
 using transfer::BatchProgress;
 using transfer::ConfirmationContext;
