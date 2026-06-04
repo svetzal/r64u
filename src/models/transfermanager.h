@@ -24,6 +24,7 @@
 // Forward declarations needed for the friend declaration below.
 class TransferManager;
 namespace transferwiring {
+void buildCollaborators(TransferManager &);
 void connectAll(TransferManager &);
 }
 
@@ -161,6 +162,7 @@ private slots:
     void onStartDirectoryCreationRequested(const QString &localDir, const QString &remoteDir);
     void onStartDirectoryCreationAfterDeleteRequested();
 
+    friend void transferwiring::buildCollaborators(TransferManager &);
     friend void transferwiring::connectAll(TransferManager &);
 
 private:

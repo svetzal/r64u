@@ -9,6 +9,42 @@
 
 namespace transferwiring {
 
+void buildCollaborators(TransferManager &mgr)
+{
+    mgr.deleteHandler_ = new TransferDeleteHandler(mgr.state_, &mgr);
+
+    mgr.ftpHandler_ = new TransferFtpHandler(mgr.state_, &mgr);
+    mgr.ftpHandler_->setTimeoutManager(mgr.timeoutManager_);
+    mgr.ftpHandler_->setDirCreator(mgr.dirCreator_);
+    mgr.ftpHandler_->setScanCoordinator(mgr.scanCoordinator_);
+
+    mgr.dispatchHandler_ = new TransferDispatchHandler(mgr.state_, &mgr);
+    mgr.dispatchHandler_->setLocalFileSystem(mgr.localFs_);
+    mgr.dispatchHandler_->setFolderCoordinator(mgr.folderCoordinator_);
+
+    mgr.deleteHandler_->setScanCoordinator(mgr.scanCoordinator_);
+    mgr.deleteHandler_->setDirCreator(mgr.dirCreator_);
+    mgr.deleteHandler_->setCreateBatchCallback(
+        [&mgr](OperationType type, const QString &description, const QString &folderName,
+               const QString &sourcePath) {
+            return mgr.createBatch(type, description, folderName, sourcePath);
+        });
+    mgr.folderCoordinator_->setCreateBatchCallback(
+        [&mgr](transfer::OperationType type, const QString &description, const QString &folderName,
+               const QString &sourcePath) {
+            return mgr.createBatch(type, description, folderName, sourcePath);
+        });
+
+    mgr.enqueueHandler_ = new SingleFileEnqueueHandler(mgr.state_, mgr.localFs_, &mgr);
+    mgr.enqueueHandler_->setCreateBatchCallback(
+        [&mgr](OperationType type, const QString &description, const QString &folderName,
+               const QString &sourcePath) {
+            return mgr.createBatch(type, description, folderName, sourcePath);
+        });
+    mgr.enqueueHandler_->setCompleteBatchCallback(
+        [&mgr](int batchId) { mgr.completeBatch(batchId); });
+}
+
 void connectAll(TransferManager &mgr)
 {
     // --- BatchManager ---
