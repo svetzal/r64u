@@ -11,7 +11,6 @@
 #include "services/irestclient.h"
 #include "services/playlistservice.h"
 #include "services/streamingservice.h"
-#include "utils/logging.h"
 
 #include <QAction>
 #include <QTreeView>
@@ -228,8 +227,8 @@ void FileActionController::loadConfig(const QString &path, filetype::FileType ty
     if (configFileLoader_) {
         configFileLoader_->loadConfigFile(path);
     } else {
-        qCWarning(LogUi) << "loadConfig: configFileLoader_ is null, cannot load" << path;
-        emit statusMessage(tr("Configuration loader not available"));
+        errorHandler_->handleError(ErrorCategory::System, ErrorSeverity::Warning,
+                                   tr("Configuration loader not available"));
     }
 }
 

@@ -282,6 +282,31 @@ private slots:
         QVERIFY(spy.at(0).at(0).toString().contains("Not connected"));
     }
 
+    void testLoadConfig_NullConfigFileLoader_EmitsErrorViaErrorHandler()
+    {
+        // Connected device but configFileLoader_ is null
+        auto *connection = makeConnection();
+        // Bring the connection into Connected state so the null-loader branch is reached
+        connection->setHost("192.168.1.64");
+        connection->connectToDevice();
+        DeviceInfo info;
+        info.product = "Ultimate 64";
+        emit connection->restClient()->infoReceived(info);
+        emit connection->ftpClient()->connected();
+        QVERIFY(connection->canPerformOperations());
+
+        auto *actionService = makeActionService(connection);
+        auto *errorHandler = makeErrorHandler();
+        auto *controller =
+            new FileActionController(actionService, connection, nullptr, errorHandler, this);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
+
+        controller->loadConfig("/settings.cfg", filetype::FileType::Config);
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("Configuration loader not available"));
+    }
+
     // ==========================================================================
     // addToPlaylist()
     // ==========================================================================

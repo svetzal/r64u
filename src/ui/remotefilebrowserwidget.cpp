@@ -320,7 +320,8 @@ void RemoteFileBrowserWidget::onDownload()
 void RemoteFileBrowserWidget::onNewFolder()
 {
     if (!connected_) {
-        qCWarning(LogUi) << "onNewFolder skipped: not connected";
+        errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
+                                   tr("Cannot create folder"), tr("Not connected to device"));
         return;
     }
 
@@ -349,7 +350,8 @@ void RemoteFileBrowserWidget::onNewFolder()
 void RemoteFileBrowserWidget::onRename()
 {
     if (!connected_) {
-        qCWarning(LogUi) << "onRename skipped: not connected";
+        errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
+                                   tr("Cannot rename"), tr("Not connected to device"));
         return;
     }
 
@@ -387,6 +389,8 @@ void RemoteFileBrowserWidget::onRename()
 void RemoteFileBrowserWidget::onDelete()
 {
     if (!connected_) {
+        errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
+                                   tr("Cannot delete"), tr("Not connected to device"));
         return;
     }
 

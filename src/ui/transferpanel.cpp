@@ -204,10 +204,14 @@ void TransferPanel::onUploadRequested(const QString &localPath, bool isDirectory
 
     if (isDirectory) {
         if (!transferService_->uploadDirectory(localPath, remoteDir))
-            qCWarning(LogUi) << "Upload not queued (disconnected):" << localPath;
+            errorHandler_->handleError(
+                ErrorCategory::Connection, ErrorSeverity::Warning, tr("Upload not started"),
+                tr("Cannot upload %1: not connected to device").arg(localPath));
     } else {
         if (!transferService_->uploadFile(localPath, remoteDir))
-            qCWarning(LogUi) << "Upload not queued (disconnected):" << localPath;
+            errorHandler_->handleError(
+                ErrorCategory::Connection, ErrorSeverity::Warning, tr("Upload not started"),
+                tr("Cannot upload %1: not connected to device").arg(localPath));
     }
 }
 
@@ -224,10 +228,14 @@ void TransferPanel::onDownloadRequested(const QString &remotePath, bool isDirect
 
     if (isDirectory) {
         if (!transferService_->downloadDirectory(remotePath, downloadDir))
-            qCWarning(LogUi) << "Download not queued (disconnected):" << remotePath;
+            errorHandler_->handleError(
+                ErrorCategory::Connection, ErrorSeverity::Warning, tr("Download not started"),
+                tr("Cannot download %1: not connected to device").arg(remotePath));
     } else {
         if (!transferService_->downloadFile(remotePath, downloadDir))
-            qCWarning(LogUi) << "Download not queued (disconnected):" << remotePath;
+            errorHandler_->handleError(
+                ErrorCategory::Connection, ErrorSeverity::Warning, tr("Download not started"),
+                tr("Cannot download %1: not connected to device").arg(remotePath));
     }
 }
 
@@ -241,9 +249,13 @@ void TransferPanel::onDeleteRequested(const QString &remotePath, bool isDirector
 
     if (isDirectory) {
         if (!transferService_->deleteRecursive(remotePath))
-            qCWarning(LogUi) << "Delete not queued (disconnected):" << remotePath;
+            errorHandler_->handleError(
+                ErrorCategory::Connection, ErrorSeverity::Warning, tr("Delete not started"),
+                tr("Cannot delete %1: not connected to device").arg(remotePath));
     } else {
         if (!transferService_->deleteRemote(remotePath, false))
-            qCWarning(LogUi) << "Delete not queued (disconnected):" << remotePath;
+            errorHandler_->handleError(
+                ErrorCategory::Connection, ErrorSeverity::Warning, tr("Delete not started"),
+                tr("Cannot delete %1: not connected to device").arg(remotePath));
     }
 }

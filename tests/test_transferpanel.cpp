@@ -57,6 +57,21 @@ private:
                                  makeErrorHandler());
     }
 
+    TransferPanel *makePanelWithErrorHandler(ErrorHandler *&outErrorHandler)
+    {
+        mockRest_ = new MockRestClient(this);
+        mockFtp_ = new MockFtpClient(this);
+        connection_ = new DeviceConnectionManager(mockRest_, mockFtp_, this);
+        remoteModel_ = new RemoteFileModel(this);
+        queue_ = new TransferQueue(this);
+        transferService_ = new TransferService(connection_, queue_, this);
+        fileOperations_ = new RemoteFileOperationsService(mockFtp_, this);
+
+        outErrorHandler = makeErrorHandler();
+        return new TransferPanel(connection_, remoteModel_, transferService_, fileOperations_,
+                                 outErrorHandler);
+    }
+
 private slots:
     void init()
     {
@@ -178,6 +193,88 @@ private slots:
     {
         auto *panel = makePanel();
         QCOMPARE(panel->fileOperations(), fileOperations_);
+    }
+
+    // =========================================================================
+    // Disconnected transfer operations — error routed through ErrorHandler
+    // =========================================================================
+
+    void testOnUploadRequested_WhenDisconnected_EmitsErrorViaErrorHandler()
+    {
+        ErrorHandler *errorHandler = nullptr;
+        auto *panel = makePanelWithErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
+
+        QMetaObject::invokeMethod(panel, "onUploadRequested", Q_ARG(QString, "/local/file.prg"),
+                                  Q_ARG(bool, false));
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("not connected"));
+    }
+
+    void testOnUploadDirectoryRequested_WhenDisconnected_EmitsErrorViaErrorHandler()
+    {
+        ErrorHandler *errorHandler = nullptr;
+        auto *panel = makePanelWithErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
+
+        QMetaObject::invokeMethod(panel, "onUploadRequested", Q_ARG(QString, "/local/mydir"),
+                                  Q_ARG(bool, true));
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("not connected"));
+    }
+
+    void testOnDownloadRequested_WhenDisconnected_EmitsErrorViaErrorHandler()
+    {
+        ErrorHandler *errorHandler = nullptr;
+        auto *panel = makePanelWithErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
+
+        QMetaObject::invokeMethod(panel, "onDownloadRequested", Q_ARG(QString, "/SD/file.prg"),
+                                  Q_ARG(bool, false));
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("not connected"));
+    }
+
+    void testOnDownloadDirectoryRequested_WhenDisconnected_EmitsErrorViaErrorHandler()
+    {
+        ErrorHandler *errorHandler = nullptr;
+        auto *panel = makePanelWithErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
+
+        QMetaObject::invokeMethod(panel, "onDownloadRequested", Q_ARG(QString, "/SD/Games"),
+                                  Q_ARG(bool, true));
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("not connected"));
+    }
+
+    void testOnDeleteRequested_WhenDisconnected_EmitsErrorViaErrorHandler()
+    {
+        ErrorHandler *errorHandler = nullptr;
+        auto *panel = makePanelWithErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
+
+        QMetaObject::invokeMethod(panel, "onDeleteRequested", Q_ARG(QString, "/SD/file.prg"),
+                                  Q_ARG(bool, false));
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("not connected"));
+    }
+
+    void testOnDeleteDirectoryRequested_WhenDisconnected_EmitsErrorViaErrorHandler()
+    {
+        ErrorHandler *errorHandler = nullptr;
+        auto *panel = makePanelWithErrorHandler(errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
+
+        QMetaObject::invokeMethod(panel, "onDeleteRequested", Q_ARG(QString, "/SD/Games"),
+                                  Q_ARG(bool, true));
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("not connected"));
     }
 };
 

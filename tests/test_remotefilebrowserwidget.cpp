@@ -235,6 +235,46 @@ private slots:
         widget.onConnectionStateChanged(false);
         QVERIFY(true);  // No crash
     }
+
+    // =========================================================================
+    // Disconnected user operations — error routed through ErrorHandler
+    // =========================================================================
+
+    void testOnNewFolder_WhenDisconnected_EmitsErrorViaErrorHandler()
+    {
+        auto *errorHandler = makeErrorHandler();
+        RemoteFileBrowserWidget widget(model_, errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
+
+        QMetaObject::invokeMethod(&widget, "onNewFolder");
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("Not connected"));
+    }
+
+    void testOnRename_WhenDisconnected_EmitsErrorViaErrorHandler()
+    {
+        auto *errorHandler = makeErrorHandler();
+        RemoteFileBrowserWidget widget(model_, errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
+
+        QMetaObject::invokeMethod(&widget, "onRename");
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("Not connected"));
+    }
+
+    void testOnDelete_WhenDisconnected_EmitsErrorViaErrorHandler()
+    {
+        auto *errorHandler = makeErrorHandler();
+        RemoteFileBrowserWidget widget(model_, errorHandler);
+        QSignalSpy spy(errorHandler, &ErrorHandler::statusMessage);
+
+        QMetaObject::invokeMethod(&widget, "onDelete");
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("Not connected"));
+    }
 };
 
 QTEST_MAIN(TestRemoteFileBrowserWidget)
