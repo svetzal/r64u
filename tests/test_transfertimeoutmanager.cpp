@@ -1,4 +1,4 @@
-#include "models/transfertimeoutmanager.h"
+#include "services/transfertimeoutmanager.h"
 
 #include <QSignalSpy>
 #include <QtTest>

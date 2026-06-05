@@ -1,9 +1,8 @@
 #ifndef TRANSFERQUEUE_H
 #define TRANSFERQUEUE_H
 
-#include "transfermanager.h"
-
 #include "core/transfercore.h"
+#include "services/transfermanager.h"
 
 #include <QAbstractListModel>
 #include <QString>

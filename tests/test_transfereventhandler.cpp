@@ -1,4 +1,4 @@
-#include "models/transfereventhandler.h"
+#include "services/transfereventhandler.h"
 
 #include <QtTest>
 

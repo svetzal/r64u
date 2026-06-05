@@ -91,7 +91,7 @@ add_executable(test_batchmanager
     test_batchmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${TRANSFER_CORE_SOURCES}
-    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/batchmanager.cpp
 )
 
 target_include_directories(test_batchmanager PRIVATE
@@ -121,15 +121,15 @@ add_executable(test_transferqueue
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferwiring.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/singlefileenqueuehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdispatchhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdeletehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
@@ -165,15 +165,15 @@ add_executable(test_transfermanager
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferwiring.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/singlefileenqueuehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdispatchhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdeletehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
@@ -400,7 +400,7 @@ add_executable(test_transferdeletehandler
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdeletehandler.cpp
 )
 target_include_directories(test_transferdeletehandler PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -736,15 +736,15 @@ add_executable(test_transferservice
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferwiring.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/singlefileenqueuehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdispatchhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdeletehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
@@ -1046,15 +1046,15 @@ if(BUILD_INTEGRATION_TESTS)
         ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
         ${TRANSFER_CORE_SOURCES}
         ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-        ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
-        ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
-        ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
-        ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
-        ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-        ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/transferwiring.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/singlefileenqueuehandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/transferdispatchhandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/transferdeletehandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/transferftphandler.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/batchmanager.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/transfertimeoutmanager.cpp
+        ${CMAKE_SOURCE_DIR}/src/services/transfereventhandler.cpp
         ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
         ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
         ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
@@ -2061,7 +2061,7 @@ endif()
 # TransferTimeoutManager tests - isolated unit tests with configurable timeout
 add_executable(test_transfertimeoutmanager
     test_transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfertimeoutmanager.cpp
 )
 
 target_include_directories(test_transfertimeoutmanager PRIVATE
@@ -2083,7 +2083,7 @@ endif()
 # TransferEventHandler tests - isolated unit tests for deferred event queue
 add_executable(test_transfereventhandler
     test_transfereventhandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfereventhandler.cpp
 )
 
 target_include_directories(test_transfereventhandler PRIVATE
@@ -2113,7 +2113,7 @@ add_executable(test_transferdispatchhandler
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
-    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdispatchhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
@@ -2145,7 +2145,7 @@ add_executable(test_singlefileenqueuehandler
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
-    ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/singlefileenqueuehandler.cpp
 )
 
 target_include_directories(test_singlefileenqueuehandler PRIVATE
@@ -2176,8 +2176,8 @@ add_executable(test_transferftphandler
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
-    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfertimeoutmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
 )
@@ -2706,15 +2706,15 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferwiring.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/singlefileenqueuehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdispatchhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdeletehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
@@ -2881,15 +2881,15 @@ add_executable(test_transferpanel
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferwiring.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/singlefileenqueuehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdispatchhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdeletehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/localfileproxymodel.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
@@ -3083,15 +3083,15 @@ add_executable(test_transferqueuewidget
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferwiring.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/singlefileenqueuehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdispatchhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdeletehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
@@ -3157,15 +3157,15 @@ add_executable(test_batchprogresswidget
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferwiring.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/singlefileenqueuehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdispatchhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdeletehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
@@ -3402,15 +3402,15 @@ add_executable(test_transferprogresswidget
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferwiring.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/singlefileenqueuehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdispatchhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdeletehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
@@ -3461,15 +3461,15 @@ add_executable(test_transferprogresscontainer
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferwiring.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/singlefileenqueuehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdispatchhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdeletehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
@@ -3755,15 +3755,15 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/localfileproxymodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfermanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferwiring.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/singlefileenqueuehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdispatchhandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferdeletehandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferftphandler.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/batchmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfertimeoutmanager.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transfereventhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferwiring.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/singlefileenqueuehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdispatchhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdeletehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfereventhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/models/configurationmodel.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp

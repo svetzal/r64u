@@ -158,15 +158,15 @@ set(SOURCES
     src/models/remotefilemodel.cpp
     src/models/localfileproxymodel.cpp
     src/models/transferqueue.cpp
-    src/models/transfermanager.cpp
-    src/models/transferwiring.cpp
-    src/models/singlefileenqueuehandler.cpp
-    src/models/transferdeletehandler.cpp
-    src/models/transferdispatchhandler.cpp
-    src/models/transferftphandler.cpp
-    src/models/batchmanager.cpp
-    src/models/transfertimeoutmanager.cpp
-    src/models/transfereventhandler.cpp
+    src/services/transfermanager.cpp
+    src/services/transferwiring.cpp
+    src/services/singlefileenqueuehandler.cpp
+    src/services/transferdeletehandler.cpp
+    src/services/transferdispatchhandler.cpp
+    src/services/transferftphandler.cpp
+    src/services/batchmanager.cpp
+    src/services/transfertimeoutmanager.cpp
+    src/services/transfereventhandler.cpp
     src/models/configurationmodel.cpp
     src/ftp/recursivescancoordinator.cpp
     src/ftp/remotedirectorycoordinator.cpp
@@ -294,15 +294,15 @@ set(HEADERS
     src/models/remotefilemodel.h
     src/models/localfileproxymodel.h
     src/models/transferqueue.h
-    src/models/transfermanager.h
-    src/models/transferwiring.h
-    src/models/singlefileenqueuehandler.h
-    src/models/transferdeletehandler.h
-    src/models/transferdispatchhandler.h
-    src/models/transferftphandler.h
-    src/models/batchmanager.h
-    src/models/transfertimeoutmanager.h
-    src/models/transfereventhandler.h
+    src/services/transfermanager.h
+    src/services/transferwiring.h
+    src/services/singlefileenqueuehandler.h
+    src/services/transferdeletehandler.h
+    src/services/transferdispatchhandler.h
+    src/services/transferftphandler.h
+    src/services/batchmanager.h
+    src/services/transfertimeoutmanager.h
+    src/services/transfereventhandler.h
     src/models/configurationmodel.h
     src/ftp/recursivescancoordinator.h
     src/ftp/remotedirectorycoordinator.h

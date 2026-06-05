@@ -265,18 +265,26 @@ Each suffix or prefix represents a distinct architectural role. New classes must
 
 ## Source Directory Layout
 
-The project uses three directories for production code beneath `src/`:
+The project uses six directories for production code beneath `src/`:
 
 | Directory | Contains |
 |-----------|----------|
 | `src/core/` | All `*Core` namespaces (pure functions and data types, no I/O or state) and pure-function/data-structure utility classes. Includes parsers (`HvscParser`, `SonglengthsParser`), type-safe helpers (`FtpClientMixin`, `NetworkErrorUtils`), and every `*core.h/.cpp` pair. New pure logic belongs here. |
 | `src/ftp/` | FTP protocol value types with no service-layer dependencies: `FtpEntry`, `FtpCommandQueue`, `FtpTransferState`, and FTP coordinator classes (`RecursiveScanCoordinator`, `RemoteDirectoryCoordinator`, `FolderOperationCoordinator`). |
-| `src/services/` | Stateful `*Service` classes, gateway interfaces (`I*`), and service-wiring types only. No `*core.h` files live here. |
+| `src/services/` | Stateful `*Service` classes, gateway interfaces (`I*`), service-wiring types, and non-UI `*Manager`/`*Handler`/wiring classes (e.g. `TransferManager`, `BatchManager`, `TransferFtpHandler`, `TransferWiring`). No `*core.h` files live here. |
+| `src/models/` | Qt view-model classes (`QAbstractItemModel`/`QSortFilterProxyModel` subclasses) and model-role state holders: `RemoteFileModel`, `LocalFileProxyModel`, `TransferQueue`, `ConfigurationModel`. |
+| `src/ui/` | UI-tied `*Controller`/`*Coordinator`/`*Handler`/builder classes (e.g. `ConnectionTestHandler`, `FileActionController`, `PanelCoordinator`) and all Qt widget/dialog subclasses. |
+| `src/utils/` | Cross-cutting non-Qt utilities: `logging`, `RollingStats`. |
 
 Include paths reflect these boundaries:
 - Code in `src/core/` uses `"core/<name>.h"` when referencing other `src/core/` files from outside that directory.
 - Code in `src/ftp/` uses `"ftp/<name>.h"` when referenced from outside `src/ftp/`.
-- `src/services/` headers that are not yet in `src/core/` or `src/ftp/` use `"services/<name>.h"` from other directories.
+- `src/services/` headers use `"services/<name>.h"` from other directories.
+- `src/models/` headers use `"models/<name>.h"` from outside that directory.
+- `src/ui/` headers use `"ui/<name>.h"` from outside that directory.
+- `src/utils/` headers use `"utils/<name>.h"` from outside that directory.
+
+**Role-to-location mapping:** non-UI `*Manager`/`*Handler`/wiring classes belong in `src/services/`; UI-tied equivalents in `src/ui/`; Qt view-models in `src/models/`; pure functions and data types in `src/core/`.
 
 ## Error Handling Strategy
 

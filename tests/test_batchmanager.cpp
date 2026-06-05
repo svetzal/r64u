@@ -1,5 +1,5 @@
 #include "core/transfercore.h"
-#include "models/batchmanager.h"
+#include "services/batchmanager.h"
 
 #include <QSignalSpy>
 #include <QTest>

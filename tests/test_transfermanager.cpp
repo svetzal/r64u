@@ -1,5 +1,5 @@
 #include "mocks/mockftpclient.h"
-#include "models/transfermanager.h"
+#include "services/transfermanager.h"
 
 #include <QSignalSpy>
 #include <QTemporaryDir>

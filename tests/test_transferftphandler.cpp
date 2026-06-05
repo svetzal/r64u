@@ -3,7 +3,7 @@
 #include "ftp/remotedirectorycoordinator.h"
 #include "mocks/mockftpclient.h"
 #include "mocks/mocklocalfilesystemservice.h"
-#include "models/transferftphandler.h"
+#include "services/transferftphandler.h"
 
 #include <QSignalSpy>
 #include <QtTest>

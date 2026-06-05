@@ -1,6 +1,6 @@
 #include "transferqueue.h"
 
-#include "transfermanager.h"
+#include "services/transfermanager.h"
 
 TransferQueue::TransferQueue(QObject *parent)
     : QAbstractListModel(parent), orchestrator_(new TransferManager(this))

@@ -7,7 +7,7 @@
 #include "ftp/folderoperationcoordinator.h"
 #include "mocks/mockftpclient.h"
 #include "mocks/mocklocalfilesystemservice.h"
-#include "models/transferdispatchhandler.h"
+#include "services/transferdispatchhandler.h"
 
 #include <QSignalSpy>
 #include <QtTest>
