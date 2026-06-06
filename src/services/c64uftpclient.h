@@ -179,6 +179,7 @@ private:
                           std::shared_ptr<QFile> file, bool isMemory);
     void queueStorCommand(const QString &remotePath, const QString &localPath,
                           std::shared_ptr<QFile> file);
+    void queueTransferPrelude(const QString &typeCode);
     void processNextCommand();
     void drainCommandQueue();
     void resetTransferState();

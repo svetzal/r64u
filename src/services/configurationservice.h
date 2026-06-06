@@ -107,6 +107,14 @@ signals:
 
 private:
     [[nodiscard]] bool ensureCanPerformOperations(const QString &operation);
+    [[nodiscard]] IRestClient *restClient() const;
+
+    template <typename Operation> void performOperation(const QString &name, Operation &&op)
+    {
+        if (!ensureCanPerformOperations(name))
+            return;
+        op(restClient());
+    }
 
     DeviceConnectionManager *deviceConnection_ = nullptr;
 };
