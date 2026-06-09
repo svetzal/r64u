@@ -72,8 +72,8 @@ constexpr int AudioBitsPerSample = 16;
 struct ChunkInfo
 {
     QByteArray fourCC;  ///< "00dc" for video keyframe, "01wb" for audio
-    qint64 offset;      ///< Byte offset relative to movi LIST start
-    int size;           ///< Chunk data size (before padding)
+    qint64 offset = 0;  ///< Byte offset relative to movi LIST start
+    int size = 0;       ///< Chunk data size (before padding)
 };
 
 /**

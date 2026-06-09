@@ -49,9 +49,9 @@ public:
         QByteArray diskName;
         QByteArray diskId;
         QByteArray dosType;
-        quint16 freeBlocks;
+        quint16 freeBlocks = 0;
         QVector<DirectoryEntry> entries;
-        Format format;
+        Format format = Format::Unknown;
     };
 
     DiskImageReader();

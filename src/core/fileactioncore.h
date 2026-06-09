@@ -72,7 +72,7 @@ struct ShowSidDetails
 {
     QByteArray data;      ///< Raw SID file bytes
     QString path;         ///< Remote path of the file
-    bool updatePlaylist;  ///< True if playlist manager is available for duration update
+    bool updatePlaylist = false;  ///< True if playlist manager is available for duration update
 };
 
 /**

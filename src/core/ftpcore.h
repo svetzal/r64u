@@ -29,7 +29,7 @@ struct PassiveResult
  */
 struct FtpResponseLine
 {
-    int code;      ///< Three-digit FTP response code
+    int code = 0;  ///< Three-digit FTP response code
     QString text;  ///< Response text following the code
 };
 
