@@ -70,8 +70,8 @@ struct ShowDiskDirectory
  */
 struct ShowSidDetails
 {
-    QByteArray data;      ///< Raw SID file bytes
-    QString path;         ///< Remote path of the file
+    QByteArray data;              ///< Raw SID file bytes
+    QString path;                 ///< Remote path of the file
     bool updatePlaylist = false;  ///< True if playlist manager is available for duration update
 };
 
