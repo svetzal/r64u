@@ -14,7 +14,8 @@
     {
       "name": "format",
       "command": "cmake --build build --target format-check",
-      "required": true
+      "required": true,
+      "fix_command": "cmake --build build --target format"
     },
     {
       "name": "doxygen",
