@@ -8,9 +8,12 @@
 #include <QAbstractItemModel>
 #include <QFileInfo>
 #include <QHeaderView>
+#include <QInputDialog>
 #include <QItemSelectionModel>
 #include <QLabel>
 #include <QMenu>
+#include <QMessageBox>
+#include <QPushButton>
 #include <QSet>
 #include <QToolBar>
 #include <QTreeView>
@@ -95,30 +98,66 @@ void FileBrowserWidget::setupConnections()
     }
 }
 
-QStringList FileBrowserWidget::selectedPaths() const
+QList<FileBrowserWidget::SelectedEntry> FileBrowserWidget::selectedEntries() const
 {
-    QStringList paths;
+    QList<SelectedEntry> entries;
     if (!treeView_ || !treeView_->selectionModel()) {
-        return paths;
+        return entries;
     }
 
-    // Get all selected indexes, filter to column 0 only (avoid duplicates from multi-column
-    // selection)
     QModelIndexList selectedIndexes = treeView_->selectionModel()->selectedIndexes();
-    QSet<QString> seenPaths;  // Deduplicate
+    QSet<QString> seenPaths;
 
     for (const QModelIndex &index : selectedIndexes) {
         if (index.column() != 0) {
-            continue;  // Only process first column to avoid duplicates
+            continue;
         }
         QString path = filePath(index);
         if (!path.isEmpty() && !seenPaths.contains(path)) {
             seenPaths.insert(path);
-            paths.append(path);
+            entries.append({path, isDirectory(index)});
         }
     }
 
+    return entries;
+}
+
+QStringList FileBrowserWidget::selectedPaths() const
+{
+    QStringList paths;
+    for (const auto &entry : selectedEntries()) {
+        paths.append(entry.path);
+    }
     return paths;
+}
+
+bool FileBrowserWidget::confirmDestructiveAction(const QString &title, const QString &message,
+                                                 const QString &acceptText, QMessageBox::Icon icon)
+{
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle(title);
+    msgBox.setText(message);
+    msgBox.setIcon(icon);
+    QPushButton *acceptButton = msgBox.addButton(acceptText, QMessageBox::DestructiveRole);
+    msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
+    msgBox.exec();
+    return msgBox.clickedButton() == acceptButton;
+}
+
+QString FileBrowserWidget::promptForNewName(const QString &title, const QString &oldName) const
+{
+    bool ok;
+    QString newName = QInputDialog::getText(const_cast<FileBrowserWidget *>(this), title,
+                                            tr("New name:"), QLineEdit::Normal, oldName, &ok);
+    if (!ok || newName.isEmpty() || newName == oldName) {
+        return {};
+    }
+    if (newName.contains('/') || newName.contains('\\')) {
+        QMessageBox::warning(const_cast<FileBrowserWidget *>(this), tr("Invalid Name"),
+                             tr("The name cannot contain '/' or '\\' characters."));
+        return {};
+    }
+    return newName;
 }
 
 void FileBrowserWidget::updateCommonActions(bool extraCondition)

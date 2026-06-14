@@ -13,10 +13,8 @@
 #include <QFileInfo>
 #include <QHeaderView>
 #include <QInputDialog>
-#include <QItemSelectionModel>
 #include <QMenu>
 #include <QMessageBox>
-#include <QPushButton>
 #include <QShowEvent>
 #include <QToolBar>
 #include <QTreeView>
@@ -293,35 +291,33 @@ void RemoteFileBrowserWidget::onContextMenu(const QPoint &pos)
     }
 }
 
+bool RemoteFileBrowserWidget::requireConnected(const QString &cannotMessage)
+{
+    if (!connected_) {
+        errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning, cannotMessage,
+                                   tr("Not connected to device"));
+        return false;
+    }
+    return true;
+}
+
 void RemoteFileBrowserWidget::onDownload()
 {
-    QStringList paths = selectedPaths();
-    if (paths.isEmpty()) {
+    auto entries = selectedEntries();
+    if (entries.isEmpty()) {
         errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
                                    tr("No remote file selected"));
         return;
     }
 
-    // Emit download request for each selected file
-    for (const QString &remotePath : paths) {
-        // Find the index for this path to check if it's a directory
-        bool isDir = false;
-        QModelIndexList matches = treeView_->selectionModel()->selectedIndexes();
-        for (const QModelIndex &idx : matches) {
-            if (idx.column() == 0 && remoteFileModel_->filePath(idx) == remotePath) {
-                isDir = remoteFileModel_->isDirectory(idx);
-                break;
-            }
-        }
-        emit downloadRequested(remotePath, isDir);
+    for (const auto &e : entries) {
+        emit downloadRequested(e.path, e.isDirectory);
     }
 }
 
 void RemoteFileBrowserWidget::onNewFolder()
 {
-    if (!connected_) {
-        errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
-                                   tr("Cannot create folder"), tr("Not connected to device"));
+    if (!requireConnected(tr("Cannot create folder"))) {
         return;
     }
 
@@ -349,9 +345,7 @@ void RemoteFileBrowserWidget::onNewFolder()
 
 void RemoteFileBrowserWidget::onRename()
 {
-    if (!connected_) {
-        errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
-                                   tr("Cannot rename"), tr("Not connected to device"));
+    if (!requireConnected(tr("Cannot rename"))) {
         return;
     }
 
@@ -363,17 +357,8 @@ void RemoteFileBrowserWidget::onRename()
     QString oldName = QFileInfo(remotePath).fileName();
     QString itemType = isSelectedDirectory() ? tr("folder") : tr("file");
 
-    bool ok;
-    QString newName = QInputDialog::getText(this, tr("Rename Remote %1").arg(itemType),
-                                            tr("New name:"), QLineEdit::Normal, oldName, &ok);
-
-    if (!ok || newName.isEmpty() || newName == oldName) {
-        return;
-    }
-
-    if (!controller_->isValidName(newName)) {
-        QMessageBox::warning(this, tr("Invalid Name"),
-                             tr("The name cannot contain '/' or '\\' characters."));
+    QString newName = promptForNewName(tr("Rename Remote %1").arg(itemType), oldName);
+    if (newName.isEmpty()) {
         return;
     }
 
@@ -388,43 +373,28 @@ void RemoteFileBrowserWidget::onRename()
 
 void RemoteFileBrowserWidget::onDelete()
 {
-    if (!connected_) {
-        errorHandler_->handleError(ErrorCategory::Connection, ErrorSeverity::Warning,
-                                   tr("Cannot delete"), tr("Not connected to device"));
+    if (!requireConnected(tr("Cannot delete"))) {
         return;
     }
 
-    QStringList paths = selectedPaths();
-    if (paths.isEmpty()) {
+    auto entries = selectedEntries();
+    if (entries.isEmpty()) {
         return;
+    }
+
+    QStringList paths;
+    for (const auto &e : entries) {
+        paths.append(e.path);
     }
 
     QString confirmMessage = controller_->buildDeleteConfirmMessage(paths, isSelectedDirectory());
-
-    QMessageBox msgBox(this);
-    msgBox.setWindowTitle(tr("Delete"));
-    msgBox.setText(confirmMessage);
-    msgBox.setIcon(QMessageBox::Warning);
-    QPushButton *deleteButton = msgBox.addButton(tr("Delete"), QMessageBox::DestructiveRole);
-    msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
-    msgBox.exec();
-
-    if (msgBox.clickedButton() != deleteButton) {
+    if (!confirmDestructiveAction(tr("Delete"), confirmMessage, tr("Delete"),
+                                  QMessageBox::Warning)) {
         return;
     }
 
-    // Delete each selected file
-    for (const QString &remotePath : paths) {
-        // Find the index to check if it's a directory
-        bool isDir = false;
-        QModelIndexList matches = treeView_->selectionModel()->selectedIndexes();
-        for (const QModelIndex &idx : matches) {
-            if (idx.column() == 0 && remoteFileModel_->filePath(idx) == remotePath) {
-                isDir = remoteFileModel_->isDirectory(idx);
-                break;
-            }
-        }
-        emit deleteRequested(remotePath, isDir);
+    for (const auto &e : entries) {
+        emit deleteRequested(e.path, e.isDirectory);
     }
 
     if (paths.size() == 1) {

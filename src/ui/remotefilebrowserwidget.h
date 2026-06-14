@@ -90,6 +90,17 @@ private slots:
 private:
     void setSuppressAutoRefresh(bool suppress);
 
+    /**
+     * @brief Emits a connection-error and returns false when disconnected.
+     *
+     * Callers use `if (!requireConnected(tr("Cannot ..."))) return;` to guard
+     * operations that require an active connection.
+     *
+     * @param cannotMessage Short description of what cannot be done (e.g. "Cannot delete").
+     * @return true if connected, false otherwise.
+     */
+    bool requireConnected(const QString &cannotMessage);
+
     // Dependencies (not owned)
     RemoteFileModel *remoteFileModel_ = nullptr;
     RemoteFileOperationsService *fileOperations_ = nullptr;

@@ -12,7 +12,6 @@
 #include <QInputDialog>
 #include <QMenu>
 #include <QMessageBox>
-#include <QPushButton>
 #include <QStandardPaths>
 #include <QToolBar>
 #include <QTreeView>
@@ -211,17 +210,15 @@ void LocalFileBrowserWidget::setCurrentDirectory(const QString &path)
 
 void LocalFileBrowserWidget::onUpload()
 {
-    QStringList paths = selectedPaths();
-    if (paths.isEmpty()) {
+    auto entries = selectedEntries();
+    if (entries.isEmpty()) {
         errorHandler_->handleError(ErrorCategory::Validation, ErrorSeverity::Warning,
                                    tr("No local file selected"));
         return;
     }
 
-    // Emit upload request for each selected file
-    for (const QString &localPath : paths) {
-        QFileInfo fileInfo(localPath);
-        emit uploadRequested(localPath, fileInfo.isDir());
+    for (const auto &e : entries) {
+        emit uploadRequested(e.path, e.isDirectory);
     }
 }
 
@@ -249,21 +246,8 @@ void LocalFileBrowserWidget::onRename()
     QString oldName = fileInfo.fileName();
     QString itemType = fileInfo.isDir() ? tr("folder") : tr("file");
 
-    bool ok;
-    QString newName = QInputDialog::getText(this, tr("Rename %1").arg(itemType), tr("New name:"),
-                                            QLineEdit::Normal, oldName, &ok);
-
-    if (!ok || newName.isEmpty()) {
-        return;
-    }
-
-    if (newName == oldName) {
-        return;
-    }
-
-    if (newName.contains('/') || newName.contains('\\')) {
-        QMessageBox::warning(this, tr("Invalid Name"),
-                             tr("The name cannot contain '/' or '\\' characters."));
+    QString newName = promptForNewName(tr("Rename %1").arg(itemType), oldName);
+    if (newName.isEmpty()) {
         return;
     }
 
@@ -291,16 +275,8 @@ void LocalFileBrowserWidget::onDelete()
             tr("Are you sure you want to move %1 items to the trash?").arg(paths.size());
     }
 
-    QMessageBox msgBox(this);
-    msgBox.setWindowTitle(tr("Move to Trash"));
-    msgBox.setText(confirmMessage);
-    msgBox.setIcon(QMessageBox::Question);
-    QPushButton *trashButton = msgBox.addButton(tr("Move to Trash"), QMessageBox::AcceptRole);
-    msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
-    msgBox.setDefaultButton(trashButton);
-    msgBox.exec();
-
-    if (msgBox.clickedButton() != trashButton) {
+    if (!confirmDestructiveAction(tr("Move to Trash"), confirmMessage, tr("Move to Trash"),
+                                  QMessageBox::Question)) {
         return;
     }
 

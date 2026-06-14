@@ -206,6 +206,18 @@ private slots:
     }
 
     // =========================================================================
+    // selectedEntries() — no selection returns empty list, consistent with selectedPaths()
+    // =========================================================================
+
+    void testSelectedEntries_NoSelection_ReturnsEmpty()
+    {
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
+        auto entries = widget.selectedEntries();
+        QVERIFY(entries.isEmpty());
+        QVERIFY(widget.selectedPaths().isEmpty());
+    }
+
+    // =========================================================================
     // setDownloadEnabled() — does not crash
     // =========================================================================
 

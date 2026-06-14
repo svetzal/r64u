@@ -68,6 +68,18 @@ private slots:
     }
 
     // =========================================================================
+    // selectedEntries() — no selection returns empty list, consistent with selectedPaths()
+    // =========================================================================
+
+    void testSelectedEntries_NoSelection_ReturnsEmpty()
+    {
+        LocalFileBrowserWidget widget(makeErrorHandler());
+        auto entries = widget.selectedEntries();
+        QVERIFY(entries.isEmpty());
+        QVERIFY(widget.selectedPaths().isEmpty());
+    }
+
+    // =========================================================================
     // setCurrentDirectory() — updates accessor
     // =========================================================================
 

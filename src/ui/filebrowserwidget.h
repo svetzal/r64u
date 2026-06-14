@@ -1,6 +1,8 @@
 #ifndef FILEBROWSERWIDGET_H
 #define FILEBROWSERWIDGET_H
 
+#include <QList>
+#include <QMessageBox>
 #include <QString>
 #include <QWidget>
 
@@ -52,10 +54,28 @@ public:
     [[nodiscard]] virtual QString selectedPath() const = 0;
 
     /**
-     * @brief Returns the paths of all selected items.
+     * @brief A selected file system entry with its path and directory flag.
+     */
+    struct SelectedEntry
+    {
+        QString path;
+        bool isDirectory;
+    };
+
+    /**
+     * @brief Returns all selected items with their path and directory flag.
      *
      * Filters to column 0 only and deduplicates, using the virtual filePath()
-     * method to map model indexes to paths.
+     * and isDirectory() methods to populate each entry.
+     *
+     * @return List of selected entries.
+     */
+    [[nodiscard]] QList<SelectedEntry> selectedEntries() const;
+
+    /**
+     * @brief Returns the paths of all selected items.
+     *
+     * Delegates to selectedEntries() for a consistent single selection-walk.
      *
      * @return List of selected paths.
      */
@@ -162,6 +182,29 @@ protected:
      *                       Defaults to true (always allow for local panels).
      */
     void updateCommonActions(bool extraCondition = true);
+
+    /**
+     * @brief Shows a destructive-confirmation dialog and returns whether the user accepted.
+     * @param title Window title (e.g. "Delete", "Move to Trash").
+     * @param message Body text asking the user to confirm.
+     * @param acceptText Label on the accept button (e.g. "Delete", "Move to Trash").
+     * @param icon Icon severity shown in the dialog.
+     * @return true if the user clicked the accept button, false otherwise.
+     */
+    bool confirmDestructiveAction(const QString &title, const QString &message,
+                                  const QString &acceptText, QMessageBox::Icon icon);
+
+    /**
+     * @brief Shows an input dialog for a new name and validates it.
+     *
+     * Returns empty string if the user cancels, leaves the name unchanged,
+     * or enters a name containing '/' or '\\'.
+     *
+     * @param title Dialog window title (e.g. "Rename folder").
+     * @param oldName Pre-filled current name.
+     * @return The validated new name, or an empty string.
+     */
+    [[nodiscard]] QString promptForNewName(const QString &title, const QString &oldName) const;
 
     /**
      * @brief Returns the label text for this browser.
