@@ -3816,3 +3816,8 @@ if(BUILD_COVERAGE)
     add_coverage_target(mainwindow test_mainwindow)
     add_dependencies(coverage coverage_mainwindow)
 endif()
+
+# All tests run with the offscreen Qt platform so they work without a display (CI/coverage)
+get_property(all_tests DIRECTORY PROPERTY TESTS)
+set_tests_properties(${all_tests} PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
