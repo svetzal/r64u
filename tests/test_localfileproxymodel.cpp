@@ -220,6 +220,15 @@ private slots:
         }
 
         QModelIndex nameIdx = fsModel_->index(row, 0, rootIdx);
+
+        // Wait for file size metadata to be populated (QFileSystemModel is async)
+        for (int elapsed = 0; elapsed < 5000; elapsed += 50) {
+            if (fsModel_->size(nameIdx) > 0)
+                break;
+            QCoreApplication::processEvents();
+            QTest::qWait(50);
+        }
+
         QModelIndex proxyNameIdx = proxyModel_->mapFromSource(nameIdx);
         QModelIndex proxySizeIdx = proxyNameIdx.sibling(proxyNameIdx.row(), 1);
 
