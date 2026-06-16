@@ -160,4 +160,21 @@ FtpResponseParse splitResponseLines(const QString &buffer)
     return result;
 }
 
+QList<CommandSpec> buildListSequence(const QString &path)
+{
+    return {{FtpCommandQueue::Command::Type, "A"},
+            {FtpCommandQueue::Command::Pasv, {}},
+            {FtpCommandQueue::Command::List, path}};
+}
+
+QList<CommandSpec> buildDownloadPrelude()
+{
+    return {{FtpCommandQueue::Command::Type, "I"}, {FtpCommandQueue::Command::Pasv, {}}};
+}
+
+QList<CommandSpec> buildUploadPrelude()
+{
+    return {{FtpCommandQueue::Command::Type, "I"}, {FtpCommandQueue::Command::Pasv, {}}};
+}
+
 }  // namespace ftp

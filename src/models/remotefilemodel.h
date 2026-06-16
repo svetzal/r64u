@@ -2,13 +2,12 @@
 #define REMOTEFILEMODEL_H
 
 #include "core/filetypecore.h"
+#include "ftp/remotelistingcoordinator.h"
 #include "services/iftpclient.h"
 
 #include <QAbstractItemModel>
 #include <QDateTime>
 #include <QIcon>
-#include <QPointer>
-#include <QSet>
 
 class RemoteFileModel : public QAbstractItemModel
 {
@@ -103,8 +102,8 @@ signals:
     void errorOccurred(const QString &message);
 
 private slots:
-    void onDirectoryListed(const QString &path, const QList<FtpEntry> &entries);
-    void onFtpError(const QString &message);
+    void onListingReady(const QString &path, const QList<FtpEntry> &entries);
+    void onListingFailed(const QString &message);
 
 private:
     struct TreeNode
@@ -129,15 +128,12 @@ private:
     TreeNode *findNodeByPath(const QString &path) const;
     void populateNode(TreeNode *node, const QList<FtpEntry> &entries);
 
-    QPointer<IFtpClient> ftpClient_;
+    RemoteListingCoordinator *coordinator_;
     TreeNode *rootNode_ = nullptr;
     QString rootPath_ = "/";
 
-    // Map pending fetch paths to parent nodes
+    // Map pending fetch paths to parent nodes (tree-side tracking)
     QHash<QString, TreeNode *> pendingFetches_;
-
-    // Track paths we explicitly requested (to ignore listings from other components)
-    QSet<QString> requestedListings_;
 
     // Cache TTL in seconds (0 = infinite, no automatic expiry)
     int cacheTtlSeconds_ = 30;

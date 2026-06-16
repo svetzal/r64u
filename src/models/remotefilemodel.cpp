@@ -1,7 +1,6 @@
 #include "remotefilemodel.h"
 
 #include "core/filetypecore.h"
-#include "core/ftpclientmixin.h"
 #include "core/remotefiletreecore.h"
 #include "utils/logging.h"
 
@@ -11,46 +10,42 @@
 #include <functional>
 
 RemoteFileModel::RemoteFileModel(QObject *parent)
-    : QAbstractItemModel(parent), rootNode_(new TreeNode)
+    : QAbstractItemModel(parent), coordinator_(new RemoteListingCoordinator(this)),
+      rootNode_(new TreeNode)
 {
     rootNode_->name = "/";
     rootNode_->fullPath = "/";
     rootNode_->isDirectory = true;
     rootNode_->fileType = filetype::FileType::Directory;
+
+    connect(coordinator_, &RemoteListingCoordinator::listingReady, this,
+            &RemoteFileModel::onListingReady);
+    connect(coordinator_, &RemoteListingCoordinator::listingFailed, this,
+            &RemoteFileModel::onListingFailed);
 }
 
 RemoteFileModel::~RemoteFileModel()
 {
-    // Disconnect from FTP client BEFORE deleting nodes to prevent
+    // Disconnect coordinator from FTP client BEFORE deleting nodes to prevent
     // signals from being delivered to slots that access deleted memory.
-    // Qt's automatic disconnection happens in QObject::~QObject() which
-    // runs AFTER this destructor body.
-    disconnectFtpClient(ftpClient_, this);
+    coordinator_->setFtpClient(nullptr);
 
     delete rootNode_;
 }
 
 void RemoteFileModel::setFtpClient(IFtpClient *client)
 {
-    disconnectFtpClient(ftpClient_, this);
-
-    ftpClient_ = client;
-
-    if (ftpClient_) {
-        connect(ftpClient_, &IFtpClient::directoryListed, this,
-                &RemoteFileModel::onDirectoryListed);
-        connect(ftpClient_, &IFtpClient::error, this, &RemoteFileModel::onFtpError);
-    }
+    coordinator_->setFtpClient(client);
 }
 
 void RemoteFileModel::setRootPath(const QString &path)
 {
     beginResetModel();
 
-    // Clear pending operations BEFORE deleting nodes to prevent dangling pointer access
+    // Cancel pending operations BEFORE deleting nodes to prevent dangling pointer access
     // if a signal is delivered between deletion and clearing
+    coordinator_->cancelPending();
     pendingFetches_.clear();
-    requestedListings_.clear();
 
     rootPath_ = path;
     delete rootNode_;
@@ -230,8 +225,8 @@ void RemoteFileModel::fetchMore(const QModelIndex &parent)
                             << "fetching=" << (node ? node->fetching : false) << ")";
         return;
     }
-    if (!ftpClient_) {
-        qCWarning(LogFileOps) << "fetchMore: ftpClient_ is null, cannot fetch" << node->fullPath;
+    if (!coordinator_->hasFtpClient()) {
+        qCWarning(LogFileOps) << "fetchMore: no FTP client, cannot fetch" << node->fullPath;
         emit errorOccurred(tr("Cannot list %1: not connected to device").arg(node->fullPath));
         return;
     }
@@ -247,10 +242,9 @@ void RemoteFileModel::fetchMore(const QModelIndex &parent)
     node->fetched = false;
     node->fetching = true;
     pendingFetches_[node->fullPath] = node;
-    requestedListings_.insert(node->fullPath);
 
     emit loadingStarted(node->fullPath);
-    ftpClient_->list(node->fullPath);
+    coordinator_->requestListing(node->fullPath);
 }
 
 Qt::ItemFlags RemoteFileModel::flags(const QModelIndex &index) const
@@ -308,7 +302,7 @@ void RemoteFileModel::refresh(const QModelIndex &index)
         std::function<void(TreeNode *)> cleanupPendingOps = [this,
                                                              &cleanupPendingOps](TreeNode *n) {
             pendingFetches_.remove(n->fullPath);
-            requestedListings_.remove(n->fullPath);
+            coordinator_->cancelPath(n->fullPath);
             for (TreeNode *child : n->children) {
                 cleanupPendingOps(child);
             }
@@ -334,17 +328,16 @@ void RemoteFileModel::clear()
 {
     beginResetModel();
 
-    // Clear pending operations BEFORE deleting nodes to prevent dangling pointer access
+    // Cancel pending operations BEFORE deleting nodes to prevent dangling pointer access
+    coordinator_->cancelPending();
     pendingFetches_.clear();
-    requestedListings_.clear();
 
     // Clear all children but keep the root node structure
     if (rootNode_) {
         qDeleteAll(rootNode_->children);
         rootNode_->children.clear();
-        rootNode_->fetched = false;
+        remotefiletree::markStale(rootNode_->fetched, rootNode_->fetchedAt);
         rootNode_->fetching = false;
-        rootNode_->fetchedAt = QDateTime();
     }
 
     endResetModel();
@@ -355,8 +348,7 @@ void RemoteFileModel::invalidateCache()
     // Recursively mark all nodes as stale
     std::function<void(TreeNode *)> invalidateNode = [&](TreeNode *node) {
         if (node->fetched) {
-            node->fetched = false;
-            node->fetchedAt = QDateTime();
+            remotefiletree::markStale(node->fetched, node->fetchedAt);
         }
         for (TreeNode *child : node->children) {
             invalidateNode(child);
@@ -372,8 +364,7 @@ void RemoteFileModel::invalidatePath(const QString &path)
 {
     TreeNode *node = findNodeByPath(path);
     if (node) {
-        node->fetched = false;
-        node->fetchedAt = QDateTime();
+        remotefiletree::markStale(node->fetched, node->fetchedAt);
     }
 }
 
@@ -389,7 +380,7 @@ bool RemoteFileModel::isStale(const QModelIndex &index) const
 
 void RemoteFileModel::refreshIfStale()
 {
-    if (!ftpClient_) {
+    if (!coordinator_->hasFtpClient()) {
         qCDebug(LogFileOps) << "refreshIfStale: skipped, FTP client not set";
         return;
     }
@@ -416,30 +407,17 @@ QString RemoteFileModel::fileTypeString(filetype::FileType type)
     return filetype::displayName(type);
 }
 
-void RemoteFileModel::onDirectoryListed(const QString &path, const QList<FtpEntry> &entries)
+void RemoteFileModel::onListingReady(const QString &path, const QList<FtpEntry> &entries)
 {
-    qCDebug(LogFileOps) << "Model: onDirectoryListed path:" << path << "entries:" << entries.size();
-    qCDebug(LogFileOps) << "Model: requestedListings_:" << requestedListings_;
-
-    // Ignore listings we didn't request (e.g., from TransferQueue's delete scanning)
-    if (!requestedListings_.contains(path)) {
-        qCDebug(LogFileOps) << "Model: Ignoring listing for path we didn't request:" << path;
-        return;
-    }
-    requestedListings_.remove(path);
-
+    qCDebug(LogFileOps) << "Model: onListingReady path:" << path << "entries:" << entries.size();
     qCDebug(LogFileOps) << "Model: pendingFetches_ keys:" << pendingFetches_.keys();
 
     TreeNode *node = pendingFetches_.take(path);
     if (!node) {
-        // If we requested this listing (it was in requestedListings_) but there's no
-        // corresponding node in pendingFetches_, something is wrong. Don't try to guess
-        // which node to use - this could cause entries to be added to the wrong node.
-        qCWarning(LogFileOps) << "Model: Listing for" << path
-                              << "was in requestedListings_ but not in pendingFetches_"
+        // The coordinator already filtered out unrequested listings, so reaching
+        // here without a node in pendingFetches_ indicates a bug.
+        qCWarning(LogFileOps) << "Model: Listing for" << path << "arrived but no pending node found"
                               << "- this indicates a bug. Ignoring to prevent corruption.";
-        qCWarning(LogFileOps) << "Model: rootPath_:" << rootPath_
-                              << "pendingFetches_ keys:" << pendingFetches_.keys();
         emit loadingFinished(path);
         return;
     }
@@ -458,21 +436,19 @@ void RemoteFileModel::onDirectoryListed(const QString &path, const QList<FtpEntr
     }
 
     node->fetching = false;
-    node->fetched = true;
-    node->fetchedAt = QDateTime::currentDateTime();
+    remotefiletree::markFetched(node->fetched, node->fetchedAt, QDateTime::currentDateTime());
 
     populateNode(node, entries);
     emit loadingFinished(path);
 }
 
-void RemoteFileModel::onFtpError(const QString &message)
+void RemoteFileModel::onListingFailed(const QString &message)
 {
     // Mark any pending fetches as failed
     for (TreeNode *node : pendingFetches_.values()) {
         node->fetching = false;
     }
     pendingFetches_.clear();
-    requestedListings_.clear();  // Also clear this to prevent stale listings from being processed
 
     emit errorOccurred(message);
 }

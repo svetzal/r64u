@@ -154,14 +154,11 @@ void TransferManager::enqueueDownload(const QString &remotePath, const QString &
 
 void TransferManager::enqueueRecursiveUpload(const QString &localDir, const QString &remoteDir)
 {
-    if (!ftpClient_ || !ftpClient_->isConnected()) {
-        qCWarning(LogTransfer) << "enqueueRecursiveUpload skipped: FTP not connected";
-        emit operationFailed(QFileInfo(localDir).fileName(), tr("Not connected to device"));
-        return;
-    }
-
-    if (!localFs_->directoryExists(localDir)) {
-        emit operationFailed(QFileInfo(localDir).fileName(), tr("Local directory does not exist"));
+    auto err = transfer::validateEnqueuePreconditions(ftpClient_ && ftpClient_->isConnected(),
+                                                      localFs_->directoryExists(localDir));
+    if (err) {
+        qCWarning(LogTransfer) << "enqueueRecursiveUpload skipped:" << *err;
+        emit operationFailed(QFileInfo(localDir).fileName(), tr(err->toUtf8().constData()));
         return;
     }
 
@@ -170,9 +167,11 @@ void TransferManager::enqueueRecursiveUpload(const QString &localDir, const QStr
 
 void TransferManager::enqueueRecursiveDownload(const QString &remoteDir, const QString &localDir)
 {
-    if (!ftpClient_ || !ftpClient_->isConnected()) {
-        qCWarning(LogTransfer) << "enqueueRecursiveDownload skipped: FTP not connected";
-        emit operationFailed(QFileInfo(remoteDir).fileName(), tr("Not connected to device"));
+    auto err =
+        transfer::validateEnqueuePreconditions(ftpClient_ && ftpClient_->isConnected(), true);
+    if (err) {
+        qCWarning(LogTransfer) << "enqueueRecursiveDownload skipped:" << *err;
+        emit operationFailed(QFileInfo(remoteDir).fileName(), tr(err->toUtf8().constData()));
         return;
     }
 
@@ -333,8 +332,7 @@ void TransferManager::clear()
 
 void TransferManager::cancelAll()
 {
-    if (ftpClient_ && (state_.queueState == QueueState::Transferring ||
-                       state_.queueState == QueueState::Deleting)) {
+    if (ftpClient_ && transfer::shouldAbortFtp(state_.queueState)) {
         ftpClient_->abort();
     }
 
@@ -358,9 +356,7 @@ void TransferManager::cancelBatch(int batchId)
     }
 
     bool isActive = (batchIdx == state_.activeBatchIndex);
-    if (isActive && ftpClient_ &&
-        (state_.queueState == QueueState::Transferring ||
-         state_.queueState == QueueState::Deleting)) {
+    if (isActive && ftpClient_ && transfer::shouldAbortFtp(state_.queueState)) {
         ftpClient_->abort();
     }
 

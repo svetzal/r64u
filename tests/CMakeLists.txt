@@ -444,6 +444,7 @@ add_executable(test_remotefilemodel
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
 )
 
@@ -466,6 +467,34 @@ add_test(NAME RemoteFileModelTest COMMAND test_remotefilemodel)
 if(BUILD_COVERAGE)
     add_coverage_target(remotefilemodel test_remotefilemodel)
     add_dependencies(coverage coverage_remotefilemodel)
+endif()
+
+# RemoteListingCoordinator tests - isolated unit tests using mock FTP client
+add_executable(test_remotelistingcoordinator
+    test_remotelistingcoordinator.cpp
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
+)
+
+target_include_directories(test_remotelistingcoordinator PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for mocks/mockftpclient.h
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_remotelistingcoordinator PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+)
+
+add_test(NAME RemoteListingCoordinatorTest COMMAND test_remotelistingcoordinator)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(remotelistingcoordinator test_remotelistingcoordinator)
+    add_dependencies(coverage coverage_remotelistingcoordinator)
 endif()
 
 # DeviceConnectionManager tests - tests state machine using real clients with signal injection
@@ -819,6 +848,7 @@ add_executable(test_errorsourceconnector
     ${CMAKE_SOURCE_DIR}/src/services/configfileloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.cpp
@@ -1084,6 +1114,7 @@ add_executable(test_filebrowsersync
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
 )
@@ -2252,6 +2283,7 @@ add_executable(test_fileactioncontroller
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/fileactioncontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
@@ -2323,6 +2355,7 @@ add_executable(test_previewcoordinator
     ${CMAKE_SOURCE_DIR}/src/core/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/previewcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
@@ -2442,6 +2475,7 @@ add_executable(test_panelcoordinator
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/panelcoordinator.cpp
     # Header listed so AUTOMOC generates moc file for TransferService (Q_OBJECT vtable)
@@ -2704,6 +2738,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
@@ -2879,6 +2914,7 @@ add_executable(test_transferpanel
     ${TRANSFER_CORE_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
@@ -2941,6 +2977,7 @@ add_executable(test_remotefilebrowserwidget
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowsercontroller.cpp
@@ -3752,6 +3789,7 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/services/systemcommandcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/streamingdiagnosticswidget.cpp
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/localfileproxymodel.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp

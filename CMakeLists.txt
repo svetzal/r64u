@@ -171,6 +171,7 @@ set(SOURCES
     src/ftp/recursivescancoordinator.cpp
     src/ftp/remotedirectorycoordinator.cpp
     src/ftp/folderoperationcoordinator.cpp
+    src/ftp/remotelistingcoordinator.cpp
 )
 
 set(HEADERS

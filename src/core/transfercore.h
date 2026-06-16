@@ -14,6 +14,8 @@
 
 #include <QVariant>
 
+#include <optional>
+
 namespace transfer {
 
 // ---------------------------------------------------------------------------
@@ -83,6 +85,31 @@ namespace transfer {
 /// @brief Returns true if the state machine allows processNext() to run.
 /// Only QueueState::Idle allows processing.
 [[nodiscard]] bool canProcessNext(QueueState queueState);
+
+// ---------------------------------------------------------------------------
+// FTP abort decision
+// ---------------------------------------------------------------------------
+
+/// @brief Returns true if cancelling should trigger an FTP client abort().
+///
+/// Only the Transferring and Deleting states have an active FTP data connection
+/// that must be aborted; all other states are idle and need no abort.
+[[nodiscard]] bool shouldAbortFtp(QueueState queueState);
+
+// ---------------------------------------------------------------------------
+// Enqueue precondition validation
+// ---------------------------------------------------------------------------
+
+/// @brief Validates the preconditions for enqueueing a recursive operation.
+///
+/// Returns an error message string when a precondition fails, or
+/// std::nullopt when all preconditions are satisfied.
+///
+/// @param connected       True if the FTP client is currently connected.
+/// @param localDirExists  True if the required local directory exists.
+///                        Pass true for download operations (no local-dir check).
+[[nodiscard]] std::optional<QString> validateEnqueuePreconditions(bool connected,
+                                                                  bool localDirExists);
 
 // ---------------------------------------------------------------------------
 // Progress computation

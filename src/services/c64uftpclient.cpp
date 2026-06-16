@@ -144,12 +144,6 @@ void C64UFtpClient::queueStorCommand(const QString &remotePath, const QString &l
     }
 }
 
-void C64UFtpClient::queueTransferPrelude(const QString &typeCode)
-{
-    queueCommand(Command::Type, typeCode);
-    queueCommand(Command::Pasv);
-}
-
 void C64UFtpClient::processNextCommand()
 {
     if (commandQueue_.isEmpty()) {
@@ -486,8 +480,9 @@ void C64UFtpClient::list(const QString &path)
 {
     if (!ensureLoggedIn(tr("list directory")))
         return;
-    queueTransferPrelude("A");
-    queueCommand(Command::List, path);
+    for (const auto &spec : ftp::buildListSequence(path)) {
+        queueCommand(spec.cmd, spec.arg);
+    }
 }
 
 void C64UFtpClient::changeDirectory(const QString &path)
@@ -523,7 +518,9 @@ void C64UFtpClient::download(const QString &remotePath, const QString &localPath
     }
 
     transferState_.setTransferSize(0);
-    queueTransferPrelude("I");
+    for (const auto &spec : ftp::buildDownloadPrelude()) {
+        queueCommand(spec.cmd, spec.arg);
+    }
     queueRetrCommand(remotePath, localPath, std::move(file), false);
 }
 
@@ -534,7 +531,9 @@ void C64UFtpClient::downloadToMemory(const QString &remotePath)
 
     transferState_.clearRetrBuffer();
     transferState_.setTransferSize(0);
-    queueTransferPrelude("I");
+    for (const auto &spec : ftp::buildDownloadPrelude()) {
+        queueCommand(spec.cmd, spec.arg);
+    }
     queueRetrCommand(remotePath, QString(), nullptr, true);
 }
 
@@ -550,7 +549,9 @@ void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
     }
 
     transferState_.setTransferSize(file->size());
-    queueTransferPrelude("I");
+    for (const auto &spec : ftp::buildUploadPrelude()) {
+        queueCommand(spec.cmd, spec.arg);
+    }
     queueStorCommand(remotePath, localPath, std::move(file));
 }
 

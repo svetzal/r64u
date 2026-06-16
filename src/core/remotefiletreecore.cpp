@@ -27,6 +27,18 @@ bool isStale(bool fetched, const QDateTime &fetchedAt, const QDateTime &now, int
     return ageSeconds >= static_cast<qint64>(ttlSeconds);
 }
 
+void markFetched(bool &fetched, QDateTime &fetchedAt, const QDateTime &now)
+{
+    fetched = true;
+    fetchedAt = now;
+}
+
+void markStale(bool &fetched, QDateTime &fetchedAt)
+{
+    fetched = false;
+    fetchedAt = QDateTime();
+}
+
 QList<FtpEntry> sortEntries(QList<FtpEntry> entries)
 {
     std::sort(entries.begin(), entries.end(), [](const FtpEntry &a, const FtpEntry &b) {

@@ -104,11 +104,10 @@ Qt::ItemFlags RemoteFileModel::flags(const QModelIndex & /*index*/) const
 }
 
 // MOC-required private slots
-void RemoteFileModel::onDirectoryListed(const QString & /*path*/,
-                                        const QList<FtpEntry> & /*entries*/)
+void RemoteFileModel::onListingReady(const QString & /*path*/, const QList<FtpEntry> & /*entries*/)
 {
 }
-void RemoteFileModel::onFtpError(const QString & /*message*/) {}
+void RemoteFileModel::onListingFailed(const QString & /*message*/) {}
 
 // ---------------------------------------------------------------------------
 // DeviceConnectionManager stubs

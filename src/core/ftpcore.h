@@ -119,6 +119,49 @@ struct FtpResponseParse
  */
 [[nodiscard]] FtpResponseParse splitResponseLines(const QString &buffer);
 
+// ---------------------------------------------------------------------------
+// Transfer command-sequence builders
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief A command enum value paired with its argument string.
+ */
+struct CommandSpec
+{
+    FtpCommandQueue::Command cmd = FtpCommandQueue::Command::None;  ///< The FTP command to execute
+    QString arg;  ///< Argument for the command (may be empty)
+};
+
+/**
+ * @brief Builds the complete command sequence for an ASCII directory listing.
+ *
+ * Returns: TYPE A, PASV, LIST @p path.
+ *
+ * @param path Remote directory path to list.
+ * @return Ordered list of commands the client should enqueue.
+ */
+[[nodiscard]] QList<CommandSpec> buildListSequence(const QString &path);
+
+/**
+ * @brief Builds the binary-mode transfer prelude commands for a download.
+ *
+ * Returns: TYPE I, PASV.
+ * The caller must still enqueue the RETR command with its file handle.
+ *
+ * @return Ordered list of prelude commands to enqueue before RETR.
+ */
+[[nodiscard]] QList<CommandSpec> buildDownloadPrelude();
+
+/**
+ * @brief Builds the binary-mode transfer prelude commands for an upload.
+ *
+ * Returns: TYPE I, PASV.
+ * The caller must still enqueue the STOR command with its file handle.
+ *
+ * @return Ordered list of prelude commands to enqueue before STOR.
+ */
+[[nodiscard]] QList<CommandSpec> buildUploadPrelude();
+
 }  // namespace ftp
 
 #endif  // FTPCORE_H

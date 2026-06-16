@@ -147,6 +147,22 @@ bool canProcessNext(QueueState queueState)
     return queueState == QueueState::Idle;
 }
 
+bool shouldAbortFtp(QueueState queueState)
+{
+    return queueState == QueueState::Transferring || queueState == QueueState::Deleting;
+}
+
+std::optional<QString> validateEnqueuePreconditions(bool connected, bool localDirExists)
+{
+    if (!connected) {
+        return QString("Not connected to device");
+    }
+    if (!localDirExists) {
+        return QString("Local directory does not exist");
+    }
+    return std::nullopt;
+}
+
 // ---------------------------------------------------------------------------
 // Progress computation
 // ---------------------------------------------------------------------------

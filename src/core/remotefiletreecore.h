@@ -49,6 +49,25 @@ namespace remotefiletree {
                            int ttlSeconds);
 
 // ---------------------------------------------------------------------------
+// Fetch-state mutation helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief Marks a node's fetch state as successfully completed.
+ * @param fetched  Out: set to true.
+ * @param fetchedAt Out: set to @p now.
+ * @param now      Timestamp to record as the fetch time.
+ */
+void markFetched(bool &fetched, QDateTime &fetchedAt, const QDateTime &now);
+
+/**
+ * @brief Marks a node's fetch state as stale (clears it for re-fetch).
+ * @param fetched   Out: set to false.
+ * @param fetchedAt Out: set to an invalid QDateTime.
+ */
+void markStale(bool &fetched, QDateTime &fetchedAt);
+
+// ---------------------------------------------------------------------------
 // Entry sorting
 // ---------------------------------------------------------------------------
 
