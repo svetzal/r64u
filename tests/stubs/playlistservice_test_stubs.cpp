@@ -13,6 +13,7 @@
  * SonglengthsDatabaseService (MD5, ZLIB, SQL, etc.).
  */
 
+#include "services/ierroremitter.h"
 #include "services/songlengthsdatabaseservice.h"
 #include "services/streamingservice.h"
 
@@ -22,7 +23,7 @@
 
 SonglengthsDatabaseService::SonglengthsDatabaseService(IFileDownloaderService * /*downloader*/,
                                                        QObject *parent)
-    : QObject(parent), manager_(nullptr)
+    : IErrorEmitter(parent), manager_(nullptr)
 {
 }
 
@@ -43,7 +44,7 @@ StreamingService::StreamingService(DeviceConnectionManager * /*connection*/,
                                    IAudioPlaybackService * /*audioPlayback*/,
                                    KeyboardInputService * /*keyboardInput*/,
                                    INetworkInterfaceProvider * /*networkProvider*/, QObject *parent)
-    : QObject(parent)
+    : IErrorEmitter(parent)
 {
 }
 

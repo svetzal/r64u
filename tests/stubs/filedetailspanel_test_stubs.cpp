@@ -8,6 +8,7 @@
  * All method bodies return empty/default values.
  */
 
+#include "services/ierroremitter.h"
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
 #include "services/songlengthsdatabaseservice.h"
@@ -17,7 +18,7 @@
 // ---------------------------------------------------------------------------
 
 GameBase64Service::GameBase64Service(IFileDownloaderService * /*downloader*/, QObject *parent)
-    : QObject(parent)
+    : IErrorEmitter(parent)
 {
 }
 
@@ -91,7 +92,7 @@ bool GameBase64Service::decompressGzip(const QString & /*gzipPath*/, const QStri
 HVSCMetadataService::HVSCMetadataService(IFileDownloaderService * /*stilDownloader*/,
                                          IFileDownloaderService * /*buglistDownloader*/,
                                          QObject *parent)
-    : QObject(parent)
+    : IErrorEmitter(parent)
 {
 }
 
@@ -165,7 +166,7 @@ bool HVSCMetadataService::parseBuglistFile(const QString & /*filePath*/)
 
 SonglengthsDatabaseService::SonglengthsDatabaseService(IFileDownloaderService * /*downloader*/,
                                                        QObject *parent)
-    : QObject(parent), manager_(nullptr)
+    : IErrorEmitter(parent), manager_(nullptr)
 {
 }
 

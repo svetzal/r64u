@@ -3,6 +3,12 @@ enable_testing()
 
 find_package(Qt6 REQUIRED COMPONENTS Test)
 
+# IErrorEmitter MOC source — required by every target that links IFtpClient, IRestClient,
+# or any other class that now inherits IErrorEmitter.
+set(IERROREMITTER_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/services/ierroremitter.cpp
+)
+
 # Mock FTP client - implements IFtpClient for runtime injection
 set(MOCK_FTP_SOURCES
     mocks/mockftpclient.cpp
@@ -113,6 +119,7 @@ endif()
 # TransferQueue tests - uses MockFtpClient and LocalFileSystemService (production) via interface injection
 add_executable(test_transferqueue
     test_transferqueue.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -158,6 +165,7 @@ endif()
 # TransferManager tests - uses MockFtpClient, tests orchestration logic without QAbstractListModel
 add_executable(test_transfermanager
     test_transfermanager.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -200,6 +208,7 @@ endif()
 # Coordinator tests - isolated unit tests using MockLocalFileSystemService (no real disk I/O)
 add_executable(test_coordinators
     test_coordinators.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${MOCK_LOCAL_FS_SOURCES}
@@ -307,6 +316,7 @@ endif()
 # RecursiveScanCoordinator tests - isolated unit tests using mock FTP and local FS
 add_executable(test_recursivescancoordinator
     test_recursivescancoordinator.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${MOCK_LOCAL_FS_SOURCES}
@@ -334,6 +344,7 @@ endif()
 # RemoteDirectoryCoordinator tests - isolated unit tests using mock FTP and local FS
 add_executable(test_remotedirectorycoordinator
     test_remotedirectorycoordinator.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${MOCK_LOCAL_FS_SOURCES}
@@ -361,6 +372,7 @@ endif()
 # FolderOperationCoordinator tests - isolated unit tests using mock FTP and local FS
 add_executable(test_folderoperationcoordinator
     test_folderoperationcoordinator.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${MOCK_LOCAL_FS_SOURCES}
@@ -390,6 +402,7 @@ endif()
 # TransferDeleteHandler tests - delete orchestration using mock FTP and coordinator
 add_executable(test_transferdeletehandler
     test_transferdeletehandler.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${MOCK_LOCAL_FS_SOURCES}
@@ -438,6 +451,7 @@ endif()
 # RemoteFileModel tests - uses MockFtpClient via interface injection
 add_executable(test_remotefilemodel
     test_remotefilemodel.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -472,6 +486,7 @@ endif()
 # RemoteListingCoordinator tests - isolated unit tests using mock FTP client
 add_executable(test_remotelistingcoordinator
     test_remotelistingcoordinator.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -500,6 +515,7 @@ endif()
 # DeviceConnectionManager tests - tests state machine using real clients with signal injection
 add_executable(test_deviceconnectionmanager
     test_deviceconnectionmanager.cpp
+    ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
@@ -609,6 +625,7 @@ endif()
 # ConfigFileLoaderService tests - uses IFtpClient/IRestClient interfaces
 add_executable(test_configfileloaderservice
     test_configfileloaderservice.cpp
+    ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/configfileloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
@@ -718,6 +735,7 @@ endif()
 # FilePreviewService tests - uses MockFtpClient via interface injection
 add_executable(test_filepreviewservice
     test_filepreviewservice.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
@@ -747,6 +765,7 @@ endif()
 # TransferService tests - uses MockFtpClient via interface injection
 add_executable(test_transferservice
     test_transferservice.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -802,6 +821,7 @@ endif()
 # ErrorHandler tests
 add_executable(test_errorhandler
     test_errorhandler.cpp
+    ${IERROREMITTER_SOURCES}
     stubs/errorsourceconnector_stub.cpp
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
@@ -831,6 +851,7 @@ endif()
 # ErrorSourceConnector tests - verifies connectSources() signal routing for each source type
 add_executable(test_errorsourceconnector
     test_errorsourceconnector.cpp
+    ${IERROREMITTER_SOURCES}
     stubs/errorsourceconnector_test_stubs.cpp
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
@@ -858,12 +879,12 @@ add_executable(test_errorsourceconnector
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.cpp
     ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iaudioplaybackservice.cpp
     # Headers for AUTOMOC to generate signal implementations for stubbed classes
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.h
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.h
     ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.h
-    ${CMAKE_SOURCE_DIR}/src/services/iaudioplaybackservice.h
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.h
 )
 
@@ -891,6 +912,7 @@ endif()
 # RemoteFileOperationsService tests - signal emission for null FTP client guard clauses and happy path
 add_executable(test_remotefileoperationsservice
     test_remotefileoperationsservice.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
@@ -942,6 +964,7 @@ endif()
 # C64UFtpClient protocol tests - tests the real FTP client implementation
 add_executable(test_c64uftpclient_protocol
     test_c64uftpclient_protocol.cpp
+    ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/ftpcommandqueue.cpp
@@ -1067,6 +1090,7 @@ option(BUILD_INTEGRATION_TESTS "Build integration tests that require real hardwa
 if(BUILD_INTEGRATION_TESTS)
     add_executable(test_realdevice_download
         integration/test_realdevice_download.cpp
+        ${IERROREMITTER_SOURCES}
         ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
         ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
         ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
@@ -1108,6 +1132,7 @@ endif()
 # FileBrowserSync integration tests
 add_executable(test_filebrowsersync
     test_filebrowsersync.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -1143,6 +1168,7 @@ endif()
 # KeyboardInputService tests
 add_executable(test_keyboardinputservice
     test_keyboardinputservice.cpp
+    ${IERROREMITTER_SOURCES}
     mocks/mockrestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
@@ -1227,6 +1253,7 @@ endif()
 # HVSCMetadataService tests
 add_executable(test_hvscmetadataservice
     test_hvscmetadataservice.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
@@ -1303,6 +1330,7 @@ endif()
 # StreamingService tests - coordination logic using mock streaming services
 add_executable(test_streamingmanager
     test_streamingmanager.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${MOCK_STREAMING_SOURCES}
@@ -1583,6 +1611,7 @@ endif()
 # FileMetadataCore tests - pure SID/disk metadata formatting, no I/O dependencies
 add_executable(test_filemetadatacore
     test_filemetadatacore.cpp
+    ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/filemetadatacore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/sidfileparser.cpp
     ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
@@ -1665,6 +1694,7 @@ endif()
 # PlaylistService tests - tests signal emissions and state orchestration with null device
 add_executable(test_playlistservice
     test_playlistservice.cpp
+    ${IERROREMITTER_SOURCES}
     stubs/playlistservice_test_stubs.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
@@ -1719,6 +1749,7 @@ endif()
 # C64URestClient tests - tests setHost() normalization and password state
 add_executable(test_c64urestclient
     test_c64urestclient.cpp
+    ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
@@ -1744,6 +1775,7 @@ endif()
 # GameBase64Service tests
 add_executable(test_gamebase64service
     test_gamebase64service.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
@@ -1807,6 +1839,7 @@ endif()
 # SonglengthsDatabaseService tests
 add_executable(test_songlengthsdatabaseservice
     test_songlengthsdatabaseservice.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_SOURCES}
     ${MOCK_FILE_DOWNLOADER_HEADERS}
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
@@ -1862,6 +1895,7 @@ endif()
 # DiskBootSequenceService tests - imperative shell around diskboot:: state machine
 add_executable(test_diskbootsequenceservice
     test_diskbootsequenceservice.cpp
+    ${IERROREMITTER_SOURCES}
     mocks/mockrestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/diskbootsequenceservice.cpp
     ${CMAKE_SOURCE_DIR}/src/core/diskbootsequencecore.cpp
@@ -1915,6 +1949,7 @@ endif()
 # StreamControlService tests - TCP stream control client
 add_executable(test_streamcontrolservice
     test_streamcontrolservice.cpp
+    ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/istreamcontrolservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamcontrolservice.cpp
     ${CMAKE_SOURCE_DIR}/src/core/streamprotocolcore.cpp
@@ -1989,6 +2024,7 @@ endif()
 # AudioPlaybackService tests - Qt Multimedia audio playback service
 add_executable(test_audioplaybackservice
     test_audioplaybackservice.cpp
+    ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/iaudioplaybackservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audioplaybackservice.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -2014,6 +2050,7 @@ endif()
 # VideoRecordingService tests - AVI video recording service
 add_executable(test_videorecordingservice
     test_videorecordingservice.cpp
+    ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.cpp
     ${CMAKE_SOURCE_DIR}/src/core/avicore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/vic2frameconverter.cpp
@@ -2070,6 +2107,7 @@ endif()
 # SystemCommandController tests
 add_executable(test_systemcommandcontroller
     test_systemcommandcontroller.cpp
+    ${IERROREMITTER_SOURCES}
     mocks/mockrestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/systemcommandcontroller.cpp
@@ -2136,6 +2174,7 @@ endif()
 # TransferDispatchHandler tests - processNext dispatch loop
 add_executable(test_transferdispatchhandler
     test_transferdispatchhandler.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${MOCK_LOCAL_FS_SOURCES}
@@ -2199,6 +2238,7 @@ endif()
 # TransferFtpHandler tests - FTP event translation layer
 add_executable(test_transferftphandler
     test_transferftphandler.cpp
+    ${IERROREMITTER_SOURCES}
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
     ${MOCK_LOCAL_FS_SOURCES}
@@ -2257,6 +2297,7 @@ endif()
 # FileActionController tests - dispatch logic, guard conditions, action state management
 add_executable(test_fileactioncontroller
     test_fileactioncontroller.cpp
+    ${IERROREMITTER_SOURCES}
     stubs/playlistservice_test_stubs.cpp
     mocks/mockrestclient.cpp
     mocks/mockftpclient.cpp
@@ -2312,6 +2353,7 @@ endif()
 # ExploreNavigationController tests - navigation logic with MockNavigationView
 add_executable(test_explorenavigationcontroller
     test_explorenavigationcontroller.cpp
+    ${IERROREMITTER_SOURCES}
     stubs/explorenavigationcontroller_test_stubs.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/explorenavigationcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -2343,6 +2385,7 @@ endif()
 # PreviewCoordinator tests - routing logic via IDetailsDisplay mock
 add_executable(test_previewcoordinator
     test_previewcoordinator.cpp
+    ${IERROREMITTER_SOURCES}
     stubs/playlistservice_test_stubs.cpp
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
@@ -2384,6 +2427,7 @@ endif()
 # ConnectionUIController tests - verifies IConnectionStatusView injection and action management
 add_executable(test_connectionuicontroller
     test_connectionuicontroller.cpp
+    ${IERROREMITTER_SOURCES}
     mocks/mockrestclient.cpp
     ${MOCK_FTP_SOURCES}
     ${MOCK_FTP_HEADERS}
@@ -2419,6 +2463,7 @@ endif()
 # DatabaseDownloadController tests - verifies IMessagePresenter injection (headless)
 add_executable(test_databasedownloadcontroller
     test_databasedownloadcontroller.cpp
+    ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadview.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
@@ -2455,6 +2500,7 @@ endif()
 # PanelCoordinator tests - verifies IPanel signal routing, mode switching, and coordinator logic
 add_executable(test_panelcoordinator
     test_panelcoordinator.cpp
+    ${IERROREMITTER_SOURCES}
     stubs/errorsourceconnector_stub.cpp
     stubs/panelcoordinator_test_stubs.cpp
     mocks/mockrestclient.cpp
@@ -2579,6 +2625,7 @@ endif()
 # ConfigurationService tests - delegation and signal forwarding via DeviceConnectionManager/IRestClient
 add_executable(test_configurationservice
     test_configurationservice.cpp
+    ${IERROREMITTER_SOURCES}
     mocks/mockrestclient.cpp
     mocks/mockftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -2616,6 +2663,7 @@ endif()
 # DeviceActionService tests - guard clauses and operationNotAvailable signal
 add_executable(test_deviceactionservice
     test_deviceactionservice.cpp
+    ${IERROREMITTER_SOURCES}
     mocks/mockrestclient.cpp
     mocks/mockftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -2653,6 +2701,7 @@ endif()
 # ConfigPanel tests - verifies ConfigPanel wiring through ConfigurationService
 add_executable(test_configpanel
     test_configpanel.cpp
+    ${IERROREMITTER_SOURCES}
     mocks/mockrestclient.cpp
     mocks/mockftpclient.cpp
     ${MOCK_FTP_SOURCES}
@@ -2698,6 +2747,7 @@ endif()
 # ServiceFactory tests - verifies construction and wiring of all application services
 add_executable(test_servicefactory
     test_servicefactory.cpp
+    ${IERROREMITTER_SOURCES}
     stubs/errorsourceconnector_stub.cpp
     stubs/streamingservice_stub.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -2804,6 +2854,7 @@ endif()
 # PlaylistWidget tests - control-flow and signal forwarding using null DeviceConnection
 add_executable(test_playlistwidget
     test_playlistwidget.cpp
+    ${IERROREMITTER_SOURCES}
     stubs/playlistservice_test_stubs.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
@@ -2838,6 +2889,7 @@ endif()
 # ViewPanel tests - control-flow and guard clause tests using stub services
 add_executable(test_viewpanel
     test_viewpanel.cpp
+    ${IERROREMITTER_SOURCES}
     stubs/viewpanel_test_stubs.cpp
     mocks/mockrestclient.cpp
     mocks/mockftpclient.cpp
@@ -2890,6 +2942,7 @@ endif()
 # TransferPanel tests - settings round-trip and state propagation
 add_executable(test_transferpanel
     test_transferpanel.cpp
+    ${IERROREMITTER_SOURCES}
     mocks/mockrestclient.cpp
     mocks/mockftpclient.cpp
     ${MOCK_FTP_SOURCES}
@@ -2967,6 +3020,7 @@ endif()
 # RemoteFileBrowserWidget tests - directory navigation and guard clauses
 add_executable(test_remotefilebrowserwidget
     test_remotefilebrowserwidget.cpp
+    ${IERROREMITTER_SOURCES}
     mocks/mockrestclient.cpp
     mocks/mockftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -3009,6 +3063,7 @@ endif()
 # LocalFileBrowserWidget tests - selectedPath guards, setCurrentDirectory
 add_executable(test_localfilebrowserwidget
     test_localfilebrowserwidget.cpp
+    ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
@@ -3042,6 +3097,7 @@ endif()
 # FileDetailsPanel tests - file type detection and stacked widget dispatch
 add_executable(test_filedetailspanel
     test_filedetailspanel.cpp
+    ${IERROREMITTER_SOURCES}
     stubs/filedetailspanel_test_stubs.cpp
     # Headers listed so AUTOMOC generates moc files for Q_OBJECT stubs
     ${CMAKE_SOURCE_DIR}/src/services/gamebase64service.h
@@ -3114,6 +3170,7 @@ endif()
 # TransferQueueWidget tests - null guard and button state management
 add_executable(test_transferqueuewidget
     test_transferqueuewidget.cpp
+    ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
@@ -3157,6 +3214,7 @@ endif()
 # ConnectionTestHandler tests - injectable IRestClient for guard clause testing
 add_executable(test_connectiontesthandler
     test_connectiontesthandler.cpp
+    ${IERROREMITTER_SOURCES}
     mocks/mockrestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
@@ -3188,6 +3246,7 @@ endif()
 # BatchProgressWidget tests - state transitions and progress updates
 add_executable(test_batchprogresswidget
     test_batchprogresswidget.cpp
+    ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
@@ -3329,6 +3388,7 @@ endif()
 # VideoDisplayWidget tests - scaling mode, frame pacing, sizeHint
 add_executable(test_videodisplaywidget
     test_videodisplaywidget.cpp
+    ${IERROREMITTER_SOURCES}
     stubs/viewpanel_test_stubs.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
@@ -3362,6 +3422,7 @@ endif()
 # StreamingDiagnosticsWidget tests - display mode switching
 add_executable(test_streamingdiagnosticswidget
     test_streamingdiagnosticswidget.cpp
+    ${IERROREMITTER_SOURCES}
     stubs/viewpanel_test_stubs.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
@@ -3421,6 +3482,7 @@ endif()
 # TransferProgressWidget tests - visibility transitions and signal emission
 add_executable(test_transferprogresswidget
     test_transferprogresswidget.cpp
+    ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
@@ -3476,6 +3538,7 @@ endif()
 # TransferProgressContainer tests - construction and service wiring
 add_executable(test_transferprogresscontainer
     test_transferprogresscontainer.cpp
+    ${IERROREMITTER_SOURCES}
     mocks/mockrestclient.cpp
     mocks/mockftpclient.cpp
     ${MOCK_FTP_SOURCES}
@@ -3538,6 +3601,7 @@ endif()
 # PreferencesDialog tests - construction and widget state with empty settings
 add_executable(test_preferencesdialog
     test_preferencesdialog.cpp
+    ${IERROREMITTER_SOURCES}
     stubs/viewpanel_test_stubs.cpp
     stubs/filedetailspanel_test_stubs.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
@@ -3603,6 +3667,7 @@ endif()
 # MenuBarBuilder tests - menu construction and refresh action
 add_executable(test_menubarbuilder
     test_menubarbuilder.cpp
+    ${IERROREMITTER_SOURCES}
     mocks/mockrestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
@@ -3636,6 +3701,7 @@ endif()
 # SystemToolBarBuilder tests - toolbar construction and result object population
 add_executable(test_systemtoolbarbuilder
     test_systemtoolbarbuilder.cpp
+    ${IERROREMITTER_SOURCES}
     mocks/mockrestclient.cpp
     mocks/mockftpclient.cpp
     ${MOCK_FTP_SOURCES}
@@ -3681,6 +3747,7 @@ endif()
 # MainWindow integration tests - verifies construction, panel composition, and UI wiring
 add_executable(test_mainwindow
     test_mainwindow.cpp
+    ${IERROREMITTER_SOURCES}
     stubs/viewpanel_test_stubs.cpp
     stubs/errorsourceconnector_stub.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp

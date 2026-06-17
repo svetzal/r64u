@@ -1,5 +1,6 @@
 #include "services/deviceconnectionmanager.h"
 #include "services/errorhandler.h"
+#include "services/ierroremitter.h"
 #include "services/ivideostreamreceiverservice.h"
 #include "services/playlistservice.h"
 #include "services/transferservice.h"
@@ -16,7 +17,7 @@ class StreamingService;
 
 void ErrorHandler::connectStreamingServiceSources(StreamingService * /*ss*/) {}
 
-VideoRecordingService::VideoRecordingService(QObject *parent) : QObject(parent) {}
+VideoRecordingService::VideoRecordingService(QObject *parent) : IErrorEmitter(parent) {}
 VideoRecordingService::~VideoRecordingService() = default;
 void VideoRecordingService::connectToStreaming(StreamingService * /*manager*/) {}
 bool VideoRecordingService::startRecording(const QString & /*filePath*/)
@@ -35,11 +36,11 @@ void VideoRecordingService::onRawFrameReady(const QByteArray & /*frameData*/,
 {
 }
 
-DeviceConnectionManager::DeviceConnectionManager(QObject *parent) : QObject(parent) {}
+DeviceConnectionManager::DeviceConnectionManager(QObject *parent) : IErrorEmitter(parent) {}
 
 DeviceConnectionManager::DeviceConnectionManager(IRestClient * /*restClient*/,
                                                  IFtpClient * /*ftpClient*/, QObject *parent)
-    : QObject(parent)
+    : IErrorEmitter(parent)
 {
 }
 
@@ -80,7 +81,7 @@ void DeviceConnectionManager::stopReconnect() {}
 // PlaylistService stubs — provides Q_OBJECT/signal metadata without the real implementation
 
 PlaylistService::PlaylistService(DeviceConnectionManager * /*connection*/, QObject *parent)
-    : QObject(parent)
+    : IErrorEmitter(parent)
 {
 }
 
@@ -130,7 +131,7 @@ void PlaylistService::ensureStreamingStarted() {}
 
 TransferService::TransferService(DeviceConnectionManager * /*connection*/,
                                  TransferQueue * /*queue*/, QObject *parent)
-    : QObject(parent)
+    : IErrorEmitter(parent)
 {
 }
 

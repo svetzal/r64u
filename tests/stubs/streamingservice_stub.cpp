@@ -10,6 +10,7 @@
  * these bodies are never reached — but the linker still requires the symbols.
  */
 
+#include "services/ierroremitter.h"
 #include "services/streamingservice.h"
 
 StreamingService::StreamingService(DeviceConnectionManager * /*connection*/,
@@ -19,7 +20,7 @@ StreamingService::StreamingService(DeviceConnectionManager * /*connection*/,
                                    IAudioPlaybackService * /*audioPlayback*/,
                                    KeyboardInputService * /*keyboardInput*/,
                                    INetworkInterfaceProvider * /*networkProvider*/, QObject *parent)
-    : QObject(parent)
+    : IErrorEmitter(parent)
 {
 }
 

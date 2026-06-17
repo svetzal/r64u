@@ -1,4 +1,5 @@
 #include "services/errorhandler.h"
+#include "services/ierroremitter.h"
 #include "services/iftpclient.h"
 
 class AudioPlaybackService;

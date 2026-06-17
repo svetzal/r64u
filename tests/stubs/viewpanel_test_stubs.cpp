@@ -12,6 +12,7 @@
  * MOCK_STREAMING), we only need to stub the StreamingDiagnosticsServiceService attachment hooks.
  */
 
+#include "services/ierroremitter.h"
 #include "services/streamingservice.h"
 #include "services/videorecordingservice.h"
 
@@ -26,7 +27,7 @@ StreamingService::StreamingService(DeviceConnectionManager * /*connection*/,
                                    IAudioPlaybackService * /*audioPlayback*/,
                                    KeyboardInputService * /*keyboardInput*/,
                                    INetworkInterfaceProvider * /*networkProvider*/, QObject *parent)
-    : QObject(parent)
+    : IErrorEmitter(parent)
 {
 }
 
@@ -51,7 +52,7 @@ void StreamingService::onStreamCommandFailed(const QString & /*command*/, const 
 // VideoRecordingService stubs
 // ---------------------------------------------------------------------------
 
-VideoRecordingService::VideoRecordingService(QObject *parent) : QObject(parent) {}
+VideoRecordingService::VideoRecordingService(QObject *parent) : IErrorEmitter(parent) {}
 
 VideoRecordingService::~VideoRecordingService() = default;
 

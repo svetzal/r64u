@@ -1,3 +1,4 @@
+#include "services/ierroremitter.h"
 #include "services/transferservice.h"
 
 // Minimal stubs for symbols referenced by panelcoordinator.cpp.
@@ -7,7 +8,7 @@
 
 TransferService::TransferService(DeviceConnectionManager * /*connection*/,
                                  TransferQueue * /*queue*/, QObject *parent)
-    : QObject(parent)
+    : IErrorEmitter(parent)
 {
 }
 
