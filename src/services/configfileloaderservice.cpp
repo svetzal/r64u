@@ -6,11 +6,20 @@
 #include "core/ftpclientmixin.h"
 #include "utils/logging.h"
 
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QRegularExpression>
 #include <QTextStream>
 
-ConfigFileLoaderService::ConfigFileLoaderService(QObject *parent) : QObject(parent) {}
+ConfigFileLoaderService::ConfigFileLoaderService(QObject *parent) : IErrorEmitter(parent)
+{
+    // Forward loadFailed to the uniform IErrorEmitter signal
+    connect(this, &ConfigFileLoaderService::loadFailed, this,
+            [this](const QString &path, const QString &error) {
+                emit errorReported(ErrorCategory::Validation, ErrorSeverity::Warning,
+                                   tr("Loading %1").arg(QFileInfo(path).fileName()), error);
+            });
+}
 
 ConfigFileLoaderService::~ConfigFileLoaderService()
 {

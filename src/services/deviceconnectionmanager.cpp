@@ -2,6 +2,7 @@
 
 #include "c64uftpclient.h"
 #include "c64urestclient.h"
+#include "ierroremitter.h"
 
 #include "utils/logging.h"
 
@@ -12,7 +13,7 @@ DeviceConnectionManager::DeviceConnectionManager(QObject *parent)
 
 DeviceConnectionManager::DeviceConnectionManager(IRestClient *restClient, IFtpClient *ftpClient,
                                                  QObject *parent)
-    : QObject(parent), restClient_(restClient), ftpClient_(ftpClient),
+    : IErrorEmitter(parent), restClient_(restClient), ftpClient_(ftpClient),
       reconnectTimer_(new QTimer(this))
 {
     restClient_->setParent(this);
@@ -38,6 +39,12 @@ void DeviceConnectionManager::setupConnections()
 
     reconnectTimer_->setSingleShot(true);
     connect(reconnectTimer_, &QTimer::timeout, this, &DeviceConnectionManager::onReconnectTimer);
+
+    // Forward connectionError to the uniform IErrorEmitter signal
+    connect(this, &DeviceConnectionManager::connectionError, this, [this](const QString &message) {
+        emit errorReported(ErrorCategory::Connection, ErrorSeverity::Critical,
+                           tr("Connection Error"), message);
+    });
 }
 
 DeviceConnectionManager::~DeviceConnectionManager() = default;

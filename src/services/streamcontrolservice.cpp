@@ -179,10 +179,14 @@ void StreamControlService::onSocketError(QAbstractSocket::SocketError error)
     }
 
     emit connectionError(errorMsg);
+    emit errorReported(ErrorCategory::Connection, ErrorSeverity::Critical, tr("Connection Error"),
+                       errorMsg);
 
     // Fail all pending commands
     while (!pendingCommands_.isEmpty()) {
         PendingCommand cmd = pendingCommands_.takeFirst();
         emit commandFailed(cmd.description, errorMsg);
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, cmd.description,
+                           errorMsg);
     }
 }

@@ -1,10 +1,11 @@
 #ifndef IFTPCLIENT_H
 #define IFTPCLIENT_H
 
+#include "ierroremitter.h"
+
 #include "ftp/ftpentry.h"
 
 #include <QList>
-#include <QObject>
 #include <QString>
 
 /**
@@ -27,7 +28,7 @@
  * ftp->connectToHost();
  * @endcode
  */
-class IFtpClient : public QObject
+class IFtpClient : public IErrorEmitter
 {
     Q_OBJECT
 
@@ -38,7 +39,8 @@ public:
     enum class State { Disconnected, Connecting, Connected, LoggingIn, Ready, Busy };
     Q_ENUM(State)
 
-    explicit IFtpClient(QObject *parent = nullptr) : QObject(parent) {}
+    explicit IFtpClient(QObject *parent = nullptr);
+
     ~IFtpClient() override = default;
 
     /**

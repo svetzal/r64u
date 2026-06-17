@@ -19,7 +19,7 @@
 #include <QSettings>
 #include <QStandardPaths>
 
-VideoRecordingService::VideoRecordingService(QObject *parent) : QObject(parent) {}
+VideoRecordingService::VideoRecordingService(QObject *parent) : IErrorEmitter(parent) {}
 
 QString VideoRecordingService::prepareRecordingPath()
 {
@@ -73,13 +73,19 @@ bool VideoRecordingService::startRecording(const QString &filePath)
     QMutexLocker locker(&mutex_);
 
     if (recording_) {
-        emit error(tr("Already recording"));
+        const QString msg = tr("Already recording");
+        emit error(msg);
+        emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           msg);
         return false;
     }
 
     file_.setFileName(filePath);
     if (!file_.open(QIODevice::WriteOnly)) {
-        emit error(tr("Failed to open file for writing: %1").arg(file_.errorString()));
+        const QString msg = tr("Failed to open file for writing: %1").arg(file_.errorString());
+        emit error(msg);
+        emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           msg);
         return false;
     }
 
@@ -154,7 +160,10 @@ void VideoRecordingService::addFrame(const QImage &frame)
 
     if (!rgbFrame.save(&buffer, "JPEG", 85)) {
         qCWarning(LogRecording) << "VideoRecordingService: JPEG encoding failed, frame dropped";
-        emit error(tr("Frame encoding failed"));
+        const QString msg = tr("Frame encoding failed");
+        emit error(msg);
+        emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           msg);
         return;
     }
 

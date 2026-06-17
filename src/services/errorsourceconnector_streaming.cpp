@@ -1,5 +1,6 @@
 #include "audiostreamreceiverservice.h"
 #include "errorhandler.h"
+#include "ierroremitter.h"
 #include "istreamcontrolservice.h"
 #include "streamcontrolservice.h"
 #include "streamingservice.h"
@@ -7,7 +8,14 @@
 
 void ErrorHandler::connectStreamingServiceSources(StreamingService *ss)
 {
-    connect(ss, &StreamingService::error, this, &ErrorHandler::handleStreamingError);
+    // StreamingService and IStreamControlService now inherit IErrorEmitter
+    registerSource(ss);
+    if (ss->streamControl()) {
+        registerSource(ss->streamControl());
+    }
+
+    // AudioStreamReceiverService and VideoStreamReceiverService do NOT inherit
+    // IErrorEmitter (their interfaces have no error signals), so use legacy path
     if (ss->videoReceiver()) {
         connect(ss->videoReceiver(), &VideoStreamReceiverService::socketError, this,
                 &ErrorHandler::handleStreamingError);
@@ -15,16 +23,5 @@ void ErrorHandler::connectStreamingServiceSources(StreamingService *ss)
     if (ss->audioReceiver()) {
         connect(ss->audioReceiver(), &AudioStreamReceiverService::socketError, this,
                 &ErrorHandler::handleStreamingError);
-    }
-    auto *streamControl = qobject_cast<StreamControlService *>(ss->streamControl());
-    if (streamControl) {
-        connect(streamControl, &StreamControlService::connectionError, this,
-                &ErrorHandler::handleConnectionError);
-    }
-    if (ss->streamControl()) {
-        connect(ss->streamControl(), &IStreamControlService::commandFailed, this,
-                [this](const QString &command, const QString &error) {
-                    handleOperationFailed(command, error);
-                });
     }
 }

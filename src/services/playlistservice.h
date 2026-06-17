@@ -1,10 +1,11 @@
 #ifndef PLAYLISTSERVICE_H
 #define PLAYLISTSERVICE_H
 
+#include "ierroremitter.h"
+
 #include "core/playlistcore.h"
 
 #include <QList>
-#include <QObject>
 #include <QSet>
 #include <QString>
 #include <QTimer>
@@ -26,7 +27,7 @@ class StreamingService;
  * Playback logic is delegated to pure functions in the playlist namespace
  * (playlistcore.h); this class owns I/O: REST calls, QSettings, and QTimer.
  */
-class PlaylistService : public QObject
+class PlaylistService : public IErrorEmitter
 {
     Q_OBJECT
 

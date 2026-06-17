@@ -1,10 +1,10 @@
 #ifndef DEVICECONNECTIONMANAGER_H
 #define DEVICECONNECTIONMANAGER_H
 
+#include "ierroremitter.h"
 #include "iftpclient.h"
 #include "irestclient.h"
 
-#include <QObject>
 #include <QTimer>
 
 /**
@@ -31,7 +31,7 @@
  * conn->connectToDevice();
  * @endcode
  */
-class DeviceConnectionManager : public QObject
+class DeviceConnectionManager : public IErrorEmitter
 {
     Q_OBJECT
     Q_PROPERTY(ConnectionState state READ state NOTIFY stateChanged)

@@ -27,6 +27,8 @@ C64UFtpClient::C64UFtpClient(QObject *parent)
     connect(dataSocket_, &QTcpSocket::readyRead, this, &C64UFtpClient::onDataReadyRead);
     connect(dataSocket_, &QTcpSocket::disconnected, this, &C64UFtpClient::onDataDisconnected);
     connect(dataSocket_, &QTcpSocket::errorOccurred, this, &C64UFtpClient::onDataError);
+
+    // IFtpClient base constructor wires error() → errorReported()
 }
 
 C64UFtpClient::~C64UFtpClient()

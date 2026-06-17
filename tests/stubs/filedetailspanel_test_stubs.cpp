@@ -8,9 +8,9 @@
  * All method bodies return empty/default values.
  */
 
-#include "services/ierroremitter.h"
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
+#include "services/ierroremitter.h"
 #include "services/songlengthsdatabaseservice.h"
 
 // ---------------------------------------------------------------------------

@@ -1,13 +1,14 @@
 #ifndef CONFIGFILELOADERSERVICE_H
 #define CONFIGFILELOADERSERVICE_H
 
+#include "ierroremitter.h"
+
 #include <QJsonObject>
-#include <QObject>
 
 class IFtpClient;
 class IRestClient;
 
-class ConfigFileLoaderService : public QObject
+class ConfigFileLoaderService : public IErrorEmitter
 {
     Q_OBJECT
 

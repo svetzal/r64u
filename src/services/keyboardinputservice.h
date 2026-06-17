@@ -1,8 +1,9 @@
 #ifndef KEYBOARDINPUTSERVICE_H
 #define KEYBOARDINPUTSERVICE_H
 
+#include "ierroremitter.h"
+
 #include <QKeyEvent>
-#include <QObject>
 
 class IRestClient;
 
@@ -16,7 +17,7 @@ class IRestClient;
  * The C64 keyboard buffer is at $0277-$0280 (10 bytes max).
  * The buffer length is at $00C6.
  */
-class KeyboardInputService : public QObject
+class KeyboardInputService : public IErrorEmitter
 {
     Q_OBJECT
 

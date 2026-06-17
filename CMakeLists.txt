@@ -90,6 +90,7 @@ set(SOURCES
     src/services/configfileloaderservice.cpp
     src/services/filepreviewservice.cpp
     src/services/transferservice.cpp
+    src/services/ierroremitter.cpp
     src/services/errorhandler.cpp
     src/services/errorsourceconnector.cpp
     src/services/errorsourceconnector_streaming.cpp
@@ -198,6 +199,8 @@ set(HEADERS
     src/ui/fileactioncontroller.h
     src/ui/dialogerrorpresenter.h
     src/services/ierrorpresenter.h
+    src/services/errortypes.h
+    src/services/ierroremitter.h
     src/ui/explorefavoritescontroller.h
     src/ui/explorecontextmenucontroller.h
     src/ui/explorenavigationcontroller.h

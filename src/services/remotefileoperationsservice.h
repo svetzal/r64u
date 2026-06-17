@@ -1,12 +1,13 @@
 #ifndef REMOTEFILEOPERATIONSSERVICE_H
 #define REMOTEFILEOPERATIONSSERVICE_H
 
-#include <QObject>
+#include "ierroremitter.h"
+
 #include <QString>
 
 class IFtpClient;
 
-class RemoteFileOperationsService : public QObject
+class RemoteFileOperationsService : public IErrorEmitter
 {
     Q_OBJECT
 

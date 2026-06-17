@@ -1,9 +1,10 @@
 #ifndef TRANSFERSERVICE_H
 #define TRANSFERSERVICE_H
 
+#include "ierroremitter.h"
+
 #include "models/transferqueue.h"
 
-#include <QObject>
 #include <QString>
 
 class IFtpClient;
@@ -29,7 +30,7 @@ class DeviceConnectionManager;
  * service->uploadDirectory("/local/folder", "/remote/dir/");
  * @endcode
  */
-class TransferService : public QObject
+class TransferService : public IErrorEmitter
 {
     Q_OBJECT
 

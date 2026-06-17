@@ -3,6 +3,7 @@
 
 class StreamingService;
 
+#include "ierroremitter.h"
 #include "ivideostreamreceiverservice.h"
 
 #include "core/avicore.h"
@@ -11,7 +12,6 @@ class StreamingService;
 #include <QFile>
 #include <QImage>
 #include <QMutex>
-#include <QObject>
 #include <QString>
 
 /**
@@ -30,7 +30,7 @@ class StreamingService;
  * The frame rate is calculated based on the time between the first
  * and last frames.
  */
-class VideoRecordingService : public QObject
+class VideoRecordingService : public IErrorEmitter
 {
     Q_OBJECT
 

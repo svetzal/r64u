@@ -2,12 +2,12 @@
 #define HVSCMETADATASERVICE_H
 
 #include "cacheddownloadservice.h"
+#include "ierroremitter.h"
 
 #include "core/hvscparser.h"
 
 #include <QHash>
 #include <QList>
-#include <QObject>
 #include <QString>
 
 /**
@@ -19,7 +19,7 @@
  *
  * This service downloads, caches, and parses these files for lookup.
  */
-class HVSCMetadataService : public QObject
+class HVSCMetadataService : public IErrorEmitter
 {
     Q_OBJECT
 

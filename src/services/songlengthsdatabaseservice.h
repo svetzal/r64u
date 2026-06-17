@@ -2,11 +2,11 @@
 #define SONGLENGTHSDATABASESERVICE_H
 
 #include "cacheddownloadservice.h"
+#include "ierroremitter.h"
 
 #include "core/songlengthsparser.h"
 
 #include <QList>
-#include <QObject>
 #include <QString>
 
 /**
@@ -19,7 +19,7 @@
  * - Calculates MD5 hashes of SID file data
  * - Looks up durations for SID files
  */
-class SonglengthsDatabaseService : public QObject
+class SonglengthsDatabaseService : public IErrorEmitter
 {
     Q_OBJECT
 

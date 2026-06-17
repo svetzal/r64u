@@ -5,6 +5,7 @@
 #include "gamebase64service.h"
 #include "hvscmetadataservice.h"
 #include "iaudioplaybackservice.h"
+#include "ierroremitter.h"
 #include "iftpclient.h"
 #include "irestclient.h"
 #include "keyboardinputservice.h"
@@ -16,8 +17,6 @@
 
 #include "models/remotefilemodel.h"
 
-#include <QFileInfo>
-
 void ErrorHandler::connectSources(DeviceConnectionManager *dc, IRestClient *restClient,
                                   RemoteFileModel *rfm, IFtpClient *ftpClient,
                                   FilePreviewService *fps, ConfigFileLoaderService *cfl,
@@ -27,91 +26,53 @@ void ErrorHandler::connectSources(DeviceConnectionManager *dc, IRestClient *rest
                                   IAudioPlaybackService *apb, VideoRecordingService *vrs,
                                   KeyboardInputService *kis, PlaylistService *ps)
 {
-    connectDeviceSources(dc, restClient, cfl);
-    connectTransferSources(ftpClient, ts);
-    connectModelSources(rfm, fps);
-    connectMetadataSources(sld, hvsc, gb64);
-    if (rfo) {
-        connect(rfo, &RemoteFileOperationsService::operationFailed, this,
-                &ErrorHandler::handleOperationFailed);
-    }
-    if (ss) {
-        connectStreamingServiceSources(ss);
-    }
-    if (apb) {
-        connect(apb, &IAudioPlaybackService::errorOccurred, this,
-                &ErrorHandler::handleStreamingError);
-    }
-    if (vrs) {
-        connect(vrs, &VideoRecordingService::error, this, &ErrorHandler::handleStreamingError);
-    }
-    if (kis) {
-        connect(kis, &KeyboardInputService::errorOccurred, this, &ErrorHandler::handleDataError);
-    }
-    if (ps) {
-        connect(ps, &PlaylistService::errorOccurred, this, &ErrorHandler::handleDataError);
-    }
-}
+    // All IErrorEmitter sources use a single registerSource() call
+    registerSource(dc);
+    registerSource(restClient);
+    registerSource(ftpClient);
+    registerSource(fps);
+    registerSource(cfl);
+    registerSource(ts);
+    registerSource(sld);
+    registerSource(hvsc);
+    registerSource(gb64);
+    registerSource(rfo);
+    registerSource(apb);
+    registerSource(vrs);
+    registerSource(kis);
+    registerSource(ps);
 
-void ErrorHandler::connectDeviceSources(DeviceConnectionManager *dc, IRestClient *restClient,
-                                        ConfigFileLoaderService *cfl)
-{
-    if (dc) {
-        connect(dc, &DeviceConnectionManager::connectionError, this,
-                &ErrorHandler::handleConnectionError);
-    }
-    if (restClient) {
-        connect(restClient, &IRestClient::operationFailed, this,
-                &ErrorHandler::handleOperationFailed);
-    }
-    if (cfl) {
-        connect(cfl, &ConfigFileLoaderService::loadFailed, this,
-                [this](const QString &path, const QString &error) {
-                    handleOperationFailed(tr("Loading %1").arg(QFileInfo(path).fileName()), error);
-                });
-    }
-}
-
-void ErrorHandler::connectTransferSources(IFtpClient *ftpClient, TransferService *ts)
-{
-    if (ftpClient) {
-        connect(ftpClient, &IFtpClient::error, this, &ErrorHandler::handleDataError);
-    }
-    if (ts) {
-        connect(ts, &TransferService::operationFailed, this, &ErrorHandler::handleOperationFailed);
-    }
-}
-
-void ErrorHandler::connectModelSources(RemoteFileModel *rfm, FilePreviewService *fps)
-{
+    // RemoteFileModel inherits QAbstractItemModel, not IErrorEmitter — legacy path
     if (rfm) {
         connect(rfm, &RemoteFileModel::errorOccurred, this, &ErrorHandler::handleDataError);
     }
-    if (fps) {
-        connect(fps, &FilePreviewService::previewFailed, this,
-                [this](const QString &path, const QString &error) {
-                    handleOperationFailed(tr("Preview of %1").arg(path), error);
-                });
+
+    // Streaming sub-services need separate wiring for socketError signals
+    if (ss) {
+        connectStreamingServiceSources(ss);
     }
 }
 
-void ErrorHandler::connectMetadataSources(SonglengthsDatabaseService *sld,
-                                          HVSCMetadataService *hvsc, GameBase64Service *gb64)
+void ErrorHandler::connectDeviceSources(DeviceConnectionManager * /*dc*/,
+                                        IRestClient * /*restClient*/,
+                                        ConfigFileLoaderService * /*cfl*/)
 {
-    if (sld) {
-        connect(sld, &SonglengthsDatabaseService::downloadFailed, this,
-                [this](const QString &error) {
-                    handleDownloadError(tr("Song lengths database"), error);
-                });
-    }
-    if (hvsc) {
-        connect(hvsc, &HVSCMetadataService::stilDownloadFailed, this,
-                [this](const QString &error) { handleDownloadError(tr("HVSC STIL"), error); });
-        connect(hvsc, &HVSCMetadataService::buglistDownloadFailed, this,
-                [this](const QString &error) { handleDownloadError(tr("HVSC BUGlist"), error); });
-    }
-    if (gb64) {
-        connect(gb64, &GameBase64Service::downloadFailed, this,
-                [this](const QString &error) { handleDownloadError(tr("GameBase64"), error); });
-    }
+    // Legacy shim — wiring now done via registerSource() in connectSources()
+}
+
+void ErrorHandler::connectTransferSources(IFtpClient * /*ftpClient*/, TransferService * /*ts*/)
+{
+    // Legacy shim — wiring now done via registerSource() in connectSources()
+}
+
+void ErrorHandler::connectModelSources(RemoteFileModel * /*rfm*/, FilePreviewService * /*fps*/)
+{
+    // Legacy shim — wiring now done via registerSource() in connectSources()
+}
+
+void ErrorHandler::connectMetadataSources(SonglengthsDatabaseService * /*sld*/,
+                                          HVSCMetadataService * /*hvsc*/,
+                                          GameBase64Service * /*gb64*/)
+{
+    // Legacy shim — wiring now done via registerSource() in connectSources()
 }

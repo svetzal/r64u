@@ -1,5 +1,6 @@
 #include "errorhandler.h"
 
+#include "ierroremitter.h"
 #include "ierrorpresenter.h"
 #include "statusmessageservice.h"
 
@@ -13,6 +14,14 @@ ErrorHandler::ErrorHandler(IErrorPresenter *presenter, QObject *parent)
 void ErrorHandler::setPresenter(IErrorPresenter *presenter)
 {
     presenter_ = presenter;
+}
+
+void ErrorHandler::registerSource(IErrorEmitter *source)
+{
+    if (!source) {
+        return;
+    }
+    connect(source, &IErrorEmitter::errorReported, this, &ErrorHandler::handleError);
 }
 
 void ErrorHandler::handleError(ErrorCategory category, ErrorSeverity severity, const QString &title,

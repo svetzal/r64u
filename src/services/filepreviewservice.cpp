@@ -5,11 +5,18 @@
 #include "core/ftpclientmixin.h"
 
 FilePreviewService::FilePreviewService(IFtpClient *ftpClient, QObject *parent)
-    : QObject(parent), ftpClient_(ftpClient)
+    : IErrorEmitter(parent), ftpClient_(ftpClient)
 {
     connect(ftpClient_, &IFtpClient::downloadToMemoryFinished, this,
             &FilePreviewService::onDownloadToMemoryFinished);
     connect(ftpClient_, &IFtpClient::error, this, &FilePreviewService::onFtpError);
+
+    // Forward previewFailed to the uniform IErrorEmitter signal
+    connect(this, &FilePreviewService::previewFailed, this,
+            [this](const QString &path, const QString &error) {
+                emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                                   tr("Preview of %1").arg(path), error);
+            });
 }
 
 FilePreviewService::~FilePreviewService()

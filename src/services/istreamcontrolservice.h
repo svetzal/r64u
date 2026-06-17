@@ -1,7 +1,8 @@
 #ifndef ISTREAMCONTROLSERVICE_H
 #define ISTREAMCONTROLSERVICE_H
 
-#include <QObject>
+#include "ierroremitter.h"
+
 #include <QString>
 
 /**
@@ -10,12 +11,12 @@
  * Concrete implementations include StreamControlService (production) and
  * MockStreamControlService (test).
  */
-class IStreamControlService : public QObject
+class IStreamControlService : public IErrorEmitter
 {
     Q_OBJECT
 
 public:
-    explicit IStreamControlService(QObject *parent = nullptr) : QObject(parent) {}
+    explicit IStreamControlService(QObject *parent = nullptr) : IErrorEmitter(parent) {}
     ~IStreamControlService() override = default;
 
     /**

@@ -6,6 +6,7 @@
 #include "hvscmetadataservice.h"
 
 #include "cacheddownloadservice.h"
+#include "ierroremitter.h"
 
 #include "core/hvscparser.h"
 
@@ -13,7 +14,7 @@
 
 HVSCMetadataService::HVSCMetadataService(IFileDownloaderService *stilDownloader,
                                          IFileDownloaderService *buglistDownloader, QObject *parent)
-    : QObject(parent)
+    : IErrorEmitter(parent)
 {
     stilManager_ = new CachedDownloadService(
         stilDownloader, QStringLiteral("STIL.txt"), QUrl(QString::fromLatin1(StilUrl)),
@@ -36,7 +37,11 @@ HVSCMetadataService::HVSCMetadataService(IFileDownloaderService *stilDownloader,
     connect(stilManager_, &CachedDownloadService::downloadFinished, this,
             &HVSCMetadataService::stilDownloadFinished);
     connect(stilManager_, &CachedDownloadService::downloadFailed, this,
-            &HVSCMetadataService::stilDownloadFailed);
+            [this](const QString &error) {
+                emit stilDownloadFailed(error);
+                emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                                   tr("HVSC STIL download failed"), error);
+            });
     connect(stilManager_, &CachedDownloadService::loaded, this, &HVSCMetadataService::stilLoaded);
 
     connect(buglistManager_, &CachedDownloadService::downloadProgress, this,
@@ -44,7 +49,11 @@ HVSCMetadataService::HVSCMetadataService(IFileDownloaderService *stilDownloader,
     connect(buglistManager_, &CachedDownloadService::downloadFinished, this,
             &HVSCMetadataService::buglistDownloadFinished);
     connect(buglistManager_, &CachedDownloadService::downloadFailed, this,
-            &HVSCMetadataService::buglistDownloadFailed);
+            [this](const QString &error) {
+                emit buglistDownloadFailed(error);
+                emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                                   tr("HVSC BUGlist download failed"), error);
+            });
     connect(buglistManager_, &CachedDownloadService::loaded, this,
             &HVSCMetadataService::buglistLoaded);
 }

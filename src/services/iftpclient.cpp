@@ -8,5 +8,12 @@
 
 #include "iftpclient.h"
 
-// Qt MOC requires this file to exist for proper signal/slot generation
-// The interface itself is pure virtual, but signals need MOC support
+#include "errortypes.h"
+
+IFtpClient::IFtpClient(QObject *parent) : IErrorEmitter(parent)
+{
+    connect(this, &IFtpClient::error, this, [this](const QString &message) {
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"),
+                           message);
+    });
+}

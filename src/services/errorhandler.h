@@ -1,11 +1,14 @@
 #ifndef ERRORHANDLER_H
 #define ERRORHANDLER_H
 
+#include "errortypes.h"
+
 #include <QObject>
 #include <QString>
 
 #include <functional>
 
+class IErrorEmitter;
 class IErrorPresenter;
 
 class ConfigFileLoaderService;
@@ -24,25 +27,6 @@ class SonglengthsDatabaseService;
 class StreamingService;
 class TransferService;
 class VideoRecordingService;
-
-/**
- * @brief Categories of errors for appropriate handling.
- */
-enum class ErrorCategory {
-    Connection,     ///< Network/connection errors (FTP, REST)
-    FileOperation,  ///< File transfer, delete, listing errors
-    Validation,     ///< Input validation, configuration errors
-    System          ///< General system/application errors
-};
-
-/**
- * @brief Severity levels determining how errors are displayed.
- */
-enum class ErrorSeverity {
-    Info,     ///< Informational - status bar only, short timeout
-    Warning,  ///< Warning - status bar, longer timeout
-    Critical  ///< Critical - status bar + dialog box
-};
 
 /**
  * @brief Centralized error handling service.
@@ -105,6 +89,16 @@ public:
                         StreamingService *ss = nullptr, IAudioPlaybackService *apb = nullptr,
                         VideoRecordingService *vrs = nullptr, KeyboardInputService *kis = nullptr,
                         PlaylistService *ps = nullptr);
+
+    /**
+     * @brief Registers an error source using the uniform IErrorEmitter contract.
+     *
+     * Connects the source's errorReported() signal to handleError() in a single
+     * call, replacing manual per-signal connect() wiring.
+     *
+     * @param source The error emitter to register (not owned, may be null).
+     */
+    void registerSource(IErrorEmitter *source);
 
     /// @name Generic Error Handling
     /// @{

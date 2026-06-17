@@ -1,7 +1,8 @@
 #ifndef STREAMINGSERVICE_H
 #define STREAMINGSERVICE_H
 
-#include <QObject>
+#include "ierroremitter.h"
+
 #include <QString>
 
 class DeviceConnectionManager;
@@ -41,7 +42,7 @@ class StreamingDiagnosticsService;
  * manager->startStreaming();
  * @endcode
  */
-class StreamingService : public QObject
+class StreamingService : public IErrorEmitter
 {
     Q_OBJECT
 

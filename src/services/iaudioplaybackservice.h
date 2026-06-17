@@ -1,18 +1,19 @@
 #ifndef IAUDIOPLAYBACKSERVICE_H
 #define IAUDIOPLAYBACKSERVICE_H
 
+#include "ierroremitter.h"
+
 #include <QByteArray>
-#include <QObject>
 
 /**
  * @brief Abstract interface for C64 Ultimate audio playback.
  */
-class IAudioPlaybackService : public QObject
+class IAudioPlaybackService : public IErrorEmitter
 {
     Q_OBJECT
 
 public:
-    explicit IAudioPlaybackService(QObject *parent = nullptr) : QObject(parent) {}
+    explicit IAudioPlaybackService(QObject *parent = nullptr);
     ~IAudioPlaybackService() override = default;
 
     /**

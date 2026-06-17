@@ -1,6 +1,7 @@
 #include "gamebase64service.h"
 
 #include "cacheddownloadservice.h"
+#include "ierroremitter.h"
 
 #include <QDir>
 #include <QFile>
@@ -14,7 +15,7 @@
 #include <zlib.h>
 
 GameBase64Service::GameBase64Service(IFileDownloaderService *downloader, QObject *parent)
-    : QObject(parent), connectionName_(QUuid::createUuid().toString())
+    : IErrorEmitter(parent), connectionName_(QUuid::createUuid().toString())
 {
     manager_ = new CachedDownloadService(
         downloader, QStringLiteral("gamebase64.db.gz"), QUrl(QString::fromLatin1(DatabaseUrl)),
@@ -41,8 +42,11 @@ GameBase64Service::GameBase64Service(IFileDownloaderService *downloader, QObject
             &GameBase64Service::downloadProgress);
     connect(manager_, &CachedDownloadService::downloadFinished, this,
             &GameBase64Service::downloadFinished);
-    connect(manager_, &CachedDownloadService::downloadFailed, this,
-            &GameBase64Service::downloadFailed);
+    connect(manager_, &CachedDownloadService::downloadFailed, this, [this](const QString &error) {
+        emit downloadFailed(error);
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                           tr("GameBase64 download failed"), error);
+    });
     // manager_->loaded() is not forwarded here: GameBase64Service emits databaseLoaded(int)
     // from openDatabase(), which is invoked inside the parse callback above.
 

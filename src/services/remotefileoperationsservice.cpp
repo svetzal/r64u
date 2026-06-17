@@ -5,7 +5,7 @@
 #include "utils/logging.h"
 
 RemoteFileOperationsService::RemoteFileOperationsService(IFtpClient *ftpClient, QObject *parent)
-    : QObject(parent), ftpClient_(ftpClient)
+    : IErrorEmitter(parent), ftpClient_(ftpClient)
 {
     if (ftpClient_) {
         connect(ftpClient_, &IFtpClient::directoryCreated, this,
@@ -22,6 +22,8 @@ bool RemoteFileOperationsService::ensureFtpClient(const QString &operationLabel)
     if (!ftpClient_) {
         qCWarning(LogFileOps) << operationLabel << "skipped: FTP client not configured";
         emit operationFailed(operationLabel, tr("FTP client not configured"));
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                           tr("%1 failed").arg(operationLabel), tr("FTP client not configured"));
         return false;
     }
     return true;

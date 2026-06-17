@@ -10,7 +10,7 @@
 #include "utils/logging.h"
 
 KeyboardInputService::KeyboardInputService(IRestClient *restClient, QObject *parent)
-    : QObject(parent), restClient_(restClient)
+    : IErrorEmitter(parent), restClient_(restClient)
 {
 }
 
@@ -28,7 +28,9 @@ void KeyboardInputService::sendPetscii(quint8 petscii)
 {
     if (!restClient_) {
         qCWarning(LogDevice) << "sendPetscii skipped: REST client not configured";
-        emit errorOccurred(tr("No REST client configured"));
+        const QString msg = tr("No REST client configured");
+        emit errorOccurred(msg);
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), msg);
         return;
     }
 

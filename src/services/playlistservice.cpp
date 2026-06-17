@@ -23,7 +23,7 @@
 #include <algorithm>
 
 PlaylistService::PlaylistService(DeviceConnectionManager *connection, QObject *parent)
-    : QObject(parent), deviceConnection_(connection), advanceTimer_(new QTimer(this))
+    : IErrorEmitter(parent), deviceConnection_(connection), advanceTimer_(new QTimer(this))
 {
     advanceTimer_->setSingleShot(true);
     connect(advanceTimer_, &QTimer::timeout, this, &PlaylistService::onAdvanceTimer);
@@ -117,7 +117,9 @@ void PlaylistService::play(int index)
 {
     if (state_.items.isEmpty()) {
         qCWarning(LogPlaylist) << "Cannot play: playlist is empty";
-        emit errorOccurred(tr("Playlist is empty"));
+        const QString msg = tr("Playlist is empty");
+        emit errorOccurred(msg);
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), msg);
         return;
     }
 
@@ -129,7 +131,9 @@ void PlaylistService::play(int index)
     } else if (index < state_.items.count()) {
         state_.currentIndex = index;
     } else {
-        emit errorOccurred(tr("Invalid track index"));
+        const QString msg = tr("Invalid track index");
+        emit errorOccurred(msg);
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), msg);
         return;
     }
 
@@ -165,7 +169,9 @@ void PlaylistService::next()
 {
     if (state_.items.isEmpty()) {
         qCWarning(LogPlaylist) << "next() called on empty playlist";
-        emit errorOccurred(tr("Playlist is empty"));
+        const QString msg = tr("Playlist is empty");
+        emit errorOccurred(msg);
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), msg);
         return;
     }
 
@@ -188,13 +194,17 @@ void PlaylistService::previous()
 {
     if (state_.items.isEmpty()) {
         qCWarning(LogPlaylist) << "previous() called on empty playlist";
-        emit errorOccurred(tr("Playlist is empty"));
+        const QString msg = tr("Playlist is empty");
+        emit errorOccurred(msg);
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), msg);
         return;
     }
 
     int prevIdx = playlist::previousIndex(state_);
     if (prevIdx < 0) {
-        emit errorOccurred(tr("Already at first track"));
+        const QString msg = tr("Already at first track");
+        emit errorOccurred(msg);
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), msg);
         return;
     }
 

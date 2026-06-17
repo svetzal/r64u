@@ -6,6 +6,7 @@
 #include "songlengthsdatabaseservice.h"
 
 #include "cacheddownloadservice.h"
+#include "ierroremitter.h"
 
 #include "core/songlengthsparser.h"
 
@@ -14,7 +15,7 @@
 
 SonglengthsDatabaseService::SonglengthsDatabaseService(IFileDownloaderService *downloader,
                                                        QObject *parent)
-    : QObject(parent)
+    : IErrorEmitter(parent)
 {
     manager_ = new CachedDownloadService(
         downloader, QStringLiteral("Songlengths.md5"), QUrl(QString::fromLatin1(DatabaseUrl)),
@@ -28,8 +29,11 @@ SonglengthsDatabaseService::SonglengthsDatabaseService(IFileDownloaderService *d
             &SonglengthsDatabaseService::downloadProgress);
     connect(manager_, &CachedDownloadService::downloadFinished, this,
             &SonglengthsDatabaseService::downloadFinished);
-    connect(manager_, &CachedDownloadService::downloadFailed, this,
-            &SonglengthsDatabaseService::downloadFailed);
+    connect(manager_, &CachedDownloadService::downloadFailed, this, [this](const QString &error) {
+        emit downloadFailed(error);
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                           tr("Song lengths database download failed"), error);
+    });
     connect(manager_, &CachedDownloadService::loaded, this,
             &SonglengthsDatabaseService::databaseLoaded);
 }

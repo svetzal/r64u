@@ -1,14 +1,21 @@
 #include "transferservice.h"
 
 #include "deviceconnectionmanager.h"
+#include "ierroremitter.h"
 
 #include <QFileInfo>
 
 TransferService::TransferService(DeviceConnectionManager *connection, TransferQueue *queue,
                                  QObject *parent)
-    : QObject(parent), connection_(connection), queue_(queue)
+    : IErrorEmitter(parent), connection_(connection), queue_(queue)
 {
     setupSignalForwarding();
+    // Forward operationFailed to the uniform IErrorEmitter signal
+    connect(this, &TransferService::operationFailed, this,
+            [this](const QString &fileName, const QString &error) {
+                emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                                   tr("%1 failed").arg(fileName), error);
+            });
 }
 
 void TransferService::setupSignalForwarding()

@@ -1,10 +1,10 @@
 #ifndef FILEPREVIEWSERVICE_H
 #define FILEPREVIEWSERVICE_H
 
+#include "ierroremitter.h"
 #include "iftpclient.h"  // Full include needed for QPointer
 
 #include <QByteArray>
-#include <QObject>
 #include <QPointer>
 #include <QString>
 
@@ -29,7 +29,7 @@
  * preview->requestPreview("/path/to/file.txt");
  * @endcode
  */
-class FilePreviewService : public QObject
+class FilePreviewService : public IErrorEmitter
 {
     Q_OBJECT
 

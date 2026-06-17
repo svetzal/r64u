@@ -7,6 +7,7 @@
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
 #include "services/iaudioplaybackservice.h"
+#include "services/ierroremitter.h"
 #include "services/iftpclient.h"
 #include "services/keyboardinputservice.h"
 #include "services/remotefileoperations.h"
@@ -91,7 +92,11 @@ public:
         : SonglengthsDatabaseService(dl, parent)
     {
     }
-    void emitDownloadFailed(const QString &err) { emit downloadFailed(err); }
+    void emitDownloadFailed(const QString &err)
+    {
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                           tr("Song lengths database download failed"), err);
+    }
 };
 
 class SignallingHVSCMetadataService : public HVSCMetadataService
@@ -104,8 +109,16 @@ public:
         : HVSCMetadataService(s, b, parent)
     {
     }
-    void emitStilDownloadFailed(const QString &err) { emit stilDownloadFailed(err); }
-    void emitBuglistDownloadFailed(const QString &err) { emit buglistDownloadFailed(err); }
+    void emitStilDownloadFailed(const QString &err)
+    {
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                           tr("HVSC STIL download failed"), err);
+    }
+    void emitBuglistDownloadFailed(const QString &err)
+    {
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                           tr("HVSC BUGlist download failed"), err);
+    }
 };
 
 class SignallingGameBase64Service : public GameBase64Service
@@ -117,7 +130,11 @@ public:
         : GameBase64Service(dl, parent)
     {
     }
-    void emitDownloadFailed(const QString &err) { emit downloadFailed(err); }
+    void emitDownloadFailed(const QString &err)
+    {
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                           tr("GameBase64 download failed"), err);
+    }
 };
 
 class MinimalAudioPlaybackSource : public IAudioPlaybackService
@@ -399,7 +416,8 @@ void TestErrorSourceConnector::testVideoRecordingService_ErrorRoutedToStreamingE
     handler_->connectSources(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
                              nullptr, nullptr, nullptr, nullptr, nullptr, &vrs);
 
-    emit vrs.error("Failed to write AVI frame");
+    emit vrs.errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           "Failed to write AVI frame");
 
     QCOMPARE(spy.count(), 1);
     QCOMPARE(spy.at(0).at(0).value<ErrorCategory>(), ErrorCategory::System);
@@ -416,7 +434,10 @@ void TestErrorSourceConnector::testKeyboardInputService_ErrorOccurredRoutedToDat
     handler_->connectSources(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
                              nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, &kis);
 
-    emit kis.errorOccurred("Failed to send PETSCII key");
+    // KeyboardInputService emits errorReported via its own emission in sendPetscii.
+    // Emit errorReported directly to test the routing plumbing.
+    emit kis.errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"),
+                           "Failed to send PETSCII key");
 
     QCOMPARE(spy.count(), 1);
     QCOMPARE(spy.at(0).at(0).value<ErrorCategory>(), ErrorCategory::FileOperation);

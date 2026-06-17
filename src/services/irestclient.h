@@ -2,11 +2,11 @@
 #define IRESTCLIENT_H
 
 #include "devicetypes.h"
+#include "ierroremitter.h"
 
 #include <QHash>
 #include <QJsonObject>
 #include <QList>
-#include <QObject>
 #include <QString>
 
 /**
@@ -29,12 +29,12 @@
  * rest->getInfo();
  * @endcode
  */
-class IRestClient : public QObject
+class IRestClient : public IErrorEmitter
 {
     Q_OBJECT
 
 public:
-    explicit IRestClient(QObject *parent = nullptr) : QObject(parent) {}
+    explicit IRestClient(QObject *parent = nullptr);
     ~IRestClient() override = default;
 
     virtual void setHost(const QString &host) = 0;

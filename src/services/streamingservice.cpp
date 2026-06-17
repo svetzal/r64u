@@ -32,7 +32,7 @@ StreamingService::StreamingService(DeviceConnectionManager *connection,
                                    IAudioPlaybackService *audioPlayback,
                                    KeyboardInputService *keyboardInput,
                                    INetworkInterfaceProvider *networkProvider, QObject *parent)
-    : QObject(parent), deviceConnection_(connection), streamControl_(streamControl),
+    : IErrorEmitter(parent), deviceConnection_(connection), streamControl_(streamControl),
       videoReceiver_(videoReceiver), audioReceiver_(audioReceiver), audioPlayback_(audioPlayback),
       keyboardInput_(keyboardInput), networkProvider_(networkProvider),
       concreteVideoReceiver_(qobject_cast<VideoStreamReceiverService *>(videoReceiver)),
@@ -110,22 +110,34 @@ StreamingService::~StreamingService()
 bool StreamingService::startStreaming()
 {
     if (isStreaming_) {
-        emit error(tr("Already streaming"));
+        const QString msg = tr("Already streaming");
+        emit error(msg);
+        emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           msg);
         return false;
     }
 
     if (!deviceConnection_ || !deviceConnection_->isConnected()) {
-        emit error(tr("Not connected to device"));
+        const QString msg = tr("Not connected to device");
+        emit error(msg);
+        emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           msg);
         return false;
     }
 
     if (!deviceConnection_->restClient()) {
-        emit error(tr("REST client not available"));
+        const QString msg = tr("REST client not available");
+        emit error(msg);
+        emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           msg);
         return false;
     }
 
     if (!streamControl_) {
-        emit error(tr("Stream control client not available"));
+        const QString msg = tr("Stream control client not available");
+        emit error(msg);
+        emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           msg);
         return false;
     }
 
@@ -145,10 +157,13 @@ bool StreamingService::startStreaming()
     // Find local IP that can reach the device
     QString targetHost = findLocalHostForDevice();
     if (targetHost.isEmpty()) {
-        emit error(tr("Could not determine local IP address for streaming.\n\n"
-                      "Device IP: %1\n"
-                      "Make sure you're on the same network as the C64 device.")
-                       .arg(deviceHost));
+        const QString msg = tr("Could not determine local IP address for streaming.\n\n"
+                               "Device IP: %1\n"
+                               "Make sure you're on the same network as the C64 device.")
+                                .arg(deviceHost);
+        emit error(msg);
+        emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           msg);
         return false;
     }
 
@@ -156,13 +171,19 @@ bool StreamingService::startStreaming()
 
     // Start UDP receivers
     if (!videoReceiver_->bind()) {
-        emit error(tr("Failed to bind video receiver port."));
+        const QString msg = tr("Failed to bind video receiver port.");
+        emit error(msg);
+        emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           msg);
         return false;
     }
 
     if (!audioReceiver_->bind()) {
         videoReceiver_->close();
-        emit error(tr("Failed to bind audio receiver port."));
+        const QString msg = tr("Failed to bind audio receiver port.");
+        emit error(msg);
+        emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           msg);
         return false;
     }
 
@@ -170,7 +191,10 @@ bool StreamingService::startStreaming()
     if (!audioPlayback_->start()) {
         videoReceiver_->close();
         audioReceiver_->close();
-        emit error(tr("Failed to start audio playback."));
+        const QString msg = tr("Failed to start audio playback.");
+        emit error(msg);
+        emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           msg);
         return false;
     }
 

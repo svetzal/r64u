@@ -2,9 +2,9 @@
 #define GAMEBASE64SERVICE_H
 
 #include "cacheddownloadservice.h"
+#include "ierroremitter.h"
 
 #include <QHash>
-#include <QObject>
 #include <QSqlDatabase>
 
 /**
@@ -21,7 +21,7 @@
  * The database is downloaded from twinbirds.com as a gzipped SQLite file
  * and cached locally for offline use.
  */
-class GameBase64Service : public QObject
+class GameBase64Service : public IErrorEmitter
 {
     Q_OBJECT
 
