@@ -247,7 +247,7 @@ Each suffix or prefix represents a distinct architectural role. New classes must
 
 | Suffix/Prefix | Role | Examples |
 |---------------|------|----------|
-| `I*` prefix | Abstract interface/gateway for dependency injection | `IFtpClient`, `IRestClient`, `ICredentialStore` |
+| `I*` prefix | Abstract interface/gateway for dependency injection; error-emitting interfaces inherit `IErrorEmitter` | `IFtpClient`, `IRestClient`, `ICredentialStore`, `IErrorEmitter` |
 | `*Core` (namespace) | Pure functions and data types, no I/O or state | `ftpcore`, `transfercore` |
 | namespace (no suffix) | Pure-function utility class wrapped in a descriptive namespace | `petscii::PetsciiConverter`, `diskimage::DiskImageReader`, `sidfile::SidFileParser`, `menubar::Builder` |
 | `*Service` | Stateful capability provider with signals, timers, external I/O | `StatusMessageService`, `TransferService`, `StreamingService`, `ConfigFileLoaderService`, `RemoteFileOperationsService` |
@@ -290,13 +290,18 @@ Include paths reflect these boundaries:
 
 All error conditions must reach the user through the signal chain:
 
-1. **Service/model layer** emits an error signal (`error()`, `operationFailed()`, etc.)
-2. **ErrorHandler::connectSources()** wires signals to `ErrorHandler` methods
+1. **Service/model layer** emits `errorReported(ErrorCategory, ErrorSeverity, title, details)` via the `IErrorEmitter` base class
+2. **`ErrorHandler::registerSource(IErrorEmitter*)`** wires that single signal to `handleError()` in one call
 3. **ErrorHandler** categorizes, logs, and displays via status bar or dialog
 
 **Rules for new code:**
-- Never silently return from a function that the user initiated. Emit a signal or log a warning.
+- Every new error source class must inherit from `IErrorEmitter` (defined in `src/services/ierroremitter.h`) instead of `QObject` directly.
+- Register it with `ErrorHandler::registerSource()` — no per-signal lambdas or bespoke connect calls.
+- Emit `errorReported(category, severity, title, details)` from any code path that reports an error. `ErrorCategory` and `ErrorSeverity` are defined in `src/services/errortypes.h`.
+- Do NOT add new bespoke signal names (`*Failed`, `*Error`, etc.) or new `handle*` slots on `ErrorHandler`.
+- Never silently return from a function that the user initiated. Emit `errorReported` or log a warning.
 - Guard clauses for null dependencies: `qCWarning` + early return is acceptable for internal precondition failures.
-- Guard clauses for user-facing operations (transfers, connections): must emit an error signal.
-- Use `ErrorCategory` and `ErrorSeverity` from `errorhandler.h` when routing to ErrorHandler.
+- Guard clauses for user-facing operations (transfers, connections): must emit `errorReported`.
 - Optional/headless callbacks (e.g., model callbacks in tests) may use `qCDebug` level only.
+
+**Known exception:** `RemoteFileModel` inherits `QAbstractItemModel` (not `IErrorEmitter`) and is wired via a legacy `errorOccurred` connection in `connectSources()`. Do not add new exceptions.
