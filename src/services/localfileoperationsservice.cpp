@@ -4,7 +4,7 @@
 #include <QFile>
 #include <QFileInfo>
 
-LocalFileOperationsService::LocalFileOperationsService(QObject *parent) : QObject(parent) {}
+LocalFileOperationsService::LocalFileOperationsService(QObject *parent) : IErrorEmitter(parent) {}
 
 void LocalFileOperationsService::createFolder(const QString &parentDir, const QString &name)
 {
@@ -19,8 +19,8 @@ void LocalFileOperationsService::createFolder(const QString &parentDir, const QS
         emit folderCreated(newPath);
         emit statusMessage(tr("Local folder created: %1").arg(name));
     } else {
-        emit operationFailed(ErrorCategory::FileOperation,
-                             tr("Failed to create folder: %1").arg(newPath));
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                           tr("Operation failed"), tr("Failed to create folder: %1").arg(newPath));
     }
 }
 
@@ -49,7 +49,8 @@ void LocalFileOperationsService::renameItem(const QString &oldPath, const QStrin
                 tr("Failed to rename the %1. Please check that you have the necessary permissions.")
                     .arg(itemType);
         }
-        emit operationFailed(ErrorCategory::FileOperation, errorMessage);
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                           tr("Operation failed"), errorMessage);
         emit statusMessage(tr("Failed to rename: %1").arg(oldName));
     }
 }
@@ -80,7 +81,8 @@ void LocalFileOperationsService::deleteItems(const QStringList &paths)
                                   "trash functionality.")
                                    .arg(itemType);
             }
-            emit operationFailed(ErrorCategory::FileOperation, errorMessage);
+            emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                               tr("Operation failed"), errorMessage);
         }
     }
 

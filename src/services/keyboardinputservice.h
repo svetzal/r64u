@@ -64,12 +64,6 @@ signals:
      */
     void keySent(quint8 petscii);
 
-    /**
-     * @brief Emitted when an error occurs.
-     * @param error Error description.
-     */
-    void errorOccurred(const QString &error);
-
 private:
     /**
      * @brief Converts a Qt key event to PETSCII code.

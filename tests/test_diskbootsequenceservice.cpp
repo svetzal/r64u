@@ -12,6 +12,7 @@
 
 #include "mocks/mockrestclient.h"
 #include "services/diskbootsequenceservice.h"
+#include "services/ierroremitter.h"
 
 #include <QCoreApplication>
 #include <QSignalSpy>
@@ -217,7 +218,7 @@ private slots:
     {
         DiskBootSequenceService svcNoClient;
         QSignalSpy abortedSpy(&svcNoClient, &DiskBootSequenceService::aborted);
-        QSignalSpy errorSpy(&svcNoClient, &DiskBootSequenceService::errorOccurred);
+        QSignalSpy errorSpy(&svcNoClient, &IErrorEmitter::errorReported);
 
         svcNoClient.startBootSequence("/SD/games/test.d64", fastConfig());
 
@@ -227,7 +228,8 @@ private slots:
 
         QCOMPARE(abortedSpy.count(), 1);
         QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.at(0).at(0).toString().contains("device not connected"));
+        // details parameter (index 3) contains the "Device not connected" message
+        QVERIFY(errorSpy.at(0).at(3).toString().contains("not connected"));
     }
 
 private:

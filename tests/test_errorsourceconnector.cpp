@@ -150,7 +150,11 @@ public:
     [[nodiscard]] bool isPlaying() const override { return false; }
     void writeSamples(const QByteArray & /*samples*/, int /*sampleCount*/) override {}
 
-    void emitError(const QString &msg) { emit errorOccurred(msg); }
+    void emitError(const QString &msg)
+    {
+        emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           msg);
+    }
 };
 
 // ---------------------------------------------------------------------------
@@ -264,9 +268,8 @@ void TestErrorSourceConnector::testRemoteFileModel_ErrorOccurredRoutedToDataErro
 
 void TestErrorSourceConnector::testDeviceConnectionManager_SkippedDueToCriticalDialog()
 {
-    QSKIP("DeviceConnectionManager::connectionError routes to handleConnectionError which uses "
-          "Critical "
-          "severity and shows a blocking QMessageBox dialog");
+    QSKIP("DeviceConnectionManager::errorReported with Critical severity routes to "
+          "handleError which shows a blocking QMessageBox dialog");
 }
 
 void TestErrorSourceConnector::testFilePreviewService_PreviewFailedRoutedToOperationFailed()

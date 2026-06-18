@@ -9,7 +9,7 @@
 #include "utils/logging.h"
 
 DiskBootSequenceService::DiskBootSequenceService(QObject *parent)
-    : QObject(parent), stepTimer_(new QTimer(this))
+    : IErrorEmitter(parent), stepTimer_(new QTimer(this))
 {
     stepTimer_->setSingleShot(true);
     connect(stepTimer_, &QTimer::timeout, this, &DiskBootSequenceService::executeCurrentStep);
@@ -86,7 +86,8 @@ void DiskBootSequenceService::executeCurrentStep()
                     qCWarning(LogDevice)
                         << "DiskBootSequenceService: mountImage skipped, no REST client";
                     running_ = false;
-                    emit errorOccurred(tr("Boot sequence failed: device not connected"));
+                    emit errorReported(ErrorCategory::Connection, ErrorSeverity::Critical,
+                                       tr("Boot sequence failed"), tr("Device not connected"));
                     emit aborted();
                     return;
                 }
@@ -98,7 +99,8 @@ void DiskBootSequenceService::executeCurrentStep()
                     qCWarning(LogDevice)
                         << "DiskBootSequenceService: resetMachine skipped, no REST client";
                     running_ = false;
-                    emit errorOccurred(tr("Boot sequence failed: device not connected"));
+                    emit errorReported(ErrorCategory::Connection, ErrorSeverity::Critical,
+                                       tr("Boot sequence failed"), tr("Device not connected"));
                     emit aborted();
                     return;
                 }
@@ -110,7 +112,8 @@ void DiskBootSequenceService::executeCurrentStep()
                     qCWarning(LogDevice)
                         << "DiskBootSequenceService: typeText skipped, no REST client";
                     running_ = false;
-                    emit errorOccurred(tr("Boot sequence failed: device not connected"));
+                    emit errorReported(ErrorCategory::Connection, ErrorSeverity::Critical,
+                                       tr("Boot sequence failed"), tr("Device not connected"));
                     emit aborted();
                     return;
                 }

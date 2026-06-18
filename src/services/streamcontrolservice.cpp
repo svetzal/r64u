@@ -178,7 +178,6 @@ void StreamControlService::onSocketError(QAbstractSocket::SocketError error)
         break;
     }
 
-    emit connectionError(errorMsg);
     emit errorReported(ErrorCategory::Connection, ErrorSeverity::Critical, tr("Connection Error"),
                        errorMsg);
 

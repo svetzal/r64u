@@ -2832,6 +2832,7 @@ endif()
 # LocalFileOperationsService tests - uses QTemporaryDir for real filesystem isolation
 add_executable(test_localfileoperationsservice
     test_localfileoperationsservice.cpp
+    ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/localfileoperationsservice.cpp
 )
 

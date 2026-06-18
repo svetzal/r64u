@@ -26,7 +26,7 @@
  * conn->setAutoReconnect(true);
  *
  * connect(conn, &DeviceConnectionManager::connected, this, &MyClass::onConnected);
- * connect(conn, &DeviceConnectionManager::connectionError, this, &MyClass::onError);
+ * errorHandler->registerSource(conn);
  *
  * conn->connectToDevice();
  * @endcode
@@ -98,7 +98,6 @@ signals:
     void stateChanged(DeviceConnectionManager::ConnectionState state);
     void connected();
     void disconnected();
-    void connectionError(const QString &message);
 
     void deviceInfoUpdated(const DeviceInfo &info);
     void driveInfoUpdated(const QList<DriveInfo> &drives);

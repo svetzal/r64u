@@ -14,6 +14,7 @@
  * For tests that require actual byte delivery, a local QTcpServer is used.
  */
 
+#include "services/ierroremitter.h"
 #include "services/streamcontrolservice.h"
 
 #include <QSignalSpy>
@@ -137,7 +138,7 @@ private slots:
     // Connection error path
     // =========================================================
 
-    void testConnectionError_EmitsConnectionError()
+    void testConnectionError_EmitsErrorReported()
     {
         // Port 1 is almost universally refused
         client_->setHost("127.0.0.1");
@@ -145,7 +146,7 @@ private slots:
         // Override the default port by using a server that refuses immediately
         // We rely on the fact that connecting to a closed port emits ConnectionRefusedError.
 
-        QSignalSpy connErrorSpy(client_, &StreamControlService::connectionError);
+        QSignalSpy connErrorSpy(client_, &IErrorEmitter::errorReported);
         QSignalSpy cmdFailedSpy(client_, &StreamControlService::commandFailed);
 
         // The real ControlPort (64) is almost always closed on localhost in CI

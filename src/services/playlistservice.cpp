@@ -118,7 +118,6 @@ void PlaylistService::play(int index)
     if (state_.items.isEmpty()) {
         qCWarning(LogPlaylist) << "Cannot play: playlist is empty";
         const QString msg = tr("Playlist is empty");
-        emit errorOccurred(msg);
         emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), msg);
         return;
     }
@@ -132,7 +131,6 @@ void PlaylistService::play(int index)
         state_.currentIndex = index;
     } else {
         const QString msg = tr("Invalid track index");
-        emit errorOccurred(msg);
         emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), msg);
         return;
     }
@@ -170,7 +168,6 @@ void PlaylistService::next()
     if (state_.items.isEmpty()) {
         qCWarning(LogPlaylist) << "next() called on empty playlist";
         const QString msg = tr("Playlist is empty");
-        emit errorOccurred(msg);
         emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), msg);
         return;
     }
@@ -195,7 +192,6 @@ void PlaylistService::previous()
     if (state_.items.isEmpty()) {
         qCWarning(LogPlaylist) << "previous() called on empty playlist";
         const QString msg = tr("Playlist is empty");
-        emit errorOccurred(msg);
         emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), msg);
         return;
     }
@@ -203,7 +199,6 @@ void PlaylistService::previous()
     int prevIdx = playlist::previousIndex(state_);
     if (prevIdx < 0) {
         const QString msg = tr("Already at first track");
-        emit errorOccurred(msg);
         emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), msg);
         return;
     }

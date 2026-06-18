@@ -7,6 +7,7 @@
  */
 
 #include "mocks/mockrestclient.h"
+#include "services/ierroremitter.h"
 #include "services/keyboardinputservice.h"
 
 #include <QKeyEvent>
@@ -42,15 +43,16 @@ private slots:
 
     // ========== Null REST client guard ==========
 
-    void testSendPetsciiWithNullRestClientEmitsErrorOccurred()
+    void testSendPetsciiWithNullRestClientEmitsErrorReported()
     {
         KeyboardInputService nullSvc(nullptr);
-        QSignalSpy spy(&nullSvc, &KeyboardInputService::errorOccurred);
+        QSignalSpy spy(&nullSvc, &IErrorEmitter::errorReported);
 
         nullSvc.sendPetscii(65);
 
         QCOMPARE(spy.count(), 1);
-        QVERIFY(spy.first().first().toString().contains("REST client", Qt::CaseInsensitive));
+        // details parameter (index 3) contains the error message
+        QVERIFY(spy.first().at(3).toString().contains("REST client", Qt::CaseInsensitive));
     }
 
     void testSendPetsciiWithNullRestClientDoesNotEmitKeySent()

@@ -79,10 +79,7 @@ void LocalFileBrowserWidget::setupUi()
             [this](const QString &message, int /*timeout*/) {
                 errorHandler_->info(ErrorCategory::FileOperation, message);
             });
-    connect(fileOps_, &LocalFileOperationsService::operationFailed, this,
-            [this](ErrorCategory category, const QString &message) {
-                errorHandler_->handleError(category, ErrorSeverity::Warning, message);
-            });
+    errorHandler_->registerSource(fileOps_);
 
     LocalFileBrowserWidget::updateActions();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
 }

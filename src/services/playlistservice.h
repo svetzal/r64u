@@ -275,11 +275,6 @@ signals:
      */
     void statusMessage(const QString &message, int timeout = 0);
 
-    /**
-     * @brief Emitted when a user-initiated operation fails.
-     */
-    void errorOccurred(const QString &error);
-
 private slots:
     void onAdvanceTimer();
     void onSidDataReceived(const QString &remotePath, const QByteArray &data);

@@ -1,3 +1,4 @@
+#include "services/ierroremitter.h"
 #include "services/playlistservice.h"
 
 #include <QSignalSpy>
@@ -165,19 +166,19 @@ private slots:
 
     void testPlay_EmptyPlaylist_EmitsPlaylistIsEmptyStatusMessage()
     {
-        QSignalSpy spy(manager, &PlaylistService::errorOccurred);
+        QSignalSpy spy(manager, &IErrorEmitter::errorReported);
         manager->play();
         QCOMPARE(spy.count(), 1);
-        QVERIFY(spy.at(0).at(0).toString().contains("Playlist is empty"));
+        QVERIFY(spy.at(0).at(3).toString().contains("Playlist is empty"));
     }
 
     void testPlay_OutOfBoundsIndex_EmitsInvalidTrackIndexStatusMessage()
     {
         addTestItem(manager, "/SD/a.sid");
-        QSignalSpy spy(manager, &PlaylistService::errorOccurred);
+        QSignalSpy spy(manager, &IErrorEmitter::errorReported);
         manager->play(99);
         QCOMPARE(spy.count(), 1);
-        QVERIFY(spy.at(0).at(0).toString().contains("Invalid track index"));
+        QVERIFY(spy.at(0).at(3).toString().contains("Invalid track index"));
     }
 
     void testStop_EmitsPlaybackStopped()
@@ -210,10 +211,10 @@ private slots:
 
     void testNext_EmptyPlaylist_EmitsPlaylistIsEmptyStatusMessage()
     {
-        QSignalSpy spy(manager, &PlaylistService::errorOccurred);
+        QSignalSpy spy(manager, &IErrorEmitter::errorReported);
         manager->next();
         QCOMPARE(spy.count(), 1);
-        QVERIFY(spy.at(0).at(0).toString().contains("Playlist is empty"));
+        QVERIFY(spy.at(0).at(3).toString().contains("Playlist is empty"));
     }
 
     void testNext_EmptyPlaylist_NoCrash()
@@ -238,10 +239,10 @@ private slots:
 
     void testPrevious_EmptyPlaylist_EmitsPlaylistIsEmptyStatusMessage()
     {
-        QSignalSpy spy(manager, &PlaylistService::errorOccurred);
+        QSignalSpy spy(manager, &IErrorEmitter::errorReported);
         manager->previous();
         QCOMPARE(spy.count(), 1);
-        QVERIFY(spy.at(0).at(0).toString().contains("Playlist is empty"));
+        QVERIFY(spy.at(0).at(3).toString().contains("Playlist is empty"));
     }
 
     void testPrevious_AtFirstTrack_EmitsAlreadyAtFirstTrackStatusMessage()
@@ -249,10 +250,10 @@ private slots:
         // Add one item and play it (at index 0); previous() has nowhere to go
         addTestItem(manager, "/SD/a.sid");
         manager->play(0);
-        QSignalSpy spy(manager, &PlaylistService::errorOccurred);
+        QSignalSpy spy(manager, &IErrorEmitter::errorReported);
         manager->previous();
         QCOMPARE(spy.count(), 1);
-        QVERIFY(spy.at(0).at(0).toString().contains("Already at first track"));
+        QVERIFY(spy.at(0).at(3).toString().contains("Already at first track"));
     }
 
     // =========================================================

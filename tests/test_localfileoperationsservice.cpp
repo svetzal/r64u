@@ -8,7 +8,7 @@
  * internals.
  */
 
-#include "services/errorhandler.h"
+#include "services/ierroremitter.h"
 #include "services/localfileoperationsservice.h"
 
 #include <QFile>
@@ -62,9 +62,9 @@ private slots:
         QVERIFY(!spy.at(0).at(0).toString().isEmpty());
     }
 
-    void testCreateFolder_failure_emitsOperationFailed()
+    void testCreateFolder_failure_emitsErrorReported()
     {
-        QSignalSpy spy(service, &LocalFileOperationsService::operationFailed);
+        QSignalSpy spy(service, &IErrorEmitter::errorReported);
 
         // Parent path does not exist — mkdir without -p will fail
         service->createFolder("/nonexistent/path/that/does/not/exist", "folder");
@@ -114,9 +114,9 @@ private slots:
         QCOMPARE(spy.count(), 1);
     }
 
-    void testRenameItem_failure_notExists_emitsOperationFailed()
+    void testRenameItem_failure_notExists_emitsErrorReported()
     {
-        QSignalSpy spy(service, &LocalFileOperationsService::operationFailed);
+        QSignalSpy spy(service, &IErrorEmitter::errorReported);
 
         service->renameItem("/nonexistent/file.txt", "new.txt");
 
@@ -137,9 +137,9 @@ private slots:
     // deleteItems tests
     // -----------------------------------------------------------------------
 
-    void testDeleteItems_nonExistentPath_emitsOperationFailed()
+    void testDeleteItems_nonExistentPath_emitsErrorReported()
     {
-        QSignalSpy spy(service, &LocalFileOperationsService::operationFailed);
+        QSignalSpy spy(service, &IErrorEmitter::errorReported);
 
         service->deleteItems({"/nonexistent/path/file.txt"});
 
@@ -236,7 +236,7 @@ private slots:
         const QString badPath = "/nonexistent/bad_file.txt";
 
         QSignalSpy deletedSpy(service, &LocalFileOperationsService::itemsDeleted);
-        QSignalSpy failedSpy(service, &LocalFileOperationsService::operationFailed);
+        QSignalSpy failedSpy(service, &IErrorEmitter::errorReported);
 
         service->deleteItems({goodPath, badPath});
 

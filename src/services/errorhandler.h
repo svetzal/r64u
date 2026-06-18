@@ -41,9 +41,8 @@ class VideoRecordingService;
  * @code
  * ErrorHandler *handler = new ErrorHandler(parentWidget, this);
  *
- * // Connect error signals from various sources
- * connect(connection, &DeviceConnectionManager::connectionError,
- *         handler, &ErrorHandler::handleConnectionError);
+ * // Register error sources using the uniform contract
+ * handler->registerSource(connection);
  *
  * // Handle with custom severity
  * handler->handleError(ErrorCategory::FileOperation,

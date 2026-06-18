@@ -86,8 +86,8 @@ private slots:
     {
         QSignalSpy spy(widget, &PlaylistWidget::statusMessage);
 
-        // play() on an empty playlist causes PlaylistService to emit statusMessage
-        manager->play();
+        // clear() on an already-empty playlist causes PlaylistService to emit statusMessage
+        manager->clear();
 
         QCOMPARE(spy.count(), 1);
         QVERIFY(!spy.at(0).at(0).toString().isEmpty());
@@ -198,23 +198,26 @@ private slots:
         QCOMPARE(spy.count(), 1);
     }
 
-    void testOnNext_whenEmpty_emitsStatusMessage()
+    void testOnNext_whenEmpty_doesNotCrash()
     {
-        // next() on an empty playlist emits a statusMessage via manager
-        QSignalSpy spy(widget, &PlaylistWidget::statusMessage);
+        // next() on an empty playlist reports error via errorReported (to ErrorHandler),
+        // not via statusMessage on the widget
+        QSignalSpy statusSpy(widget, &PlaylistWidget::statusMessage);
 
         QMetaObject::invokeMethod(widget, "onNext");
 
-        QCOMPARE(spy.count(), 1);
+        // No statusMessage emitted — errors now route through IErrorEmitter chain
+        QCOMPARE(statusSpy.count(), 0);
     }
 
-    void testOnPrevious_whenEmpty_emitsStatusMessage()
+    void testOnPrevious_whenEmpty_doesNotCrash()
     {
-        QSignalSpy spy(widget, &PlaylistWidget::statusMessage);
+        QSignalSpy statusSpy(widget, &PlaylistWidget::statusMessage);
 
         QMetaObject::invokeMethod(widget, "onPrevious");
 
-        QCOMPARE(spy.count(), 1);
+        // No statusMessage emitted — errors now route through IErrorEmitter chain
+        QCOMPARE(statusSpy.count(), 0);
     }
 
     // -----------------------------------------------------------------------

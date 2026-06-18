@@ -12,6 +12,7 @@
  */
 
 #include "services/deviceconnectionmanager.h"
+#include "services/ierroremitter.h"
 
 #include <QSignalSpy>
 #include <QtTest>
@@ -105,10 +106,11 @@ private slots:
     void testValidTransition_ConnectingToDisconnected_OnError()
     {
         QSignalSpy stateSpy(conn, &DeviceConnectionManager::stateChanged);
-        QSignalSpy errorSpy(conn, &DeviceConnectionManager::connectionError);
+        QSignalSpy errorSpy(conn, &IErrorEmitter::errorReported);
 
         conn->connectToDevice();
         stateSpy.clear();
+        errorSpy.clear();
 
         // Simulate REST error during connection
         emit conn->restClient()->connectionError("Connection refused");
@@ -116,7 +118,7 @@ private slots:
         QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
         QCOMPARE(stateSpy.count(), 1);
         QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.first().first().toString().contains("REST"));
+        QVERIFY(errorSpy.first().at(3).toString().contains("REST"));
     }
 
     void testValidTransition_ConnectedToDisconnected()
@@ -198,14 +200,14 @@ private slots:
     void testGuard_ConnectWithoutHost()
     {
         auto *noHostConn = new DeviceConnectionManager(this);
-        QSignalSpy errorSpy(noHostConn, &DeviceConnectionManager::connectionError);
+        QSignalSpy errorSpy(noHostConn, &IErrorEmitter::errorReported);
 
         noHostConn->connectToDevice();
 
         // Should emit error, not transition
         QCOMPARE(noHostConn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
         QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.first().first().toString().contains("host"));
+        QVERIFY(errorSpy.first().at(3).toString().contains("host"));
 
         delete noHostConn;
     }
@@ -368,33 +370,36 @@ private slots:
 
     void testError_DuringConnecting_REST()
     {
-        QSignalSpy errorSpy(conn, &DeviceConnectionManager::connectionError);
+        QSignalSpy errorSpy(conn, &IErrorEmitter::errorReported);
 
         conn->connectToDevice();
+        errorSpy.clear();
         emit conn->restClient()->connectionError("Network unreachable");
 
         QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
         QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.first().first().toString().contains("REST"));
+        QVERIFY(errorSpy.first().at(3).toString().contains("REST"));
     }
 
     void testError_DuringConnecting_FTP()
     {
-        QSignalSpy errorSpy(conn, &DeviceConnectionManager::connectionError);
+        QSignalSpy errorSpy(conn, &IErrorEmitter::errorReported);
 
         conn->connectToDevice();
+        errorSpy.clear();
         emit conn->ftpClient()->error("Connection timed out");
 
         QCOMPARE(conn->state(), DeviceConnectionManager::ConnectionState::Disconnected);
         QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.first().first().toString().contains("FTP"));
+        QVERIFY(errorSpy.first().at(3).toString().contains("FTP"));
     }
 
     void testError_OperationFailed_InfoRequest()
     {
-        QSignalSpy errorSpy(conn, &DeviceConnectionManager::connectionError);
+        QSignalSpy errorSpy(conn, &IErrorEmitter::errorReported);
 
         conn->connectToDevice();
+        errorSpy.clear();
         // Simulate REST info operation failure (treated as connection error during connect)
         emit conn->restClient()->operationFailed("info", "Invalid response");
 

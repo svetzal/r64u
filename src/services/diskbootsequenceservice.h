@@ -1,14 +1,15 @@
 #ifndef DISKBOOTSEQUENCESERVICE_H
 #define DISKBOOTSEQUENCESERVICE_H
 
+#include "ierroremitter.h"
+
 #include "core/diskbootsequencecore.h"
 
-#include <QObject>
 #include <QTimer>
 
 class IRestClient;
 
-class DiskBootSequenceService : public QObject
+class DiskBootSequenceService : public IErrorEmitter
 {
     Q_OBJECT
 
@@ -71,11 +72,6 @@ signals:
      * @brief Emitted when the sequence is aborted before completion.
      */
     void aborted();
-
-    /**
-     * @brief Emitted when the boot sequence fails due to a missing dependency.
-     */
-    void errorOccurred(const QString &error);
 
 private:
     void executeCurrentStep();

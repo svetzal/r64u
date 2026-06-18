@@ -39,12 +39,6 @@ void DeviceConnectionManager::setupConnections()
 
     reconnectTimer_->setSingleShot(true);
     connect(reconnectTimer_, &QTimer::timeout, this, &DeviceConnectionManager::onReconnectTimer);
-
-    // Forward connectionError to the uniform IErrorEmitter signal
-    connect(this, &DeviceConnectionManager::connectionError, this, [this](const QString &message) {
-        emit errorReported(ErrorCategory::Connection, ErrorSeverity::Critical,
-                           tr("Connection Error"), message);
-    });
 }
 
 DeviceConnectionManager::~DeviceConnectionManager() = default;
@@ -136,7 +130,8 @@ void DeviceConnectionManager::connectToDevice()
     }
 
     if (host_.isEmpty()) {
-        emit connectionError(tr("No host configured"));
+        emit errorReported(ErrorCategory::Connection, ErrorSeverity::Critical,
+                           tr("Connection Error"), tr("No host configured"));
         return;
     }
 
@@ -144,7 +139,9 @@ void DeviceConnectionManager::connectToDevice()
     reconnectAttempts_ = 0;
 
     if (!tryTransitionTo(ConnectionState::Connecting)) {
-        emit connectionError(tr("Cannot start connection from current state"));
+        emit errorReported(ErrorCategory::Connection, ErrorSeverity::Critical,
+                           tr("Connection Error"),
+                           tr("Cannot start connection from current state"));
         return;
     }
 
@@ -233,7 +230,8 @@ void DeviceConnectionManager::onRestConnectionError(const QString &error)
         } else {
             // Initial connection failed
             tryTransitionTo(ConnectionState::Disconnected);
-            emit connectionError(tr("REST connection failed: %1").arg(error));
+            emit errorReported(ErrorCategory::Connection, ErrorSeverity::Critical,
+                               tr("Connection Error"), tr("REST connection failed: %1").arg(error));
         }
     } else if (state_ == ConnectionState::Connected && autoReconnect_) {
         // Connection lost, try to reconnect
@@ -285,7 +283,9 @@ void DeviceConnectionManager::onFtpError(const QString &message)
         } else {
             // Initial connection failed
             tryTransitionTo(ConnectionState::Disconnected);
-            emit connectionError(tr("FTP connection failed: %1").arg(message));
+            emit errorReported(ErrorCategory::Connection, ErrorSeverity::Critical,
+                               tr("Connection Error"),
+                               tr("FTP connection failed: %1").arg(message));
         }
     }
 }
@@ -318,7 +318,9 @@ void DeviceConnectionManager::startReconnect()
 
     if (reconnectAttempts_ > MaxReconnectAttempts) {
         tryTransitionTo(ConnectionState::Disconnected);
-        emit connectionError(tr("Failed to reconnect after %1 attempts").arg(MaxReconnectAttempts));
+        emit errorReported(ErrorCategory::Connection, ErrorSeverity::Critical,
+                           tr("Connection Error"),
+                           tr("Failed to reconnect after %1 attempts").arg(MaxReconnectAttempts));
         return;
     }
 

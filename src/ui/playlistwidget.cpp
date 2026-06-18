@@ -156,8 +156,6 @@ void PlaylistWidget::setupConnections()
     connect(manager_, &PlaylistService::repeatModeChanged, this,
             &PlaylistWidget::onRepeatModeChanged);
     connect(manager_, &PlaylistService::statusMessage, this, &PlaylistWidget::statusMessage);
-    connect(manager_, &PlaylistService::errorOccurred, this,
-            [this](const QString &error) { emit statusMessage(error); });
 
     // Duration spinner
     connect(durationSpinBox_, QOverload<int>::of(&QSpinBox::valueChanged), this,

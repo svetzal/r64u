@@ -28,9 +28,8 @@ void KeyboardInputService::sendPetscii(quint8 petscii)
 {
     if (!restClient_) {
         qCWarning(LogDevice) << "sendPetscii skipped: REST client not configured";
-        const QString msg = tr("No REST client configured");
-        emit errorOccurred(msg);
-        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), msg);
+        emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"),
+                           tr("No REST client configured"));
         return;
     }
 

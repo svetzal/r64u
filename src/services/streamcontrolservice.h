@@ -124,13 +124,6 @@ public:
     void clearPendingCommands() override;
     /// @}
 
-signals:
-    /**
-     * @brief Emitted when a connection error occurs.
-     * @param error Error description.
-     */
-    void connectionError(const QString &error);
-
 private slots:
     void onSocketConnected();
     void onSocketDisconnected();

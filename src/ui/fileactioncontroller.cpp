@@ -32,8 +32,7 @@ FileActionController::FileActionController(DeviceActionService *deviceActionServ
             [this](const QString &message, int /*timeout*/) {
                 errorHandler_->info(ErrorCategory::FileOperation, message);
             });
-    connect(bootService_, &DiskBootSequenceService::errorOccurred, errorHandler_,
-            &ErrorHandler::handleDataError);
+    errorHandler_->registerSource(bootService_);
 }
 
 void FileActionController::setStreamingService(StreamingService *manager)

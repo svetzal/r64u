@@ -33,7 +33,8 @@ bool AudioPlaybackService::start()
 
     if (!audioSink_) {
         qCWarning(LogStreaming) << "AudioPlaybackService: failed to create audio output";
-        emit errorOccurred("Failed to create audio output");
+        emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           tr("Failed to create audio output"));
         return false;
     }
 
@@ -43,7 +44,8 @@ bool AudioPlaybackService::start()
         const QString msg =
             QString("Failed to start audio output: error code %1").arg(audioSink_->error());
         qCWarning(LogStreaming) << "AudioPlaybackService:" << msg;
-        emit errorOccurred(msg);
+        emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           msg);
         audioSink_.reset();
         return false;
     }
@@ -143,7 +145,8 @@ void AudioPlaybackService::onStateChanged(QAudio::State state)
         if (audioSink_ && audioSink_->error() != QAudio::NoError) {
             const QString msg = QString("Audio error: %1").arg(audioSink_->error());
             qCWarning(LogStreaming) << "AudioPlaybackService:" << msg;
-            emit errorOccurred(msg);
+            emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                               msg);
         }
         break;
     default:
@@ -158,7 +161,8 @@ void AudioPlaybackService::createAudioSink()
 
     if (outputDevice.isNull()) {
         qCWarning(LogStreaming) << "AudioPlaybackService: no audio output device available";
-        emit errorOccurred("No audio output device available");
+        emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
+                           tr("No audio output device available"));
         return;
     }
 
