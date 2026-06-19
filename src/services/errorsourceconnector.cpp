@@ -44,7 +44,9 @@ void ErrorHandler::connectSources(DeviceConnectionManager *dc, IRestClient *rest
 
     // RemoteFileModel inherits QAbstractItemModel, not IErrorEmitter — legacy path
     if (rfm) {
-        connect(rfm, &RemoteFileModel::errorOccurred, this, &ErrorHandler::handleDataError);
+        connect(rfm, &RemoteFileModel::errorOccurred, this, [this](const QString &message) {
+            handleError(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), message);
+        });
     }
 
     // Streaming sub-services need separate wiring for socketError signals

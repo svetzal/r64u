@@ -63,34 +63,6 @@ void ErrorHandler::handleErrorWithRetry(ErrorCategory category, const QString &t
     showRetryDialog(title, details.isEmpty() ? title : details, retryCallback);
 }
 
-void ErrorHandler::handleConnectionError(const QString &message)
-{
-    handleError(ErrorCategory::Connection, ErrorSeverity::Critical, tr("Connection Error"),
-                message);
-}
-
-void ErrorHandler::handleOperationFailed(const QString &operation, const QString &error)
-{
-    handleError(ErrorCategory::FileOperation, ErrorSeverity::Warning,
-                tr("%1 failed").arg(operation), error);
-}
-
-void ErrorHandler::handleDataError(const QString &message)
-{
-    handleError(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), message);
-}
-
-void ErrorHandler::handleStreamingError(const QString &message)
-{
-    handleError(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"), message);
-}
-
-void ErrorHandler::handleDownloadError(const QString &source, const QString &error)
-{
-    handleError(ErrorCategory::FileOperation, ErrorSeverity::Warning,
-                tr("%1 download failed").arg(source), error);
-}
-
 void ErrorHandler::info(ErrorCategory category, const QString &message)
 {
     handleError(category, ErrorSeverity::Info, message);

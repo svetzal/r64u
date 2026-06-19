@@ -109,6 +109,10 @@ void connectAll(TransferManager &mgr)
                      &TransferManager::directoryCreationProgress);
     QObject::connect(mgr.dirCreator_, &RemoteDirectoryCoordinator::allDirectoriesCreated, &mgr,
                      [&mgr]() { mgr.enqueueHandler_->finishDirectoryCreation(); });
+    QObject::connect(mgr.dirCreator_, &RemoteDirectoryCoordinator::error, &mgr,
+                     [&mgr](const QString &message) {
+                         emit mgr.operationFailed(QStringLiteral("Directory creation"), message);
+                     });
 
     // --- FolderOperationCoordinator ---
     QObject::connect(mgr.folderCoordinator_,

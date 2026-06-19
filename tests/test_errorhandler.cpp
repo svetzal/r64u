@@ -125,16 +125,16 @@ void TestErrorHandler::testCriticalSeverityTimeout()
 
 void TestErrorHandler::testHandleConnectionError()
 {
-    // Skip this test - handleConnectionError uses Critical severity
-    // which shows a blocking QMessageBox dialog
-    QSKIP("Connection errors show a blocking QMessageBox dialog");
+    // Skip this test - Critical severity shows a blocking QMessageBox dialog
+    QSKIP("Critical severity shows a blocking QMessageBox dialog");
 }
 
 void TestErrorHandler::testHandleOperationFailed()
 {
     QSignalSpy spy(handler_, &ErrorHandler::statusMessage);
 
-    handler_->handleOperationFailed("upload", "Permission denied");
+    handler_->handleError(ErrorCategory::FileOperation, ErrorSeverity::Warning, "upload failed",
+                          "Permission denied");
 
     QCOMPARE(spy.count(), 1);
     QString message = spy.at(0).at(0).toString();
@@ -151,7 +151,8 @@ void TestErrorHandler::testHandleDataError()
 {
     QSignalSpy spy(handler_, &ErrorHandler::statusMessage);
 
-    handler_->handleDataError("Failed to load directory listing");
+    handler_->handleError(ErrorCategory::FileOperation, ErrorSeverity::Warning, "Error",
+                          "Failed to load directory listing");
 
     QCOMPARE(spy.count(), 1);
     QString message = spy.at(0).at(0).toString();
@@ -207,7 +208,8 @@ void TestErrorHandler::testHandleStreamingError()
 {
     QSignalSpy spy(handler_, &ErrorHandler::errorLogged);
 
-    handler_->handleStreamingError("Failed to bind UDP port");
+    handler_->handleError(ErrorCategory::System, ErrorSeverity::Warning, "Streaming Error",
+                          "Failed to bind UDP port");
 
     QCOMPARE(spy.count(), 1);
     QCOMPARE(spy.at(0).at(0).value<ErrorCategory>(), ErrorCategory::System);
@@ -218,7 +220,8 @@ void TestErrorHandler::testHandleDownloadError()
 {
     QSignalSpy spy(handler_, &ErrorHandler::errorLogged);
 
-    handler_->handleDownloadError("Song lengths database", "Connection timed out");
+    handler_->handleError(ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                          "Song lengths database download failed", "Connection timed out");
 
     QCOMPARE(spy.count(), 1);
     QCOMPARE(spy.at(0).at(0).value<ErrorCategory>(), ErrorCategory::FileOperation);

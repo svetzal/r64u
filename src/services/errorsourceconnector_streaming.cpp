@@ -18,10 +18,16 @@ void ErrorHandler::connectStreamingServiceSources(StreamingService *ss)
     // IErrorEmitter (their interfaces have no error signals), so use legacy path
     if (ss->videoReceiver()) {
         connect(ss->videoReceiver(), &VideoStreamReceiverService::socketError, this,
-                &ErrorHandler::handleStreamingError);
+                [this](const QString &message) {
+                    handleError(ErrorCategory::System, ErrorSeverity::Warning,
+                                tr("Streaming Error"), message);
+                });
     }
     if (ss->audioReceiver()) {
         connect(ss->audioReceiver(), &AudioStreamReceiverService::socketError, this,
-                &ErrorHandler::handleStreamingError);
+                [this](const QString &message) {
+                    handleError(ErrorCategory::System, ErrorSeverity::Warning,
+                                tr("Streaming Error"), message);
+                });
     }
 }

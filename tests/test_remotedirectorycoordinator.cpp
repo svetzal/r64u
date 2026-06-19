@@ -136,6 +136,19 @@ private slots:
 
         QCOMPARE(state_.directoriesCreated, 0);
     }
+
+    void testCreateNextDirectory_nullFtpClient_emitsError()
+    {
+        QSignalSpy spy(creator, &RemoteDirectoryCoordinator::error);
+        creator->setFtpClient(nullptr);
+
+        mockFs->mockSetSubdirectories("/local/dir", QStringList{});
+        creator->queueDirectoriesForUpload("/local/dir", "/remote/dir");
+        creator->createNextDirectory();
+
+        QCOMPARE(spy.count(), 1);
+        QVERIFY(spy.at(0).at(0).toString().contains("Cannot create directory"));
+    }
 };
 
 QTEST_MAIN(TestRemoteDirectoryCoordinator)

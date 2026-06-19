@@ -123,49 +123,6 @@ public:
                               const std::function<void()> &retryCallback);
     /// @}
 
-    /// @name Convenience Methods for Common Error Sources
-    /// @{
-
-    /**
-     * @brief Handles a connection error (critical severity).
-     * @param message The error message.
-     *
-     * Connection errors are always critical and display a dialog.
-     */
-    void handleConnectionError(const QString &message);
-
-    /**
-     * @brief Handles a file operation error (warning severity).
-     * @param operation The operation that failed (e.g., "upload", "download").
-     * @param error The error message.
-     */
-    void handleOperationFailed(const QString &operation, const QString &error);
-
-    /**
-     * @brief Handles a model/data error (warning severity).
-     * @param message The error message.
-     *
-     * Used for errors from RemoteFileModel and similar data sources.
-     */
-    void handleDataError(const QString &message);
-
-    /**
-     * @brief Handles a streaming error (warning severity).
-     * @param message The error message.
-     *
-     * Used for errors from StreamingService and VideoRecordingService.
-     */
-    void handleStreamingError(const QString &message);
-
-    /**
-     * @brief Handles a download failure (warning severity).
-     * @param source Human-readable name of what was being downloaded.
-     * @param error The error message.
-     *
-     * Used for metadata database download failures.
-     */
-    void handleDownloadError(const QString &source, const QString &error);
-
     /**
      * @brief Handles an informational message (info severity).
      * @param category The message category.
@@ -175,7 +132,6 @@ public:
      * Use for success confirmations and progress notifications.
      */
     void info(ErrorCategory category, const QString &message);
-    /// @}
 
 signals:
     /**

@@ -42,7 +42,9 @@ void ErrorHandler::connectDeviceSources(DeviceConnectionManager * /*dc*/,
 void ErrorHandler::connectTransferSources(IFtpClient *ftpClient, TransferService * /*ts*/)
 {
     if (ftpClient) {
-        connect(ftpClient, &IFtpClient::error, this, &ErrorHandler::handleDataError);
+        connect(ftpClient, &IFtpClient::error, this, [this](const QString &message) {
+            handleError(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"), message);
+        });
     }
 }
 
