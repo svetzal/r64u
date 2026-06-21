@@ -120,6 +120,13 @@ void TransferManager::transitionTo(QueueState newState)
 // FTP client
 // ============================================================================
 
+void TransferManager::abortActiveFtpOperation()
+{
+    if (ftpClient_) {
+        ftpClient_->abort();
+    }
+}
+
 void TransferManager::setFtpClient(IFtpClient *client)
 {
     ftpClient_ = client;
@@ -332,8 +339,8 @@ void TransferManager::clear()
 
 void TransferManager::cancelAll()
 {
-    if (ftpClient_ && transfer::shouldAbortFtp(state_.queueState)) {
-        ftpClient_->abort();
+    if (transfer::shouldAbortFtp(state_.queueState)) {
+        abortActiveFtpOperation();
     }
 
     state_ = transfer::cancelAllItems(state_);
@@ -356,8 +363,8 @@ void TransferManager::cancelBatch(int batchId)
     }
 
     bool isActive = (batchIdx == state_.activeBatchIndex);
-    if (isActive && ftpClient_ && transfer::shouldAbortFtp(state_.queueState)) {
-        ftpClient_->abort();
+    if (isActive && transfer::shouldAbortFtp(state_.queueState)) {
+        abortActiveFtpOperation();
     }
 
     auto result = transfer::cancelBatch(state_, batchId);
@@ -445,16 +452,13 @@ void TransferManager::onOperationTimeout()
 {
     qCDebug(LogTransfer) << "TransferManager: Operation timeout!";
 
-    if (ftpClient_) {
-        ftpClient_->abort();
-    }
+    abortActiveFtpOperation();
 
     int originalIndex = state_.currentIndex;
     state_ = transfer::handleOperationTimeout(state_);
 
     if (originalIndex >= 0 && originalIndex < state_.items.size()) {
-        QString errorMessage = tr("Operation timed out after %1 minutes")
-                                   .arg(TransferTimeoutManager::OperationTimeoutMs / 60000);
+        QString errorMessage = timeoutManager_->timeoutErrorMessage();
         state_.items[originalIndex].errorMessage = errorMessage;
 
         QString fileName = QFileInfo(state_.items[originalIndex].localPath.isEmpty()

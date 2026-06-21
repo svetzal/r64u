@@ -160,6 +160,15 @@ FtpResponseParse splitResponseLines(const QString &buffer)
     return result;
 }
 
+std::optional<qint64> parseRetrByteCount(const QString &text)
+{
+    QRegularExpression rx("\\((\\d+)\\s+bytes\\)");
+    auto match = rx.match(text);
+    if (!match.hasMatch())
+        return std::nullopt;
+    return match.captured(1).toLongLong();
+}
+
 QList<CommandSpec> buildListSequence(const QString &path)
 {
     return {{FtpCommandQueue::Command::Type, "A"},

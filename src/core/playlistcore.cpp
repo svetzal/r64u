@@ -258,4 +258,16 @@ DurationUpdateResult updateItemDurations(const QList<PlaylistItem> &items, const
     return result;
 }
 
+QString formatDuration(int seconds)
+{
+    int mins = seconds / 60;
+    int secs = seconds % 60;
+    return QString("%1:%2").arg(mins).arg(secs, 2, 10, QChar('0'));
+}
+
+QString formatElapsed(int elapsedSecs, int totalSecs)
+{
+    return QString("%1 / %2").arg(formatDuration(elapsedSecs), formatDuration(totalSecs));
+}
+
 }  // namespace playlist

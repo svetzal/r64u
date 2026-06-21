@@ -193,6 +193,25 @@ struct DurationUpdateResult
                                                        const QString &path,
                                                        const QList<int> &subsongDurations);
 
+// ---------------------------------------------------------------------------
+// Time formatting
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief Formats a duration in seconds as "MM:SS".
+ * @param seconds Duration in seconds.
+ * @return Formatted string like "3:05" or "10:00".
+ */
+[[nodiscard]] QString formatDuration(int seconds);
+
+/**
+ * @brief Formats elapsed and total time as "MM:SS / MM:SS".
+ * @param elapsedSecs Elapsed time in seconds.
+ * @param totalSecs Total duration in seconds.
+ * @return Formatted string like "1:23 / 3:05".
+ */
+[[nodiscard]] QString formatElapsed(int elapsedSecs, int totalSecs);
+
 }  // namespace playlist
 
 #endif  // PLAYLISTCORE_H

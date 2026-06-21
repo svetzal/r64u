@@ -169,6 +169,7 @@ private:
     void processNext();
     void scheduleProcessNext();
     void transitionTo(QueueState newState);
+    void abortActiveFtpOperation();
 
     void startOperationTimeout();
     void stopOperationTimeout();

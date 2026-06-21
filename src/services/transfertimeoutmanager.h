@@ -17,6 +17,7 @@ public:
 
     void start();
     void stop();
+    [[nodiscard]] QString timeoutErrorMessage() const;
 
 signals:
     void operationTimedOut();

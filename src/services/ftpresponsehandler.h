@@ -145,6 +145,27 @@ public:
     [[nodiscard]] FtpResponseAction handleDataDisconnected(const FtpResponseContext &ctx);
 
 private:
+    [[nodiscard]] FtpResponseAction handleUserResponse(int code, const QString &text) const;
+    [[nodiscard]] FtpResponseAction handlePassResponse(int code, const QString &text) const;
+    [[nodiscard]] FtpResponseAction handlePwdResponse(int code, const QString &text) const;
+    [[nodiscard]] FtpResponseAction handleCwdResponse(int code, const QString &text,
+                                                      const FtpResponseContext &ctx) const;
+    [[nodiscard]] FtpResponseAction handlePasvResponse(int code, const QString &text) const;
+    [[nodiscard]] FtpResponseAction handleListResponse(int code, const QString &text,
+                                                       const FtpResponseContext &ctx);
+    [[nodiscard]] FtpResponseAction handleRetrResponse(int code, const QString &text,
+                                                       const FtpResponseContext &ctx);
+    [[nodiscard]] FtpResponseAction handleStorResponse(int code, const QString &text,
+                                                       const FtpResponseContext &ctx) const;
+    [[nodiscard]] FtpResponseAction handleMkdResponse(int code, const QString &text,
+                                                      const FtpResponseContext &ctx) const;
+    [[nodiscard]] FtpResponseAction handleDeleteResponse(int code, const QString &text,
+                                                         const FtpResponseContext &ctx) const;
+    [[nodiscard]] FtpResponseAction handleRenameFromResponse(int code, const QString &text,
+                                                             const FtpResponseContext &ctx) const;
+    [[nodiscard]] FtpResponseAction handleRenameToResponse(int code, const QString &text,
+                                                           const FtpResponseContext &ctx) const;
+
     FtpTransferState &transferState_;
 };
 

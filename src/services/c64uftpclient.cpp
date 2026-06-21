@@ -281,21 +281,32 @@ void C64UFtpClient::emitResponseSignals(const FtpResponseAction &action)
     }
 }
 
+void C64UFtpClient::sendStorFileForAction()
+{
+    auto storFile = transferState_.currentStorFile();
+    if (storFile && storFile->isOpen()) {
+        QByteArray data = storFile->readAll();
+        dataSocket_->write(data);
+        dataSocket_->disconnectFromHost();
+    } else {
+        qDebug() << "FTP: ERROR - STOR 150 but no file handle! currentStorFile:" << storFile.get();
+    }
+}
+
+void C64UFtpClient::connectDataSocketForAction(const FtpResponseAction &action)
+{
+    QString actualHost = controlSocket_->peerAddress().toString();
+    qDebug() << "FTP: PASV response host:" << action.dataHost << "port:" << action.dataPort;
+    qDebug() << "FTP: Using actual host:" << actualHost << "port:" << action.dataPort;
+    dataSocket_->connectToHost(actualHost, action.dataPort);
+}
+
 void C64UFtpClient::executeResponseAction(const FtpResponseAction &action)
 {
-    // STOR 150/125: send file data via data socket
     if (action.kind == FtpResponseAction::Kind::None && currentCommand_ == Command::Stor &&
         action.uploadFinishedLocalPath.isEmpty() && action.errorMessage.isEmpty() &&
         !action.clearCurrentStorFile) {
-        auto storFile = transferState_.currentStorFile();
-        if (storFile && storFile->isOpen()) {
-            QByteArray data = storFile->readAll();
-            dataSocket_->write(data);
-            dataSocket_->disconnectFromHost();
-        } else {
-            qDebug() << "FTP: ERROR - STOR 150 but no file handle! currentStorFile:"
-                     << storFile.get();
-        }
+        sendStorFileForAction();
     }
 
     switch (action.kind) {
@@ -303,14 +314,10 @@ void C64UFtpClient::executeResponseAction(const FtpResponseAction &action)
         processNextCommand();
         break;
 
-    case FtpResponseAction::Kind::ProcessNextAndConnect: {
-        QString actualHost = controlSocket_->peerAddress().toString();
-        qDebug() << "FTP: PASV response host:" << action.dataHost << "port:" << action.dataPort;
-        qDebug() << "FTP: Using actual host:" << actualHost << "port:" << action.dataPort;
-        dataSocket_->connectToHost(actualHost, action.dataPort);
+    case FtpResponseAction::Kind::ProcessNextAndConnect:
+        connectDataSocketForAction(action);
         processNextCommand();
         break;
-    }
 
     case FtpResponseAction::Kind::Disconnect:
         disconnect();

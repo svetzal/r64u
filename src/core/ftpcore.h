@@ -107,6 +107,16 @@ struct FtpResponseParse
 [[nodiscard]] std::optional<QString> parsePwdResponse(const QString &text);
 
 /**
+ * @brief Extracts the byte count from an FTP RETR 150/125 response text.
+ *
+ * Looks for a pattern like "(1234 bytes)" in the response text.
+ *
+ * @param text The response text portion of a 150 or 125 reply.
+ * @return The byte count, or std::nullopt if no match is found.
+ */
+[[nodiscard]] std::optional<qint64> parseRetrByteCount(const QString &text);
+
+/**
  * @brief Splits a raw FTP control-channel buffer into complete response lines.
  *
  * Lines are delimited by @c \\r\\n.  Multi-line continuation lines (where the

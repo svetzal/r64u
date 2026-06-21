@@ -80,7 +80,6 @@ private:
     void updateRepeatButton();
     void highlightCurrentItem();
     void updateElapsedTimeDisplay();
-    [[nodiscard]] static QString formatTime(int seconds);
 
     PlaylistService *manager_ = nullptr;
 

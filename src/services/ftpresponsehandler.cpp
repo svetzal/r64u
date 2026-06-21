@@ -3,7 +3,6 @@
 #include "core/ftpcore.h"
 
 #include <QDebug>
-#include <QRegularExpression>
 
 // FTP response codes (must match C64UFtpClient constants)
 static constexpr int FtpReplyServiceReady = 220;
@@ -54,179 +53,247 @@ FtpResponseAction FtpResponseHandler::handleResponse(int code, const QString & /
 FtpResponseAction FtpResponseHandler::handleBusyResponse(int code, const QString &text,
                                                          const FtpResponseContext &ctx)
 {
-    FtpResponseAction action;
-    action.kind = FtpResponseAction::Kind::ProcessNext;
-
     switch (ctx.currentCommand) {
     case Command::User:
-        if (code == FtpReplyPasswordRequired) {
-            action.enqueueCommand = Command::Pass;
-        } else if (code == FtpReplyUserLoggedIn) {
-            action.transitionToReady = true;
-            action.transitionToLoggedIn = true;
-            action.emitConnected = true;
-        } else {
-            action.kind = FtpResponseAction::Kind::Disconnect;
-            action.errorMessage = tr("Login failed: server rejected username. %1").arg(text);
-        }
-        break;
-
+        return handleUserResponse(code, text);
     case Command::Pass:
-        if (code == FtpReplyUserLoggedIn) {
-            action.transitionToReady = true;
-            action.transitionToLoggedIn = true;
-            action.emitConnected = true;
-        } else {
-            action.kind = FtpResponseAction::Kind::Disconnect;
-            action.errorMessage = tr("Login failed: invalid password. %1").arg(text);
-        }
-        break;
-
+        return handlePassResponse(code, text);
     case Command::Pwd:
-        if (code == FtpReplyPathCreated) {
-            if (auto path = ftp::parsePwdResponse(text)) {
-                action.updatedCurrentDir = *path;
-            }
-        }
-        break;
-
+        return handlePwdResponse(code, text);
     case Command::Cwd:
-        if (code == FtpReplyActionOk) {
-            action.directoryChangedPath = ctx.currentArg;
-        } else {
-            action.errorMessage = tr("Cannot access directory '%1': %2").arg(ctx.currentArg, text);
-        }
-        break;
-
+        return handleCwdResponse(code, text, ctx);
     case Command::Type:
-        // No special handling — just proceed to next command
-        break;
-
+        return FtpResponseAction{FtpResponseAction::Kind::ProcessNext};
     case Command::Pasv:
-        if (code == FtpReplyEnteringPassive) {
-            auto passiveResult = ftp::parsePassiveResponse(text);
-            if (passiveResult) {
-                action.kind = FtpResponseAction::Kind::ProcessNextAndConnect;
-                // Caller substitutes the actual host from controlSocket_->peerAddress()
-                action.dataHost = passiveResult->host;
-                action.dataPort = passiveResult->port;
-            } else {
-                action.errorMessage =
-                    tr("Data transfer failed: unable to establish data connection");
-            }
-        } else {
-            action.errorMessage =
-                tr("Data transfer failed: server does not support passive mode. %1").arg(text);
-        }
-        break;
-
+        return handlePasvResponse(code, text);
     case Command::List:
-        if (code == FtpReplyFileStatusOk || code == FtpReplyDataConnectionOpen) {
-            action.setDownloading = true;
-            action.kind = FtpResponseAction::Kind::None;  // No processNext yet
-        } else if (code == FtpReplyTransferComplete) {
-            QString path = ctx.currentArg.isEmpty() ? ctx.currentDir : ctx.currentArg;
-            if (ctx.dataSocketState == QAbstractSocket::UnconnectedState) {
-                QList<FtpEntry> entries = ftp::parseDirectoryListing(transferState_.listBuffer());
-                action.directoryListedPath = path;
-                action.directoryListedEntries = entries;
-                action.clearListBuffer = true;
-            } else {
-                action.pendingListPath = path;
-                action.kind = FtpResponseAction::Kind::None;  // Wait for data socket
-            }
-        } else if (code >= FtpReplyErrorThreshold) {
-            action.errorMessage = tr("Cannot list directory contents: %1").arg(text);
-        }
-        break;
-
+        return handleListResponse(code, text, ctx);
     case Command::Retr:
-        if (code == FtpReplyFileStatusOk || code == FtpReplyDataConnectionOpen) {
-            action.setDownloading = true;
-            QRegularExpression rx("\\((\\d+)\\s+bytes\\)");
-            auto match = rx.match(text);
-            if (match.hasMatch()) {
-                transferState_.setTransferSize(match.captured(1).toLongLong());
-            }
-            action.kind = FtpResponseAction::Kind::None;
-        } else if (code == FtpReplyTransferComplete) {
-            if (ctx.dataSocketState == QAbstractSocket::UnconnectedState) {
-                if (transferState_.isCurrentRetrMemory()) {
-                    action.downloadToMemoryPath = ctx.currentArg;
-                    action.downloadToMemoryData = transferState_.retrBuffer();
-                    action.clearRetrBuffer = true;
-                } else if (transferState_.currentRetrFile()) {
-                    action.downloadFinishedRemotePath = ctx.currentArg;
-                    action.downloadFinishedLocalPath = ctx.currentLocalPath;
-                }
-                action.clearCurrentRetrFile = true;
-            } else {
-                // Save pending state; wait for data socket to close
-                action.savePendingRetrRemotePath = ctx.currentArg;
-                action.savePendingRetrLocalPath = ctx.currentLocalPath;
-                action.kind = FtpResponseAction::Kind::None;
-            }
-        } else if (code >= FtpReplyErrorThreshold) {
-            action.errorMessage = tr("Download failed for '%1': %2").arg(ctx.currentArg, text);
-            if (transferState_.isCurrentRetrMemory()) {
-                action.clearRetrBuffer = true;
-            }
-            action.clearCurrentRetrFile = true;
-        }
-        break;
-
+        return handleRetrResponse(code, text, ctx);
     case Command::Stor:
-        if (code == FtpReplyFileStatusOk || code == FtpReplyDataConnectionOpen) {
-            // Signal client to send file data via data socket
-            action.kind = FtpResponseAction::Kind::None;
-            // The client acts on currentStorFile directly
-        } else if (code == FtpReplyTransferComplete) {
-            action.uploadFinishedLocalPath = ctx.currentLocalPath;
-            action.uploadFinishedRemotePath = ctx.currentArg;
-            action.clearCurrentStorFile = true;
-        } else if (code >= FtpReplyErrorThreshold) {
-            action.errorMessage = tr("Upload failed for '%1': %2").arg(ctx.currentArg, text);
-            action.clearCurrentStorFile = true;
-        }
-        break;
-
+        return handleStorResponse(code, text, ctx);
     case Command::Mkd:
-        if (code == FtpReplyPathCreated || code == FtpReplyFileExists) {
-            action.directoryCreatedPath = ctx.currentArg;
-        } else {
-            action.errorMessage = tr("Cannot create directory '%1': %2").arg(ctx.currentArg, text);
-        }
-        break;
-
+        return handleMkdResponse(code, text, ctx);
     case Command::Rmd:
     case Command::Dele:
-        if (code == FtpReplyActionOk) {
-            action.fileRemovedPath = ctx.currentArg;
-        } else {
-            action.errorMessage = tr("Cannot delete '%1': %2").arg(ctx.currentArg, text);
-        }
-        break;
-
+        return handleDeleteResponse(code, text, ctx);
     case Command::RnFr:
-        if (code != FtpReplyPendingFurtherInfo) {
-            action.errorMessage = tr("Cannot rename '%1': file not found or access denied. %2")
-                                      .arg(ctx.currentArg, text);
-        }
-        break;
-
+        return handleRenameFromResponse(code, text, ctx);
     case Command::RnTo:
-        if (code == FtpReplyActionOk) {
-            action.fileRenamedOldPath = ctx.currentLocalPath;  // stored in localPath
-            action.fileRenamedNewPath = ctx.currentArg;
-        } else {
-            action.errorMessage = tr("Cannot rename to '%1': %2").arg(ctx.currentArg, text);
-        }
-        break;
-
-    default:
-        break;
+        return handleRenameToResponse(code, text, ctx);
+    default: {
+        FtpResponseAction action;
+        action.kind = FtpResponseAction::Kind::ProcessNext;
+        return action;
     }
+    }
+}
 
+FtpResponseAction FtpResponseHandler::handleUserResponse(int code, const QString &text) const
+{
+    FtpResponseAction action;
+    action.kind = FtpResponseAction::Kind::ProcessNext;
+    if (code == FtpReplyPasswordRequired) {
+        action.enqueueCommand = Command::Pass;
+    } else if (code == FtpReplyUserLoggedIn) {
+        action.transitionToReady = true;
+        action.transitionToLoggedIn = true;
+        action.emitConnected = true;
+    } else {
+        action.kind = FtpResponseAction::Kind::Disconnect;
+        action.errorMessage = tr("Login failed: server rejected username. %1").arg(text);
+    }
+    return action;
+}
+
+FtpResponseAction FtpResponseHandler::handlePassResponse(int code, const QString &text) const
+{
+    FtpResponseAction action;
+    action.kind = FtpResponseAction::Kind::ProcessNext;
+    if (code == FtpReplyUserLoggedIn) {
+        action.transitionToReady = true;
+        action.transitionToLoggedIn = true;
+        action.emitConnected = true;
+    } else {
+        action.kind = FtpResponseAction::Kind::Disconnect;
+        action.errorMessage = tr("Login failed: invalid password. %1").arg(text);
+    }
+    return action;
+}
+
+FtpResponseAction FtpResponseHandler::handlePwdResponse(int code, const QString &text) const
+{
+    FtpResponseAction action;
+    action.kind = FtpResponseAction::Kind::ProcessNext;
+    if (code == FtpReplyPathCreated) {
+        if (auto path = ftp::parsePwdResponse(text)) {
+            action.updatedCurrentDir = *path;
+        }
+    }
+    return action;
+}
+
+FtpResponseAction FtpResponseHandler::handleCwdResponse(int code, const QString &text,
+                                                        const FtpResponseContext &ctx) const
+{
+    FtpResponseAction action;
+    action.kind = FtpResponseAction::Kind::ProcessNext;
+    if (code == FtpReplyActionOk) {
+        action.directoryChangedPath = ctx.currentArg;
+    } else {
+        action.errorMessage = tr("Cannot access directory '%1': %2").arg(ctx.currentArg, text);
+    }
+    return action;
+}
+
+FtpResponseAction FtpResponseHandler::handlePasvResponse(int code, const QString &text) const
+{
+    FtpResponseAction action;
+    action.kind = FtpResponseAction::Kind::ProcessNext;
+    if (code == FtpReplyEnteringPassive) {
+        auto passiveResult = ftp::parsePassiveResponse(text);
+        if (passiveResult) {
+            action.kind = FtpResponseAction::Kind::ProcessNextAndConnect;
+            action.dataHost = passiveResult->host;
+            action.dataPort = passiveResult->port;
+        } else {
+            action.errorMessage = tr("Data transfer failed: unable to establish data connection");
+        }
+    } else {
+        action.errorMessage =
+            tr("Data transfer failed: server does not support passive mode. %1").arg(text);
+    }
+    return action;
+}
+
+FtpResponseAction FtpResponseHandler::handleListResponse(int code, const QString &text,
+                                                         const FtpResponseContext &ctx)
+{
+    FtpResponseAction action;
+    action.kind = FtpResponseAction::Kind::ProcessNext;
+    if (code == FtpReplyFileStatusOk || code == FtpReplyDataConnectionOpen) {
+        action.setDownloading = true;
+        action.kind = FtpResponseAction::Kind::None;
+    } else if (code == FtpReplyTransferComplete) {
+        QString path = ctx.currentArg.isEmpty() ? ctx.currentDir : ctx.currentArg;
+        if (ctx.dataSocketState == QAbstractSocket::UnconnectedState) {
+            action.directoryListedPath = path;
+            action.directoryListedEntries = ftp::parseDirectoryListing(transferState_.listBuffer());
+            action.clearListBuffer = true;
+        } else {
+            action.pendingListPath = path;
+            action.kind = FtpResponseAction::Kind::None;
+        }
+    } else if (code >= FtpReplyErrorThreshold) {
+        action.errorMessage = tr("Cannot list directory contents: %1").arg(text);
+    }
+    return action;
+}
+
+FtpResponseAction FtpResponseHandler::handleRetrResponse(int code, const QString &text,
+                                                         const FtpResponseContext &ctx)
+{
+    FtpResponseAction action;
+    action.kind = FtpResponseAction::Kind::ProcessNext;
+    if (code == FtpReplyFileStatusOk || code == FtpReplyDataConnectionOpen) {
+        action.setDownloading = true;
+        if (auto bytes = ftp::parseRetrByteCount(text)) {
+            transferState_.setTransferSize(*bytes);
+        }
+        action.kind = FtpResponseAction::Kind::None;
+    } else if (code == FtpReplyTransferComplete) {
+        if (ctx.dataSocketState == QAbstractSocket::UnconnectedState) {
+            if (transferState_.isCurrentRetrMemory()) {
+                action.downloadToMemoryPath = ctx.currentArg;
+                action.downloadToMemoryData = transferState_.retrBuffer();
+                action.clearRetrBuffer = true;
+            } else if (transferState_.currentRetrFile()) {
+                action.downloadFinishedRemotePath = ctx.currentArg;
+                action.downloadFinishedLocalPath = ctx.currentLocalPath;
+            }
+            action.clearCurrentRetrFile = true;
+        } else {
+            action.savePendingRetrRemotePath = ctx.currentArg;
+            action.savePendingRetrLocalPath = ctx.currentLocalPath;
+            action.kind = FtpResponseAction::Kind::None;
+        }
+    } else if (code >= FtpReplyErrorThreshold) {
+        action.errorMessage = tr("Download failed for '%1': %2").arg(ctx.currentArg, text);
+        if (transferState_.isCurrentRetrMemory()) {
+            action.clearRetrBuffer = true;
+        }
+        action.clearCurrentRetrFile = true;
+    }
+    return action;
+}
+
+FtpResponseAction FtpResponseHandler::handleStorResponse(int code, const QString &text,
+                                                         const FtpResponseContext &ctx) const
+{
+    FtpResponseAction action;
+    action.kind = FtpResponseAction::Kind::ProcessNext;
+    if (code == FtpReplyFileStatusOk || code == FtpReplyDataConnectionOpen) {
+        action.kind = FtpResponseAction::Kind::None;
+    } else if (code == FtpReplyTransferComplete) {
+        action.uploadFinishedLocalPath = ctx.currentLocalPath;
+        action.uploadFinishedRemotePath = ctx.currentArg;
+        action.clearCurrentStorFile = true;
+    } else if (code >= FtpReplyErrorThreshold) {
+        action.errorMessage = tr("Upload failed for '%1': %2").arg(ctx.currentArg, text);
+        action.clearCurrentStorFile = true;
+    }
+    return action;
+}
+
+FtpResponseAction FtpResponseHandler::handleMkdResponse(int code, const QString &text,
+                                                        const FtpResponseContext &ctx) const
+{
+    FtpResponseAction action;
+    action.kind = FtpResponseAction::Kind::ProcessNext;
+    if (code == FtpReplyPathCreated || code == FtpReplyFileExists) {
+        action.directoryCreatedPath = ctx.currentArg;
+    } else {
+        action.errorMessage = tr("Cannot create directory '%1': %2").arg(ctx.currentArg, text);
+    }
+    return action;
+}
+
+FtpResponseAction FtpResponseHandler::handleDeleteResponse(int code, const QString &text,
+                                                           const FtpResponseContext &ctx) const
+{
+    FtpResponseAction action;
+    action.kind = FtpResponseAction::Kind::ProcessNext;
+    if (code == FtpReplyActionOk) {
+        action.fileRemovedPath = ctx.currentArg;
+    } else {
+        action.errorMessage = tr("Cannot delete '%1': %2").arg(ctx.currentArg, text);
+    }
+    return action;
+}
+
+FtpResponseAction FtpResponseHandler::handleRenameFromResponse(int code, const QString &text,
+                                                               const FtpResponseContext &ctx) const
+{
+    FtpResponseAction action;
+    action.kind = FtpResponseAction::Kind::ProcessNext;
+    if (code != FtpReplyPendingFurtherInfo) {
+        action.errorMessage =
+            tr("Cannot rename '%1': file not found or access denied. %2").arg(ctx.currentArg, text);
+    }
+    return action;
+}
+
+FtpResponseAction FtpResponseHandler::handleRenameToResponse(int code, const QString &text,
+                                                             const FtpResponseContext &ctx) const
+{
+    FtpResponseAction action;
+    action.kind = FtpResponseAction::Kind::ProcessNext;
+    if (code == FtpReplyActionOk) {
+        action.fileRenamedOldPath = ctx.currentLocalPath;
+        action.fileRenamedNewPath = ctx.currentArg;
+    } else {
+        action.errorMessage = tr("Cannot rename to '%1': %2").arg(ctx.currentArg, text);
+    }
     return action;
 }
 

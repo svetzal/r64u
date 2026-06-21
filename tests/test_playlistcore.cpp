@@ -620,6 +620,49 @@ private slots:
         QCOMPARE(result.items[1].durationSecs, 200);
         QCOMPARE(result.updatedIndices.size(), 2);
     }
+
+    // -----------------------------------------------------------------------
+    // formatDuration
+    // -----------------------------------------------------------------------
+
+    void testFormatDuration_zero() { QCOMPARE(playlist::formatDuration(0), QString("0:00")); }
+
+    void testFormatDuration_belowOneMinute()
+    {
+        QCOMPARE(playlist::formatDuration(5), QString("0:05"));
+        QCOMPARE(playlist::formatDuration(59), QString("0:59"));
+    }
+
+    void testFormatDuration_exactMinute()
+    {
+        QCOMPARE(playlist::formatDuration(60), QString("1:00"));
+        QCOMPARE(playlist::formatDuration(120), QString("2:00"));
+    }
+
+    void testFormatDuration_minutesAndSeconds()
+    {
+        QCOMPARE(playlist::formatDuration(65), QString("1:05"));
+        QCOMPARE(playlist::formatDuration(185), QString("3:05"));
+    }
+
+    void testFormatDuration_moreThanOneHour()
+    {
+        QCOMPARE(playlist::formatDuration(3661), QString("61:01"));
+    }
+
+    // -----------------------------------------------------------------------
+    // formatElapsed
+    // -----------------------------------------------------------------------
+
+    void testFormatElapsed_formatsAsElapsedSlashTotal()
+    {
+        QCOMPARE(playlist::formatElapsed(65, 185), QString("1:05 / 3:05"));
+    }
+
+    void testFormatElapsed_bothZero()
+    {
+        QCOMPARE(playlist::formatElapsed(0, 0), QString("0:00 / 0:00"));
+    }
 };
 
 QTEST_MAIN(TestPlaylistCore)

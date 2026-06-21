@@ -195,6 +195,8 @@ private:
     void applyConnectionStateChanges(const FtpResponseAction &action);
     void emitResponseSignals(const FtpResponseAction &action);
     void executeResponseAction(const FtpResponseAction &action);
+    void sendStorFileForAction();
+    void connectDataSocketForAction(const FtpResponseAction &action);
 
     // Network connections
     QTcpSocket *controlSocket_ = nullptr;

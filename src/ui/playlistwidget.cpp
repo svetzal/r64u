@@ -5,13 +5,13 @@
 
 #include "playlistwidget.h"
 
+#include "core/playlistcore.h"
 #include "services/playlistservice.h"
 
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QHeaderView>
-#include <QRegularExpression>
 #include <QStandardPaths>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -371,7 +371,7 @@ void PlaylistWidget::updatePlaylistDisplay()
         }
 
         // Format duration as mm:ss
-        QString durationStr = formatTime(item.durationSecs);
+        QString durationStr = playlist::formatDuration(item.durationSecs);
 
         auto *treeItem = new QTreeWidgetItem();
         treeItem->setText(0, QString());  // Play marker (set in highlightCurrentItem)
@@ -463,13 +463,6 @@ void PlaylistWidget::highlightCurrentItem()
     }
 }
 
-QString PlaylistWidget::formatTime(int seconds)
-{
-    int mins = seconds / 60;
-    int secs = seconds % 60;
-    return QString("%1:%2").arg(mins).arg(secs, 2, 10, QChar('0'));
-}
-
 void PlaylistWidget::updateElapsedTimeDisplay()
 {
     if (!manager_->isPlaying() || manager_->currentIndex() < 0) {
@@ -478,9 +471,7 @@ void PlaylistWidget::updateElapsedTimeDisplay()
     }
 
     const auto &item = manager_->itemAt(manager_->currentIndex());
-    QString elapsed = formatTime(elapsedSeconds_);
-    QString total = formatTime(item.durationSecs);
-    elapsedTimeLabel_->setText(QString("%1 / %2").arg(elapsed).arg(total));
+    elapsedTimeLabel_->setText(playlist::formatElapsed(elapsedSeconds_, item.durationSecs));
 }
 
 void PlaylistWidget::onElapsedTimerTick()
