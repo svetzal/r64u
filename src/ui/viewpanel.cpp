@@ -151,7 +151,6 @@ void ViewPanel::setStreamingService(StreamingService *manager)
             &ViewPanel::onStreamingStopped);
     connect(streamingService_, &StreamingService::videoFormatDetected, this,
             &ViewPanel::onVideoFormatDetected);
-    connect(streamingService_, &StreamingService::error, this, &ViewPanel::onStreamingError);
     connect(streamingService_, &StreamingService::statusMessage, this,
             [this](const QString &msg, int /*timeout*/) {
                 errorHandler_->info(ErrorCategory::System, msg);
@@ -336,11 +335,6 @@ void ViewPanel::onStreamingStopped()
     if (streamStatusLabel_) {
         streamStatusLabel_->setText(tr("Not streaming"));
     }
-}
-
-void ViewPanel::onStreamingError(const QString & /*error*/)
-{
-    updateActions();
 }
 
 void ViewPanel::onVideoFormatDetected(int format)

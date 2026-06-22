@@ -3923,6 +3923,60 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_mainwindow)
 endif()
 
+# LocalFileSystemService tests - ILocalFileSystemService contract via QTemporaryDir
+add_executable(test_localfilesystemservice
+    test_localfilesystemservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
+)
+
+target_include_directories(test_localfilesystemservice PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_localfilesystemservice PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME LocalFileSystemServiceTest COMMAND test_localfilesystemservice)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(localfilesystemservice test_localfilesystemservice)
+    add_dependencies(coverage coverage_localfilesystemservice)
+endif()
+
+# RefreshPolicyManager tests - suppressor RAII and refresh policy logic
+add_executable(test_refreshpolicymanager
+    test_refreshpolicymanager.cpp
+    ${IERROREMITTER_SOURCES}
+    ${CMAKE_SOURCE_DIR}/src/ui/refreshpolicymanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+)
+
+target_include_directories(test_refreshpolicymanager PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_refreshpolicymanager PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+    Qt6::Widgets
+)
+
+add_test(NAME RefreshPolicyManagerTest COMMAND test_refreshpolicymanager)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(refreshpolicymanager test_refreshpolicymanager)
+    add_dependencies(coverage coverage_refreshpolicymanager)
+endif()
+
 # All tests run with the offscreen Qt platform so they work without a display (CI/coverage)
 get_property(all_tests DIRECTORY PROPERTY TESTS)
 set_tests_properties(${all_tests} PROPERTIES

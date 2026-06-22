@@ -174,12 +174,6 @@ signals:
     void videoFormatDetected(int format);
 
     /**
-     * @brief Emitted on streaming errors.
-     * @param error Error description.
-     */
-    void error(const QString &error);
-
-    /**
      * @brief Emitted for status messages.
      * @param message Status message text.
      * @param timeout Display timeout in milliseconds (0 = permanent).

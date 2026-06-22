@@ -1,6 +1,6 @@
 # Intentionally Untested Source Files
 
-Generated on: 2026-04-25
+Generated on: 2026-06-22
 
 This document classifies every `src/*.cpp` file (excluding `main.cpp`) that is not
 included as a compilation unit in any test target in `tests/CMakeLists.txt`.
@@ -99,6 +99,9 @@ All previously identified candidates have now been addressed — see notes below
 | `src/ui/explorefavoritescontroller.cpp` | **Tested** — `tests/test_explorefavoritescontroller.cpp` covers `onFavoriteSelected()`, `onToggleFavorite()`, `updateForPath()`, `onFavoritesChanged()`, and `isFavorite()` using a real `FavoritesService` with isolated QSettings. 21 tests. |
 | `src/ui/explorecontextmenu.cpp` | **Tested** — `showForSelection()` called `QMenu::exec()` (blocking, untestable). A minimal refactor extracted `prepareMenu()` from `showForSelection()`. `tests/test_explorecontextmenu.cpp` tests action enablement state via `prepareMenu()`. 13 tests. |
 | `src/services/remotefileoperations.cpp` | **Tested** — `tests/test_remotefileoperations.cpp` covers guard-clause behaviour for null FTP client. |
+| `src/services/localfilesystemservice.cpp` | **Tested** — `tests/test_localfilesystemservice.cpp` exercises all 9 ILocalFileSystemService methods against a `QTemporaryDir`. |
+| `src/ui/refreshpolicymanager.cpp` | **Tested** — `tests/test_refreshpolicymanager.cpp` covers suppressor RAII, `setConnected`, `isSuppressed`, and `refreshIfStale` policy logic. |
+| `src/services/streamingservice.cpp` | **Tested** — `tests/test_streamingmanager.cpp` covers constructor wiring, all `startStreaming()` guard paths, `stopStreaming()`, stream command routing, and video format detection. The legacy `error(QString)` signal was retired; all error paths now emit only `errorReported` per the IErrorEmitter contract. |
 
 ---
 

@@ -111,7 +111,6 @@ bool StreamingService::startStreaming()
 {
     if (isStreaming_) {
         const QString msg = tr("Already streaming");
-        emit error(msg);
         emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
                            msg);
         return false;
@@ -119,7 +118,6 @@ bool StreamingService::startStreaming()
 
     if (!deviceConnection_ || !deviceConnection_->isConnected()) {
         const QString msg = tr("Not connected to device");
-        emit error(msg);
         emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
                            msg);
         return false;
@@ -127,7 +125,6 @@ bool StreamingService::startStreaming()
 
     if (!deviceConnection_->restClient()) {
         const QString msg = tr("REST client not available");
-        emit error(msg);
         emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
                            msg);
         return false;
@@ -135,7 +132,6 @@ bool StreamingService::startStreaming()
 
     if (!streamControl_) {
         const QString msg = tr("Stream control client not available");
-        emit error(msg);
         emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
                            msg);
         return false;
@@ -161,7 +157,6 @@ bool StreamingService::startStreaming()
                                "Device IP: %1\n"
                                "Make sure you're on the same network as the C64 device.")
                                 .arg(deviceHost);
-        emit error(msg);
         emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
                            msg);
         return false;
@@ -172,7 +167,6 @@ bool StreamingService::startStreaming()
     // Start UDP receivers
     if (!videoReceiver_->bind()) {
         const QString msg = tr("Failed to bind video receiver port.");
-        emit error(msg);
         emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
                            msg);
         return false;
@@ -181,7 +175,6 @@ bool StreamingService::startStreaming()
     if (!audioReceiver_->bind()) {
         videoReceiver_->close();
         const QString msg = tr("Failed to bind audio receiver port.");
-        emit error(msg);
         emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
                            msg);
         return false;
@@ -192,7 +185,6 @@ bool StreamingService::startStreaming()
         videoReceiver_->close();
         audioReceiver_->close();
         const QString msg = tr("Failed to start audio playback.");
-        emit error(msg);
         emit errorReported(ErrorCategory::System, ErrorSeverity::Warning, tr("Streaming Error"),
                            msg);
         return false;

@@ -77,7 +77,6 @@ private slots:
     void onVideoFormatDetected(int format);
     void onStreamingStarted(const QString &targetHost);
     void onStreamingStopped();
-    void onStreamingError(const QString &error);
     void onScalingModeChanged(int id);
     void onCaptureScreenshot();
     void onStartRecording();

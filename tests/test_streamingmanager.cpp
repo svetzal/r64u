@@ -16,6 +16,8 @@
 #include "mocks/mockvideostreamreceiverservice.h"
 #include "services/deviceconnectionmanager.h"
 #include "services/devicetypes.h"
+#include "services/errortypes.h"
+#include "services/ierroremitter.h"
 #include "services/keyboardinputservice.h"
 #include "services/streamingservice.h"
 
@@ -113,11 +115,14 @@ private slots:
 
     void testStartStreaming_notConnected_emitsError()
     {
-        QSignalSpy errorSpy(manager_, &StreamingService::error);
+        int errorReportedCount = 0;
+        connect(manager_, &IErrorEmitter::errorReported, manager_,
+                [&errorReportedCount](ErrorCategory, ErrorSeverity, const QString &,
+                                      const QString &) { errorReportedCount++; });
         bool result = manager_->startStreaming();
 
         QVERIFY(!result);
-        QCOMPARE(errorSpy.count(), 1);
+        QCOMPARE(errorReportedCount, 1);
         QVERIFY(!manager_->isStreaming());
     }
 
@@ -167,12 +172,19 @@ private slots:
         // Force streaming state to true to trigger the re-entry guard
         manager_->isStreaming_ = true;
 
-        QSignalSpy errorSpy(manager_, &StreamingService::error);
+        int errorReportedCount = 0;
+        QString lastTitle;
+        connect(manager_, &IErrorEmitter::errorReported, manager_,
+                [&errorReportedCount, &lastTitle](ErrorCategory, ErrorSeverity,
+                                                  const QString &title, const QString &) {
+                    errorReportedCount++;
+                    lastTitle = title;
+                });
         bool result = manager_->startStreaming();
 
         QVERIFY(!result);
-        QCOMPARE(errorSpy.count(), 1);
-        QCOMPARE(errorSpy.first().first().toString(), QString("Already streaming"));
+        QCOMPARE(errorReportedCount, 1);
+        QCOMPARE(lastTitle, QString("Streaming Error"));
 
         // Reset to avoid stopStreaming being called in destructor with mocks in bad state
         manager_->isStreaming_ = false;
@@ -195,6 +207,67 @@ private slots:
         QVERIFY(!manager_->isStreaming());
         manager_->stopStreaming();
         QVERIFY(!manager_->isStreaming());
+    }
+
+    void testStopStreaming_whenStreamingDirectly_emitsStreamingStopped()
+    {
+        // Force streaming state (requires friend access)
+        manager_->isStreaming_ = true;
+        QSignalSpy stoppedSpy(manager_, &StreamingService::streamingStopped);
+        manager_->stopStreaming();
+        QCOMPARE(stoppedSpy.count(), 1);
+        QVERIFY(!manager_->isStreaming());
+        QCOMPARE(mockControl_->mockStopAllStreamsCallCount(), 1);
+        QCOMPARE(mockPlayback_->mockStopCallCount(), 1);
+    }
+
+    // -----------------------------------------------------------------------
+    // errorReported signal coverage
+    // -----------------------------------------------------------------------
+
+    void testStartStreaming_notConnected_emitsErrorReportedOnce()
+    {
+        int count = 0;
+        connect(
+            manager_, &IErrorEmitter::errorReported, manager_,
+            [&count](ErrorCategory, ErrorSeverity, const QString &, const QString &) { count++; });
+        manager_->startStreaming();
+        QCOMPARE(count, 1);
+    }
+
+    void testStartStreaming_alreadyStreaming_emitsErrorReportedWithStreamingErrorTitle()
+    {
+        manager_->isStreaming_ = true;
+        QString capturedTitle;
+        connect(manager_, &IErrorEmitter::errorReported, manager_,
+                [&capturedTitle](ErrorCategory, ErrorSeverity, const QString &title,
+                                 const QString &) { capturedTitle = title; });
+        manager_->startStreaming();
+        QCOMPARE(capturedTitle, tr("Streaming Error"));
+        manager_->isStreaming_ = false;
+    }
+
+    void testStartStreaming_alreadyStreaming_detailsContainAlreadyStreaming()
+    {
+        manager_->isStreaming_ = true;
+        QString capturedDetails;
+        connect(manager_, &IErrorEmitter::errorReported, manager_,
+                [&capturedDetails](ErrorCategory, ErrorSeverity, const QString &,
+                                   const QString &details) { capturedDetails = details; });
+        manager_->startStreaming();
+        QVERIFY(capturedDetails.contains("Already streaming") ||
+                capturedDetails.contains("already streaming"));
+        manager_->isStreaming_ = false;
+    }
+
+    void testStreamControlAccessor_returnsInjectedPointer()
+    {
+        QCOMPARE(manager_->streamControl(), mockControl_);
+    }
+
+    void testAudioPlaybackAccessor_returnsInjectedPointer()
+    {
+        QCOMPARE(manager_->audioPlayback(), mockPlayback_);
     }
 
     // -----------------------------------------------------------------------
