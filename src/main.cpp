@@ -32,17 +32,17 @@ int main(int argc, char *argv[])
     r64u::verboseLogging = parser.isSet(verboseOption);
 
     if (r64u::verboseLogging) {
-        qDebug() << "Verbose logging enabled";
+        qCDebug(LogConfig) << "Verbose logging enabled";
     }
 
     // Load C64 font from resources
     int fontId = QFontDatabase::addApplicationFont(":/fonts/C64_Pro_Mono.ttf");
     if (fontId == -1) {
-        qWarning() << "Failed to load C64 Pro Mono font";
+        qCWarning(LogConfig) << "Failed to load C64 Pro Mono font";
     } else if (r64u::verboseLogging) {
         QStringList families = QFontDatabase::applicationFontFamilies(fontId);
         if (!families.isEmpty()) {
-            qDebug() << "Loaded C64 font:" << families.first();
+            qCDebug(LogConfig) << "Loaded C64 font:" << families.first();
         }
     }
 

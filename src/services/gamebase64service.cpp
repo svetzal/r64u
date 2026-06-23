@@ -3,6 +3,8 @@
 #include "cacheddownloadservice.h"
 #include "ierroremitter.h"
 
+#include "utils/logging.h"
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -149,7 +151,8 @@ void GameBase64Service::openDatabase(const QString &path)
     database_.setDatabaseName(path);
 
     if (!database_.open()) {
-        qWarning() << "Failed to open GameBase64 database:" << database_.lastError().text();
+        qCWarning(LogMetadata) << "Failed to open GameBase64 database:"
+                               << database_.lastError().text();
         return;
     }
 

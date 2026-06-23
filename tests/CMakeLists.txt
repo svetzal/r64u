@@ -825,6 +825,7 @@ add_executable(test_errorhandler
     stubs/errorsourceconnector_stub.cpp
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
 target_include_directories(test_errorhandler PRIVATE
@@ -1753,6 +1754,7 @@ add_executable(test_c64urestclient
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
 target_include_directories(test_c64urestclient PRIVATE

@@ -288,7 +288,8 @@ void C64UFtpClient::sendStorFileForAction()
         dataSocket_->write(data);
         dataSocket_->disconnectFromHost();
     } else {
-        qCWarning(LogFtp) << "FTP: ERROR - STOR 150 but no file handle! currentStorFile:" << storFile.get();
+        qCWarning(LogFtp) << "FTP: ERROR - STOR 150 but no file handle! currentStorFile:"
+                          << storFile.get();
     }
 }
 
@@ -334,7 +335,8 @@ void C64UFtpClient::executeResponseAction(const FtpResponseAction &action)
 
 void C64UFtpClient::onControlConnected()
 {
-    qCDebug(LogFtp) << "FTP: Control socket connected to" << controlSocket_->peerAddress().toString();
+    qCDebug(LogFtp) << "FTP: Control socket connected to"
+                    << controlSocket_->peerAddress().toString();
     connectionTimer_->stop();
     setState(State::Connected);
 }
@@ -349,7 +351,8 @@ void C64UFtpClient::onControlDisconnected()
 void C64UFtpClient::onControlError(QAbstractSocket::SocketError socketError)
 {
     Q_UNUSED(socketError)
-    qCWarning(LogFtp) << "FTP: Control socket error:" << socketError << controlSocket_->errorString();
+    qCWarning(LogFtp) << "FTP: Control socket error:" << socketError
+                      << controlSocket_->errorString();
     QString errorMessage = controlSocket_->errorString();
     performDisconnectCleanup();
     emit error(errorMessage);
@@ -374,8 +377,8 @@ void C64UFtpClient::onControlReadyRead()
         FtpResponseContext ctx = buildContext();
         FtpResponseAction action;
 
-        qCDebug(LogFtp) << "FTP: <<" << line.code << line.text << "(state:" << static_cast<int>(state_)
-                        << ")";
+        qCDebug(LogFtp) << "FTP: <<" << line.code << line.text
+                        << "(state:" << static_cast<int>(state_) << ")";
 
         if (state_ == State::Busy) {
             action = responseHandler_->handleBusyResponse(line.code, line.text, ctx);
@@ -389,8 +392,8 @@ void C64UFtpClient::onControlReadyRead()
 
 void C64UFtpClient::onDataConnected()
 {
-    qCDebug(LogFtp) << "FTP: Data socket connected to" << dataSocket_->peerAddress().toString() << ":"
-                    << dataSocket_->peerPort();
+    qCDebug(LogFtp) << "FTP: Data socket connected to" << dataSocket_->peerAddress().toString()
+                    << ":" << dataSocket_->peerPort();
 }
 
 void C64UFtpClient::onDataReadyRead()

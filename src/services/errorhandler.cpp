@@ -4,7 +4,7 @@
 #include "ierrorpresenter.h"
 #include "statusmessageservice.h"
 
-#include <QDebug>
+#include "utils/logging.h"
 
 ErrorHandler::ErrorHandler(IErrorPresenter *presenter, QObject *parent)
     : QObject(parent), presenter_(presenter)
@@ -97,13 +97,13 @@ void ErrorHandler::logError(ErrorCategory category, ErrorSeverity severity, cons
 
     switch (severity) {
     case ErrorSeverity::Info:
-        qInfo().noquote() << logMessage;
+        qCInfo(LogUi).noquote() << logMessage;
         break;
     case ErrorSeverity::Warning:
-        qWarning().noquote() << logMessage;
+        qCWarning(LogUi).noquote() << logMessage;
         break;
     case ErrorSeverity::Critical:
-        qCritical().noquote() << logMessage;
+        qCCritical(LogUi).noquote() << logMessage;
         break;
     }
 
