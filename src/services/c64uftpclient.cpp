@@ -5,7 +5,6 @@
 #include "core/ftpcore.h"
 #include "utils/logging.h"
 
-#include <QDebug>
 #include <QFileInfo>
 #include <QRegularExpression>
 
@@ -60,12 +59,12 @@ void C64UFtpClient::setState(State state)
 void C64UFtpClient::connectToHost()
 {
     if (state_ != State::Disconnected) {
-        qDebug() << "FTP: connectToHost called but state is" << static_cast<int>(state_);
+        qCDebug(LogFtp) << "FTP: connectToHost called but state is" << static_cast<int>(state_);
         emit error(tr("Cannot connect: connection already in progress or established"));
         return;
     }
 
-    qDebug() << "FTP: Connecting to" << host_ << ":" << port_;
+    qCDebug(LogFtp) << "FTP: Connecting to" << host_ << ":" << port_;
     setState(State::Connecting);
 
     connectionTimer_->start(ConnectionTimeoutMs);
@@ -110,9 +109,9 @@ void C64UFtpClient::sendCommand(const QString &command)
         return;
     }
     if (command.startsWith("PASS ")) {
-        qDebug() << "FTP: >>" << "PASS ****";
+        qCDebug(LogFtp) << "FTP: >>" << "PASS ****";
     } else {
-        qDebug() << "FTP: >>" << command;
+        qCDebug(LogFtp) << "FTP: >>" << command;
     }
     controlSocket_->write((command + "\r\n").toUtf8());
 }
@@ -163,11 +162,11 @@ void C64UFtpClient::processNextCommand()
     if (currentCommand_ == Command::Retr) {
         transferState_.setCurrentRetrFile(std::move(pending.transferFile),
                                           pending.isMemoryDownload);
-        qDebug() << "FTP: Processing RETR, file:" << transferState_.currentRetrFile().get()
-                 << "isMemory:" << transferState_.isCurrentRetrMemory();
+        qCDebug(LogFtp) << "FTP: Processing RETR, file:" << transferState_.currentRetrFile().get()
+                        << "isMemory:" << transferState_.isCurrentRetrMemory();
     } else if (currentCommand_ == Command::Stor) {
         transferState_.setCurrentStorFile(std::move(pending.transferFile));
-        qDebug() << "FTP: Processing STOR, file:" << transferState_.currentStorFile().get();
+        qCDebug(LogFtp) << "FTP: Processing STOR, file:" << transferState_.currentStorFile().get();
     }
 
     QString wireCommand = ftp::formatCommand(currentCommand_, currentArg_, user_, password_);
@@ -289,15 +288,15 @@ void C64UFtpClient::sendStorFileForAction()
         dataSocket_->write(data);
         dataSocket_->disconnectFromHost();
     } else {
-        qDebug() << "FTP: ERROR - STOR 150 but no file handle! currentStorFile:" << storFile.get();
+        qCWarning(LogFtp) << "FTP: ERROR - STOR 150 but no file handle! currentStorFile:" << storFile.get();
     }
 }
 
 void C64UFtpClient::connectDataSocketForAction(const FtpResponseAction &action)
 {
     QString actualHost = controlSocket_->peerAddress().toString();
-    qDebug() << "FTP: PASV response host:" << action.dataHost << "port:" << action.dataPort;
-    qDebug() << "FTP: Using actual host:" << actualHost << "port:" << action.dataPort;
+    qCDebug(LogFtp) << "FTP: PASV response host:" << action.dataHost << "port:" << action.dataPort;
+    qCDebug(LogFtp) << "FTP: Using actual host:" << actualHost << "port:" << action.dataPort;
     dataSocket_->connectToHost(actualHost, action.dataPort);
 }
 
@@ -335,14 +334,14 @@ void C64UFtpClient::executeResponseAction(const FtpResponseAction &action)
 
 void C64UFtpClient::onControlConnected()
 {
-    qDebug() << "FTP: Control socket connected to" << controlSocket_->peerAddress().toString();
+    qCDebug(LogFtp) << "FTP: Control socket connected to" << controlSocket_->peerAddress().toString();
     connectionTimer_->stop();
     setState(State::Connected);
 }
 
 void C64UFtpClient::onControlDisconnected()
 {
-    qDebug() << "FTP: Control socket disconnected";
+    qCDebug(LogFtp) << "FTP: Control socket disconnected";
     performDisconnectCleanup();
     emit disconnected();
 }
@@ -350,7 +349,7 @@ void C64UFtpClient::onControlDisconnected()
 void C64UFtpClient::onControlError(QAbstractSocket::SocketError socketError)
 {
     Q_UNUSED(socketError)
-    qDebug() << "FTP: Control socket error:" << socketError << controlSocket_->errorString();
+    qCWarning(LogFtp) << "FTP: Control socket error:" << socketError << controlSocket_->errorString();
     QString errorMessage = controlSocket_->errorString();
     performDisconnectCleanup();
     emit error(errorMessage);
@@ -358,7 +357,7 @@ void C64UFtpClient::onControlError(QAbstractSocket::SocketError socketError)
 
 void C64UFtpClient::onConnectionTimeout()
 {
-    qDebug() << "FTP: Connection timeout";
+    qCWarning(LogFtp) << "FTP: Connection timeout";
     controlSocket_->abort();
     performDisconnectCleanup();
     emit error(tr("Connection timed out after %1 seconds").arg(ConnectionTimeoutMs / 1000));
@@ -375,8 +374,8 @@ void C64UFtpClient::onControlReadyRead()
         FtpResponseContext ctx = buildContext();
         FtpResponseAction action;
 
-        qDebug() << "FTP: <<" << line.code << line.text << "(state:" << static_cast<int>(state_)
-                 << ")";
+        qCDebug(LogFtp) << "FTP: <<" << line.code << line.text << "(state:" << static_cast<int>(state_)
+                        << ")";
 
         if (state_ == State::Busy) {
             action = responseHandler_->handleBusyResponse(line.code, line.text, ctx);

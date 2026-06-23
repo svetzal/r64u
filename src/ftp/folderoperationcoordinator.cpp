@@ -7,8 +7,8 @@
 
 #include "services/iftpclient.h"
 #include "services/ilocalfilesystemservice.h"
+#include "utils/logging.h"
 
-#include <QDebug>
 #include <QFileInfo>
 #include <QTimer>
 
@@ -48,8 +48,8 @@ void FolderOperationCoordinator::enqueueRecursive(transfer::OperationType type,
     const QString verb = isUpload ? tr("uploaded") : tr("downloaded");
 
     if (transfer::isPathBeingTransferred(state_, sourcePath, type)) {
-        qDebug() << "FolderOperationCoordinator: Ignoring duplicate"
-                 << (isUpload ? "upload" : "download") << "request for" << sourcePath;
+        qCDebug(LogTransfer) << "FolderOperationCoordinator: Ignoring duplicate"
+                             << (isUpload ? "upload" : "download") << "request for" << sourcePath;
         emit statusMessage(
             tr("'%1' is already being %2").arg(QFileInfo(sourcePath).fileName(), verb));
         return;
@@ -128,8 +128,8 @@ void FolderOperationCoordinator::startNextPendingFolderOp()
 
 void FolderOperationCoordinator::onFolderOperationComplete()
 {
-    qDebug() << "FolderOperationCoordinator: Folder operation complete:"
-             << state_.currentFolderOp.targetPath;
+    qCDebug(LogTransfer) << "FolderOperationCoordinator: Folder operation complete:"
+                         << state_.currentFolderOp.targetPath;
 
     state_.currentFolderOp = transfer::PendingFolderOp();
 
@@ -141,15 +141,15 @@ void FolderOperationCoordinator::onFolderOperationComplete()
     }
 
     // All folders done
-    qDebug() << "FolderOperationCoordinator: All folder operations complete";
+    qCDebug(LogTransfer) << "FolderOperationCoordinator: All folder operations complete";
     state_.replaceExisting = false;
     emit allOperationsCompleted();
 }
 
 void FolderOperationCoordinator::onDebounceTimeout()
 {
-    qDebug() << "FolderOperationCoordinator: Debounce timeout, processing"
-             << state_.pendingFolderOps.size() << "pending folder ops";
+    qCDebug(LogTransfer) << "FolderOperationCoordinator: Debounce timeout, processing"
+                         << state_.pendingFolderOps.size() << "pending folder ops";
 
     if (state_.pendingFolderOps.isEmpty()) {
         state_.queueState = transfer::QueueState::Idle;
@@ -178,8 +178,8 @@ void FolderOperationCoordinator::checkFolderConfirmation()
     state_ = result.newState;
 
     if (result.needsConfirmation) {
-        qDebug() << "FolderOperationCoordinator: Asking user about existing folders:"
-                 << result.existingFolderNames;
+        qCDebug(LogTransfer) << "FolderOperationCoordinator: Asking user about existing folders:"
+                             << result.existingFolderNames;
         emit folderConfirmationNeeded(result.existingFolderNames);
         return;
     }
@@ -194,8 +194,8 @@ void FolderOperationCoordinator::startFolderOperation(const transfer::PendingFol
     state_.currentFolderOp = op;
 
     QString folderName = QFileInfo(op.sourcePath).fileName();
-    qDebug() << "FolderOperationCoordinator: Starting folder operation" << folderName
-             << "type:" << static_cast<int>(op.operationType);
+    qCDebug(LogTransfer) << "FolderOperationCoordinator: Starting folder operation" << folderName
+                         << "type:" << static_cast<int>(op.operationType);
 
     // Create batch for this operation
     int batchId = 0;
@@ -222,8 +222,8 @@ void FolderOperationCoordinator::startFolderOperation(const transfer::PendingFol
     if (op.operationType == transfer::OperationType::Upload) {
         // Handle Replace: delete existing folder first
         if (op.destExists && state_.replaceExisting) {
-            qDebug() << "FolderOperationCoordinator: Folder" << op.targetPath
-                     << "needs deletion before upload (Replace)";
+            qCDebug(LogTransfer) << "FolderOperationCoordinator: Folder" << op.targetPath
+                                 << "needs deletion before upload (Replace)";
             state_.pendingUploadAfterDelete = true;
             emit pendingUploadAfterDeleteSet(op.targetPath);
             return;
@@ -234,12 +234,13 @@ void FolderOperationCoordinator::startFolderOperation(const transfer::PendingFol
     } else {
         // Download: Handle Replace - delete existing local folder first via gateway
         if (op.destExists && state_.replaceExisting) {
-            qDebug() << "FolderOperationCoordinator: Local folder" << op.targetPath
-                     << "needs deletion before download (Replace)";
+            qCDebug(LogTransfer) << "FolderOperationCoordinator: Local folder" << op.targetPath
+                                 << "needs deletion before download (Replace)";
             if (localFs_) {
                 if (!localFs_->removeDirectoryRecursively(op.targetPath)) {
-                    qDebug() << "FolderOperationCoordinator: Failed to delete local folder"
-                             << op.targetPath;
+                    qCDebug(LogTransfer)
+                        << "FolderOperationCoordinator: Failed to delete local folder"
+                        << op.targetPath;
                     emit statusMessage(tr("Failed to delete local folder '%1'").arg(op.targetPath),
                                        5000);
                     emit operationFailed(QFileInfo(op.targetPath).fileName(),
@@ -251,8 +252,8 @@ void FolderOperationCoordinator::startFolderOperation(const transfer::PendingFol
 
         // Create local base directory via gateway
         if (localFs_ && !localFs_->createDirectoryPath(op.targetPath)) {
-            qDebug() << "FolderOperationCoordinator: Failed to create local directory"
-                     << op.targetPath;
+            qCDebug(LogTransfer) << "FolderOperationCoordinator: Failed to create local directory"
+                                 << op.targetPath;
             emit operationFailed(QFileInfo(op.targetPath).fileName(),
                                  tr("Failed to create local directory"));
             return;

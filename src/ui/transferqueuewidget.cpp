@@ -65,6 +65,10 @@ public:
             statusText = "Failed";
             statusColor = Qt::red;
             break;
+        case TransferItem::Status::Skipped:
+            statusText = "Skipped";
+            statusColor = Qt::darkYellow;
+            break;
         }
 
         // Draw text

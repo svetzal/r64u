@@ -115,8 +115,14 @@ private slots:
         QString fileA = tempDir_.filePath("file_a.txt");
         QString fileB = tempDir_.filePath("nested/file_b.txt");
         QDir().mkpath(tempDir_.filePath("nested"));
-        QFile(fileA).open(QIODevice::WriteOnly);
-        QFile(fileB).open(QIODevice::WriteOnly);
+        {
+            QFile f(fileA);
+            QVERIFY(f.open(QIODevice::WriteOnly));
+        }
+        {
+            QFile f(fileB);
+            QVERIFY(f.open(QIODevice::WriteOnly));
+        }
 
         QStringList result = fs_->listFilesRecursively(tempDir_.path());
         QVERIFY(result.contains(fileA));
@@ -138,7 +144,7 @@ private slots:
     {
         QString path = tempDir_.filePath("exists.txt");
         QFile f(path);
-        f.open(QIODevice::WriteOnly);
+        QVERIFY(f.open(QIODevice::WriteOnly));
         f.close();
         QVERIFY(fs_->fileExists(path));
     }
@@ -156,7 +162,7 @@ private slots:
     {
         QString path = tempDir_.filePath("sized.txt");
         QFile f(path);
-        f.open(QIODevice::WriteOnly);
+        QVERIFY(f.open(QIODevice::WriteOnly));
         f.write("hello");
         f.close();
         QCOMPARE(fs_->fileSize(path), 5LL);

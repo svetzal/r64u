@@ -244,7 +244,9 @@ void RemoteFileModel::fetchMore(const QModelIndex &parent)
     pendingFetches_[node->fullPath] = node;
 
     emit loadingStarted(node->fullPath);
-    coordinator_->requestListing(node->fullPath);
+    if (!coordinator_->requestListing(node->fullPath)) {
+        qCWarning(LogFileOps) << "RemoteFileModel: requestListing failed for" << node->fullPath;
+    }
 }
 
 Qt::ItemFlags RemoteFileModel::flags(const QModelIndex &index) const
