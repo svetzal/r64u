@@ -2,6 +2,7 @@
 
 #include "core/networkerrorutils.h"
 #include "core/restresponsecore.h"
+#include "utils/logging.h"
 
 #include <QJsonDocument>
 #include <QTimer>
@@ -366,7 +367,7 @@ void C64URestClient::onReplyFinished(QNetworkReply *reply)
                     " - Response: " + QString::fromUtf8(errorData).left(ErrorResponsePreviewLength);
             }
         }
-        qDebug() << "REST error for" << operation << ":" << errorMsg;
+        qCDebug(LogDevice) << "REST error for" << operation << ":" << errorMsg;
         emit operationFailed(operation, errorMsg);
         return;
     }

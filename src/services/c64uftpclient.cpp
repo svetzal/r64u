@@ -389,14 +389,14 @@ void C64UFtpClient::onControlReadyRead()
 
 void C64UFtpClient::onDataConnected()
 {
-    qDebug() << "FTP: Data socket connected to" << dataSocket_->peerAddress().toString() << ":"
-             << dataSocket_->peerPort();
+    qCDebug(LogFtp) << "FTP: Data socket connected to" << dataSocket_->peerAddress().toString() << ":"
+                    << dataSocket_->peerPort();
 }
 
 void C64UFtpClient::onDataReadyRead()
 {
     QByteArray data = dataSocket_->readAll();
-    qDebug() << "FTP: Data received:" << data.size() << "bytes";
+    qCDebug(LogFtp) << "FTP: Data received:" << data.size() << "bytes";
 
     FtpResponseContext ctx = buildContext();
     responseHandler_->handleDataReceived(data, ctx);
@@ -419,11 +419,11 @@ void C64UFtpClient::onDataReadyRead()
 
 void C64UFtpClient::onDataDisconnected()
 {
-    qDebug() << "[DATA] Socket disconnected"
-             << "bytesAvailable:" << dataSocket_->bytesAvailable()
-             << "pendingRetr_ exists:" << transferState_.hasPendingRetr()
-             << "pendingList_ exists:" << transferState_.hasPendingList()
-             << "currentCommand_:" << static_cast<int>(currentCommand_);
+    qCDebug(LogFtp) << "[DATA] Socket disconnected"
+                    << "bytesAvailable:" << dataSocket_->bytesAvailable()
+                    << "pendingRetr_ exists:" << transferState_.hasPendingRetr()
+                    << "pendingList_ exists:" << transferState_.hasPendingList()
+                    << "currentCommand_:" << static_cast<int>(currentCommand_);
 
     if (dataSocket_->bytesAvailable() > 0) {
         onDataReadyRead();
@@ -448,7 +448,7 @@ void C64UFtpClient::onDataError(QAbstractSocket::SocketError socketError)
         }
         return;
     }
-    qDebug() << "FTP: Data socket error:" << socketError << dataSocket_->errorString();
+    qCWarning(LogFtp) << "FTP: Data socket error:" << socketError << dataSocket_->errorString();
     emit error(tr("File transfer interrupted: %1").arg(dataSocket_->errorString()));
 }
 
