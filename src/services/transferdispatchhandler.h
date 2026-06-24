@@ -13,11 +13,8 @@
 #define TRANSFERDISPATCHHANDLER_H
 
 #include "core/transfercore.h"
+#include "services/transferhandlerbase.h"
 
-#include <QObject>
-#include <QPointer>
-
-class IFtpClient;
 class ILocalFileSystemService;
 class TransferTimeoutManager;
 class FolderOperationCoordinator;
@@ -32,7 +29,7 @@ using transfer::QueueState;
  * TransferManager) and must never outlive it.  All side-effects are emitted as
  * signals so TransferManager can wire them to the appropriate collaborators.
  */
-class TransferDispatchHandler : public QObject
+class TransferDispatchHandler : public TransferHandlerBase
 {
     Q_OBJECT
 
@@ -44,7 +41,6 @@ public:
      */
     explicit TransferDispatchHandler(transfer::State &state, QObject *parent = nullptr);
 
-    void setFtpClient(IFtpClient *client);
     void setLocalFileSystem(ILocalFileSystemService *fs);
     void setTimeoutManager(TransferTimeoutManager *manager);
     void setFolderCoordinator(FolderOperationCoordinator *coordinator);
@@ -58,10 +54,8 @@ public slots:
 
 signals:
     void operationStarted(const QString &fileName, OperationType type);
-    void itemDataChanged(int row);
     /// @param timeout Status-bar timeout in milliseconds; 0 means permanent.
     void statusMessage(const QString &message, int timeout = 0);
-    void operationFailed(const QString &fileName, const QString &error);
     void overwriteConfirmationNeeded(const QString &fileName, OperationType type);
     void allOperationsCompleted();
 
@@ -69,12 +63,8 @@ signals:
     void startTimeoutRequested();
     /// Request TransferManager to stop the operation timeout timer.
     void stopTimeoutRequested();
-    /// Request TransferManager to schedule a processNext() call via the event queue.
-    void scheduleProcessNextRequested();
 
 private:
-    transfer::State &state_;
-    QPointer<IFtpClient> ftpClient_;
     ILocalFileSystemService *localFs_ = nullptr;
     FolderOperationCoordinator *folderCoordinator_ = nullptr;
 };

@@ -162,6 +162,7 @@ set(SOURCES
     src/services/transfermanager.cpp
     src/services/transferwiring.cpp
     src/services/singlefileenqueuehandler.cpp
+    src/services/transferhandlerbase.cpp
     src/services/transferdeletehandler.cpp
     src/services/transferdispatchhandler.cpp
     src/services/transferftphandler.cpp
@@ -301,6 +302,7 @@ set(HEADERS
     src/services/transfermanager.h
     src/services/transferwiring.h
     src/services/singlefileenqueuehandler.h
+    src/services/transferhandlerbase.h
     src/services/transferdeletehandler.h
     src/services/transferdispatchhandler.h
     src/services/transferftphandler.h

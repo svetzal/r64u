@@ -2,7 +2,6 @@
 
 #include "transfertimeoutmanager.h"
 
-#include "../core/ftpclientmixin.h"
 #include "../ftp/recursivescancoordinator.h"
 #include "../ftp/remotedirectorycoordinator.h"
 #include "../utils/logging.h"
@@ -10,32 +9,8 @@
 #include <QFileInfo>
 
 TransferFtpHandler::TransferFtpHandler(transfer::State &state, QObject *parent)
-    : QObject(parent), state_(state)
+    : TransferHandlerBase(state, parent)
 {
-}
-
-void TransferFtpHandler::setFtpClient(IFtpClient *client)
-{
-    disconnectFtpClient(ftpClient_, this);
-
-    ftpClient_ = client;
-
-    if (ftpClient_) {
-        connect(ftpClient_, &IFtpClient::uploadProgress, this,
-                &TransferFtpHandler::onUploadProgress);
-        connect(ftpClient_, &IFtpClient::uploadFinished, this,
-                &TransferFtpHandler::onUploadFinished);
-        connect(ftpClient_, &IFtpClient::downloadProgress, this,
-                &TransferFtpHandler::onDownloadProgress);
-        connect(ftpClient_, &IFtpClient::downloadFinished, this,
-                &TransferFtpHandler::onDownloadFinished);
-        connect(ftpClient_, &IFtpClient::error, this, &TransferFtpHandler::onFtpError);
-        connect(ftpClient_, &IFtpClient::directoryCreated, this,
-                &TransferFtpHandler::onFtpDirectoryCreated);
-        connect(ftpClient_, &IFtpClient::directoryListed, this,
-                &TransferFtpHandler::onDirectoryListed);
-        connect(ftpClient_, &IFtpClient::fileRemoved, this, &TransferFtpHandler::onFileRemoved);
-    }
 }
 
 void TransferFtpHandler::setTimeoutManager(TransferTimeoutManager *manager)
@@ -51,6 +26,24 @@ void TransferFtpHandler::setDirCreator(RemoteDirectoryCoordinator *creator)
 void TransferFtpHandler::setScanCoordinator(RecursiveScanCoordinator *coordinator)
 {
     scanCoordinator_ = coordinator;
+}
+
+void TransferFtpHandler::connectFtpSignals()
+{
+    connect(ftpClient_, &IFtpClient::uploadProgress, this,
+            &TransferFtpHandler::onUploadProgress);
+    connect(ftpClient_, &IFtpClient::uploadFinished, this,
+            &TransferFtpHandler::onUploadFinished);
+    connect(ftpClient_, &IFtpClient::downloadProgress, this,
+            &TransferFtpHandler::onDownloadProgress);
+    connect(ftpClient_, &IFtpClient::downloadFinished, this,
+            &TransferFtpHandler::onDownloadFinished);
+    connect(ftpClient_, &IFtpClient::error, this, &TransferFtpHandler::onFtpError);
+    connect(ftpClient_, &IFtpClient::directoryCreated, this,
+            &TransferFtpHandler::onFtpDirectoryCreated);
+    connect(ftpClient_, &IFtpClient::directoryListed, this,
+            &TransferFtpHandler::onDirectoryListed);
+    connect(ftpClient_, &IFtpClient::fileRemoved, this, &TransferFtpHandler::onFileRemoved);
 }
 
 // ============================================================================
@@ -73,31 +66,6 @@ void TransferFtpHandler::stopTimeout()
         return;
     }
     timeoutManager_->stop();
-}
-
-void TransferFtpHandler::notifyQueueChanged()
-{
-    emit queueChanged();
-    emit scheduleProcessNextRequested();
-}
-
-void TransferFtpHandler::markCurrentComplete(transfer::TransferItem::Status status)
-{
-    if (state_.currentIndex < 0 || state_.currentIndex >= state_.items.size()) {
-        qCWarning(LogTransfer) << "TransferFtpHandler::markCurrentComplete: invalid index"
-                               << state_.currentIndex;
-        return;
-    }
-
-    int completedIndex = state_.currentIndex;
-    auto result = transfer::markItemComplete(state_, completedIndex, status);
-    state_ = result.newState;
-
-    emit itemDataChanged(completedIndex);
-
-    if (result.batchId >= 0) {
-        emit batchProgressRequested(result.batchId, result.batchIsComplete, false);
-    }
 }
 
 // ============================================================================
@@ -129,10 +97,7 @@ void TransferFtpHandler::onUploadFinished(const QString &localPath, const QStrin
         emit operationCompleted(fileName);
     }
 
-    auto result = transfer::completeTransferOperation(state_);
-    state_ = result.newState;
-
-    notifyQueueChanged();
+    completeAndNotify();
 }
 
 void TransferFtpHandler::onDownloadProgress(const QString &file, qint64 received, qint64 total)
@@ -160,10 +125,7 @@ void TransferFtpHandler::onDownloadFinished(const QString &remotePath, const QSt
         emit operationCompleted(fileName);
     }
 
-    auto result = transfer::completeTransferOperation(state_);
-    state_ = result.newState;
-
-    notifyQueueChanged();
+    completeAndNotify();
 }
 
 void TransferFtpHandler::onFtpError(const QString &message)
@@ -253,10 +215,7 @@ void TransferFtpHandler::onFileRemoved(const QString &path)
 
         emit operationCompleted(findResult.fileName);
 
-        auto completeResult = transfer::completeTransferOperation(state_);
-        state_ = completeResult.newState;
-
-        notifyQueueChanged();
+        completeAndNotify();
         return;
     }
 }

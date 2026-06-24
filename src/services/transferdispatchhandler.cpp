@@ -14,13 +14,8 @@
 #include <QFileInfo>
 
 TransferDispatchHandler::TransferDispatchHandler(transfer::State &state, QObject *parent)
-    : QObject(parent), state_(state)
+    : TransferHandlerBase(state, parent)
 {
-}
-
-void TransferDispatchHandler::setFtpClient(IFtpClient *client)
-{
-    ftpClient_ = client;
 }
 
 void TransferDispatchHandler::setLocalFileSystem(ILocalFileSystemService *fs)
@@ -65,7 +60,7 @@ void TransferDispatchHandler::processNext()
     qCDebug(LogTransfer) << "TransferDispatchHandler: processNext, state:"
                          << transfer::queueStateToString(state_.queueState);
 
-    bool ftpReady = ftpClient_ && ftpClient_->isConnected();
+    bool ftpReady = ftpConnected();
 
     auto localFileExists = [this](const QString &path) -> bool {
         return localFs_ && localFs_->fileExists(path);

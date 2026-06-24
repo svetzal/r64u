@@ -2,10 +2,8 @@
 #define TRANSFERDELETEHANDLER_H
 
 #include "core/transfercore.h"
-#include "services/iftpclient.h"
+#include "services/transferhandlerbase.h"
 
-#include <QObject>
-#include <QPointer>
 #include <QString>
 
 #include <functional>
@@ -27,7 +25,7 @@ using transfer::QueueState;
  * connects to. The createBatch factory delegate is kept as std::function because
  * it returns an int and acts as a factory, not a notification.
  */
-class TransferDeleteHandler : public QObject
+class TransferDeleteHandler : public TransferHandlerBase
 {
     Q_OBJECT
 
@@ -37,7 +35,6 @@ public:
 
     explicit TransferDeleteHandler(transfer::State &state, QObject *parent = nullptr);
 
-    void setFtpClient(IFtpClient *client);
     void setScanCoordinator(RecursiveScanCoordinator *coordinator);
     void setDirCreator(RemoteDirectoryCoordinator *creator);
 
@@ -49,11 +46,9 @@ public:
     void processNextDelete();
 
 signals:
-    void operationFailed(const QString &fileName, const QString &error);
     void operationCompleted(const QString &message);
     void allOperationsCompleted();
     void statusMessage(const QString &message, int timeout = 0);
-    void queueChanged();
     void batchStarted(int batchId);
     void startDirectoryCreationAfterDeleteRequested();
 
@@ -63,11 +58,8 @@ signals:
 
     /// Orchestration signals — connect to TransferManager private slots
     void transitionToRequested(QueueState newState);
-    void scheduleProcessNextRequested();
 
 private:
-    transfer::State &state_;
-    QPointer<IFtpClient> ftpClient_;
     RecursiveScanCoordinator *scanCoordinator_ = nullptr;
     RemoteDirectoryCoordinator *dirCreator_ = nullptr;
 

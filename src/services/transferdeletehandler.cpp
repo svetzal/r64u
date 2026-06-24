@@ -7,13 +7,8 @@
 #include <QFileInfo>
 
 TransferDeleteHandler::TransferDeleteHandler(transfer::State &state, QObject *parent)
-    : QObject(parent), state_(state)
+    : TransferHandlerBase(state, parent)
 {
-}
-
-void TransferDeleteHandler::setFtpClient(IFtpClient *client)
-{
-    ftpClient_ = client;
 }
 
 void TransferDeleteHandler::setScanCoordinator(RecursiveScanCoordinator *coordinator)
@@ -83,7 +78,7 @@ void TransferDeleteHandler::enqueueDelete(const QString &remotePath, bool isDire
 
 void TransferDeleteHandler::enqueueRecursiveDelete(const QString &remotePath)
 {
-    if (!ftpClient_ || !ftpClient_->isConnected()) {
+    if (!ftpConnected()) {
         qCWarning(LogTransfer) << "enqueueRecursiveDelete skipped: FTP not connected";
         emit operationFailed(QFileInfo(remotePath).fileName(), tr("Not connected to device"));
         return;
@@ -111,7 +106,7 @@ void TransferDeleteHandler::enqueueRecursiveDelete(const QString &remotePath)
 
 void TransferDeleteHandler::processNextDelete()
 {
-    if (!ftpClient_ || !ftpClient_->isConnected()) {
+    if (!ftpConnected()) {
         qCWarning(LogTransfer) << "processNextDelete: FTP disconnected, resetting to Idle";
         emit transitionToRequested(QueueState::Idle);
         emit operationFailed(QString(), tr("Not connected to device"));
