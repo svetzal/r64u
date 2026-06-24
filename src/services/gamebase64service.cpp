@@ -207,15 +207,9 @@ void GameBase64Service::closeDatabase()
     sidFilenameToGameId_.clear();
 }
 
-GameBase64Service::GameInfo GameBase64Service::lookupByGameId(int gameId) const
+QString GameBase64Service::gameSelectSql(const QString &whereAndTail)
 {
-    GameInfo info;
-    if (!databaseLoaded_) {
-        return info;
-    }
-
-    QSqlQuery query(database_);
-    query.prepare(R"(
+    return QStringLiteral(R"(
         SELECT g.GA_Id, g.Name, g.Filename, g.ScrnshotFilename, g.SidFilename,
                g.Rating, g.PlayersFrom, g.PlayersTo, g.MemoText, g.Comment,
                p.Publisher, y.Year, ge.Genre, pg.Genre as ParentGenre,
@@ -226,8 +220,43 @@ GameBase64Service::GameInfo GameBase64Service::lookupByGameId(int gameId) const
         LEFT JOIN Genres ge ON g.GE_Id = ge.GE_Id
         LEFT JOIN Genres pg ON ge.PG_Id = pg.GE_Id
         LEFT JOIN Musicians m ON g.MU_Id = m.MU_Id
-        WHERE g.GA_Id = ?
-    )");
+        )") +
+           whereAndTail;
+}
+
+GameBase64Service::SearchResults
+GameBase64Service::runSearch(const QString &whereClause, const QString &term, int maxResults) const
+{
+    SearchResults results;
+    if (!databaseLoaded_ || term.isEmpty()) {
+        results.success = true;
+        return results;
+    }
+    QSqlQuery query(database_);
+    query.prepare(gameSelectSql("WHERE " + whereClause +
+                                " LIKE ?\n        ORDER BY g.Name\n        LIMIT ?"));
+    query.addBindValue("%" + term + "%");
+    query.addBindValue(maxResults);
+    if (!query.exec()) {
+        results.error = query.lastError().text();
+        return results;
+    }
+    results.success = true;
+    while (query.next()) {
+        results.games.append(buildGameInfoFromQuery(query));
+    }
+    return results;
+}
+
+GameBase64Service::GameInfo GameBase64Service::lookupByGameId(int gameId) const
+{
+    GameInfo info;
+    if (!databaseLoaded_) {
+        return info;
+    }
+
+    QSqlQuery query(database_);
+    query.prepare(gameSelectSql("WHERE g.GA_Id = ?"));
     query.addBindValue(gameId);
 
     if (query.exec() && query.next()) {
@@ -245,20 +274,7 @@ GameBase64Service::GameInfo GameBase64Service::lookupByName(const QString &name)
     }
 
     QSqlQuery query(database_);
-    query.prepare(R"(
-        SELECT g.GA_Id, g.Name, g.Filename, g.ScrnshotFilename, g.SidFilename,
-               g.Rating, g.PlayersFrom, g.PlayersTo, g.MemoText, g.Comment,
-               p.Publisher, y.Year, ge.Genre, pg.Genre as ParentGenre,
-               m.Musician, m.Grp
-        FROM Games g
-        LEFT JOIN Publishers p ON g.PU_Id = p.PU_Id
-        LEFT JOIN Years y ON g.YE_Id = y.YE_Id
-        LEFT JOIN Genres ge ON g.GE_Id = ge.GE_Id
-        LEFT JOIN Genres pg ON ge.PG_Id = pg.GE_Id
-        LEFT JOIN Musicians m ON g.MU_Id = m.MU_Id
-        WHERE LOWER(g.Name) = LOWER(?)
-        LIMIT 1
-    )");
+    query.prepare(gameSelectSql("WHERE LOWER(g.Name) = LOWER(?)\n        LIMIT 1"));
     query.addBindValue(name);
 
     if (query.exec() && query.next()) {
@@ -286,20 +302,7 @@ GameBase64Service::GameInfo GameBase64Service::lookupByFilename(const QString &f
 
     // Fallback to LIKE query for partial matches
     QSqlQuery query(database_);
-    query.prepare(R"(
-        SELECT g.GA_Id, g.Name, g.Filename, g.ScrnshotFilename, g.SidFilename,
-               g.Rating, g.PlayersFrom, g.PlayersTo, g.MemoText, g.Comment,
-               p.Publisher, y.Year, ge.Genre, pg.Genre as ParentGenre,
-               m.Musician, m.Grp
-        FROM Games g
-        LEFT JOIN Publishers p ON g.PU_Id = p.PU_Id
-        LEFT JOIN Years y ON g.YE_Id = y.YE_Id
-        LEFT JOIN Genres ge ON g.GE_Id = ge.GE_Id
-        LEFT JOIN Genres pg ON ge.PG_Id = pg.GE_Id
-        LEFT JOIN Musicians m ON g.MU_Id = m.MU_Id
-        WHERE LOWER(g.Filename) LIKE ?
-        LIMIT 1
-    )");
+    query.prepare(gameSelectSql("WHERE LOWER(g.Filename) LIKE ?\n        LIMIT 1"));
     query.addBindValue("%" + baseName);
 
     if (query.exec() && query.next()) {
@@ -327,20 +330,7 @@ GameBase64Service::GameInfo GameBase64Service::lookupBySidFilename(const QString
 
     // Fallback to LIKE query
     QSqlQuery query(database_);
-    query.prepare(R"(
-        SELECT g.GA_Id, g.Name, g.Filename, g.ScrnshotFilename, g.SidFilename,
-               g.Rating, g.PlayersFrom, g.PlayersTo, g.MemoText, g.Comment,
-               p.Publisher, y.Year, ge.Genre, pg.Genre as ParentGenre,
-               m.Musician, m.Grp
-        FROM Games g
-        LEFT JOIN Publishers p ON g.PU_Id = p.PU_Id
-        LEFT JOIN Years y ON g.YE_Id = y.YE_Id
-        LEFT JOIN Genres ge ON g.GE_Id = ge.GE_Id
-        LEFT JOIN Genres pg ON ge.PG_Id = pg.GE_Id
-        LEFT JOIN Musicians m ON g.MU_Id = m.MU_Id
-        WHERE LOWER(g.SidFilename) LIKE ?
-        LIMIT 1
-    )");
+    query.prepare(gameSelectSql("WHERE LOWER(g.SidFilename) LIKE ?\n        LIMIT 1"));
     query.addBindValue("%" + baseName);
 
     if (query.exec() && query.next()) {
@@ -353,124 +343,19 @@ GameBase64Service::GameInfo GameBase64Service::lookupBySidFilename(const QString
 GameBase64Service::SearchResults GameBase64Service::searchByName(const QString &searchQuery,
                                                                  int maxResults) const
 {
-    SearchResults results;
-    if (!databaseLoaded_ || searchQuery.isEmpty()) {
-        results.success = true;
-        return results;
-    }
-
-    QSqlQuery query(database_);
-    query.prepare(R"(
-        SELECT g.GA_Id, g.Name, g.Filename, g.ScrnshotFilename, g.SidFilename,
-               g.Rating, g.PlayersFrom, g.PlayersTo, g.MemoText, g.Comment,
-               p.Publisher, y.Year, ge.Genre, pg.Genre as ParentGenre,
-               m.Musician, m.Grp
-        FROM Games g
-        LEFT JOIN Publishers p ON g.PU_Id = p.PU_Id
-        LEFT JOIN Years y ON g.YE_Id = y.YE_Id
-        LEFT JOIN Genres ge ON g.GE_Id = ge.GE_Id
-        LEFT JOIN Genres pg ON ge.PG_Id = pg.GE_Id
-        LEFT JOIN Musicians m ON g.MU_Id = m.MU_Id
-        WHERE g.Name LIKE ?
-        ORDER BY g.Name
-        LIMIT ?
-    )");
-    query.addBindValue("%" + searchQuery + "%");
-    query.addBindValue(maxResults);
-
-    if (!query.exec()) {
-        results.error = query.lastError().text();
-        return results;
-    }
-
-    results.success = true;
-    while (query.next()) {
-        results.games.append(buildGameInfoFromQuery(query));
-    }
-
-    return results;
+    return runSearch("g.Name", searchQuery, maxResults);
 }
 
 GameBase64Service::SearchResults GameBase64Service::searchByMusician(const QString &musician,
                                                                      int maxResults) const
 {
-    SearchResults results;
-    if (!databaseLoaded_ || musician.isEmpty()) {
-        results.success = true;
-        return results;
-    }
-
-    QSqlQuery query(database_);
-    query.prepare(R"(
-        SELECT g.GA_Id, g.Name, g.Filename, g.ScrnshotFilename, g.SidFilename,
-               g.Rating, g.PlayersFrom, g.PlayersTo, g.MemoText, g.Comment,
-               p.Publisher, y.Year, ge.Genre, pg.Genre as ParentGenre,
-               m.Musician, m.Grp
-        FROM Games g
-        LEFT JOIN Publishers p ON g.PU_Id = p.PU_Id
-        LEFT JOIN Years y ON g.YE_Id = y.YE_Id
-        LEFT JOIN Genres ge ON g.GE_Id = ge.GE_Id
-        LEFT JOIN Genres pg ON ge.PG_Id = pg.GE_Id
-        LEFT JOIN Musicians m ON g.MU_Id = m.MU_Id
-        WHERE m.Musician LIKE ?
-        ORDER BY g.Name
-        LIMIT ?
-    )");
-    query.addBindValue("%" + musician + "%");
-    query.addBindValue(maxResults);
-
-    if (!query.exec()) {
-        results.error = query.lastError().text();
-        return results;
-    }
-
-    results.success = true;
-    while (query.next()) {
-        results.games.append(buildGameInfoFromQuery(query));
-    }
-
-    return results;
+    return runSearch("m.Musician", musician, maxResults);
 }
 
 GameBase64Service::SearchResults GameBase64Service::searchByPublisher(const QString &publisher,
                                                                       int maxResults) const
 {
-    SearchResults results;
-    if (!databaseLoaded_ || publisher.isEmpty()) {
-        results.success = true;
-        return results;
-    }
-
-    QSqlQuery query(database_);
-    query.prepare(R"(
-        SELECT g.GA_Id, g.Name, g.Filename, g.ScrnshotFilename, g.SidFilename,
-               g.Rating, g.PlayersFrom, g.PlayersTo, g.MemoText, g.Comment,
-               p.Publisher, y.Year, ge.Genre, pg.Genre as ParentGenre,
-               m.Musician, m.Grp
-        FROM Games g
-        LEFT JOIN Publishers p ON g.PU_Id = p.PU_Id
-        LEFT JOIN Years y ON g.YE_Id = y.YE_Id
-        LEFT JOIN Genres ge ON g.GE_Id = ge.GE_Id
-        LEFT JOIN Genres pg ON ge.PG_Id = pg.GE_Id
-        LEFT JOIN Musicians m ON g.MU_Id = m.MU_Id
-        WHERE p.Publisher LIKE ?
-        ORDER BY g.Name
-        LIMIT ?
-    )");
-    query.addBindValue("%" + publisher + "%");
-    query.addBindValue(maxResults);
-
-    if (!query.exec()) {
-        results.error = query.lastError().text();
-        return results;
-    }
-
-    results.success = true;
-    while (query.next()) {
-        results.games.append(buildGameInfoFromQuery(query));
-    }
-
-    return results;
+    return runSearch("p.Publisher", publisher, maxResults);
 }
 
 GameBase64Service::GameInfo GameBase64Service::buildGameInfoFromQuery(const QSqlQuery &query) const

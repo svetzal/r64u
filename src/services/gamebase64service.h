@@ -117,6 +117,15 @@ private:
     [[nodiscard]] GameInfo buildGameInfoFromQuery(const QSqlQuery &query) const;
     [[nodiscard]] static bool decompressGzip(const QString &gzipPath, const QString &outputPath);
 
+    /// Shared SELECT projection + FROM Games with the six standard LEFT JOINs.
+    /// Callers append their own WHERE/ORDER BY/LIMIT clause.
+    [[nodiscard]] static QString gameSelectSql(const QString &whereAndTail);
+
+    /// Runs a LIKE search returning multiple games; `whereClause` is the predicate
+    /// (e.g. "g.Name") matched against "%term%", ordered by name and capped at maxResults.
+    [[nodiscard]] SearchResults runSearch(const QString &whereClause, const QString &term,
+                                          int maxResults) const;
+
     CachedDownloadService *manager_;
     QSqlDatabase database_;
     QString connectionName_;
