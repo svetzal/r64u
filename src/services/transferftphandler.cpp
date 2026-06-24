@@ -30,10 +30,8 @@ void TransferFtpHandler::setScanCoordinator(RecursiveScanCoordinator *coordinato
 
 void TransferFtpHandler::connectFtpSignals()
 {
-    connect(ftpClient_, &IFtpClient::uploadProgress, this,
-            &TransferFtpHandler::onUploadProgress);
-    connect(ftpClient_, &IFtpClient::uploadFinished, this,
-            &TransferFtpHandler::onUploadFinished);
+    connect(ftpClient_, &IFtpClient::uploadProgress, this, &TransferFtpHandler::onUploadProgress);
+    connect(ftpClient_, &IFtpClient::uploadFinished, this, &TransferFtpHandler::onUploadFinished);
     connect(ftpClient_, &IFtpClient::downloadProgress, this,
             &TransferFtpHandler::onDownloadProgress);
     connect(ftpClient_, &IFtpClient::downloadFinished, this,
@@ -41,8 +39,7 @@ void TransferFtpHandler::connectFtpSignals()
     connect(ftpClient_, &IFtpClient::error, this, &TransferFtpHandler::onFtpError);
     connect(ftpClient_, &IFtpClient::directoryCreated, this,
             &TransferFtpHandler::onFtpDirectoryCreated);
-    connect(ftpClient_, &IFtpClient::directoryListed, this,
-            &TransferFtpHandler::onDirectoryListed);
+    connect(ftpClient_, &IFtpClient::directoryListed, this, &TransferFtpHandler::onDirectoryListed);
     connect(ftpClient_, &IFtpClient::fileRemoved, this, &TransferFtpHandler::onFileRemoved);
 }
 

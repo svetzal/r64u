@@ -3,7 +3,6 @@
 #include "pathnavigationwidget.h"
 
 #include "core/filebrowsercore.h"
-
 #include "services/errorhandler.h"
 #include "utils/logging.h"
 

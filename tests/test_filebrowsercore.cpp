@@ -128,15 +128,15 @@ private slots:
     void testBuildDeleteConfirmMessage_singleFile_containsNameNotFolder()
     {
         auto msg = filebrowser::buildDeleteConfirmMessage({"/some/path/file.prg"}, false,
-                                                         QStringLiteral("delete"));
+                                                          QStringLiteral("delete"));
         QVERIFY(msg.contains("file.prg"));
         QVERIFY(!msg.contains("folder", Qt::CaseInsensitive));
     }
 
     void testBuildDeleteConfirmMessage_singleFolder_containsNameAndFolder()
     {
-        auto msg = filebrowser::buildDeleteConfirmMessage({"/some/Games"}, true,
-                                                         QStringLiteral("delete"));
+        auto msg =
+            filebrowser::buildDeleteConfirmMessage({"/some/Games"}, true, QStringLiteral("delete"));
         QVERIFY(msg.contains("Games"));
         QVERIFY(msg.contains("folder", Qt::CaseInsensitive));
     }
@@ -144,14 +144,14 @@ private slots:
     void testBuildDeleteConfirmMessage_multipleItems_containsCount()
     {
         auto msg = filebrowser::buildDeleteConfirmMessage({"/a", "/b", "/c"}, false,
-                                                         QStringLiteral("delete"));
+                                                          QStringLiteral("delete"));
         QVERIFY(msg.contains("3"));
     }
 
     void testBuildDeleteConfirmMessage_customVerb_containsVerb()
     {
         auto msg = filebrowser::buildDeleteConfirmMessage({"/some/path/file.prg"}, false,
-                                                         QStringLiteral("move to the trash"));
+                                                          QStringLiteral("move to the trash"));
         QVERIFY(msg.contains("move to the trash"));
     }
 };

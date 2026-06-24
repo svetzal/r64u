@@ -56,7 +56,7 @@ filterPlaylistCandidates(const QList<QPair<QString, filetype::FileType>> &items)
  * @return The confirmation message string.
  */
 [[nodiscard]] QString buildDeleteConfirmMessage(const QStringList &paths, bool singleIsDirectory,
-                                               const QString &verbPhrase);
+                                                const QString &verbPhrase);
 
 }  // namespace filebrowser
 
