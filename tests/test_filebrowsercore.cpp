@@ -120,6 +120,40 @@ private slots:
         auto result = filebrowser::filterPlaylistCandidates(items);
         QVERIFY(result.isEmpty());
     }
+
+    // -----------------------------------------------------------------------
+    // buildDeleteConfirmMessage
+    // -----------------------------------------------------------------------
+
+    void testBuildDeleteConfirmMessage_singleFile_containsNameNotFolder()
+    {
+        auto msg = filebrowser::buildDeleteConfirmMessage({"/some/path/file.prg"}, false,
+                                                         QStringLiteral("delete"));
+        QVERIFY(msg.contains("file.prg"));
+        QVERIFY(!msg.contains("folder", Qt::CaseInsensitive));
+    }
+
+    void testBuildDeleteConfirmMessage_singleFolder_containsNameAndFolder()
+    {
+        auto msg = filebrowser::buildDeleteConfirmMessage({"/some/Games"}, true,
+                                                         QStringLiteral("delete"));
+        QVERIFY(msg.contains("Games"));
+        QVERIFY(msg.contains("folder", Qt::CaseInsensitive));
+    }
+
+    void testBuildDeleteConfirmMessage_multipleItems_containsCount()
+    {
+        auto msg = filebrowser::buildDeleteConfirmMessage({"/a", "/b", "/c"}, false,
+                                                         QStringLiteral("delete"));
+        QVERIFY(msg.contains("3"));
+    }
+
+    void testBuildDeleteConfirmMessage_customVerb_containsVerb()
+    {
+        auto msg = filebrowser::buildDeleteConfirmMessage({"/some/path/file.prg"}, false,
+                                                         QStringLiteral("move to the trash"));
+        QVERIFY(msg.contains("move to the trash"));
+    }
 };
 
 QTEST_MAIN(TestFileBrowserCore)

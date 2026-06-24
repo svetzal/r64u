@@ -1,5 +1,7 @@
 #include "remotefilebrowsercontroller.h"
 
+#include "core/filebrowsercore.h"
+
 #include <QFileInfo>
 
 RemoteFileBrowserController::RemoteFileBrowserController(QObject *parent) : QObject(parent) {}
@@ -41,16 +43,5 @@ bool RemoteFileBrowserController::isValidName(const QString &name)
 QString RemoteFileBrowserController::buildDeleteConfirmMessage(const QStringList &paths,
                                                                bool isDirectory) const
 {
-    if (paths.size() == 1) {
-        QString fileName = QFileInfo(paths.first()).fileName();
-        if (isDirectory) {
-            return tr("Are you sure you want to permanently delete the folder '%1' and all its "
-                      "contents?\n\nThis cannot be undone.")
-                .arg(fileName);
-        }
-        return tr("Are you sure you want to permanently delete '%1'?\n\nThis cannot be undone.")
-            .arg(fileName);
-    }
-    return tr("Are you sure you want to permanently delete %1 items?\n\nThis cannot be undone.")
-        .arg(paths.size());
+    return filebrowser::buildDeleteConfirmMessage(paths, isDirectory, QStringLiteral("delete"));
 }

@@ -7,11 +7,8 @@
 #include "services/localfileoperationsservice.h"
 
 #include <QDir>
-#include <QFileInfo>
 #include <QHeaderView>
-#include <QInputDialog>
 #include <QMenu>
-#include <QMessageBox>
 #include <QStandardPaths>
 #include <QToolBar>
 #include <QTreeView>
@@ -219,63 +216,36 @@ void LocalFileBrowserWidget::onUpload()
     }
 }
 
-void LocalFileBrowserWidget::onNewFolder()
+void LocalFileBrowserWidget::performNewFolder(const QString &folderName)
 {
-    bool ok;
-    QString folderName = QInputDialog::getText(this, tr("New Local Folder"), tr("Folder name:"),
-                                               QLineEdit::Normal, "", &ok);
-
-    if (!ok || folderName.isEmpty()) {
-        return;
-    }
-
     fileOps_->createFolder(currentDirectory_, folderName);
 }
 
-void LocalFileBrowserWidget::onRename()
+void LocalFileBrowserWidget::performRename(const QString &path, const QString &newName)
 {
-    QString localPath = selectedPath();
-    if (localPath.isEmpty()) {
-        return;
-    }
-
-    QFileInfo fileInfo(localPath);
-    QString oldName = fileInfo.fileName();
-    QString itemType = fileInfo.isDir() ? tr("folder") : tr("file");
-
-    QString newName = promptForNewName(tr("Rename %1").arg(itemType), oldName);
-    if (newName.isEmpty()) {
-        return;
-    }
-
-    fileOps_->renameItem(localPath, newName);
+    fileOps_->renameItem(path, newName);
 }
 
-void LocalFileBrowserWidget::onDelete()
+void LocalFileBrowserWidget::performDelete(const QList<SelectedEntry> &entries)
 {
-    QStringList paths = selectedPaths();
-    if (paths.isEmpty()) {
-        return;
+    QStringList paths;
+    for (const auto &e : entries) {
+        paths.append(e.path);
     }
-
-    // Build confirmation message
-    QString confirmMessage;
-    if (paths.size() == 1) {
-        QFileInfo fileInfo(paths.first());
-        QString itemName = fileInfo.fileName();
-        QString itemType = fileInfo.isDir() ? tr("folder") : tr("file");
-        confirmMessage = tr("Are you sure you want to move the %1 '%2' to the trash?")
-                             .arg(itemType)
-                             .arg(itemName);
-    } else {
-        confirmMessage =
-            tr("Are you sure you want to move %1 items to the trash?").arg(paths.size());
-    }
-
-    if (!confirmDestructiveAction(tr("Move to Trash"), confirmMessage, tr("Move to Trash"),
-                                  QMessageBox::Question)) {
-        return;
-    }
-
     fileOps_->deleteItems(paths);
+}
+
+QString LocalFileBrowserWidget::deleteVerbPhrase() const
+{
+    return tr("move to the trash");
+}
+
+QString LocalFileBrowserWidget::deleteActionLabel() const
+{
+    return tr("Move to Trash");
+}
+
+QMessageBox::Icon LocalFileBrowserWidget::deleteIcon() const
+{
+    return QMessageBox::Question;
 }

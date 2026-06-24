@@ -65,12 +65,15 @@ protected:
     [[nodiscard]] bool isDirectory(const QModelIndex &index) const override;
     void navigateToDirectory(const QString &path) override;
 
+protected:
+    bool canModify(const QString &actionLabel) override;
+    void performNewFolder(const QString &folderName) override;
+    void performRename(const QString &path, const QString &newName) override;
+    void performDelete(const QList<SelectedEntry> &entries) override;
+
 protected slots:
     void onParentFolder() override;
     void onContextMenu(const QPoint &pos) override;
-    void onNewFolder() override;
-    void onRename() override;
-    void onDelete() override;
 
 signals:
     void downloadRequested(const QString &remotePath, bool isDirectory);

@@ -127,17 +127,17 @@ protected slots:
     /**
      * @brief Creates a new folder in the current directory.
      */
-    virtual void onNewFolder() = 0;
+    virtual void onNewFolder();
 
     /**
      * @brief Renames the selected item.
      */
-    virtual void onRename() = 0;
+    virtual void onRename();
 
     /**
      * @brief Deletes the selected item.
      */
-    virtual void onDelete() = 0;
+    virtual void onDelete();
 
 protected:
     /**
@@ -243,6 +243,54 @@ protected:
      * @param path The directory path to navigate to.
      */
     virtual void navigateToDirectory(const QString &path) = 0;
+
+    /**
+     * @brief Called by onNewFolder() after dialog interaction to perform the actual creation.
+     * @param folderName The validated folder name entered by the user.
+     */
+    virtual void performNewFolder(const QString &folderName) = 0;
+
+    /**
+     * @brief Called by onRename() after dialog interaction to perform the actual rename.
+     * @param path The current file path.
+     * @param newName The validated new name entered by the user.
+     */
+    virtual void performRename(const QString &path, const QString &newName) = 0;
+
+    /**
+     * @brief Called by onDelete() after confirmation to perform the actual deletion.
+     * @param entries The selected entries to delete.
+     */
+    virtual void performDelete(const QList<SelectedEntry> &entries) = 0;
+
+    /**
+     * @brief Returns false and emits an error when a precondition is not met.
+     *
+     * The default implementation always returns true.  RemoteFileBrowserWidget
+     * overrides this to check the connection state.
+     *
+     * @param actionLabel Short label for the action (e.g. "create folder").
+     * @return true if the action may proceed.
+     */
+    virtual bool canModify(const QString &actionLabel);
+
+    /**
+     * @brief Returns the verb phrase used in the delete confirmation message.
+     * Default: "delete". LocalFileBrowserWidget overrides to "move to the trash".
+     */
+    [[nodiscard]] virtual QString deleteVerbPhrase() const;
+
+    /**
+     * @brief Returns the label for the delete action (used as dialog title and button text).
+     * Default: "Delete". LocalFileBrowserWidget overrides to "Move to Trash".
+     */
+    [[nodiscard]] virtual QString deleteActionLabel() const;
+
+    /**
+     * @brief Returns the icon to show in the delete confirmation dialog.
+     * Default: QMessageBox::Warning. Local overrides to QMessageBox::Question.
+     */
+    [[nodiscard]] virtual QMessageBox::Icon deleteIcon() const;
 
     // State
     QString currentDirectory_;

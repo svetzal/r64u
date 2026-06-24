@@ -2,6 +2,8 @@
 
 #include "pathnavigationwidget.h"
 
+#include "core/filebrowsercore.h"
+
 #include "services/errorhandler.h"
 #include "utils/logging.h"
 
@@ -209,4 +211,90 @@ void FileBrowserWidget::onParentFolder()
     if (parentPath != currentDirectory_) {
         navigateToDirectory(parentPath);
     }
+}
+
+bool FileBrowserWidget::canModify(const QString & /*actionLabel*/)
+{
+    return true;
+}
+
+QString FileBrowserWidget::deleteVerbPhrase() const
+{
+    return tr("delete");
+}
+
+QString FileBrowserWidget::deleteActionLabel() const
+{
+    return tr("Delete");
+}
+
+QMessageBox::Icon FileBrowserWidget::deleteIcon() const
+{
+    return QMessageBox::Warning;
+}
+
+void FileBrowserWidget::onNewFolder()
+{
+    if (!canModify(tr("create folder"))) {
+        return;
+    }
+
+    bool ok;
+    QString folderName = QInputDialog::getText(this, tr("New Folder"), tr("Folder name:"),
+                                               QLineEdit::Normal, QString(), &ok);
+    if (!ok || folderName.isEmpty()) {
+        return;
+    }
+
+    performNewFolder(folderName);
+}
+
+void FileBrowserWidget::onRename()
+{
+    if (!canModify(tr("rename"))) {
+        return;
+    }
+
+    QString path = selectedPath();
+    if (path.isEmpty()) {
+        return;
+    }
+
+    QFileInfo fileInfo(path);
+    QString oldName = fileInfo.fileName();
+    QString itemType = isSelectedDirectory() ? tr("folder") : tr("file");
+
+    QString newName = promptForNewName(tr("Rename %1").arg(itemType), oldName);
+    if (newName.isEmpty()) {
+        return;
+    }
+
+    performRename(path, newName);
+}
+
+void FileBrowserWidget::onDelete()
+{
+    if (!canModify(tr("delete"))) {
+        return;
+    }
+
+    auto entries = selectedEntries();
+    if (entries.isEmpty()) {
+        return;
+    }
+
+    QStringList paths;
+    for (const auto &e : entries) {
+        paths.append(e.path);
+    }
+
+    QString confirmMessage =
+        filebrowser::buildDeleteConfirmMessage(paths, isSelectedDirectory(), deleteVerbPhrase());
+
+    if (!confirmDestructiveAction(deleteActionLabel(), confirmMessage, deleteActionLabel(),
+                                  deleteIcon())) {
+        return;
+    }
+
+    performDelete(entries);
 }

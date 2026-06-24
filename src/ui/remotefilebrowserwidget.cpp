@@ -12,7 +12,6 @@
 #include <QAction>
 #include <QFileInfo>
 #include <QHeaderView>
-#include <QInputDialog>
 #include <QMenu>
 #include <QMessageBox>
 #include <QShowEvent>
@@ -315,20 +314,13 @@ void RemoteFileBrowserWidget::onDownload()
     }
 }
 
-void RemoteFileBrowserWidget::onNewFolder()
+bool RemoteFileBrowserWidget::canModify(const QString &actionLabel)
 {
-    if (!requireConnected(tr("Cannot create folder"))) {
-        return;
-    }
+    return requireConnected(tr("Cannot %1").arg(actionLabel));
+}
 
-    bool ok;
-    QString folderName = QInputDialog::getText(this, tr("New Remote Folder"), tr("Folder name:"),
-                                               QLineEdit::Normal, "", &ok);
-
-    if (!ok || folderName.isEmpty()) {
-        return;
-    }
-
+void RemoteFileBrowserWidget::performNewFolder(const QString &folderName)
+{
     QString newPath = controller_->buildNewFolderPath(currentDirectory_, folderName);
     if (newPath.isEmpty()) {
         return;
@@ -343,57 +335,23 @@ void RemoteFileBrowserWidget::onNewFolder()
                         tr("Creating folder %1 in %2...").arg(folderName).arg(remoteDir));
 }
 
-void RemoteFileBrowserWidget::onRename()
+void RemoteFileBrowserWidget::performRename(const QString &path, const QString &newName)
 {
-    if (!requireConnected(tr("Cannot rename"))) {
-        return;
-    }
-
-    QString remotePath = selectedPath();
-    if (remotePath.isEmpty()) {
-        return;
-    }
-
-    QString oldName = QFileInfo(remotePath).fileName();
-    QString itemType = isSelectedDirectory() ? tr("folder") : tr("file");
-
-    QString newName = promptForNewName(tr("Rename Remote %1").arg(itemType), oldName);
-    if (newName.isEmpty()) {
-        return;
-    }
-
-    QString newPath = controller_->buildRenamePath(remotePath, newName);
+    QString newPath = controller_->buildRenamePath(path, newName);
     if (newPath.isEmpty()) {
         return;
     }
 
-    emit renameRequested(remotePath, newPath);
+    QString oldName = QFileInfo(path).fileName();
+    emit renameRequested(path, newPath);
     errorHandler_->info(ErrorCategory::FileOperation, tr("Renaming %1...").arg(oldName));
 }
 
-void RemoteFileBrowserWidget::onDelete()
+void RemoteFileBrowserWidget::performDelete(const QList<SelectedEntry> &entries)
 {
-    if (!requireConnected(tr("Cannot delete"))) {
-        return;
-    }
-
-    auto entries = selectedEntries();
-    if (entries.isEmpty()) {
-        return;
-    }
-
     QStringList paths;
     for (const auto &e : entries) {
         paths.append(e.path);
-    }
-
-    QString confirmMessage = controller_->buildDeleteConfirmMessage(paths, isSelectedDirectory());
-    if (!confirmDestructiveAction(tr("Delete"), confirmMessage, tr("Delete"),
-                                  QMessageBox::Warning)) {
-        return;
-    }
-
-    for (const auto &e : entries) {
         emit deleteRequested(e.path, e.isDirectory);
     }
 

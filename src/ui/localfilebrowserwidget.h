@@ -25,11 +25,6 @@ public slots:
 signals:
     void uploadRequested(const QString &localPath, bool isDirectory);
 
-protected slots:
-    void onNewFolder() override;
-    void onRename() override;
-    void onDelete() override;
-
 private slots:
     void onUpload();
 
@@ -45,6 +40,14 @@ protected:
     [[nodiscard]] QString filePath(const QModelIndex &index) const override;
     [[nodiscard]] bool isDirectory(const QModelIndex &index) const override;
     void navigateToDirectory(const QString &path) override;
+
+    void performNewFolder(const QString &folderName) override;
+    void performRename(const QString &path, const QString &newName) override;
+    void performDelete(const QList<SelectedEntry> &entries) override;
+
+    [[nodiscard]] QString deleteVerbPhrase() const override;
+    [[nodiscard]] QString deleteActionLabel() const override;
+    [[nodiscard]] QMessageBox::Icon deleteIcon() const override;
 
 private:
     // Service

@@ -5,6 +5,8 @@
 
 #include "filebrowsercore.h"
 
+#include <QFileInfo>
+
 namespace filebrowser {
 
 DoubleClickAction resolveDoubleClickAction(filetype::FileType type, bool isDirectory)
@@ -39,6 +41,20 @@ filterPlaylistCandidates(const QList<QPair<QString, filetype::FileType>> &items)
         }
     }
     return candidates;
+}
+
+QString buildDeleteConfirmMessage(const QStringList &paths, bool singleIsDirectory,
+                                  const QString &verbPhrase)
+{
+    if (paths.size() == 1) {
+        QString name = QFileInfo(paths.first()).fileName();
+        QString type = singleIsDirectory ? QStringLiteral("folder") : QStringLiteral("file");
+        return QStringLiteral("Are you sure you want to %1 the %2 '%3'?")
+            .arg(verbPhrase, type, name);
+    }
+    return QStringLiteral("Are you sure you want to %1 %2 items?")
+        .arg(verbPhrase)
+        .arg(paths.size());
 }
 
 }  // namespace filebrowser

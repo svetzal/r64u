@@ -434,6 +434,8 @@ endif()
 add_executable(test_remotefilebrowsercontroller
     test_remotefilebrowsercontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowsercontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filebrowsercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
 )
 target_include_directories(test_remotefilebrowsercontroller PRIVATE
     ${CMAKE_SOURCE_DIR}/src
@@ -2968,6 +2970,7 @@ add_executable(test_transferpanel
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
+    ${CMAKE_SOURCE_DIR}/src/core/filebrowsercore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
@@ -3029,6 +3032,7 @@ add_executable(test_remotefilebrowserwidget
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filebrowsercore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
@@ -3071,6 +3075,7 @@ add_executable(test_localfilebrowserwidget
     ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfileoperationsservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filebrowsercore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/localfileproxymodel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/localfilebrowserwidget.cpp

@@ -5,6 +5,7 @@
 
 #include <QList>
 #include <QString>
+#include <QStringList>
 
 namespace filebrowser {
 
@@ -43,6 +44,19 @@ struct PlaylistCandidate
  */
 [[nodiscard]] QList<PlaylistCandidate>
 filterPlaylistCandidates(const QList<QPair<QString, filetype::FileType>> &items);
+
+/**
+ * @brief Builds a user-facing confirmation message for a delete operation.
+ *
+ * Handles single-vs-multi-item branching using the provided verb phrase.
+ *
+ * @param paths List of paths to delete.
+ * @param singleIsDirectory True if the single selection is a directory.
+ * @param verbPhrase Verb phrase describing the action (e.g. "delete").
+ * @return The confirmation message string.
+ */
+[[nodiscard]] QString buildDeleteConfirmMessage(const QStringList &paths, bool singleIsDirectory,
+                                               const QString &verbPhrase);
 
 }  // namespace filebrowser
 
