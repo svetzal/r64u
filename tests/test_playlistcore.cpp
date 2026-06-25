@@ -663,6 +663,102 @@ private slots:
     {
         QCOMPARE(playlist::formatElapsed(0, 0), QString("0:00 / 0:00"));
     }
+
+    // -----------------------------------------------------------------------
+    // toJson / fromJson
+    // -----------------------------------------------------------------------
+
+    void testToJson_fromJson_roundTrip_preservesItems()
+    {
+        playlist::State state = makeState(3, 1);
+        state.items[0].author = "Rob Hubbard";
+        state.items[1].subsong = 2;
+        state.items[2].durationSecs = 42;
+
+        QByteArray bytes = playlist::toJson(state);
+        QVERIFY(!bytes.isEmpty());
+
+        playlist::State restored;
+        restored.defaultDuration = state.defaultDuration;
+        bool ok = playlist::fromJson(bytes, restored);
+
+        QVERIFY(ok);
+        QCOMPARE(restored.items.size(), 3);
+        QCOMPARE(restored.items[0].path, state.items[0].path);
+        QCOMPARE(restored.items[0].title, state.items[0].title);
+        QCOMPARE(restored.items[0].author, QString("Rob Hubbard"));
+        QCOMPARE(restored.items[1].subsong, 2);
+        QCOMPARE(restored.items[2].durationSecs, 42);
+    }
+
+    void testToJson_fromJson_roundTrip_preservesShuffleAndRepeat()
+    {
+        playlist::State state = makeState(2, 0, true, playlist::RepeatMode::All, 240);
+
+        QByteArray bytes = playlist::toJson(state);
+
+        playlist::State restored;
+        restored.defaultDuration = 180;
+        bool ok = playlist::fromJson(bytes, restored);
+
+        QVERIFY(ok);
+        QCOMPARE(restored.shuffle, true);
+        QCOMPARE(restored.repeatMode, playlist::RepeatMode::All);
+        QCOMPARE(restored.defaultDuration, 240);
+    }
+
+    void testToJson_fromJson_roundTrip_preservesDurations()
+    {
+        playlist::State state = makeState(2);
+        state.items[0].durationSecs = 95;
+        state.items[1].durationSecs = 210;
+
+        QByteArray bytes = playlist::toJson(state);
+
+        playlist::State restored;
+        restored.defaultDuration = state.defaultDuration;
+        bool ok = playlist::fromJson(bytes, restored);
+
+        QVERIFY(ok);
+        QCOMPARE(restored.items[0].durationSecs, 95);
+        QCOMPARE(restored.items[1].durationSecs, 210);
+    }
+
+    void testFromJson_malformedInput_returnsFalse()
+    {
+        playlist::State state;
+        bool ok = playlist::fromJson(QByteArray("not valid json {{{"), state);
+        QVERIFY(!ok);
+    }
+
+    void testFromJson_emptyInput_returnsFalse()
+    {
+        playlist::State state;
+        bool ok = playlist::fromJson(QByteArray(), state);
+        QVERIFY(!ok);
+    }
+
+    void testFromJson_nonObjectJson_returnsFalse()
+    {
+        playlist::State state;
+        bool ok = playlist::fromJson(QByteArray("[1, 2, 3]"), state);
+        QVERIFY(!ok);
+    }
+
+    void testFromJson_skipsItemsWithEmptyPath()
+    {
+        // Build JSON with one valid and one empty-path item
+        playlist::State state = makeState(1);
+        state.items[0].path = "";  // Will be skipped by deserialize
+        QByteArray bytes = playlist::toJson(state);
+
+        playlist::State restored;
+        restored.defaultDuration = 180;
+        bool ok = playlist::fromJson(bytes, restored);
+
+        QVERIFY(ok);
+        QCOMPARE(restored.items.size(), 0);
+    }
 };
 
 QTEST_MAIN(TestPlaylistCore)

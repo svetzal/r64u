@@ -7,6 +7,7 @@
 
 #include <QFileInfo>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QRandomGenerator>
 
 #include <algorithm>
@@ -268,6 +269,37 @@ QString formatDuration(int seconds)
 QString formatElapsed(int elapsedSecs, int totalSecs)
 {
     return QString("%1 / %2").arg(formatDuration(elapsedSecs), formatDuration(totalSecs));
+}
+
+QByteArray toJson(const State &state)
+{
+    QJsonObject root = serialize(state.items);
+    root["shuffle"] = state.shuffle;
+    root["repeatMode"] = static_cast<int>(state.repeatMode);
+    root["defaultDuration"] = state.defaultDuration;
+    return QJsonDocument(root).toJson();
+}
+
+bool fromJson(const QByteArray &data, State &outState)
+{
+    QJsonParseError error;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &error);
+    if (error.error != QJsonParseError::NoError) {
+        return false;
+    }
+    if (!doc.isObject()) {
+        return false;
+    }
+
+    QJsonObject root = doc.object();
+    State result = outState;
+    result.items = deserialize(root, result.defaultDuration);
+    result.shuffle = root["shuffle"].toBool(result.shuffle);
+    result.repeatMode =
+        static_cast<RepeatMode>(root["repeatMode"].toInt(static_cast<int>(result.repeatMode)));
+    result.defaultDuration = root["defaultDuration"].toInt(result.defaultDuration);
+    outState = result;
+    return true;
 }
 
 }  // namespace playlist

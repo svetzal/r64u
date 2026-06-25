@@ -15,8 +15,6 @@
 
 #include <QFile>
 #include <QFileInfo>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QRandomGenerator>
 #include <QSettings>
 
@@ -301,15 +299,13 @@ void PlaylistService::updateDurationFromData(const QString &path, const QByteArr
 
 bool PlaylistService::savePlaylist(const QString &filePath) const
 {
-    QJsonObject json = playlist::serialize(state_.items);
-    QJsonDocument doc(json);
     QFile file(filePath);
     if (!file.open(QIODevice::WriteOnly)) {
         qCWarning(LogPlaylist) << "Failed to open playlist file for writing:" << filePath;
         return false;
     }
 
-    file.write(doc.toJson());
+    file.write(playlist::toJson(state_));
     return true;
 }
 
@@ -321,24 +317,16 @@ bool PlaylistService::loadPlaylist(const QString &filePath)
         return false;
     }
 
-    QJsonParseError error;
-    QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &error);
-    if (error.error != QJsonParseError::NoError) {
-        qCWarning(LogPlaylist) << "Failed to parse playlist JSON from" << filePath << ":"
-                               << error.errorString();
-        return false;
-    }
-
-    if (!doc.isObject()) {
-        qCWarning(LogPlaylist) << "Playlist file does not contain a JSON object:" << filePath;
-        return false;
-    }
-
     // Stop current playback before loading
     stop();
-    state_ = playlist::clear(state_);
+    playlist::State clearedState = playlist::clear(state_);
 
-    state_.items = playlist::deserialize(doc.object(), state_.defaultDuration);
+    if (!playlist::fromJson(file.readAll(), clearedState)) {
+        qCWarning(LogPlaylist) << "Failed to parse playlist JSON from" << filePath;
+        return false;
+    }
+
+    state_ = clearedState;
 
     if (state_.shuffle && !state_.items.isEmpty()) {
         state_.shuffleOrder = playlist::generateShuffleOrder(

@@ -1,6 +1,7 @@
 #ifndef PLAYLISTCORE_H
 #define PLAYLISTCORE_H
 
+#include <QByteArray>
 #include <QJsonObject>
 #include <QList>
 #include <QString>
@@ -192,6 +193,30 @@ struct DurationUpdateResult
 [[nodiscard]] DurationUpdateResult updateItemDurations(const QList<PlaylistItem> &items,
                                                        const QString &path,
                                                        const QList<int> &subsongDurations);
+
+// ---------------------------------------------------------------------------
+// Byte-level JSON I/O helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief Serializes a playlist State (items, shuffle, repeat) to a JSON byte array.
+ * @param state The playlist state to serialize.
+ * @return UTF-8 encoded JSON document bytes.
+ */
+[[nodiscard]] QByteArray toJson(const State &state);
+
+/**
+ * @brief Deserializes a playlist State from a JSON byte array.
+ *
+ * On success the function populates @p outState and returns true.
+ * On any parse error (invalid JSON, wrong structure) it returns false and
+ * leaves @p outState unchanged.
+ *
+ * @param data UTF-8 encoded JSON bytes as produced by toJson().
+ * @param outState Output parameter that receives the deserialized state.
+ * @return true if deserialization succeeded, false otherwise.
+ */
+[[nodiscard]] bool fromJson(const QByteArray &data, State &outState);
 
 // ---------------------------------------------------------------------------
 // Time formatting
