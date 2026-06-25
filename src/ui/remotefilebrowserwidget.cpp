@@ -13,7 +13,6 @@
 #include <QFileInfo>
 #include <QHeaderView>
 #include <QMenu>
-#include <QMessageBox>
 #include <QShowEvent>
 #include <QToolBar>
 #include <QTreeView>

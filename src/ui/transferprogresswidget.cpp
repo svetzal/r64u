@@ -4,7 +4,6 @@
 #include "services/transferservice.h"
 
 #include <QHBoxLayout>
-#include <QMessageBox>
 
 TransferProgressWidget::TransferProgressWidget(QWidget *parent) : QWidget(parent)
 {
