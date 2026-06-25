@@ -16,8 +16,8 @@
 #include "services/servicefactory.h"
 #include "services/songlengthsdatabaseservice.h"
 #include "services/statusmessageservice.h"
-#include "services/systemcommandcontroller.h"
 #include "services/transferservice.h"
+#include "ui/systemcommandcontroller.h"
 
 #include <QtTest>
 

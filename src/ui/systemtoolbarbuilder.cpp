@@ -2,8 +2,7 @@
 
 #include "connectionstatuswidget.h"
 #include "connectionuicontroller.h"
-
-#include "services/systemcommandcontroller.h"
+#include "systemcommandcontroller.h"
 
 #include <QAction>
 #include <QMainWindow>

@@ -1,6 +1,6 @@
 #include "mocks/mockrestclient.h"
 #include "services/statusmessageservice.h"
-#include "services/systemcommandcontroller.h"
+#include "ui/systemcommandcontroller.h"
 
 #include <QtTest>
 

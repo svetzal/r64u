@@ -1,6 +1,6 @@
 #include "menubarbuilder.h"
 
-#include "../services/systemcommandcontroller.h"
+#include "systemcommandcontroller.h"
 
 #include <QKeySequence>
 #include <QMainWindow>

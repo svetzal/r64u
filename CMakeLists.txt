@@ -153,7 +153,7 @@ set(SOURCES
     src/services/servicefactory.cpp
     src/services/configurationservice.cpp
     src/services/deviceactionservice.cpp
-    src/services/systemcommandcontroller.cpp
+    src/ui/systemcommandcontroller.cpp
     src/services/streamingdiagnosticsservice.cpp
     src/ui/streamingdiagnosticswidget.cpp
     src/models/remotefilemodel.cpp
@@ -291,7 +291,7 @@ set(HEADERS
     src/services/configurationservice.h
     src/services/deviceactionservice.h
     src/services/metadataservicebundle.h
-    src/services/systemcommandcontroller.h
+    src/ui/systemcommandcontroller.h
     src/services/streamingdiagnosticsservice.h
     src/services/localfileoperationsservice.h
     src/ui/streamingdiagnosticswidget.h

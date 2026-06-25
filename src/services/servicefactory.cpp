@@ -17,8 +17,8 @@
 #include "services/remotefileoperationsservice.h"
 #include "services/songlengthsdatabaseservice.h"
 #include "services/statusmessageservice.h"
-#include "services/systemcommandcontroller.h"
 #include "services/transferservice.h"
+#include "ui/systemcommandcontroller.h"
 
 ServiceFactory::ServiceFactory(QObject *parent) : QObject(parent)
 {

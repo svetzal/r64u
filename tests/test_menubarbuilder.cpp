@@ -9,8 +9,8 @@
 
 #include "mocks/mockrestclient.h"
 #include "services/statusmessageservice.h"
-#include "services/systemcommandcontroller.h"
 #include "ui/menubarbuilder.h"
+#include "ui/systemcommandcontroller.h"
 
 #include <QMainWindow>
 #include <QMenuBar>

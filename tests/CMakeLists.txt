@@ -2119,7 +2119,7 @@ add_executable(test_systemcommandcontroller
     ${IERROREMITTER_SOURCES}
     mocks/mockrestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/systemcommandcontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/systemcommandcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
 )
 target_include_directories(test_systemcommandcontroller PRIVATE
@@ -2488,6 +2488,7 @@ add_executable(test_databasedownloadcontroller
 )
 
 target_include_directories(test_databasedownloadcontroller PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
 )
 
@@ -2506,6 +2507,38 @@ add_test(NAME DatabaseDownloadControllerTest COMMAND test_databasedownloadcontro
 if(BUILD_COVERAGE)
     add_coverage_target(databasedownloadcontroller test_databasedownloadcontroller)
     add_dependencies(coverage coverage_databasedownloadcontroller)
+endif()
+
+# TransferConfirmationDialogs tests - headless; verifies index→enum mapping via MockMessagePresenter
+add_executable(test_transferconfirmationdialogs
+    test_transferconfirmationdialogs.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/transferconfirmationdialogs.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/transfercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/transferconfirmcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/transferlistingcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/transferdecisioncore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/transferftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+)
+
+target_include_directories(test_transferconfirmationdialogs PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_transferconfirmationdialogs PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+add_test(NAME TransferConfirmationDialogsTest COMMAND test_transferconfirmationdialogs)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(transferconfirmationdialogs test_transferconfirmationdialogs)
+    add_dependencies(coverage coverage_transferconfirmationdialogs)
 endif()
 
 # PanelCoordinator tests - verifies IPanel signal routing, mode switching, and coordinator logic
@@ -2766,7 +2799,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/services/configurationservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceactionservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/remotefileoperationsservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/systemcommandcontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/systemcommandcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceconnectionmanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/irestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
@@ -3695,7 +3728,7 @@ add_executable(test_menubarbuilder
     ${CMAKE_SOURCE_DIR}/src/services/c64urestclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/restresponsecore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/systemcommandcontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/systemcommandcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/menubarbuilder.cpp
 )
 
@@ -3739,7 +3772,7 @@ add_executable(test_systemtoolbarbuilder
     ${CMAKE_SOURCE_DIR}/src/ftp/ftptransferstate.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/systemcommandcontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/systemcommandcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/connectionstatuswidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/connectionuicontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/systemtoolbarbuilder.cpp
@@ -3874,7 +3907,7 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/services/servicefactory.cpp
     ${CMAKE_SOURCE_DIR}/src/services/configurationservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/deviceactionservice.cpp
-    ${CMAKE_SOURCE_DIR}/src/services/systemcommandcontroller.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/systemcommandcontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/streamingdiagnosticswidget.cpp
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
