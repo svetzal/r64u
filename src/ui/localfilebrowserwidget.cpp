@@ -245,7 +245,7 @@ QString LocalFileBrowserWidget::deleteActionLabel() const
     return tr("Move to Trash");
 }
 
-QMessageBox::Icon LocalFileBrowserWidget::deleteIcon() const
+IMessagePresenter::MessageIcon LocalFileBrowserWidget::deleteIcon() const
 {
-    return QMessageBox::Question;
+    return IMessagePresenter::MessageIcon::Question;
 }

@@ -7,8 +7,6 @@
 #include "services/errorhandler.h"
 #include "utils/logging.h"
 
-#include <QMessageBox>
-#include <QPushButton>
 #include <QVBoxLayout>
 
 ConfigPanel::ConfigPanel(ConfigurationService *configService, ErrorHandler *errorHandler,
@@ -176,6 +174,11 @@ void ConfigPanel::onLoadFromFlash()
     configService_->loadConfigFromFlash();
 }
 
+void ConfigPanel::setMessagePresenter(IMessagePresenter *presenter)
+{
+    presenter_ = presenter ? presenter : &defaultPresenter_;
+}
+
 void ConfigPanel::onResetToDefaults()
 {
     if (!configService_ || !configService_->canPerformOperations()) {
@@ -184,18 +187,18 @@ void ConfigPanel::onResetToDefaults()
         return;
     }
 
-    // Show confirmation dialog
-    QMessageBox msgBox(this);
-    msgBox.setWindowTitle(tr("Reset to Defaults"));
-    msgBox.setText(tr("This will reset all configuration settings to factory defaults.\n\n"
-                      "Are you sure you want to continue?"));
-    msgBox.setIcon(QMessageBox::Warning);
-    QPushButton *resetButton =
-        msgBox.addButton(tr("Reset to Defaults"), QMessageBox::DestructiveRole);
-    msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
-    msgBox.exec();
+    const QList<IMessagePresenter::DialogButton> buttons = {
+        {tr("Reset to Defaults"), IMessagePresenter::ButtonRole::Destructive},
+        {tr("Cancel"), IMessagePresenter::ButtonRole::Reject},
+    };
 
-    if (msgBox.clickedButton() == resetButton) {
+    const int result =
+        presenter_->confirm(this, tr("Reset to Defaults"),
+                            tr("This will reset all configuration settings to factory defaults.\n\n"
+                               "Are you sure you want to continue?"),
+                            buttons, IMessagePresenter::MessageIcon::Warning, 0);
+
+    if (result == 0) {
         errorHandler_->info(ErrorCategory::FileOperation,
                             tr("Resetting configuration to defaults..."));
         configService_->resetConfigToDefaults();

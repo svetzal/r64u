@@ -1,7 +1,8 @@
 #ifndef TRANSFERCONFIRMATIONDIALOGS_H
 #define TRANSFERCONFIRMATIONDIALOGS_H
 
-#include "models/transferqueue.h"
+#include "core/transfertypes.h"
+#include "ui/imessagepresenter.h"
 
 #include <QStringList>
 #include <QWidget>
@@ -9,8 +10,10 @@
 class TransferConfirmationDialogs
 {
 public:
-    static OverwriteResponse askOverwrite(QWidget *parent, const QString &fileName);
-    static FolderExistsResponse askFolderExists(QWidget *parent, const QStringList &folderNames);
+    static transfer::OverwriteResponse askOverwrite(IMessagePresenter &presenter, QWidget *parent,
+                                                    const QString &fileName);
+    static transfer::FolderExistsResponse
+    askFolderExists(IMessagePresenter &presenter, QWidget *parent, const QStringList &folderNames);
 };
 
 #endif  // TRANSFERCONFIRMATIONDIALOGS_H

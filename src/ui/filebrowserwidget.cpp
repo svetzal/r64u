@@ -14,7 +14,6 @@
 #include <QLabel>
 #include <QMenu>
 #include <QMessageBox>
-#include <QPushButton>
 #include <QSet>
 #include <QToolBar>
 #include <QTreeView>
@@ -132,17 +131,21 @@ QStringList FileBrowserWidget::selectedPaths() const
     return paths;
 }
 
-bool FileBrowserWidget::confirmDestructiveAction(const QString &title, const QString &message,
-                                                 const QString &acceptText, QMessageBox::Icon icon)
+void FileBrowserWidget::setMessagePresenter(IMessagePresenter *presenter)
 {
-    QMessageBox msgBox(this);
-    msgBox.setWindowTitle(title);
-    msgBox.setText(message);
-    msgBox.setIcon(icon);
-    QPushButton *acceptButton = msgBox.addButton(acceptText, QMessageBox::DestructiveRole);
-    msgBox.addButton(tr("Cancel"), QMessageBox::RejectRole);
-    msgBox.exec();
-    return msgBox.clickedButton() == acceptButton;
+    presenter_ = presenter ? presenter : &defaultPresenter_;
+}
+
+bool FileBrowserWidget::confirmDestructiveAction(const QString &title, const QString &message,
+                                                 const QString &acceptText,
+                                                 IMessagePresenter::MessageIcon icon)
+{
+    const QList<IMessagePresenter::DialogButton> buttons = {
+        {acceptText, IMessagePresenter::ButtonRole::Destructive},
+        {tr("Cancel"), IMessagePresenter::ButtonRole::Reject},
+    };
+    const int result = presenter_->confirm(this, title, message, buttons, icon, 0);
+    return result == 0;
 }
 
 QString FileBrowserWidget::promptForNewName(const QString &title, const QString &oldName) const
@@ -227,9 +230,9 @@ QString FileBrowserWidget::deleteActionLabel() const
     return tr("Delete");
 }
 
-QMessageBox::Icon FileBrowserWidget::deleteIcon() const
+IMessagePresenter::MessageIcon FileBrowserWidget::deleteIcon() const
 {
-    return QMessageBox::Warning;
+    return IMessagePresenter::MessageIcon::Warning;
 }
 
 void FileBrowserWidget::onNewFolder()

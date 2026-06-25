@@ -1,34 +1,7 @@
-#include "../src/ui/databasedownloadcontroller.h"
-#include "../src/ui/imessagepresenter.h"
+#include "mocks/mockmessagepresenter.h"
+#include "ui/databasedownloadcontroller.h"
 
 #include <QtTest>
-
-// ============================================================
-// Mock IMessagePresenter that records calls
-// ============================================================
-
-struct MessageCall
-{
-    QString kind;  ///< "info" or "warning"
-    QString title;
-    QString message;
-};
-
-class MockMessagePresenter : public IMessagePresenter
-{
-public:
-    void showInfo(QWidget * /*parent*/, const QString &title, const QString &message) override
-    {
-        calls.push_back({"info", title, message});
-    }
-
-    void showWarning(QWidget * /*parent*/, const QString &title, const QString &message) override
-    {
-        calls.push_back({"warning", title, message});
-    }
-
-    QVector<MessageCall> calls;
-};
 
 // ============================================================
 // Test fixture

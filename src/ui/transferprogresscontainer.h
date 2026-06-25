@@ -2,6 +2,8 @@
 #define TRANSFERPROGRESSCONTAINER_H
 
 #include "models/transferqueue.h"
+#include "ui/imessagepresenter.h"
+#include "ui/qmessageboxpresenter.h"
 
 #include <QMap>
 #include <QTimer>
@@ -35,6 +37,16 @@ public:
      * @param service The transfer service to monitor.
      */
     void setTransferService(TransferService *service);
+
+    /**
+     * @brief Replaces the message presenter used for confirmation dialogs.
+     *
+     * The default presenter shows real QMessageBox dialogs. Inject a test
+     * double to verify confirmation behaviour without blocking the UI.
+     *
+     * @param presenter Non-owning pointer; must outlive this widget.
+     */
+    void setMessagePresenter(IMessagePresenter *presenter);
 
 signals:
     /**
@@ -82,6 +94,10 @@ private:
     // Debounce timer for queueChanged signals to prevent UI flood
     QTimer *queueChangedDebounceTimer_ = nullptr;
     static constexpr int kQueueChangedDebounceMs = 50;  // 50ms debounce
+
+    // Message presenter — owned default, swappable for tests (non-owning pointer).
+    QMessageBoxPresenter defaultPresenter_;
+    IMessagePresenter *presenter_ = &defaultPresenter_;
 };
 
 #endif  // TRANSFERPROGRESSCONTAINER_H

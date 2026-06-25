@@ -1,47 +1,41 @@
 #include "transferconfirmationdialogs.h"
 
-#include <QMessageBox>
-#include <QPushButton>
-
-OverwriteResponse TransferConfirmationDialogs::askOverwrite(QWidget *parent,
-                                                            const QString &fileName)
+transfer::OverwriteResponse TransferConfirmationDialogs::askOverwrite(IMessagePresenter &presenter,
+                                                                      QWidget *parent,
+                                                                      const QString &fileName)
 {
-    QMessageBox msgBox(parent);
-    msgBox.setWindowTitle(QObject::tr("File Already Exists"));
-    msgBox.setText(QObject::tr("The file '%1' already exists.\n\n"
-                               "Do you want to overwrite it?")
-                       .arg(fileName));
-    msgBox.setIcon(QMessageBox::Question);
+    const QList<IMessagePresenter::DialogButton> buttons = {
+        {QObject::tr("Overwrite"), IMessagePresenter::ButtonRole::Accept},
+        {QObject::tr("Overwrite All"), IMessagePresenter::ButtonRole::Accept},
+        {QObject::tr("Skip"), IMessagePresenter::ButtonRole::Reject},
+        {QObject::tr("Cancel"), IMessagePresenter::ButtonRole::Reject},
+    };
 
-    QPushButton *overwriteButton =
-        msgBox.addButton(QObject::tr("Overwrite"), QMessageBox::AcceptRole);
-    QPushButton *overwriteAllButton =
-        msgBox.addButton(QObject::tr("Overwrite All"), QMessageBox::AcceptRole);
-    QPushButton *skipButton = msgBox.addButton(QObject::tr("Skip"), QMessageBox::RejectRole);
-    msgBox.addButton(QObject::tr("Cancel"), QMessageBox::RejectRole);
+    const QString title = QObject::tr("File Already Exists");
+    const QString message = QObject::tr("The file '%1' already exists.\n\n"
+                                        "Do you want to overwrite it?")
+                                .arg(fileName);
 
-    msgBox.setDefaultButton(skipButton);
-    msgBox.exec();
+    // Default to "Skip" (index 2)
+    const int result = presenter.confirm(parent, title, message, buttons,
+                                         IMessagePresenter::MessageIcon::Question, 2);
 
-    QAbstractButton *clicked = msgBox.clickedButton();
-
-    if (clicked == overwriteButton) {
-        return OverwriteResponse::Overwrite;
+    switch (result) {
+    case 0:
+        return transfer::OverwriteResponse::Overwrite;
+    case 1:
+        return transfer::OverwriteResponse::OverwriteAll;
+    case 2:
+        return transfer::OverwriteResponse::Skip;
+    default:
+        return transfer::OverwriteResponse::Cancel;
     }
-    if (clicked == overwriteAllButton) {
-        return OverwriteResponse::OverwriteAll;
-    }
-    if (clicked == skipButton) {
-        return OverwriteResponse::Skip;
-    }
-    return OverwriteResponse::Cancel;
 }
 
-FolderExistsResponse TransferConfirmationDialogs::askFolderExists(QWidget *parent,
-                                                                  const QStringList &folderNames)
+transfer::FolderExistsResponse
+TransferConfirmationDialogs::askFolderExists(IMessagePresenter &presenter, QWidget *parent,
+                                             const QStringList &folderNames)
 {
-    QMessageBox msgBox(parent);
-
     QString title;
     QString message;
 
@@ -59,25 +53,22 @@ FolderExistsResponse TransferConfirmationDialogs::askFolderExists(QWidget *paren
                       .arg(folderNames.join("\n"));
     }
 
-    msgBox.setWindowTitle(title);
-    msgBox.setText(message);
-    msgBox.setIcon(QMessageBox::Question);
+    const QList<IMessagePresenter::DialogButton> buttons = {
+        {QObject::tr("Merge"), IMessagePresenter::ButtonRole::Accept},
+        {QObject::tr("Replace"), IMessagePresenter::ButtonRole::Destructive},
+        {QObject::tr("Cancel"), IMessagePresenter::ButtonRole::Reject},
+    };
 
-    QPushButton *mergeButton = msgBox.addButton(QObject::tr("Merge"), QMessageBox::AcceptRole);
-    QPushButton *replaceButton =
-        msgBox.addButton(QObject::tr("Replace"), QMessageBox::DestructiveRole);
-    msgBox.addButton(QObject::tr("Cancel"), QMessageBox::RejectRole);
+    // Default to "Merge" (index 0)
+    const int result = presenter.confirm(parent, title, message, buttons,
+                                         IMessagePresenter::MessageIcon::Question, 0);
 
-    msgBox.setDefaultButton(mergeButton);
-    msgBox.exec();
-
-    QAbstractButton *clicked = msgBox.clickedButton();
-
-    if (clicked == mergeButton) {
-        return FolderExistsResponse::Merge;
+    switch (result) {
+    case 0:
+        return transfer::FolderExistsResponse::Merge;
+    case 1:
+        return transfer::FolderExistsResponse::Replace;
+    default:
+        return transfer::FolderExistsResponse::Cancel;
     }
-    if (clicked == replaceButton) {
-        return FolderExistsResponse::Replace;
-    }
-    return FolderExistsResponse::Cancel;
 }

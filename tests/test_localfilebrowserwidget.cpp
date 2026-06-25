@@ -10,13 +10,34 @@
  * - setCurrentDirectory() updates currentDirectory()
  * - setUploadEnabled() does not crash
  * - Construction does not crash
+ * - confirmDestructiveAction routes through the injected IMessagePresenter
  */
 
+#include "mocks/mockmessagepresenter.h"
 #include "services/errorhandler.h"
 #include "ui/localfilebrowserwidget.h"
 
 #include <QStandardPaths>
 #include <QtTest>
+
+/**
+ * @brief Thin test subclass that exposes the protected confirmDestructiveAction method.
+ */
+class ExposedLocalFileBrowserWidget : public LocalFileBrowserWidget
+{
+public:
+    explicit ExposedLocalFileBrowserWidget(ErrorHandler *errorHandler, QWidget *parent = nullptr)
+        : LocalFileBrowserWidget(errorHandler, parent)
+    {
+    }
+
+    bool callConfirmDestructiveAction(const QString &title, const QString &message,
+                                      const QString &acceptText,
+                                      IMessagePresenter::MessageIcon icon)
+    {
+        return confirmDestructiveAction(title, message, acceptText, icon);
+    }
+};
 
 class TestLocalFileBrowserWidget : public QObject
 {
@@ -118,6 +139,64 @@ private slots:
         LocalFileBrowserWidget widget(makeErrorHandler());
         QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
         QCOMPARE(widget.currentDirectory(), homePath);
+    }
+
+    // =========================================================================
+    // confirmDestructiveAction — routes through injected IMessagePresenter
+    // =========================================================================
+
+    void testConfirmDestructiveAction_WhenAccepted_ReturnsTrue()
+    {
+        ExposedLocalFileBrowserWidget widget(makeErrorHandler());
+        MockMessagePresenter mock;
+        mock.nextConfirmResult = 0;  // index 0 = accept button
+        widget.setMessagePresenter(&mock);
+
+        const bool result = widget.callConfirmDestructiveAction(
+            "Delete", "Are you sure?", "Delete", IMessagePresenter::MessageIcon::Warning);
+
+        QVERIFY(result);
+        QCOMPARE(mock.confirmCalls.size(), 1);
+    }
+
+    void testConfirmDestructiveAction_WhenCancelled_ReturnsFalse()
+    {
+        ExposedLocalFileBrowserWidget widget(makeErrorHandler());
+        MockMessagePresenter mock;
+        mock.nextConfirmResult = 1;  // index 1 = Cancel button
+        widget.setMessagePresenter(&mock);
+
+        const bool result = widget.callConfirmDestructiveAction(
+            "Delete", "Are you sure?", "Delete", IMessagePresenter::MessageIcon::Warning);
+
+        QVERIFY(!result);
+    }
+
+    void testConfirmDestructiveAction_WhenDismissed_ReturnsFalse()
+    {
+        ExposedLocalFileBrowserWidget widget(makeErrorHandler());
+        MockMessagePresenter mock;
+        mock.nextConfirmResult = -1;  // dialog dismissed without button click
+        widget.setMessagePresenter(&mock);
+
+        const bool result = widget.callConfirmDestructiveAction(
+            "Delete", "Are you sure?", "Delete", IMessagePresenter::MessageIcon::Warning);
+
+        QVERIFY(!result);
+    }
+
+    void testConfirmDestructiveAction_PassesTitleAndMessage()
+    {
+        ExposedLocalFileBrowserWidget widget(makeErrorHandler());
+        MockMessagePresenter mock;
+        mock.nextConfirmResult = 0;
+        widget.setMessagePresenter(&mock);
+
+        widget.callConfirmDestructiveAction("My Title", "My Message", "OK",
+                                            IMessagePresenter::MessageIcon::Warning);
+
+        QCOMPARE(mock.confirmCalls[0].title, QString("My Title"));
+        QCOMPARE(mock.confirmCalls[0].message, QString("My Message"));
     }
 };
 

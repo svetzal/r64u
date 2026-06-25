@@ -348,11 +348,17 @@ void TransferProgressContainer::updateAllBatchWidgets()
     }
 }
 
+void TransferProgressContainer::setMessagePresenter(IMessagePresenter *presenter)
+{
+    presenter_ = presenter ? presenter : &defaultPresenter_;
+}
+
 void TransferProgressContainer::onOverwriteConfirmationNeeded(const QString &fileName,
                                                               OperationType type)
 {
     Q_UNUSED(type)
-    OverwriteResponse response = TransferConfirmationDialogs::askOverwrite(window(), fileName);
+    OverwriteResponse response =
+        TransferConfirmationDialogs::askOverwrite(*presenter_, window(), fileName);
     if (transferService_) {
         transferService_->respondToOverwrite(response);
     }
@@ -361,7 +367,7 @@ void TransferProgressContainer::onOverwriteConfirmationNeeded(const QString &fil
 void TransferProgressContainer::onFolderExistsConfirmationNeeded(const QStringList &folderNames)
 {
     FolderExistsResponse response =
-        TransferConfirmationDialogs::askFolderExists(window(), folderNames);
+        TransferConfirmationDialogs::askFolderExists(*presenter_, window(), folderNames);
     if (transferService_) {
         transferService_->respondToFolderExists(response);
     }

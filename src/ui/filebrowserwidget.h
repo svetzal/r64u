@@ -1,8 +1,10 @@
 #ifndef FILEBROWSERWIDGET_H
 #define FILEBROWSERWIDGET_H
 
+#include "ui/imessagepresenter.h"
+#include "ui/qmessageboxpresenter.h"
+
 #include <QList>
-#include <QMessageBox>
 #include <QString>
 #include <QWidget>
 
@@ -46,6 +48,17 @@ public:
      * @return The current directory path.
      */
     [[nodiscard]] QString currentDirectory() const { return currentDirectory_; }
+
+    /**
+     * @brief Replaces the message presenter used for destructive-action confirmations.
+     *
+     * The default presenter shows real QMessageBox dialogs. Inject a test
+     * double to verify confirmation behaviour without blocking the UI.
+     *
+     * @param presenter Non-owning pointer; must outlive this widget. Pass nullptr to
+     *                  restore the default QMessageBoxPresenter.
+     */
+    void setMessagePresenter(IMessagePresenter *presenter);
 
     /**
      * @brief Returns the path of the selected item.
@@ -192,7 +205,7 @@ protected:
      * @return true if the user clicked the accept button, false otherwise.
      */
     bool confirmDestructiveAction(const QString &title, const QString &message,
-                                  const QString &acceptText, QMessageBox::Icon icon);
+                                  const QString &acceptText, IMessagePresenter::MessageIcon icon);
 
     /**
      * @brief Shows an input dialog for a new name and validates it.
@@ -288,15 +301,19 @@ protected:
 
     /**
      * @brief Returns the icon to show in the delete confirmation dialog.
-     * Default: QMessageBox::Warning. Local overrides to QMessageBox::Question.
+     * Default: MessageIcon::Warning. LocalFileBrowserWidget overrides to MessageIcon::Question.
      */
-    [[nodiscard]] virtual QMessageBox::Icon deleteIcon() const;
+    [[nodiscard]] virtual IMessagePresenter::MessageIcon deleteIcon() const;
 
     // State
     QString currentDirectory_;
 
     // Error handler (not owned)
     ErrorHandler *errorHandler_;
+
+    // Message presenter — owned default, swappable for tests (non-owning pointer).
+    QMessageBoxPresenter defaultPresenter_;
+    IMessagePresenter *presenter_ = &defaultPresenter_;
 
     // UI widgets (protected so subclasses can access)
     QTreeView *treeView_ = nullptr;

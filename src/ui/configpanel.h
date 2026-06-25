@@ -2,7 +2,9 @@
 #define CONFIGPANEL_H
 
 #include "services/devicetypes.h"
+#include "ui/imessagepresenter.h"
 #include "ui/ipanel.h"
+#include "ui/qmessageboxpresenter.h"
 
 #include <QLabel>
 #include <QListWidget>
@@ -27,6 +29,17 @@ public:
 
     // Public API for MainWindow coordination
     void refreshIfEmpty() override;
+
+    /**
+     * @brief Replaces the message presenter used for confirmation dialogs.
+     *
+     * The default presenter shows real QMessageBox dialogs. Inject a test
+     * double to verify confirmation behaviour without blocking the UI.
+     *
+     * @param presenter Non-owning pointer; must outlive this widget. Pass nullptr to
+     *                  restore the default QMessageBoxPresenter.
+     */
+    void setMessagePresenter(IMessagePresenter *presenter);
 
 signals:
     void statusMessage(const QString &message, int timeout = 0);
@@ -55,6 +68,10 @@ private:
     // Dependencies (not owned)
     ConfigurationService *configService_ = nullptr;
     ErrorHandler *errorHandler_;
+
+    // Message presenter — owned default, swappable for tests (non-owning pointer).
+    QMessageBoxPresenter defaultPresenter_;
+    IMessagePresenter *presenter_ = &defaultPresenter_;
 
     // Owned model
     ConfigurationModel *configModel_ = nullptr;

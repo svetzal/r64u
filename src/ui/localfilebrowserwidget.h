@@ -47,7 +47,7 @@ protected:
 
     [[nodiscard]] QString deleteVerbPhrase() const override;
     [[nodiscard]] QString deleteActionLabel() const override;
-    [[nodiscard]] QMessageBox::Icon deleteIcon() const override;
+    [[nodiscard]] IMessagePresenter::MessageIcon deleteIcon() const override;
 
 private:
     // Service

@@ -1,4 +1,5 @@
 #include "mocks/mockftpclient.h"
+#include "mocks/mockmessagepresenter.h"
 #include "mocks/mockrestclient.h"
 #include "services/configurationservice.h"
 #include "services/deviceconnectionmanager.h"
@@ -282,6 +283,75 @@ private slots:
             }
         }
         QVERIFY2(found, "ConfigPanel must declare statusMessage(const QString &, int) signal");
+    }
+
+    // ==========================================================================
+    // onResetToDefaults — confirm dialog controls whether reset is called
+    // ==========================================================================
+
+    void testOnResetToDefaults_WhenConfirmed_CallsResetConfigToDefaults()
+    {
+        TrackingRestClient *restClient = nullptr;
+        auto *service = makeConnectedService(&restClient);
+        ConfigPanel panel(service, makeErrorHandler());
+
+        MockMessagePresenter mock;
+        mock.nextConfirmResult = 0;  // index 0 = "Reset to Defaults" button
+        panel.setMessagePresenter(&mock);
+
+        QMetaObject::invokeMethod(&panel, "onResetToDefaults", Qt::DirectConnection);
+
+        QCOMPARE(restClient->resetConfigToDefaultsCalls, 1);
+        QCOMPARE(mock.confirmCalls.size(), 1);
+    }
+
+    void testOnResetToDefaults_WhenCancelled_DoesNotCallReset()
+    {
+        TrackingRestClient *restClient = nullptr;
+        auto *service = makeConnectedService(&restClient);
+        ConfigPanel panel(service, makeErrorHandler());
+
+        MockMessagePresenter mock;
+        mock.nextConfirmResult = 1;  // index 1 = "Cancel" button
+        panel.setMessagePresenter(&mock);
+
+        QMetaObject::invokeMethod(&panel, "onResetToDefaults", Qt::DirectConnection);
+
+        QCOMPARE(restClient->resetConfigToDefaultsCalls, 0);
+        QCOMPARE(mock.confirmCalls.size(), 1);
+    }
+
+    void testOnResetToDefaults_WhenDismissed_DoesNotCallReset()
+    {
+        TrackingRestClient *restClient = nullptr;
+        auto *service = makeConnectedService(&restClient);
+        ConfigPanel panel(service, makeErrorHandler());
+
+        MockMessagePresenter mock;
+        mock.nextConfirmResult = -1;  // -1 = dialog dismissed without button click
+        panel.setMessagePresenter(&mock);
+
+        QMetaObject::invokeMethod(&panel, "onResetToDefaults", Qt::DirectConnection);
+
+        QCOMPARE(restClient->resetConfigToDefaultsCalls, 0);
+    }
+
+    void testOnResetToDefaults_WhenDisconnected_DoesNotShowDialog()
+    {
+        auto *restClient = new TrackingRestClient(this);
+        auto *ftpClient = new MockFtpClient(this);
+        auto *connection = new DeviceConnectionManager(restClient, ftpClient, this);
+        // Do NOT call connectToDevice() — stays Disconnected
+        auto *service = new ConfigurationService(connection, this);
+        ConfigPanel panel(service, makeErrorHandler());
+
+        MockMessagePresenter mock;
+        panel.setMessagePresenter(&mock);
+
+        QMetaObject::invokeMethod(&panel, "onResetToDefaults", Qt::DirectConnection);
+
+        QCOMPARE(mock.confirmCalls.size(), 0);
+        QCOMPARE(restClient->resetConfigToDefaultsCalls, 0);
     }
 };
 

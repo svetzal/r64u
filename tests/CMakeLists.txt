@@ -2513,13 +2513,6 @@ endif()
 add_executable(test_transferconfirmationdialogs
     test_transferconfirmationdialogs.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/transferconfirmationdialogs.cpp
-    ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/transfercore.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/transferconfirmcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/transferlistingcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/transferdecisioncore.cpp
-    ${CMAKE_SOURCE_DIR}/src/core/transferftpcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
 )
 
 target_include_directories(test_transferconfirmationdialogs PRIVATE
