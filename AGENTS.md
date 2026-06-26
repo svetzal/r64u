@@ -57,7 +57,7 @@ void TestTransferQueue::testConnectionLostMidTransfer()
 
 ## Build Environment
 
-Qt 6.10.1 is installed via the native Qt installer at `~/Qt/`. (Qt 6.11.1 has only the WebEngine add-on installed locally; the CI downloads a full Qt 6.11.1.)
+Qt 6.10.1 is installed via the native Qt installer at `~/Qt/`. (Qt 6.11.0 has only the WebEngine add-on installed locally; the CI downloads a full Qt 6.11.1.)
 
 ```bash
 # Build and run all tests (preferred method)
