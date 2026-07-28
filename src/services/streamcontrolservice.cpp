@@ -118,6 +118,18 @@ void StreamControlService::connectAndSend()
 
 void StreamControlService::onSocketConnected()
 {
+    // On some platforms (observed on macOS) a connection attempt to a closed
+    // port can emit a spurious `connected` signal immediately followed by an
+    // `errorOccurred(NetworkError)` for the same attempt. A genuine connection
+    // always has a valid peer port; a spurious one reports peerPort() == 0.
+    // Ignore the spurious signal here and let onSocketError() fail the
+    // pending commands once the real error signal arrives.
+    if (socket_->peerPort() == 0) {
+        LOG_VERBOSE() << "StreamControlService: Ignoring spurious connected signal for" << host_
+                      << "(no peer port)";
+        return;
+    }
+
     LOG_VERBOSE() << "StreamControlService: Connected to" << host_;
     connecting_ = false;
 
