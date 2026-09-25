@@ -962,6 +962,60 @@ private slots:
         QCOMPARE(readLocalFile(localPath), QByteArray("PRECIOUS"));
         QCOMPARE(filesIn(dir), QStringList{"big.d64"});
     }
+
+    // =========================================================================
+    // Uploads
+    // =========================================================================
+
+    void testUpload_MultiChunkFile_EmitsIncreasingProgressEndingAtTotal()
+    {
+        QByteArray contents;
+        for (int i = 0; i < 300000; ++i) {
+            contents.append(static_cast<char>(i % 251));
+        }
+        FakeFtpServer server;
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        const QString localPath = dir.filePath("disk.d64");
+        writeLocalFile(localPath, contents);
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy progressSpy(ftp, &C64UFtpClient::uploadProgress);
+        QSignalSpy finishedSpy(ftp, &C64UFtpClient::uploadFinished);
+
+        ftp->upload(localPath, "/SD/disk.d64");
+
+        QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, SignalTimeoutMs);
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QCOMPARE(server.storedFile("/SD/disk.d64"), contents);
+        QVERIFY2(progressSpy.count() >= 2,
+                 qPrintable(QString("progress signals: %1").arg(progressSpy.count())));
+        qint64 previousSent = 0;
+        for (const auto &progress : progressSpy) {
+            QCOMPARE(progress.at(0).toString(), localPath);
+            QVERIFY(progress.at(1).toLongLong() > previousSent);
+            QCOMPARE(progress.at(2).toLongLong(), qint64(contents.size()));
+            previousSent = progress.at(1).toLongLong();
+        }
+        QCOMPARE(previousSent, qint64(contents.size()));
+    }
+
+    void testUpload_EmptyFile_Finishes()
+    {
+        FakeFtpServer server;
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        const QString localPath = dir.filePath("empty.prg");
+        writeLocalFile(localPath, QByteArray());
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy finishedSpy(ftp, &C64UFtpClient::uploadFinished);
+
+        ftp->upload(localPath, "/SD/empty.prg");
+
+        QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, SignalTimeoutMs);
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QCOMPARE(server.storedFile("/SD/empty.prg"), QByteArray());
+        QCOMPARE(server.commandCount("STOR"), 1);
+    }
 };
 
 QTEST_MAIN(TestC64UFtpClientProtocol)

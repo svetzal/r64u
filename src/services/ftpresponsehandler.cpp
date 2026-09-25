@@ -234,6 +234,7 @@ FtpResponseAction FtpResponseHandler::handleStorResponse(int code, const QString
     action.kind = FtpResponseAction::Kind::ProcessNext;
     if (code == FtpReplyFileStatusOk || code == FtpReplyDataConnectionOpen) {
         action.kind = FtpResponseAction::Kind::None;
+        action.startUpload = true;
     } else if (code == FtpReplyTransferComplete) {
         action.uploadFinishedLocalPath = ctx.currentLocalPath;
         action.uploadFinishedRemotePath = ctx.currentArg;

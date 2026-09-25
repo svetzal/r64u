@@ -46,9 +46,10 @@ public:
     /// Longest wait for the replies to ABOR before dispatching the next command.
     /// Servers differ in how many replies they send, so this bounds the wait.
     static constexpr int AbortReplyTimeoutMs = 2000;
-    static constexpr int FtpReplyCodeLength = 3;       ///< Length of FTP reply code
-    static constexpr int FtpReplyTextOffset = 4;       ///< Offset to reply text after code
-    static constexpr int CrLfLength = 2;               ///< Length of CRLF line ending
+    static constexpr qint64 UploadChunkSize = 64 * 1024;  ///< Bytes read from disk per upload write
+    static constexpr int FtpReplyCodeLength = 3;          ///< Length of FTP reply code
+    static constexpr int FtpReplyTextOffset = 4;          ///< Offset to reply text after code
+    static constexpr int CrLfLength = 2;                  ///< Length of CRLF line ending
     static constexpr int PassivePortMultiplier = 256;  ///< Multiplier for passive port calculation
     /// @}
 
@@ -179,6 +180,7 @@ private slots:
     void onDataReadyRead();
     void onDataDisconnected();
     void onDataError(QAbstractSocket::SocketError error);
+    void onDataBytesWritten(qint64 bytes);
 
     void onAbortReplyTimeout();
 
@@ -226,7 +228,10 @@ private:
     void applyConnectionStateChanges(const FtpResponseAction &action);
     void emitResponseSignals(const FtpResponseAction &action);
     void executeResponseAction(const FtpResponseAction &action);
-    void sendStorFileForAction();
+    void startUpload();
+    void sendNextUploadChunks();
+    /// Reports @p message once and ends the in-flight LIST/RETR/STOR operation.
+    void failInFlightTransfer(const QString &message);
     void connectDataSocketForAction(const FtpResponseAction &action);
 
     // Network connections
@@ -259,6 +264,15 @@ private:
 
     // Data transfer state
     FtpTransferState transferState_;
+
+    /// Progress of the STOR currently streaming its file to the data connection.
+    struct UploadProgress
+    {
+        bool active = false;         ///< Server accepted STOR; file is being sent
+        bool allDataQueued = false;  ///< Whole file handed to the socket; close pending
+        qint64 bytesSent = 0;        ///< Bytes written to the network so far
+    };
+    UploadProgress upload_;
 
     // Response interpretation (owned, Qt parent)
     FtpResponseHandler *responseHandler_ = nullptr;

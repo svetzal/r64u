@@ -33,6 +33,7 @@ C64UFtpClient::C64UFtpClient(QObject *parent)
     connect(dataSocket_, &QTcpSocket::readyRead, this, &C64UFtpClient::onDataReadyRead);
     connect(dataSocket_, &QTcpSocket::disconnected, this, &C64UFtpClient::onDataDisconnected);
     connect(dataSocket_, &QTcpSocket::errorOccurred, this, &C64UFtpClient::onDataError);
+    connect(dataSocket_, &QTcpSocket::bytesWritten, this, &C64UFtpClient::onDataBytesWritten);
 
     // IFtpClient base constructor wires error() → errorReported()
 }
@@ -166,6 +167,7 @@ void C64UFtpClient::processNextCommand()
     currentArg_ = pending.arg;
     currentLocalPath_ = pending.localPath;
     currentOperationId_ = pending.operationId;
+    upload_ = UploadProgress{};
 
     // Per-transfer state is initialised when the transfer starts, never when it
     // is queued: other transfers may still be using the shared state until then.
@@ -320,17 +322,53 @@ void C64UFtpClient::emitResponseSignals(const FtpResponseAction &action)
     }
 }
 
-void C64UFtpClient::sendStorFileForAction()
+void C64UFtpClient::startUpload()
 {
     auto storFile = transferState_.currentStorFile();
-    if (storFile && storFile->isOpen()) {
-        QByteArray data = storFile->readAll();
-        dataSocket_->write(data);
-        dataSocket_->disconnectFromHost();
-    } else {
+    if (!storFile || !storFile->isOpen()) {
         qCWarning(LogFtp) << "FTP: ERROR - STOR 150 but no file handle! currentStorFile:"
                           << storFile.get();
+        return;
     }
+    upload_ = UploadProgress{};
+    upload_.active = true;
+    sendNextUploadChunks();
+}
+
+void C64UFtpClient::sendNextUploadChunks()
+{
+    auto storFile = transferState_.currentStorFile();
+    if (!upload_.active || upload_.allDataQueued || !storFile) {
+        return;
+    }
+
+    // Keep at most about one chunk buffered in the socket so progress follows
+    // what has actually been sent and large files are never held in memory.
+    while (dataSocket_->bytesToWrite() < UploadChunkSize && !storFile->atEnd()) {
+        const QByteArray chunk = storFile->read(UploadChunkSize);
+        if (chunk.isEmpty()) {
+            failInFlightTransfer(
+                tr("Cannot read file '%1': %2").arg(currentLocalPath_, storFile->errorString()));
+            return;
+        }
+        dataSocket_->write(chunk);
+    }
+
+    if (storFile->atEnd()) {
+        // Closing the data connection (after the buffer drains) ends the STOR
+        upload_.allDataQueued = true;
+        dataSocket_->disconnectFromHost();
+    }
+}
+
+void C64UFtpClient::onDataBytesWritten(qint64 bytes)
+{
+    if (!upload_.active || currentCommand_ != Command::Stor) {
+        return;
+    }
+    upload_.bytesSent += bytes;
+    emit uploadProgress(currentLocalPath_, upload_.bytesSent, transferState_.transferSize());
+    sendNextUploadChunks();
 }
 
 void C64UFtpClient::connectDataSocketForAction(const FtpResponseAction &action)
@@ -345,10 +383,8 @@ void C64UFtpClient::connectDataSocketForAction(const FtpResponseAction &action)
 
 void C64UFtpClient::executeResponseAction(const FtpResponseAction &action)
 {
-    if (action.kind == FtpResponseAction::Kind::None && currentCommand_ == Command::Stor &&
-        action.uploadFinishedLocalPath.isEmpty() && action.errorMessage.isEmpty() &&
-        !action.clearCurrentStorFile) {
-        sendStorFileForAction();
+    if (action.startUpload) {
+        startUpload();
     }
 
     switch (action.kind) {
@@ -506,11 +542,15 @@ void C64UFtpClient::onDataError(QAbstractSocket::SocketError socketError)
         return;
     }
 
+    failInFlightTransfer(tr("File transfer interrupted: %1").arg(dataSocket_->errorString()));
+}
+
+void C64UFtpClient::failInFlightTransfer(const QString &message)
+{
     // Report the failure once, here, and end the operation. The server will
     // still answer the transfer command (typically 425/426); that reply is
     // swallowed so it neither reports a second error nor gets paired with the
     // next command.
-    const QString message = tr("File transfer interrupted: %1").arg(dataSocket_->errorString());
     dropRestOfCurrentOperation();
     discardDataTransfer();
     if (awaitingFinalReply_) {
@@ -556,6 +596,7 @@ void C64UFtpClient::discardDataTransfer()
 {
     abortDataConnection();
     resetTransferState();
+    upload_ = UploadProgress{};
 }
 
 void C64UFtpClient::resetCommandTracking()

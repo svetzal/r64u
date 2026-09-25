@@ -322,6 +322,30 @@ private slots:
         QCOMPARE(action.kind, FtpResponseAction::Kind::None);
     }
 
+    void testBusy_Stor_150_requestsUploadStart()
+    {
+        auto ctx = makeCtx(FtpCommandQueue::Command::Stor, "/SD/file.prg", "/local/file.prg");
+        auto action = handler->handleBusyResponse(150, "Opening data connection", ctx);
+
+        QVERIFY(action.startUpload);
+    }
+
+    void testBusy_Stor_125_requestsUploadStart()
+    {
+        auto ctx = makeCtx(FtpCommandQueue::Command::Stor, "/SD/file.prg", "/local/file.prg");
+        auto action = handler->handleBusyResponse(125, "Data connection already open", ctx);
+
+        QVERIFY(action.startUpload);
+    }
+
+    void testBusy_Stor_226_doesNotRequestUploadStart()
+    {
+        auto ctx = makeCtx(FtpCommandQueue::Command::Stor, "/SD/file.prg", "/local/file.prg");
+        auto action = handler->handleBusyResponse(226, "Transfer complete", ctx);
+
+        QVERIFY(!action.startUpload);
+    }
+
     void testBusy_Stor_226_emitsUploadFinished()
     {
         auto ctx = makeCtx(FtpCommandQueue::Command::Stor, "/SD/file.prg", "/local/file.prg");
