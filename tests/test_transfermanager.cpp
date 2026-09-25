@@ -38,10 +38,15 @@ private:
         return orchestrator->state().items.at(row).status;
     }
 
-    [[nodiscard]] bool timeoutArmed() const
+    [[nodiscard]] QTimer *timeoutTimer() const
     {
         const auto *timeout = orchestrator->findChild<TransferTimeoutManager *>();
-        const auto *timer = timeout ? timeout->findChild<QTimer *>() : nullptr;
+        return timeout ? timeout->findChild<QTimer *>() : nullptr;
+    }
+
+    [[nodiscard]] bool timeoutArmed() const
+    {
+        const QTimer *timer = timeoutTimer();
         return timer && timer->isActive();
     }
 
@@ -503,6 +508,47 @@ private slots:
         QCOMPARE(failedSpy.count(), 1);
         QCOMPARE(itemStatus(0), Status::Failed);
         orchestrator->setFtpClient(mockFtp);
+    }
+
+    void testCancelAll_StopsTheTimeout()
+    {
+        enqueueDownloads({"a"});
+        orchestrator->flushEventQueue();
+        QVERIFY(timeoutArmed());
+
+        orchestrator->cancelAll();
+
+        QVERIFY(!timeoutArmed());
+    }
+
+    void testCancelBatch_OfTheRunningBatch_StopsTheTimeout()
+    {
+        enqueueDownloads({"a"});
+        orchestrator->flushEventQueue();
+        QVERIFY(timeoutArmed());
+
+        orchestrator->cancelBatch(orchestrator->state().batches.first().batchId);
+
+        QVERIFY(!timeoutArmed());
+    }
+
+    void testUploadProgress_OfTheInFlightUpload_RefreshesTheTimeout()
+    {
+        const QString localPath = tempDir.path() + "/progress-upload.prg";
+        QFile file(localPath);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("data");
+        file.close();
+        orchestrator->enqueueUpload(localPath, "/r/progress-upload.prg");
+        orchestrator->flushEventQueue();
+        QVERIFY(timeoutArmed());
+        timeoutTimer()->stop();
+
+        emit mockFtp->uploadProgress(tempDir.path() + "/other.prg", 1, 4);
+        QVERIFY(!timeoutArmed());
+
+        emit mockFtp->uploadProgress(localPath, 2, 4);
+        QVERIFY(timeoutArmed());
     }
 };
 

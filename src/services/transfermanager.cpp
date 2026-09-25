@@ -337,6 +337,9 @@ void TransferManager::cancelAll()
     if (transfer::shouldAbortFtp(state_.queueState)) {
         abortActiveFtpOperation();
     }
+    // Nothing of the queue's is in flight any more; a timer left running would
+    // later abort whatever the shared client is doing and force the queue Idle.
+    stopOperationTimeout();
 
     state_ = transfer::cancelAllItems(state_);
 
@@ -358,8 +361,11 @@ void TransferManager::cancelBatch(int batchId)
     }
 
     bool isActive = (batchIdx == state_.activeBatchIndex);
-    if (isActive && transfer::shouldAbortFtp(state_.queueState)) {
-        abortActiveFtpOperation();
+    if (isActive) {
+        if (transfer::shouldAbortFtp(state_.queueState)) {
+            abortActiveFtpOperation();
+        }
+        stopOperationTimeout();
     }
 
     auto result = transfer::cancelBatch(state_, batchId);
