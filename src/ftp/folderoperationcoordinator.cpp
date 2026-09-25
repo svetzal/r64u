@@ -83,9 +83,10 @@ void FolderOperationCoordinator::enqueueRecursive(transfer::OperationType type,
     op.sourcePath = sourcePath;
     op.destPath = destPath;
     op.targetPath = isDelete ? sourcePath : targetDir;
-    // For downloads: query local existence via gateway; uploads never have local destExists
-    op.destExists =
-        (isUpload || isDelete) ? false : (localFs_ ? localFs_->directoryExists(targetDir) : false);
+    // Downloads check the local target via the gateway; uploads learn remote existence
+    // from a listing later, and deletes have no destination
+    const bool isDownload = type == transfer::OperationType::Download;
+    op.destExists = isDownload && localFs_ && localFs_->directoryExists(targetDir);
 
     // Only one folder operation runs at a time; the others wait their turn
     const bool queueFree = state_.queueState == transfer::QueueState::Idle &&
