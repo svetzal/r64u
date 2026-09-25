@@ -193,6 +193,9 @@ struct PendingFolderOp
     QString destPath;         ///< Remote for upload, local for download
     QString targetPath;       ///< Full destination path (destPath + folderName)
     bool destExists = false;  ///< True if destination folder exists
+    /// True once the folder-exists question is settled for this operation: the user answered
+    /// it, or there is nothing to ask (e.g. a download into a folder that does not exist).
+    bool confirmed = false;
     int batchId = -1;
 };
 

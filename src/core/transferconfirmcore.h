@@ -56,7 +56,15 @@ struct FolderConfirmResult
 [[nodiscard]] FolderExistsResult respondToFolderExists(const State &state,
                                                        FolderExistsResponse response);
 
+/// @brief Returns true if @p op must go through the folder-exists check before it starts.
+///
+/// Deletes have no destination, auto-merge answers the question for every folder, and an
+/// operation whose question is already settled (see PendingFolderOp::confirmed) is not asked again.
+[[nodiscard]] bool needsFolderCheck(const State &state, const PendingFolderOp &op);
+
 /// @brief Check pending folder ops and decide if confirmation is needed.
+///
+/// Only operations whose question is not yet settled are asked about.
 /// Returns FolderConfirmResult describing what the shell should do next.
 [[nodiscard]] FolderConfirmResult checkFolderConfirmation(const State &state);
 

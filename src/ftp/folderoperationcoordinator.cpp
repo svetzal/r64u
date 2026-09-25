@@ -61,7 +61,6 @@ void FolderOperationCoordinator::enqueueRecursive(transfer::OperationType type,
                                                   const QString &sourcePath,
                                                   const QString &destPath)
 {
-    const bool isUpload = (type == transfer::OperationType::Upload);
     const bool isDelete = (type == transfer::OperationType::Delete);
 
     if (transfer::isPathBeingTransferred(state_, sourcePath, type)) {
@@ -87,14 +86,14 @@ void FolderOperationCoordinator::enqueueRecursive(transfer::OperationType type,
     // from a listing later, and deletes have no destination
     const bool isDownload = type == transfer::OperationType::Download;
     op.destExists = isDownload && localFs_ && localFs_->directoryExists(targetDir);
+    // A download into a folder that does not exist has nothing to ask about
+    op.confirmed = isDownload && !op.destExists;
 
     // Only one folder operation runs at a time; the others wait their turn
     const bool queueFree = state_.queueState == transfer::QueueState::Idle &&
                            state_.currentFolderOp.batchId < 0 && state_.pendingFolderOps.isEmpty();
 
-    // Skip confirmation when: autoMerge is set, deleting, or (download and dest doesn't exist)
-    const bool skipConfirmation = state_.autoMerge || isDelete || (!isUpload && !op.destExists);
-    if (skipConfirmation) {
+    if (!transfer::needsFolderCheck(state_, op)) {
         if (queueFree) {
             startFolderOperation(op);
         } else {
@@ -144,10 +143,15 @@ void FolderOperationCoordinator::stopDebounce()
 
 void FolderOperationCoordinator::startNextPendingFolderOp()
 {
-    if (!state_.pendingFolderOps.isEmpty()) {
-        transfer::PendingFolderOp op = state_.pendingFolderOps.dequeue();
-        startFolderOperation(op);
+    if (state_.pendingFolderOps.isEmpty()) {
+        return;
     }
+    if (transfer::needsFolderCheck(state_, state_.pendingFolderOps.head())) {
+        // Queued behind other work, or left over from a check the connection cut short
+        checkPendingFolderOps();
+        return;
+    }
+    startFolderOperation(state_.pendingFolderOps.dequeue());
 }
 
 void FolderOperationCoordinator::onFolderOperationComplete()
@@ -165,8 +169,7 @@ void FolderOperationCoordinator::onFolderOperationComplete()
                                  << state_.pendingFolderOps.size() << "folder operations queued";
             return;
         }
-        transfer::PendingFolderOp op = state_.pendingFolderOps.dequeue();
-        startFolderOperation(op);
+        startNextPendingFolderOp();
         return;
     }
 
@@ -183,25 +186,39 @@ void FolderOperationCoordinator::onDebounceTimeout()
     qCDebug(LogTransfer) << "FolderOperationCoordinator: Debounce timeout, processing"
                          << state_.pendingFolderOps.size() << "pending folder ops";
 
+    if (state_.queueState != transfer::QueueState::CollectingItems) {
+        return;  // The check was abandoned (connection lost); it runs when the queue resumes
+    }
     if (state_.pendingFolderOps.isEmpty()) {
         state_.queueState = transfer::QueueState::Idle;
         return;
     }
+    checkPendingFolderOps();
+}
+
+void FolderOperationCoordinator::checkPendingFolderOps()
+{
+    debounceTimer_->stop();
 
     // For uploads, we need to check remote folder existence
     // For downloads, we already know local folder existence
-    transfer::PendingFolderOp &firstOp = state_.pendingFolderOps.head();
+    const transfer::PendingFolderOp &firstOp = state_.pendingFolderOps.head();
 
-    if (firstOp.operationType == transfer::OperationType::Upload) {
-        // Need to list the remote directory to check if target exists
-        state_.requestedFolderCheckListings.insert(firstOp.destPath);
-        if (ftpClient_) {
-            ftpClient_->list(firstOp.destPath);
-        }
-    } else {
+    if (firstOp.operationType != transfer::OperationType::Upload) {
         // Downloads: check if any folders exist and need confirmation
         checkFolderConfirmation();
+        return;
     }
+
+    if (!ftpClient_ || !ftpClient_->isConnected()) {
+        // Left queued: the queue resumes the check once the connection is back
+        state_.queueState = transfer::QueueState::Idle;
+        return;
+    }
+    // Busy until the listing tells whether the target folder exists
+    state_.queueState = transfer::QueueState::CollectingItems;
+    state_.requestedFolderCheckListings.insert(firstOp.destPath);
+    ftpClient_->list(firstOp.destPath);
 }
 
 void FolderOperationCoordinator::checkFolderConfirmation()

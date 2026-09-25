@@ -47,6 +47,7 @@ struct DeleteListingResult
                                                                    const QList<FtpEntry> &entries);
 
 /// @brief Update pending folder ops' destExists flags from a remote directory listing.
+/// Operations whose folder-exists question is already settled are left alone.
 /// @param parentPath The remote directory that was listed.
 /// @param entries The entries in that directory.
 [[nodiscard]] State updateFolderExistence(const State &state, const QString &parentPath,
@@ -67,6 +68,12 @@ struct UploadFileCheckResult
 /// exist the item is confirmed and the queue returns to Idle.
 [[nodiscard]] UploadFileCheckResult checkUploadFileExists(const State &state,
                                                           const QList<FtpEntry> &entries);
+
+/// @brief Drop a folder-exists check whose listing will never arrive (e.g. disconnected).
+///
+/// The folder operations stay queued, unconfirmed, so they are checked again when the queue
+/// resumes, and the queue returns to Idle. No-op unless the queue is in CollectingItems.
+[[nodiscard]] State abandonFolderCheck(const State &state);
 
 /// @brief Drop an upload-exists check whose listing will never arrive (e.g. disconnected).
 ///

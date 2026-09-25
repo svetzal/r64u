@@ -175,6 +175,13 @@ void TransferFtpHandler::onFtpOperationFailed(IFtpClient::Operation operation,
         return;
     }
     if (operation == IFtpClient::Operation::List &&
+        state_.requestedFolderCheckListings.contains(remotePath) && scanCoordinator_) {
+        // Whether the folder exists cannot be told: go on as if it did not, rather than
+        // check again forever. The upload reports whatever then fails.
+        scanCoordinator_->onDirectoryListed(remotePath, {});
+        return;
+    }
+    if (operation == IFtpClient::Operation::List &&
         state_.requestedDeleteListings.contains(remotePath)) {
         // Deleting part of a tree that cannot be fully listed is not safe: delete nothing
         emit abandonFolderOperationRequested(message);
@@ -254,6 +261,11 @@ void TransferFtpHandler::onFtpDisconnected()
         state_ = transfer::abandonUploadCheck(state_);
         emit queueChanged();
         break;
+    case transfer::QueueState::CollectingItems:
+        // The folder-exists check is asked again once the connection is back
+        state_ = transfer::abandonFolderCheck(state_);
+        emit queueChanged();
+        break;
     case transfer::QueueState::Scanning:
     case transfer::QueueState::CreatingDirectories:
     case transfer::QueueState::Deleting:
@@ -262,7 +274,6 @@ void TransferFtpHandler::onFtpDisconnected()
         emit abandonFolderOperationRequested(message);
         break;
     case transfer::QueueState::Idle:
-    case transfer::QueueState::CollectingItems:
     case transfer::QueueState::AwaitingFolderConfirm:
     case transfer::QueueState::AwaitingFileConfirm:
     case transfer::QueueState::BatchComplete:

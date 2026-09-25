@@ -510,6 +510,7 @@ private slots:
         op.destPath = "/local/target";
         op.targetPath = "/local/target/Games";
         op.destExists = true;
+        op.confirmed = true;  // answered in the folder-exists dialog
         state_.pendingFolderOps.enqueue(op);
 
         coordinator->startNextPendingFolderOp();
@@ -529,6 +530,7 @@ private slots:
         op.destPath = "/local/target";
         op.targetPath = "/local/target/Games";
         op.destExists = true;
+        op.confirmed = true;  // answered in the folder-exists dialog
         state_.pendingFolderOps.enqueue(op);
 
         coordinator->startNextPendingFolderOp();
@@ -548,6 +550,7 @@ private slots:
         op.destPath = "/local/target";
         op.targetPath = "/local/target/Games";
         op.destExists = true;
+        op.confirmed = true;  // answered in the folder-exists dialog
         state_.pendingFolderOps.enqueue(op);
 
         coordinator->startNextPendingFolderOp();
@@ -573,6 +576,7 @@ private slots:
         op.destPath = "/remote/target";
         op.targetPath = "/remote/target/mydir";
         op.destExists = true;
+        op.confirmed = true;  // answered in the folder-exists dialog
         state_.pendingFolderOps.enqueue(op);
 
         coordinator->startNextPendingFolderOp();

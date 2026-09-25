@@ -165,6 +165,67 @@ private slots:
         QVERIFY(result.newState.pendingFolderOps.isEmpty());
     }
 
+    void testRespondToFolderExists_merge_settlesTheQuestionForTheFoldersItListed()
+    {
+        transfer::State state;
+        state.queueState = transfer::QueueState::AwaitingFolderConfirm;
+        transfer::PendingFolderOp first;
+        first.destExists = true;
+        transfer::PendingFolderOp listedToo;
+        listedToo.sourcePath = "/local/B";
+        listedToo.destExists = true;
+        transfer::PendingFolderOp notListed;
+        notListed.sourcePath = "/local/C";
+        state.pendingFolderOps << first << listedToo << notListed;
+
+        auto result = transfer::respondToFolderExists(state, transfer::FolderExistsResponse::Merge);
+
+        QCOMPARE(result.newState.pendingFolderOps.size(), 2);
+        QVERIFY(result.newState.pendingFolderOps.at(0).confirmed);
+        QVERIFY(!result.newState.pendingFolderOps.at(1).confirmed);
+    }
+
+    void testCheckFolderConfirmation_settledFolder_isNotAskedAboutAgain()
+    {
+        transfer::State state;
+        transfer::PendingFolderOp unsettled;
+        unsettled.targetPath = "/remote/A";
+        unsettled.destExists = true;
+        transfer::PendingFolderOp settled;
+        settled.targetPath = "/remote/B";
+        settled.destExists = true;
+        settled.confirmed = true;
+        state.pendingFolderOps << unsettled << settled;
+
+        auto result = transfer::checkFolderConfirmation(state);
+
+        QCOMPARE(result.existingFolderNames, QStringList{"A"});
+    }
+
+    void testNeedsFolderCheck_unsettledUpload_isChecked()
+    {
+        transfer::State state;
+        transfer::PendingFolderOp op;
+        op.operationType = transfer::OperationType::Upload;
+
+        QVERIFY(transfer::needsFolderCheck(state, op));
+        op.confirmed = true;
+        QVERIFY(!transfer::needsFolderCheck(state, op));
+    }
+
+    void testNeedsFolderCheck_autoMergeOrDelete_isNotChecked()
+    {
+        transfer::State state;
+        transfer::PendingFolderOp del;
+        del.operationType = transfer::OperationType::Delete;
+        QVERIFY(!transfer::needsFolderCheck(state, del));
+
+        state.autoMerge = true;
+        transfer::PendingFolderOp upload;
+        upload.operationType = transfer::OperationType::Upload;
+        QVERIFY(!transfer::needsFolderCheck(state, upload));
+    }
+
     void testRespondToFolderExists_wrongState_returnsUnchanged()
     {
         transfer::State state;

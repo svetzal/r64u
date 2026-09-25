@@ -114,7 +114,7 @@ State updateFolderExistence(const State &state, const QString &parentPath,
     State result = state;
 
     for (PendingFolderOp &op : result.pendingFolderOps) {
-        if (op.destPath == parentPath) {
+        if (!op.confirmed && op.destPath == parentPath) {
             const QString targetFolderName = QFileInfo(op.targetPath).fileName();
             op.destExists = std::any_of(entries.begin(), entries.end(), [&](const FtpEntry &entry) {
                 return entry.isDirectory && isSameDeviceName(entry.name, targetFolderName);
@@ -151,6 +151,18 @@ UploadFileCheckResult checkUploadFileExists(const State &state, const QList<FtpE
         result.newState.queueState = QueueState::Idle;
     }
 
+    return result;
+}
+
+State abandonFolderCheck(const State &state)
+{
+    State result = state;
+    if (result.queueState != QueueState::CollectingItems) {
+        return result;
+    }
+    // The folder operations stay queued and are checked again when the queue resumes
+    result.requestedFolderCheckListings.clear();
+    result.queueState = QueueState::Idle;
     return result;
 }
 

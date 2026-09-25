@@ -111,6 +111,16 @@ private:
         flushAndProcess();
     }
 
+    /// Starts a folder upload of <temp>/<name> into /r and lets its folder-exists listing go out.
+    void startFolderUploadCheck(const QString &name)
+    {
+        orchestrator->setAutoMerge(false);
+        createLocalFile(name + "/f.prg");
+        orchestrator->enqueueRecursiveUpload(tempDir.path() + "/" + name, "/r");
+        QTest::qWait(100);  // folder-exists debounce
+        QCOMPARE(mockFtp->mockGetListRequests(), QStringList{"/r"});
+    }
+
 private slots:
     void init()
     {
@@ -1328,6 +1338,101 @@ private slots:
         QCOMPARE(cancelledSpy.count(), 1);
         QVERIFY(mockFtp->mockGetUploadRequests().isEmpty());
         QCOMPARE(mockFtp->mockGetDownloadRequests(), QStringList{"/r/queued-meanwhile"});
+    }
+
+    // =========================================================================
+    // Folder-exists check: a lost connection ends it; a queued folder is asked about
+    // =========================================================================
+
+    void testFolderExistsCheck_Disconnect_EndsTheCheckAndKeepsTheFolderQueued()
+    {
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+        startFolderUploadCheck("fx-dc");
+
+        mockFtp->mockSimulateDisconnect();
+        mockFtp->mockReset();  // the real client drops its queue on disconnect
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(orchestrator->state().queueState, QueueState::Idle);
+        QVERIFY(orchestrator->state().requestedFolderCheckListings.isEmpty());
+        QCOMPARE(orchestrator->state().pendingFolderOps.size(), 1);
+        QVERIFY(failedSpy.count() <= 1);
+    }
+
+    void testFolderExistsCheck_Disconnect_ReconnectChecksAgainAndAsks()
+    {
+        startFolderUploadCheck("fx-re");
+        mockFtp->mockSimulateDisconnect();
+        mockFtp->mockReset();
+        orchestrator->flushEventQueue();
+        QSignalSpy folderConfirmSpy(orchestrator, &TransferManager::folderExistsConfirmationNeeded);
+
+        mockFtp->mockSetDirectoryListing("/r", {remoteDir("fx-re")});
+        mockFtp->mockSimulateConnect();
+        flushAndProcess();
+
+        QCOMPARE(mockFtp->mockGetListRequests(), QStringList{"/r"});
+        QCOMPARE(folderConfirmSpy.count(), 1);
+        QCOMPARE(orchestrator->state().queueState, QueueState::AwaitingFolderConfirm);
+        QVERIFY(mockFtp->mockGetMkdirRequests().isEmpty());
+        QVERIFY(mockFtp->mockGetUploadRequests().isEmpty());
+    }
+
+    void testFolderExistsCheck_ListingFails_StartsTheUploadOnce()
+    {
+        startFolderUploadCheck("fx-fail");
+
+        mockFtp->mockSetNextOperationFails("550 Permission denied");
+        flushAndProcess();
+
+        QCOMPARE(mockFtp->mockGetListRequests(), QStringList{"/r"});
+        QCOMPARE(mockFtp->mockGetUploadRequests(), QStringList{tempDir.path() + "/fx-fail/f.prg"});
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+    }
+
+    void testFolderUploadQueuedBehindRunningFolder_AsksWhenItsTurnComes()
+    {
+        orchestrator->setAutoMerge(false);
+        mockFtp->mockSetDirectoryListing("/r/running", {remoteFile("a")});
+        mockFtp->mockSetDirectoryListing("/r", {remoteDir("behind")});
+        createLocalFile("behind/f.prg");
+        QSignalSpy folderConfirmSpy(orchestrator, &TransferManager::folderExistsConfirmationNeeded);
+        orchestrator->enqueueRecursiveDownload("/r/running", tempDir.path());
+        orchestrator->enqueueRecursiveUpload(tempDir.path() + "/behind", "/r");
+
+        flushAndProcess();
+
+        QCOMPARE(folderConfirmSpy.count(), 1);
+        QCOMPARE(folderConfirmSpy.first().at(0).toStringList(), QStringList{"behind"});
+        QVERIFY(mockFtp->mockGetMkdirRequests().isEmpty());
+        QVERIFY(mockFtp->mockGetUploadRequests().isEmpty());
+
+        orchestrator->respondToFolderExists(FolderExistsResponse::Merge);
+        flushAndProcess();
+
+        QCOMPARE(mockFtp->mockGetUploadRequests(), QStringList{tempDir.path() + "/behind/f.prg"});
+    }
+
+    void testDisconnect_WhileScanning_QueuedFolderUploadIsAskedAboutAfterReconnect()
+    {
+        orchestrator->setAutoMerge(false);
+        mockFtp->mockSetDirectoryListing("/r/dc-run", {remoteDir("sub")});
+        createLocalFile("dc-behind/f.prg");
+        orchestrator->enqueueRecursiveDownload("/r/dc-run", tempDir.path());
+        orchestrator->enqueueRecursiveUpload(tempDir.path() + "/dc-behind", "/r");
+        flushAndProcessNext();  // root listing of dc-run
+        mockFtp->mockSimulateDisconnect();
+        mockFtp->mockReset();
+        orchestrator->flushEventQueue();
+        QSignalSpy folderConfirmSpy(orchestrator, &TransferManager::folderExistsConfirmationNeeded);
+
+        mockFtp->mockSetDirectoryListing("/r", {remoteDir("dc-behind")});
+        mockFtp->mockSimulateConnect();
+        flushAndProcess();
+
+        QCOMPARE(folderConfirmSpy.count(), 1);
+        QVERIFY(mockFtp->mockGetMkdirRequests().isEmpty());
+        QVERIFY(mockFtp->mockGetUploadRequests().isEmpty());
     }
 
     void testOverwriteAll_ThenCancelAll_NextDownloadStillAsks()

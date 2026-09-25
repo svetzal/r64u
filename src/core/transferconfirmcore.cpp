@@ -64,6 +64,21 @@ OverwriteResult respondToOverwrite(const State &state, OverwriteResponse respons
     return result;
 }
 
+bool needsFolderCheck(const State &state, const PendingFolderOp &op)
+{
+    return !op.confirmed && !state.autoMerge && op.operationType != OperationType::Delete;
+}
+
+namespace {
+
+/// True for a pending operation the folder-exists dialog asks about.
+bool isAskedAbout(const PendingFolderOp &op)
+{
+    return !op.confirmed && op.destExists;
+}
+
+}  // namespace
+
 FolderExistsResult respondToFolderExists(const State &state, FolderExistsResponse response)
 {
     if (state.queueState != QueueState::AwaitingFolderConfirm) {
@@ -74,6 +89,15 @@ FolderExistsResult respondToFolderExists(const State &state, FolderExistsRespons
     result.newState = state;
     result.newState.pendingConfirmation.clear();
     result.newState.queueState = QueueState::Idle;
+
+    if (response != FolderExistsResponse::Cancel) {
+        // The answer covers every folder the dialog listed: they are not asked about again
+        for (PendingFolderOp &op : result.newState.pendingFolderOps) {
+            if (isAskedAbout(op)) {
+                op.confirmed = true;
+            }
+        }
+    }
 
     switch (response) {
     case FolderExistsResponse::Merge:
@@ -95,9 +119,7 @@ FolderExistsResult respondToFolderExists(const State &state, FolderExistsRespons
     case FolderExistsResponse::Cancel: {
         // Only the folders the dialog asked about are cancelled; the others still run
         auto &ops = result.newState.pendingFolderOps;
-        ops.erase(std::remove_if(ops.begin(), ops.end(),
-                                 [](const PendingFolderOp &op) { return op.destExists; }),
-                  ops.end());
+        ops.erase(std::remove_if(ops.begin(), ops.end(), isAskedAbout), ops.end());
         if (!ops.isEmpty()) {
             result.folderOpToStart = ops.dequeue();
             result.shouldStartFolderOp = true;
@@ -118,7 +140,7 @@ FolderConfirmResult checkFolderConfirmation(const State &state)
 
     QStringList existingFolders;
     for (const PendingFolderOp &op : result.newState.pendingFolderOps) {
-        if (op.destExists) {
+        if (isAskedAbout(op)) {
             existingFolders.append(QFileInfo(op.targetPath).fileName());
         }
     }

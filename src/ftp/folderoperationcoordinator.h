@@ -53,7 +53,8 @@ public:
     /// Called when a folder operation (scan+transfer) has fully completed
     void onFolderOperationComplete();
 
-    /// Start the next pending folder op from state_.pendingFolderOps (for processNext)
+    /// Start the next pending folder op from state_.pendingFolderOps (for processNext).
+    /// An operation whose folder-exists question is not settled yet is checked first.
     void startNextPendingFolderOp();
 
     /// Stop the debounce timer (called by TransferQueue::clear() and cancelAll())
@@ -99,6 +100,8 @@ private:
     [[nodiscard]] static QString batchDescription(transfer::OperationType type,
                                                   const QString &folderName);
     void startFolderOperation(const transfer::PendingFolderOp &op);
+    /// Check whether the pending operations' target folders exist, then ask or start.
+    void checkPendingFolderOps();
     void checkFolderConfirmation();
 
     transfer::State &state_;

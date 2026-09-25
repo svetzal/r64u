@@ -285,6 +285,40 @@ private slots:
         QVERIFY(result.requestedUploadFileCheckListings.isEmpty());
         QCOMPARE(result.items[0].status, transfer::TransferItem::Status::Pending);
     }
+
+    void testAbandonFolderCheck_keepsTheFolderQueuedAndGoesIdle()
+    {
+        transfer::State state;
+        state.queueState = transfer::QueueState::CollectingItems;
+        state.requestedFolderCheckListings.insert("/remote");
+        transfer::PendingFolderOp op;
+        op.destPath = "/remote";
+        state.pendingFolderOps.enqueue(op);
+
+        auto result = transfer::abandonFolderCheck(state);
+
+        QCOMPARE(result.queueState, transfer::QueueState::Idle);
+        QVERIFY(result.requestedFolderCheckListings.isEmpty());
+        QCOMPARE(result.pendingFolderOps.size(), 1);
+        QVERIFY(!result.pendingFolderOps.head().confirmed);
+    }
+
+    void testUpdateFolderExistence_leavesSettledFoldersAlone()
+    {
+        transfer::State state;
+        transfer::PendingFolderOp op;
+        op.destPath = "/remote";
+        op.targetPath = "/remote/Games";
+        op.confirmed = true;
+        state.pendingFolderOps.enqueue(op);
+        FtpEntry entry;
+        entry.name = "Games";
+        entry.isDirectory = true;
+
+        auto result = transfer::updateFolderExistence(state, "/remote", {entry});
+
+        QVERIFY(!result.pendingFolderOps.head().destExists);
+    }
 };
 
 QTEST_MAIN(TestTransferListingCore)
