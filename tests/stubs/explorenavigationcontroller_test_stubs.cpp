@@ -108,7 +108,8 @@ Qt::ItemFlags RemoteFileModel::flags(const QModelIndex & /*index*/) const
 void RemoteFileModel::onListingReady(const QString & /*path*/, const QList<FtpEntry> & /*entries*/)
 {
 }
-void RemoteFileModel::onListingFailed(const QString & /*message*/) {}
+void RemoteFileModel::onListingFailed(const QString & /*path*/, const QString & /*message*/) {}
+void RemoteFileModel::onListingsAborted() {}
 
 // ---------------------------------------------------------------------------
 // DeviceConnectionManager stubs

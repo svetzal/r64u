@@ -109,7 +109,7 @@ private slots:
     {
         QSignalSpy failedSpy(coordinator, &RemoteListingCoordinator::listingFailed);
         QSignalSpy abortedSpy(coordinator, &RemoteListingCoordinator::listingsAborted);
-        coordinator->requestListing("/SD");
+        QVERIFY(coordinator->requestListing("/SD"));
 
         // e.g. a transfer's RETR on the shared client
         const QString message = "Download failed for '/SD/x.prg': 550";
@@ -127,8 +127,8 @@ private slots:
     void testDisconnect_DropsAllPendingListings()
     {
         QSignalSpy abortedSpy(coordinator, &RemoteListingCoordinator::listingsAborted);
-        coordinator->requestListing("/SD");
-        coordinator->requestListing("/USB");
+        QVERIFY(coordinator->requestListing("/SD"));
+        QVERIFY(coordinator->requestListing("/USB"));
 
         mockFtp->mockSimulateDisconnect();
 
@@ -140,7 +140,7 @@ private slots:
     void testConnectionLevelError_DropsAllPendingListings()
     {
         QSignalSpy abortedSpy(coordinator, &RemoteListingCoordinator::listingsAborted);
-        coordinator->requestListing("/SD");
+        QVERIFY(coordinator->requestListing("/SD"));
         {
             // A socket error or timeout ends the connection without disconnected()
             const QSignalBlocker blocker(mockFtp);
