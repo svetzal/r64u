@@ -82,10 +82,8 @@ void connectAll(TransferManager &mgr)
                      [&mgr](const QString &remotePath, const QString &localPath, int batchId) {
                          mgr.enqueueDownload(remotePath, localPath, batchId);
                      });
-    QObject::connect(mgr.scanCoordinator_, &RecursiveScanCoordinator::completeBatchRequested, &mgr,
-                     [&mgr](int batchId) { mgr.completeBatch(batchId); });
-    QObject::connect(mgr.scanCoordinator_, &RecursiveScanCoordinator::scheduleProcessNextRequested,
-                     &mgr, &TransferManager::onScanCompleted);
+    QObject::connect(mgr.scanCoordinator_, &RecursiveScanCoordinator::downloadScanComplete, &mgr,
+                     &TransferManager::onScanCompleted);
     QObject::connect(mgr.scanCoordinator_, &RecursiveScanCoordinator::statusMessage, &mgr,
                      &TransferManager::statusMessage);
     QObject::connect(mgr.scanCoordinator_, &RecursiveScanCoordinator::scanningStarted, &mgr,

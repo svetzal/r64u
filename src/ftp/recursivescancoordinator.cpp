@@ -155,7 +155,7 @@ void RecursiveScanCoordinator::handleDirectoryListingForDownload(const QString &
             ftpClient_->list(next.remotePath);
         }
     } else {
-        finishScanning();
+        finishScanning(currentScan.batchId);
     }
 }
 
@@ -231,29 +231,9 @@ void RecursiveScanCoordinator::handleUploadCheck(const QString &path,
     }
 }
 
-void RecursiveScanCoordinator::finishScanning()
+void RecursiveScanCoordinator::finishScanning(int batchId)
 {
     qCDebug(LogTransfer) << "RecursiveScanCoordinator: Scanning complete, filesDiscovered:"
                          << state_.filesDiscovered;
-
-    // Check for empty batches
-    QList<int> emptyBatchIds;
-    for (const transfer::TransferBatch &batch : state_.batches) {
-        if (batch.operationType == transfer::OperationType::Download && batch.scanned &&
-            batch.totalCount() == 0) {
-            emptyBatchIds.append(batch.batchId);
-        }
-    }
-
-    for (int batchId : emptyBatchIds) {
-        qCDebug(LogTransfer) << "RecursiveScanCoordinator: Completing empty batch" << batchId;
-        emit completeBatchRequested(batchId);
-    }
-
-    if (!emptyBatchIds.isEmpty()) {
-        emit statusMessage(
-            tr("%n empty folder(s) - nothing to download", "", emptyBatchIds.size()));
-    }
-
-    emit scheduleProcessNextRequested();
+    emit downloadScanComplete(batchId);
 }

@@ -859,6 +859,44 @@ private slots:
         QVERIFY(!mockFtp->mockGetDownloadRequests().contains("/r/meanwhile.prg"));
     }
 
+    // =========================================================================
+    // Empty folder downloads complete and let queued folder operations run
+    // =========================================================================
+
+    void testEmptyFolderDownload_Completes()
+    {
+        mockFtp->mockSetDirectoryListing("/r/empty-only", {});
+        QSignalSpy batchCompletedSpy(orchestrator, &TransferManager::batchCompleted);
+        QSignalSpy allDoneSpy(orchestrator, &TransferManager::allOperationsCompleted);
+
+        orchestrator->enqueueRecursiveDownload("/r/empty-only", tempDir.path());
+        flushAndProcess();
+
+        QCOMPARE(batchCompletedSpy.count(), 1);
+        QCOMPARE(allDoneSpy.count(), 1);
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+        QCOMPARE(orchestrator->state().queueState, QueueState::Idle);
+        QVERIFY(!orchestrator->isPathBeingTransferred("/r/empty-only", OperationType::Download));
+    }
+
+    void testEmptyFolderDownload_FolderQueuedBehindItStillRuns()
+    {
+        mockFtp->mockSetDirectoryListing("/r/empty", {});
+        mockFtp->mockSetDirectoryListing("/r/full", {remoteFile("f.prg")});
+        mockFtp->mockSetDownloadData("/r/full/f.prg", "x");
+        QSignalSpy batchCompletedSpy(orchestrator, &TransferManager::batchCompleted);
+        QSignalSpy allDoneSpy(orchestrator, &TransferManager::allOperationsCompleted);
+
+        orchestrator->enqueueRecursiveDownload("/r/empty", tempDir.path());
+        orchestrator->enqueueRecursiveDownload("/r/full", tempDir.path());
+        flushAndProcess();
+
+        QVERIFY(QFile::exists(tempDir.path() + "/full/f.prg"));
+        QCOMPARE(batchCompletedSpy.count(), 2);
+        QCOMPARE(allDoneSpy.count(), 1);
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+    }
+
     void testOverwriteAll_ThenCancelAll_NextDownloadStillAsks()
     {
         orchestrator->setAutoOverwrite(false);

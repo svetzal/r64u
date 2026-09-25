@@ -327,6 +327,8 @@ private slots:
     void testRecursiveDownloadEmptyDirectory()
     {
         mockFtp->mockSetDirectoryListing("/remote/empty", QList<FtpEntry>());
+        QSignalSpy batchCompletedSpy(queue, &TransferQueue::batchCompleted);
+        QSignalSpy allDoneSpy(queue, &TransferQueue::allOperationsCompleted);
 
         queue->enqueueRecursiveDownload("/remote/empty", tempDir.path());
 
@@ -336,6 +338,9 @@ private slots:
         // Should complete with no downloads
         QVERIFY(!queue->isScanning());
         QCOMPARE(queue->pendingCount(), 0);
+        QCOMPARE(batchCompletedSpy.count(), 1);
+        QCOMPARE(allDoneSpy.count(), 1);
+        QVERIFY(queue->allBatchIds().isEmpty());
 
         // Directory should have been created
         QVERIFY(QDir(tempDir.path() + "/empty").exists());

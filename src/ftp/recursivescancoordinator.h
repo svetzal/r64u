@@ -47,13 +47,12 @@ public:
 
 signals:
     void downloadFileDiscovered(const QString &remotePath, const QString &localPath, int batchId);
-    void downloadScanComplete();
+    /// Every directory of the download scan for @p batchId has been listed.
+    void downloadScanComplete(int batchId);
     void deleteScanComplete();
     void folderCheckComplete(const QString &path);
     void uploadCheckFileExists(const QString &fileName);
     void uploadCheckNoConflict();
-    void completeBatchRequested(int batchId);
-    void scheduleProcessNextRequested();
     void statusMessage(const QString &message, int timeout = 0);
     void scanningStarted(const QString &folderName, transfer::OperationType type);
     void scanningProgress(int directoriesScanned, int directoriesRemaining, int filesDiscovered);
@@ -63,7 +62,7 @@ private:
     void handleDirectoryListingForDelete(const QString &path, const QList<FtpEntry> &entries);
     void handleFolderCheck(const QString &path, const QList<FtpEntry> &entries);
     void handleUploadCheck(const QString &path, const QList<FtpEntry> &entries);
-    void finishScanning();
+    void finishScanning(int batchId);
 
     transfer::State &state_;
     IFtpClient *ftpClient_ = nullptr;

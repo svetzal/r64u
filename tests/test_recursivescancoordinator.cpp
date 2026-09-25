@@ -118,6 +118,21 @@ private slots:
         QCOMPARE(spy.at(0).at(2).toInt(), 1);
     }
 
+    void testOnDirectoryListed_download_lastListing_reportsScanCompleteForItsBatch()
+    {
+        scanner->startDownloadScan("/remote/root", "/local/base", "/remote/root", 7);
+        mockFtp->mockSetDirectoryListing("/remote/root", {makeDir("sub")});
+        mockFtp->mockSetDirectoryListing("/remote/root/sub", {});
+        QSignalSpy completeSpy(scanner, &RecursiveScanCoordinator::downloadScanComplete);
+
+        mockFtp->mockProcessNextOperation();
+        QCOMPARE(completeSpy.count(), 0);
+
+        mockFtp->mockProcessNextOperation();
+        QCOMPARE(completeSpy.count(), 1);
+        QCOMPARE(completeSpy.first().at(0).toInt(), 7);
+    }
+
     void testOnDirectoryListed_download_createsLocalDirForSubdirs()
     {
         scanner->startDownloadScan("/remote/root", "/local/base", "/remote/root", 1);

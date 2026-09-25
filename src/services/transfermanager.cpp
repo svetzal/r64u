@@ -35,12 +35,25 @@ TransferManager::~TransferManager()
 // Orchestration slots
 // ============================================================================
 
-void TransferManager::onScanCompleted()
+void TransferManager::onScanCompleted(int batchId)
 {
-    if (TransferBatch *batch = findBatch(state_.currentFolderOp.batchId)) {
-        batch->scanned = true;
-    }
     transitionTo(QueueState::Idle);
+
+    TransferBatch *batch = findBatch(batchId);
+    if (!batch) {
+        scheduleProcessNext();
+        return;
+    }
+    batch->scanned = true;
+
+    if (batch->isComplete()) {
+        // Nothing to transfer: completing the batch hands over to whatever is queued
+        if (batch->totalCount() == 0) {
+            emit statusMessage(tr("'%1' is empty - nothing to download").arg(batch->folderName));
+        }
+        completeBatch(batchId);
+        return;
+    }
     scheduleProcessNext();
 }
 
