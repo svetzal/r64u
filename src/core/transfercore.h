@@ -151,7 +151,9 @@ struct CompleteBatchResult
 struct CancelBatchResult
 {
     State newState;
-    bool wasActiveBatch = false;  ///< True if the cancelled batch was the active one
+    bool wasActiveBatch = false;      ///< True if the cancelled batch was the active one
+    bool stoppedQueueWork = false;    ///< True if the queue was busy with this batch's work
+    bool wasFolderOperation = false;  ///< True if the batch was the running folder operation
 };
 
 /// @brief Result of marking an item complete.
@@ -218,8 +220,12 @@ struct PurgeBatchPlan
 /// Clears batches, scanning state, folder ops, and preferences.
 [[nodiscard]] State cancelAllItems(const State &state);
 
-/// @brief Mark a specific batch's Pending/InProgress items as Failed("Cancelled").
-/// If the batch was the active batch, transitions to Idle and resets scanning state.
+/// @brief Mark a specific batch's Pending/InProgress items as Failed("Cancelled") and purge it.
+///
+/// If the queue was busy with the batch's work (its in-flight item, or the scan, directory
+/// creation or delete of its folder operation) the queue returns to Idle. Cancelling the
+/// running folder operation's batch also ends that operation, so queued folder operations
+/// can start. Work belonging to other batches is left alone.
 [[nodiscard]] CancelBatchResult cancelBatch(const State &state, int batchId);
 
 }  // namespace transfer

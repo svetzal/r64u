@@ -965,6 +965,102 @@ private slots:
         QCOMPARE(orchestrator->queuedBatchCount(), 0);
     }
 
+    // =========================================================================
+    // Cancelling a folder operation's batch hands over to the queued folders
+    // =========================================================================
+
+    void testCancelFolderBatch_WhileTransferring_QueuedFolderStillRuns()
+    {
+        mockFtp->mockSetDirectoryListing("/r/f1", {remoteFile("a")});
+        mockFtp->mockSetDirectoryListing("/r/f2", {remoteFile("b")});
+        mockFtp->mockSetDownloadData("/r/f2/b", "x");
+        QSignalSpy batchCompletedSpy(orchestrator, &TransferManager::batchCompleted);
+        QSignalSpy allDoneSpy(orchestrator, &TransferManager::allOperationsCompleted);
+        orchestrator->enqueueRecursiveDownload("/r/f1", tempDir.path());
+        orchestrator->enqueueRecursiveDownload("/r/f2", tempDir.path());
+        flushAndProcessNext();  // listing of f1; a dispatched
+
+        orchestrator->cancelBatch(orchestrator->state().batches.first().batchId);
+        flushAndProcess();
+
+        QVERIFY(QFile::exists(tempDir.path() + "/f2/b"));
+        QCOMPARE(batchCompletedSpy.count(), 1);
+        QCOMPARE(allDoneSpy.count(), 1);
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+        QCOMPARE(orchestrator->state().currentFolderOp.batchId, -1);
+    }
+
+    void testCancelFolderBatch_WhileScanning_QueuedFolderStillRuns()
+    {
+        mockFtp->mockSetDirectoryListing("/r/s1", {remoteFile("a")});
+        mockFtp->mockSetDirectoryListing("/r/s2", {remoteFile("b")});
+        mockFtp->mockSetDownloadData("/r/s2/b", "x");
+        orchestrator->enqueueRecursiveDownload("/r/s1", tempDir.path());
+        orchestrator->enqueueRecursiveDownload("/r/s2", tempDir.path());
+        orchestrator->flushEventQueue();
+        QCOMPARE(orchestrator->state().queueState, QueueState::Scanning);
+
+        orchestrator->cancelBatch(orchestrator->state().batches.first().batchId);
+        flushAndProcess();  // s1's late listing arrives first and is ignored
+
+        QVERIFY(QFile::exists(tempDir.path() + "/s2/b"));
+        QVERIFY(!mockFtp->mockGetDownloadRequests().contains("/r/s1/a"));
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+        QCOMPARE(orchestrator->state().queueState, QueueState::Idle);
+    }
+
+    void testCancelFolderBatch_ThenRequestItAgain_IsAccepted()
+    {
+        mockFtp->mockSetDirectoryListing("/r/again", {remoteFile("a")});
+        mockFtp->mockSetDownloadData("/r/again/a", "x");
+        orchestrator->enqueueRecursiveDownload("/r/again", tempDir.path());
+        orchestrator->flushEventQueue();
+        orchestrator->cancelBatch(orchestrator->state().batches.first().batchId);
+        flushAndProcess();
+
+        orchestrator->enqueueRecursiveDownload("/r/again", tempDir.path());
+        flushAndProcess();
+
+        QVERIFY(mockFtp->mockGetDownloadRequests().contains("/r/again/a"));
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+    }
+
+    void testCancelSingleBatch_WhileAFolderScans_DoesNotStopTheScan()
+    {
+        enqueueDownloads({"single"});  // active batch, not started yet
+        mockFtp->mockSetDirectoryListing("/r/scanning", {remoteFile("a")});
+        mockFtp->mockSetDownloadData("/r/scanning/a", "x");
+        orchestrator->enqueueRecursiveDownload("/r/scanning", tempDir.path());
+        QCOMPARE(orchestrator->state().queueState, QueueState::Scanning);
+
+        orchestrator->cancelBatch(orchestrator->state().batches.first().batchId);
+        flushAndProcess();
+
+        QVERIFY(mockFtp->mockGetDownloadRequests().contains("/r/scanning/a"));
+        QVERIFY(!mockFtp->mockGetDownloadRequests().contains("/r/single"));
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+    }
+
+    void testCancelAll_WithQueuedFolders_LeavesNoFolderOperationBehind()
+    {
+        mockFtp->mockSetDirectoryListing("/r/c1", {remoteFile("a")});
+        mockFtp->mockSetDirectoryListing("/r/c2", {remoteFile("b")});
+        mockFtp->mockSetDownloadData("/r/c2/b", "x");
+        orchestrator->enqueueRecursiveDownload("/r/c1", tempDir.path());
+        orchestrator->enqueueRecursiveDownload("/r/c2", tempDir.path());
+
+        orchestrator->cancelAll();
+
+        QVERIFY(orchestrator->state().pendingFolderOps.isEmpty());
+        QCOMPARE(orchestrator->state().currentFolderOp.batchId, -1);
+        QVERIFY(!orchestrator->isPathBeingTransferred("/r/c2", OperationType::Download));
+
+        flushAndProcess();  // c1's late listing is ignored
+        orchestrator->enqueueRecursiveDownload("/r/c2", tempDir.path());
+        flushAndProcess();
+        QVERIFY(QFile::exists(tempDir.path() + "/c2/b"));
+    }
+
     void testOverwriteAll_ThenCancelAll_NextDownloadStillAsks()
     {
         orchestrator->setAutoOverwrite(false);

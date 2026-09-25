@@ -160,6 +160,8 @@ private slots:
     void testCancelAllItems_clearsBatches();
 
     // cancelBatch tests
+    void testCancelBatch_ofRunningFolderOperation_endsItAndGoesIdle();
+    void testCancelBatch_ofOtherBatch_leavesRunningFolderScanAlone();
     void testCancelBatch_marksItemsAsFailed();
     void testCancelBatch_detectsActiveBatch();
     void testCancelBatch_nonExistentBatch_unchanged();
@@ -1297,6 +1299,55 @@ void TestTransferCore::testCancelBatch_activatesNextBatchAfterCancel()
     // After cancel, batch 2 should be active (now at index 0 after purge)
     QCOMPARE(result.newState.activeBatchIndex, 0);
     QCOMPARE(result.newState.batches[0].batchId, 2);
+}
+
+void TestTransferCore::testCancelBatch_ofRunningFolderOperation_endsItAndGoesIdle()
+{
+    transfer::State state = makeStateWithItem(transfer::OperationType::Download,
+                                              transfer::TransferItem::Status::Pending, 1);
+    state.queueState = transfer::QueueState::Scanning;
+    state.currentFolderOp.batchId = 1;
+    state.currentFolderOp.sourcePath = "/r/folder";
+    transfer::PendingScan scan;
+    scan.remotePath = "/r/folder/sub";
+    scan.batchId = 1;
+    state.pendingScans.enqueue(scan);
+    state.requestedListings.insert(scan.remotePath);
+
+    auto result = transfer::cancelBatch(state, 1);
+
+    QVERIFY(result.wasFolderOperation);
+    QVERIFY(result.stoppedQueueWork);
+    QCOMPARE(result.newState.queueState, transfer::QueueState::Idle);
+    QCOMPARE(result.newState.currentFolderOp.batchId, -1);
+    QVERIFY(result.newState.pendingScans.isEmpty());
+    QVERIFY(result.newState.requestedListings.isEmpty());
+}
+
+void TestTransferCore::testCancelBatch_ofOtherBatch_leavesRunningFolderScanAlone()
+{
+    transfer::State state = makeStateWithItem(transfer::OperationType::Download,
+                                              transfer::TransferItem::Status::Pending, 1);
+    state.activeBatchIndex = 0;
+    transfer::TransferBatch folderBatch;
+    folderBatch.batchId = 2;
+    state.batches.append(folderBatch);
+    state.queueState = transfer::QueueState::Scanning;
+    state.currentFolderOp.batchId = 2;
+    transfer::PendingScan scan;
+    scan.remotePath = "/r/folder";
+    scan.batchId = 2;
+    state.pendingScans.enqueue(scan);
+    state.requestedListings.insert(scan.remotePath);
+
+    auto result = transfer::cancelBatch(state, 1);
+
+    QVERIFY(result.wasActiveBatch);
+    QVERIFY(!result.stoppedQueueWork);
+    QCOMPARE(result.newState.queueState, transfer::QueueState::Scanning);
+    QCOMPARE(result.newState.currentFolderOp.batchId, 2);
+    QCOMPARE(result.newState.pendingScans.size(), 1);
+    QVERIFY(result.newState.requestedListings.contains("/r/folder"));
 }
 
 // ---------------------------------------------------------------------------

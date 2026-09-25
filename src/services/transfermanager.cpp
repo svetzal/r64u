@@ -403,22 +403,24 @@ void TransferManager::cancelBatch(int batchId)
         return;
     }
 
-    bool isActive = (batchIdx == state_.activeBatchIndex);
-    if (isActive) {
-        if (transfer::shouldAbortFtp(state_.queueState)) {
-            abortActiveFtpOperation();
-        }
-        stopOperationTimeout();
-    }
+    const QueueState stateBefore = state_.queueState;
 
     // Cancelling purges the batch's rows (not necessarily contiguous) from the model
     emit modelAboutToReset();
     auto result = transfer::cancelBatch(state_, batchId);
     state_ = result.newState;
     emit modelReset();
+
+    if (result.stoppedQueueWork) {
+        // Settled first: nothing the client reports for the aborted request is ours any more
+        stopOperationTimeout();
+        if (transfer::shouldAbortFtp(stateBefore)) {
+            abortActiveFtpOperation();
+        }
+    }
     emit queueChanged();
 
-    if (result.wasActiveBatch) {
+    if (transfer::canProcessNext(state_.queueState)) {
         scheduleProcessNext();
     }
 }

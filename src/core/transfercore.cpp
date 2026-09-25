@@ -460,6 +460,47 @@ State removeCompleted(const State &state)
     return result;
 }
 
+namespace {
+
+/// Drops everything the running folder operation still had to do (scan, mkdir, delete).
+void dropFolderOperationWork(State &state)
+{
+    state.pendingScans.clear();
+    state.requestedListings.clear();
+    state.pendingDeleteScans.clear();
+    state.requestedDeleteListings.clear();
+    state.pendingMkdirs.clear();
+    state.deleteQueue.clear();
+    state.deletedCount = 0;
+    state.recursiveDeleteBase.clear();
+    state.pendingUploadAfterDelete = false;
+    state.currentFolderOp = PendingFolderOp();
+}
+
+/// Returns true if what the queue is busy with right now belongs to @p batchId.
+bool queueWorkBelongsToBatch(const State &state, int batchId)
+{
+    switch (state.queueState) {
+    case QueueState::Scanning:
+    case QueueState::CreatingDirectories:
+    case QueueState::Deleting:
+        return state.currentFolderOp.batchId == batchId;
+    case QueueState::Transferring:
+    case QueueState::CheckingUploadTarget:
+    case QueueState::AwaitingFileConfirm:
+        return state.currentIndex >= 0 && state.currentIndex < state.items.size() &&
+               state.items[state.currentIndex].batchId == batchId;
+    case QueueState::Idle:
+    case QueueState::CollectingItems:
+    case QueueState::AwaitingFolderConfirm:
+    case QueueState::BatchComplete:
+        return false;
+    }
+    return false;
+}
+
+}  // namespace
+
 State cancelAllItems(const State &state)
 {
     State result = state;
@@ -476,19 +517,12 @@ State cancelAllItems(const State &state)
     result.batches.clear();
     result.activeBatchIndex = -1;
 
-    result.pendingScans.clear();
-    result.requestedListings.clear();
-    result.pendingMkdirs.clear();
-    result.pendingDeleteScans.clear();
-    result.requestedDeleteListings.clear();
-    result.deleteQueue.clear();
-    result.deletedCount = 0;
+    dropFolderOperationWork(result);
     result.requestedUploadFileCheckListings.clear();
     result.requestedFolderCheckListings.clear();
 
     result.pendingConfirmation.clear();
     result.pendingFolderOps.clear();
-    result.currentFolderOp = PendingFolderOp();
     result.replaceExisting = false;
     result.overwriteAllBatchId = -1;
 
@@ -507,35 +541,28 @@ CancelBatchResult cancelBatch(const State &state, int batchId)
         return result;
     }
 
-    result.wasActiveBatch = (batchIdx == result.newState.activeBatchIndex);
+    State &next = result.newState;
+    result.wasActiveBatch = (batchIdx == next.activeBatchIndex);
+    result.stoppedQueueWork = queueWorkBelongsToBatch(next, batchId);
+    result.wasFolderOperation = (next.currentFolderOp.batchId == batchId);
 
-    if (result.wasActiveBatch) {
-        result.newState.currentIndex = -1;
-
-        if (result.newState.queueState == QueueState::Scanning) {
-            result.newState.pendingScans.clear();
-            result.newState.pendingDeleteScans.clear();
-            result.newState.requestedListings.clear();
-            result.newState.requestedDeleteListings.clear();
+    if (result.stoppedQueueWork) {
+        if (next.queueState == QueueState::CheckingUploadTarget) {
+            next.requestedUploadFileCheckListings.clear();
         }
-
-        if (result.newState.queueState == QueueState::CreatingDirectories) {
-            result.newState.pendingMkdirs.clear();
+        if (next.queueState == QueueState::AwaitingFileConfirm) {
+            next.pendingConfirmation.clear();
         }
-
-        if (result.newState.queueState == QueueState::CheckingUploadTarget) {
-            result.newState.requestedUploadFileCheckListings.clear();
-        }
-
-        if (result.newState.queueState == QueueState::Deleting) {
-            result.newState.deleteQueue.clear();
-            result.newState.deletedCount = 0;
-        }
-
-        result.newState.queueState = QueueState::Idle;
+        next.currentIndex = -1;
+        next.queueState = QueueState::Idle;
     }
 
-    for (auto &item : result.newState.items) {
+    if (result.wasFolderOperation) {
+        // Queued folder operations may start once this one is gone
+        dropFolderOperationWork(next);
+    }
+
+    for (auto &item : next.items) {
         if (item.batchId == batchId && (item.status == TransferItem::Status::Pending ||
                                         item.status == TransferItem::Status::InProgress)) {
             item.status = TransferItem::Status::Failed;
@@ -543,13 +570,13 @@ CancelBatchResult cancelBatch(const State &state, int batchId)
         }
     }
 
-    result.newState = purgeBatch(result.newState, batchId);
-    if (result.newState.overwriteAllBatchId == batchId) {
-        result.newState.overwriteAllBatchId = -1;
+    next = purgeBatch(next, batchId);
+    if (next.overwriteAllBatchId == batchId) {
+        next.overwriteAllBatchId = -1;
     }
 
     if (result.wasActiveBatch) {
-        result.newState = activateNextBatch(result.newState);
+        next = activateNextBatch(next);
     }
 
     return result;
