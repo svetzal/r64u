@@ -368,12 +368,11 @@ void TransferManager::cancelBatch(int batchId)
         stopOperationTimeout();
     }
 
+    // Cancelling purges the batch's rows (not necessarily contiguous) from the model
+    emit modelAboutToReset();
     auto result = transfer::cancelBatch(state_, batchId);
     state_ = result.newState;
-
-    for (int i = 0; i < state_.items.size(); ++i) {
-        emit itemDataChanged(i);
-    }
+    emit modelReset();
     emit queueChanged();
 
     if (result.wasActiveBatch) {

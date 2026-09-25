@@ -1,6 +1,7 @@
 #include "mocks/mockftpclient.h"
 #include "models/transferqueue.h"
 
+#include <QAbstractItemModelTester>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QtTest>
@@ -2589,6 +2590,27 @@ private slots:
         for (int i = 0; i < 3; ++i) {
             QVERIFY(QFile::exists(tempDir.path() + QString("/testfolder/file%1.txt").arg(i)));
         }
+    }
+
+    void testCancelBatch_NotifiesViewsOfTheRemovedRows()
+    {
+        QAbstractItemModelTester tester(queue,
+                                        QAbstractItemModelTester::FailureReportingMode::QtTest);
+        queue->enqueueDownload("/remote/keep.prg", tempDir.path() + "/keep.prg");
+        queue->flushEventQueue();  // keep.prg in flight
+        queue->enqueueUpload(tempDir.path() + "/cancel.prg", "/remote/cancel.prg");
+        const QList<int> batchIds = queue->allBatchIds();
+        QCOMPARE(batchIds.size(), 2);
+        QCOMPARE(queue->rowCount(), 2);
+        QSignalSpy removedSpy(queue, &QAbstractItemModel::rowsRemoved);
+        QSignalSpy resetSpy(queue, &QAbstractItemModel::modelReset);
+
+        queue->cancelBatch(batchIds.last());
+
+        QCOMPARE(queue->rowCount(), 1);
+        QVERIFY(removedSpy.count() + resetSpy.count() > 0);
+        QCOMPARE(queue->data(queue->index(0), TransferQueue::RemotePathRole).toString(),
+                 QString("/remote/keep.prg"));
     }
 };
 
