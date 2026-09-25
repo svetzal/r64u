@@ -143,7 +143,9 @@ void FolderOperationCoordinator::onFolderOperationComplete()
     // All folders done
     qCDebug(LogTransfer) << "FolderOperationCoordinator: All folder operations complete";
     state_.replaceExisting = false;
-    emit allOperationsCompleted();
+    if (transfer::queuedBatchCount(state_) == 0) {
+        emit allOperationsCompleted();
+    }
 }
 
 void FolderOperationCoordinator::onDebounceTimeout()

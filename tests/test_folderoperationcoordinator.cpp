@@ -127,6 +127,22 @@ private slots:
         QCOMPARE(state_.replaceExisting, false);
     }
 
+    void testOnFolderOperationComplete_otherBatchStillQueued_doesNotEmitAllOperationsCompleted()
+    {
+        transfer::TransferBatch queuedUpload;
+        queuedUpload.batchId = 9;
+        transfer::TransferItem item;
+        item.batchId = 9;
+        queuedUpload.items.append(item);
+        state_.batches.append(queuedUpload);
+
+        QSignalSpy spy(coordinator, &FolderOperationCoordinator::allOperationsCompleted);
+
+        coordinator->onFolderOperationComplete();
+
+        QCOMPARE(spy.count(), 0);
+    }
+
     void testOnFolderOperationComplete_morePending_emitsStartDownloadScanNotAllCompleted()
     {
         mockFs->mockSetDirectoryExists("/local/target/dir2", false);

@@ -62,7 +62,10 @@ void BatchManager::completeBatch(int batchId)
     emit batchCompleted(batchId);
 
     if (result.isFolderOperation) {
-        emit folderOpCompleteRequested();
+        emit folderOpCompleteRequested();  // starts the next queued folder operation, if any
+        if (state_.currentFolderOp.batchId < 0) {
+            resumeRemainingBatches();
+        }
         return;
     }
 
@@ -80,6 +83,16 @@ void BatchManager::completeBatch(int batchId)
         qCDebug(LogTransfer) << "BatchManager: All batches complete";
         emit allOperationsCompleted();
     } else if (state_.activeBatchIndex >= 0) {
+        emit scheduleProcessNextRequested();
+    }
+}
+
+void BatchManager::resumeRemainingBatches()
+{
+    // Batches queued behind a folder operation (e.g. a single upload) take over
+    // however the folder batch ended: success, failure or skip.
+    activateNextBatch();
+    if (state_.activeBatchIndex >= 0) {
         emit scheduleProcessNextRequested();
     }
 }

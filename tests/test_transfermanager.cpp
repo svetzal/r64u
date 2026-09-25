@@ -50,6 +50,25 @@ private:
         return timer && timer->isActive();
     }
 
+    [[nodiscard]] static FtpEntry remoteFile(const QString &name)
+    {
+        FtpEntry entry;
+        entry.name = name;
+        entry.isDirectory = false;
+        return entry;
+    }
+
+    [[nodiscard]] QString createLocalFile(const QString &relativePath)
+    {
+        const QString path = tempDir.path() + "/" + relativePath;
+        QDir().mkpath(QFileInfo(path).absolutePath());
+        QFile file(path);
+        if (file.open(QIODevice::WriteOnly)) {
+            file.write("local");
+        }
+        return path;
+    }
+
     void fireOperationTimeout()
     {
         auto *timeout = orchestrator->findChild<TransferTimeoutManager *>();
@@ -622,6 +641,64 @@ private slots:
 
         QCOMPARE(itemStatus(0), Status::Completed);
         QCOMPARE(itemStatus(1), Status::Completed);
+    }
+
+    // =========================================================================
+    // A folder batch ending in a failure or skip hands over to the next batch
+    // =========================================================================
+
+    void testFolderBatch_LastItemFails_QueuedUploadStillRuns()
+    {
+        mockFtp->mockSetDirectoryListing("/r/fail-folder", {remoteFile("a")});
+        const QString upload = createLocalFile("queued-after-fail.prg");
+        orchestrator->enqueueRecursiveDownload("/r/fail-folder", tempDir.path());
+        orchestrator->flushEventQueue();
+        mockFtp->mockProcessNextOperation();  // listing
+        orchestrator->flushEventQueue();      // download of a dispatched
+        orchestrator->enqueueUpload(upload, "/r/queued-after-fail.prg");
+
+        mockFtp->mockSetNextOperationFails("550 Permission denied");
+        mockFtp->mockProcessNextOperation();
+        flushAndProcess();
+
+        QCOMPARE(mockFtp->mockGetUploadRequests(), QStringList{upload});
+    }
+
+    void testFolderBatch_LastItemSkipped_QueuedUploadStillRuns()
+    {
+        orchestrator->setAutoOverwrite(false);
+        mockFtp->mockSetDirectoryListing("/r/skip-folder", {remoteFile("s")});
+        createLocalFile("skip-folder/s");  // triggers the overwrite prompt
+        const QString upload = createLocalFile("queued-after-skip.prg");
+        orchestrator->enqueueRecursiveDownload("/r/skip-folder", tempDir.path());
+        orchestrator->flushEventQueue();
+        mockFtp->mockProcessNextOperation();  // listing
+        orchestrator->flushEventQueue();
+        QCOMPARE(orchestrator->state().queueState, QueueState::AwaitingFileConfirm);
+        orchestrator->enqueueUpload(upload, "/r/queued-after-skip.prg");
+
+        orchestrator->respondToOverwrite(OverwriteResponse::Skip);
+        flushAndProcess();
+
+        QCOMPARE(mockFtp->mockGetUploadRequests(), QStringList{upload});
+    }
+
+    void testFolderBatch_LastItemFails_AllOperationsCompletedOnlyAfterQueuedUpload()
+    {
+        mockFtp->mockSetDirectoryListing("/r/fail-folder-2", {remoteFile("a")});
+        const QString upload = createLocalFile("queued-after-fail-2.prg");
+        orchestrator->enqueueRecursiveDownload("/r/fail-folder-2", tempDir.path());
+        orchestrator->flushEventQueue();
+        mockFtp->mockProcessNextOperation();
+        orchestrator->flushEventQueue();
+        orchestrator->enqueueUpload(upload, "/r/queued-after-fail-2.prg");
+        QSignalSpy allDoneSpy(orchestrator, &TransferManager::allOperationsCompleted);
+
+        mockFtp->mockSetNextOperationFails("550 Permission denied");
+        mockFtp->mockProcessNextOperation();
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(allDoneSpy.count(), 0);
     }
 };
 

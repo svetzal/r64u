@@ -77,6 +77,9 @@ signals:
     void scheduleProcessNextRequested();
 
 private:
+    /// Activates the next batch with pending items and schedules it, if there is one.
+    void resumeRemainingBatches();
+
     transfer::State &state_;
 
     RowRangeCallback beginRemoveCb_;
