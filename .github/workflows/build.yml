@@ -7,6 +7,13 @@ on:
   pull_request:
     branches: [main]
 
+# A newer push to the same branch supersedes older runs, so cancel them rather
+# than letting them hold scarce (macOS) runners. Tag builds publish releases
+# and are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
 env:
   QT_VERSION: '6.11.2'
   BUILD_TYPE: Release
