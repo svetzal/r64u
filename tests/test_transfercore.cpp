@@ -80,10 +80,6 @@ private slots:
     void testFindBatchIndex_found();
     void testFindBatchIndex_notFound();
 
-    // findItemIndex tests
-    void testFindItemIndex_found();
-    void testFindItemIndex_notFound();
-
     // findNextPendingItem tests
     void testFindNextPendingItem_found();
     void testFindNextPendingItem_skipNonPending();
@@ -521,26 +517,6 @@ void TestTransferCore::testFindBatchIndex_notFound()
 {
     transfer::State state;
     QCOMPARE(transfer::findBatchIndex(state, 99), -1);
-}
-
-// ---------------------------------------------------------------------------
-// findItemIndex tests
-// ---------------------------------------------------------------------------
-
-void TestTransferCore::testFindItemIndex_found()
-{
-    transfer::State state;
-    transfer::TransferItem item;
-    item.localPath = "/local/file.txt";
-    item.remotePath = "/remote/file.txt";
-    state.items.append(item);
-    QCOMPARE(transfer::findItemIndex(state, "/local/file.txt", "/remote/file.txt"), 0);
-}
-
-void TestTransferCore::testFindItemIndex_notFound()
-{
-    transfer::State state;
-    QCOMPARE(transfer::findItemIndex(state, "/local/x.txt", "/remote/x.txt"), -1);
 }
 
 // ---------------------------------------------------------------------------

@@ -75,6 +75,12 @@ bool isInFlightItem(const State &state, OperationType type, const QString &remot
     return type == OperationType::Delete || item.localPath == localPath;
 }
 
+int inFlightItemIndex(const State &state, OperationType type, const QString &remotePath,
+                      const QString &localPath)
+{
+    return isInFlightItem(state, type, remotePath, localPath) ? state.currentIndex : -1;
+}
+
 int inFlightDownloadIndex(const State &state, const QString &remotePath)
 {
     if (state.currentIndex < 0 || state.currentIndex >= state.items.size()) {

@@ -318,11 +318,6 @@ TransferBatch *TransferManager::activeBatch()
     return batchManager_->activeBatch();
 }
 
-int TransferManager::findItemIndex(const QString &localPath, const QString &remotePath) const
-{
-    return transfer::findItemIndex(state_, localPath, remotePath);
-}
-
 // ============================================================================
 // Queue operations
 // ============================================================================

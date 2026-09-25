@@ -224,6 +224,20 @@ private slots:
                                           "/local/a.prg"));
     }
 
+    void testInFlightItemIndex_ignoresEarlierRowsWithTheSamePaths()
+    {
+        auto state = stateWithInFlight(transfer::OperationType::Download);
+        state.items[0].status = transfer::TransferItem::Status::Failed;  // cancelled earlier
+        transfer::TransferItem again = state.items[0];
+        again.status = transfer::TransferItem::Status::InProgress;
+        state.items.append(again);
+        state.currentIndex = 1;
+
+        QCOMPARE(transfer::inFlightItemIndex(state, transfer::OperationType::Download,
+                                             "/remote/a.prg", "/local/a.prg"),
+                 1);
+    }
+
     void testInFlightDownloadIndex_matchesRemotePathOnly()
     {
         auto state = stateWithInFlight(transfer::OperationType::Download);

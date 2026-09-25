@@ -62,11 +62,19 @@ struct FindDeleteItemResult
 
 /// @brief Returns true if the item the queue dispatched last is in flight and matches
 ///        the given operation.
+///
+/// Only the dispatched item qualifies: earlier rows with the same paths (cancelled,
+/// failed or already completed, or the same file queued twice) never match.
 /// @param type Operation type of the FTP request (Download, Upload or Delete).
 /// @param remotePath Remote path of the request.
 /// @param localPath Local path of the request; ignored for Delete.
 [[nodiscard]] bool isInFlightItem(const State &state, OperationType type, const QString &remotePath,
                                   const QString &localPath);
+
+/// @brief Index of the in-flight item matching the given operation (see isInFlightItem()),
+///        or -1 if the request is not the one the queue is waiting for.
+[[nodiscard]] int inFlightItemIndex(const State &state, OperationType type,
+                                    const QString &remotePath, const QString &localPath);
 
 /// @brief Index of the in-flight download of @p remotePath, or -1 if there is none.
 [[nodiscard]] int inFlightDownloadIndex(const State &state, const QString &remotePath);

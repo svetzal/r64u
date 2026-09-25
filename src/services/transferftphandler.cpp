@@ -85,9 +85,10 @@ void TransferFtpHandler::onUploadProgress(const QString &file, qint64 sent, qint
 
 void TransferFtpHandler::onUploadFinished(const QString &localPath, const QString &remotePath)
 {
-    int idx = transfer::findItemIndex(state_, localPath, remotePath);
+    const int idx =
+        transfer::inFlightItemIndex(state_, transfer::OperationType::Upload, remotePath, localPath);
     if (idx < 0) {
-        return;  // Not one of the queue's uploads
+        return;  // Not the upload the queue is waiting for
     }
     stopTimeout();
 
@@ -113,9 +114,10 @@ void TransferFtpHandler::onDownloadProgress(const QString &file, qint64 received
 
 void TransferFtpHandler::onDownloadFinished(const QString &remotePath, const QString &localPath)
 {
-    int idx = transfer::findItemIndex(state_, localPath, remotePath);
+    const int idx = transfer::inFlightItemIndex(state_, transfer::OperationType::Download,
+                                                remotePath, localPath);
     if (idx < 0) {
-        return;  // Not one of the queue's downloads
+        return;  // Not the download the queue is waiting for
     }
     stopTimeout();
 

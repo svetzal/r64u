@@ -376,6 +376,41 @@ private slots:
         QCOMPARE(orchestrator->state().queueState, QueueState::Transferring);
         QCOMPARE(mockFtp->mockGetDownloadRequests(), QStringList{"/r/a"});
     }
+
+    // =========================================================================
+    // Completions are matched to the item in flight, not the first path match
+    // =========================================================================
+
+    void testRedownloadAfterCancelAll_CompletesTheNewRow()
+    {
+        enqueueDownloads({"a"});
+        orchestrator->flushEventQueue();
+        orchestrator->cancelAll();
+        QSignalSpy batchCompletedSpy(orchestrator, &TransferManager::batchCompleted);
+
+        enqueueDownloads({"a"});
+        flushAndProcess();
+
+        QCOMPARE(orchestrator->state().items.size(), 2);
+        QCOMPARE(itemStatus(0), Status::Failed);
+        QCOMPARE(orchestrator->state().items.at(0).errorMessage, QString("Cancelled"));
+        QCOMPARE(itemStatus(1), Status::Completed);
+        QCOMPARE(batchCompletedSpy.count(), 1);
+    }
+
+    void testSameFileQueuedTwice_EachRowCompletesOnce()
+    {
+        QSignalSpy progressSpy(orchestrator, &TransferManager::batchProgressUpdate);
+        enqueueDownloads({"a", "a"});
+
+        flushAndProcess();
+
+        QCOMPARE(itemStatus(0), Status::Completed);
+        QCOMPARE(itemStatus(1), Status::Completed);
+        QVERIFY(!progressSpy.isEmpty());
+        QCOMPARE(progressSpy.last().at(1).toInt(), 2);  // completed
+        QCOMPARE(progressSpy.last().at(2).toInt(), 2);  // total
+    }
 };
 
 QTEST_MAIN(TestTransferManager)

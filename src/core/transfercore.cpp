@@ -91,15 +91,6 @@ int findBatchIndex(const State &state, int batchId)
     return -1;
 }
 
-int findItemIndex(const State &state, const QString &localPath, const QString &remotePath)
-{
-    for (int i = 0; i < state.items.size(); ++i) {
-        if (state.items[i].localPath == localPath && state.items[i].remotePath == remotePath)
-            return i;
-    }
-    return -1;
-}
-
 int findNextPendingItem(const State &state)
 {
     for (int i = 0; i < state.items.size(); ++i) {

@@ -180,7 +180,6 @@ private:
     void completeBatch(int batchId);
     void purgeBatch(int batchId);
     [[nodiscard]] TransferBatch *activeBatch();
-    [[nodiscard]] int findItemIndex(const QString &localPath, const QString &remotePath) const;
     void emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
                                       bool includeFailed = false);
 

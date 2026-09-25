@@ -60,10 +60,6 @@ namespace transfer {
 /// @brief Find a batch index by batchId. Returns -1 if not found.
 [[nodiscard]] int findBatchIndex(const State &state, int batchId);
 
-/// @brief Find an item index by local and remote path. Returns -1 if not found.
-[[nodiscard]] int findItemIndex(const State &state, const QString &localPath,
-                                const QString &remotePath);
-
 /// @brief Find the index of the next pending item. Returns -1 if none.
 [[nodiscard]] int findNextPendingItem(const State &state);
 

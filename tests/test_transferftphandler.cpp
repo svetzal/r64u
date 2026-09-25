@@ -315,7 +315,8 @@ private slots:
 
     void testStopTimeout_nullTimeoutManager_doesNotCrash()
     {
-        // handler has no timeout manager set
+        // Only the handler under test may complete the shared in-flight item
+        handler->setFtpClient(nullptr);
         TransferFtpHandler handlerNoTimeout(state_, this);
         handlerNoTimeout.setFtpClient(mockFtp);
         // No setTimeoutManager() call — timeoutManager_ stays null
