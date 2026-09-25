@@ -227,7 +227,7 @@ void TransferPanel::onUploadRequested(const QString &localPath, bool isDirectory
     }
 }
 
-void TransferPanel::onDownloadRequested(const QString &remotePath, bool isDirectory)
+void TransferPanel::onDownloadRequested(const QString &remotePath, bool isDirectory, qint64 size)
 {
     if (!transferService_ || !localBrowser_) {
         qCDebug(LogUi) << "onDownloadRequested: transferService_ or localBrowser_ is null, "
@@ -244,7 +244,7 @@ void TransferPanel::onDownloadRequested(const QString &remotePath, bool isDirect
                 ErrorCategory::Connection, ErrorSeverity::Warning, tr("Download not started"),
                 tr("Cannot download %1: not connected to device").arg(remotePath));
     } else {
-        if (!transferService_->downloadFile(remotePath, downloadDir))
+        if (!transferService_->downloadFile(remotePath, downloadDir, size))
             errorHandler_->handleError(
                 ErrorCategory::Connection, ErrorSeverity::Warning, tr("Download not started"),
                 tr("Cannot download %1: not connected to device").arg(remotePath));

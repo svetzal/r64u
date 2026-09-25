@@ -52,7 +52,7 @@ signals:
 private slots:
     void onConnectionStateChanged();
     void onUploadRequested(const QString &localPath, bool isDirectory);
-    void onDownloadRequested(const QString &remotePath, bool isDirectory);
+    void onDownloadRequested(const QString &remotePath, bool isDirectory, qint64 size = 0);
     void onDeleteRequested(const QString &remotePath, bool isDirectory);
     /// Ends the auto-refresh suppression held while the queue worked, and refreshes once.
     void resumeRemoteRefresh();

@@ -230,6 +230,14 @@ bool RemoteFileBrowserWidget::isDirectory(const QModelIndex &index) const
     return remoteFileModel_->isDirectory(index);
 }
 
+qint64 RemoteFileBrowserWidget::fileSize(const QModelIndex &index) const
+{
+    if (!remoteFileModel_ || !index.isValid()) {
+        return 0;
+    }
+    return remoteFileModel_->fileSize(index);
+}
+
 void RemoteFileBrowserWidget::navigateToDirectory(const QString &path)
 {
     setCurrentDirectory(path);
@@ -309,7 +317,7 @@ void RemoteFileBrowserWidget::onDownload()
     }
 
     for (const auto &e : entries) {
-        emit downloadRequested(e.path, e.isDirectory);
+        emit downloadRequested(e.path, e.isDirectory, e.size);
     }
 }
 

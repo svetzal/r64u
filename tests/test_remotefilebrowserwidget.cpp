@@ -22,6 +22,7 @@
 #include "ui/remotefilebrowserwidget.h"
 
 #include <QSignalSpy>
+#include <QTreeView>
 #include <QtTest>
 
 class TestRemoteFileBrowserWidget : public QObject
@@ -215,6 +216,33 @@ private slots:
         auto entries = widget.selectedEntries();
         QVERIFY(entries.isEmpty());
         QVERIFY(widget.selectedPaths().isEmpty());
+    }
+
+    // =========================================================================
+    // onDownload() — the file's listed size goes with the request
+    // =========================================================================
+
+    void testDownload_SelectedFile_RequestCarriesItsListedSize()
+    {
+        FtpEntry reu;
+        reu.name = "big.reu";
+        reu.size = 16777216;
+        mockFtp_->mockSetConnected(true);
+        mockFtp_->mockSetDirectoryListing("/SD", {reu});
+        model_->setFtpClient(mockFtp_);
+        model_->setRootPath("/SD");
+        model_->fetchMore(QModelIndex());
+        mockFtp_->mockProcessAllOperations();
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
+        widget.findChild<QTreeView *>()->selectionModel()->select(
+            model_->index(0, 0), QItemSelectionModel::Select | QItemSelectionModel::Rows);
+        QSignalSpy spy(&widget, &RemoteFileBrowserWidget::downloadRequested);
+
+        QMetaObject::invokeMethod(&widget, "onDownload");
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.first().at(0).toString(), QString("/SD/big.reu"));
+        QCOMPARE(spy.first().at(2).toLongLong(), qint64(16777216));
     }
 
     // =========================================================================

@@ -47,8 +47,9 @@ public:
 
     // Queue operations
     void enqueueUpload(const QString &localPath, const QString &remotePath, int targetBatchId = -1);
+    /// @p expectedSize is the file's size in bytes if known (e.g. from a listing), else 0.
     void enqueueDownload(const QString &remotePath, const QString &localPath,
-                         int targetBatchId = -1);
+                         int targetBatchId = -1, qint64 expectedSize = 0);
 
     // Recursive operations
     void enqueueRecursiveUpload(const QString &localDir, const QString &remoteDir);

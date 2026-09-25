@@ -145,7 +145,8 @@ bool TransferService::uploadDirectory(const QString & /*localDir*/, const QStrin
 {
     return false;
 }
-bool TransferService::downloadFile(const QString & /*remotePath*/, const QString & /*localDir*/)
+bool TransferService::downloadFile(const QString & /*remotePath*/, const QString & /*localDir*/,
+                                   qint64 /*expectedSize*/)
 {
     return false;
 }

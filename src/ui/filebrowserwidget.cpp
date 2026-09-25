@@ -115,7 +115,7 @@ QList<FileBrowserWidget::SelectedEntry> FileBrowserWidget::selectedEntries() con
         QString path = filePath(index);
         if (!path.isEmpty() && !seenPaths.contains(path)) {
             seenPaths.insert(path);
-            entries.append({path, isDirectory(index)});
+            entries.append({path, isDirectory(index), fileSize(index)});
         }
     }
 

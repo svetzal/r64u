@@ -73,9 +73,9 @@ void TransferQueue::enqueueUpload(const QString &localPath, const QString &remot
 }
 
 void TransferQueue::enqueueDownload(const QString &remotePath, const QString &localPath,
-                                    int targetBatchId)
+                                    int targetBatchId, qint64 expectedSize)
 {
-    orchestrator_->enqueueDownload(remotePath, localPath, targetBatchId);
+    orchestrator_->enqueueDownload(remotePath, localPath, targetBatchId, expectedSize);
 }
 
 void TransferQueue::enqueueRecursiveUpload(const QString &localDir, const QString &remoteDir)

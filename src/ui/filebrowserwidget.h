@@ -67,19 +67,20 @@ public:
     [[nodiscard]] virtual QString selectedPath() const = 0;
 
     /**
-     * @brief A selected file system entry with its path and directory flag.
+     * @brief A selected file system entry with its path, directory flag and size.
      */
     struct SelectedEntry
     {
         QString path;
         bool isDirectory;
+        qint64 size = 0;  ///< Size in bytes, 0 if unknown or a directory
     };
 
     /**
-     * @brief Returns all selected items with their path and directory flag.
+     * @brief Returns all selected items with their path, directory flag and size.
      *
-     * Filters to column 0 only and deduplicates, using the virtual filePath()
-     * and isDirectory() methods to populate each entry.
+     * Filters to column 0 only and deduplicates, using the virtual filePath(),
+     * isDirectory() and fileSize() methods to populate each entry.
      *
      * @return List of selected entries.
      */
@@ -250,6 +251,13 @@ protected:
      * @return true if directory, false otherwise.
      */
     [[nodiscard]] virtual bool isDirectory(const QModelIndex &index) const = 0;
+
+    /**
+     * @brief Returns the size of the file at a model index.
+     * @param index The model index.
+     * @return Size in bytes, or 0 if not known (the default).
+     */
+    [[nodiscard]] virtual qint64 fileSize(const QModelIndex & /*index*/) const { return 0; }
 
     /**
      * @brief Navigates to a directory.

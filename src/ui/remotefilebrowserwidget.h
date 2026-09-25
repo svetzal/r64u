@@ -63,6 +63,7 @@ protected:
     [[nodiscard]] QAbstractItemModel *model() const override;
     [[nodiscard]] QString filePath(const QModelIndex &index) const override;
     [[nodiscard]] bool isDirectory(const QModelIndex &index) const override;
+    [[nodiscard]] qint64 fileSize(const QModelIndex &index) const override;
     void navigateToDirectory(const QString &path) override;
 
 protected:
@@ -76,7 +77,8 @@ protected slots:
     void onContextMenu(const QPoint &pos) override;
 
 signals:
-    void downloadRequested(const QString &remotePath, bool isDirectory);
+    /// @p size is the file's listed size in bytes (0 for a directory or if unknown).
+    void downloadRequested(const QString &remotePath, bool isDirectory, qint64 size);
     void deleteRequested(const QString &remotePath, bool isDirectory);
     void createFolderRequested(const QString &path);
     void renameRequested(const QString &oldPath, const QString &newPath);

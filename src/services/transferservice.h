@@ -76,9 +76,10 @@ public:
      * @brief Downloads a single file from the remote device.
      * @param remotePath Path to the remote file.
      * @param localDir Local directory to download to.
+     * @param expectedSize The file's size in bytes if known (e.g. from a listing), else 0.
      * @return True if the operation was queued, false if not connected.
      */
-    bool downloadFile(const QString &remotePath, const QString &localDir);
+    bool downloadFile(const QString &remotePath, const QString &localDir, qint64 expectedSize = 0);
 
     /**
      * @brief Recursively downloads a directory from the remote device.

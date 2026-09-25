@@ -84,14 +84,15 @@ bool TransferService::uploadDirectory(const QString &localDir, const QString &re
     return true;
 }
 
-bool TransferService::downloadFile(const QString &remotePath, const QString &localDir)
+bool TransferService::downloadFile(const QString &remotePath, const QString &localDir,
+                                   qint64 expectedSize)
 {
     if (!requiresConnection(remotePath))
         return false;
 
     QString fileName = QFileInfo(remotePath).fileName();
     QString localPath = localDir + "/" + fileName;
-    queue_->enqueueDownload(remotePath, localPath);
+    queue_->enqueueDownload(remotePath, localPath, -1, expectedSize);
     emit statusMessage(tr("Queued download: %1 -> %2").arg(fileName, localDir));
     return true;
 }
