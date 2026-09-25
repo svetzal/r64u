@@ -61,15 +61,20 @@ FindDeleteItemResult findInProgressDeleteItem(const State &state, const QString 
     return result;
 }
 
+bool hasInFlightItem(const State &state)
+{
+    return state.currentIndex >= 0 && state.currentIndex < state.items.size() &&
+           state.items[state.currentIndex].status == TransferItem::Status::InProgress;
+}
+
 bool isInFlightItem(const State &state, OperationType type, const QString &remotePath,
                     const QString &localPath)
 {
-    if (state.currentIndex < 0 || state.currentIndex >= state.items.size()) {
+    if (!hasInFlightItem(state)) {
         return false;
     }
     const TransferItem &item = state.items[state.currentIndex];
-    if (item.status != TransferItem::Status::InProgress || item.operationType != type ||
-        item.remotePath != remotePath) {
+    if (item.operationType != type || item.remotePath != remotePath) {
         return false;
     }
     return type == OperationType::Delete || item.localPath == localPath;

@@ -550,6 +550,79 @@ private slots:
         emit mockFtp->uploadProgress(localPath, 2, 4);
         QVERIFY(timeoutArmed());
     }
+
+    // =========================================================================
+    // Disconnect / reconnect
+    // =========================================================================
+
+    void testDisconnect_FailsTheInFlightItemOnceAndGoesIdle()
+    {
+        enqueueDownloads({"a", "b"});
+        orchestrator->flushEventQueue();  // a in flight
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+
+        mockFtp->mockSimulateDisconnect();
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(itemStatus(0), Status::Failed);
+        QCOMPARE(itemStatus(1), Status::Pending);
+        QCOMPARE(orchestrator->state().queueState, QueueState::Idle);
+        QCOMPARE(failedSpy.count(), 1);
+        QVERIFY(!timeoutArmed());
+    }
+
+    void testReconnect_ResumesPendingItems()
+    {
+        enqueueDownloads({"a", "b"});
+        orchestrator->flushEventQueue();
+        mockFtp->mockSimulateDisconnect();
+        orchestrator->flushEventQueue();
+        mockFtp->mockReset();  // the real client drops its queue on disconnect
+        mockFtp->mockSetDownloadData("/r/b", "x");
+
+        mockFtp->mockSimulateConnect();
+        flushAndProcess();
+
+        QCOMPARE(itemStatus(1), Status::Completed);
+    }
+
+    void testEnqueue_AfterReconnect_RunsDespiteStaleActiveBatch()
+    {
+        enqueueDownloads({"a", "b"});
+        orchestrator->flushEventQueue();
+        mockFtp->mockSetNextOperationFails("Connection lost");
+        mockFtp->mockSimulateDisconnect();
+        mockFtp->mockProcessNextOperation();
+        orchestrator->flushEventQueue();
+        mockFtp->mockSetConnected(true);
+
+        enqueueDownloads({"c"});
+        flushAndProcess();
+
+        QCOMPARE(itemStatus(1), Status::Completed);
+        QCOMPARE(itemStatus(2), Status::Completed);
+    }
+
+    void testEnqueue_IntoActiveBatchWithNothingRunning_StartsTheQueue()
+    {
+        // The download cannot start while the client is not connected
+        mockFtp->mockSetConnected(false);
+        enqueueDownloads({"a"});
+        orchestrator->flushEventQueue();
+        QCOMPARE(itemStatus(0), Status::Pending);
+        QVERIFY(orchestrator->hasActiveBatch());
+        {
+            // Connected again, but without the queue hearing about it
+            const QSignalBlocker blocker(mockFtp);
+            mockFtp->mockSetConnected(true);
+        }
+
+        enqueueDownloads({"b"});
+        flushAndProcess();
+
+        QCOMPARE(itemStatus(0), Status::Completed);
+        QCOMPARE(itemStatus(1), Status::Completed);
+    }
 };
 
 QTEST_MAIN(TestTransferManager)

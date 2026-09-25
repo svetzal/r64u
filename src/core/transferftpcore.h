@@ -71,6 +71,9 @@ struct FindDeleteItemResult
 [[nodiscard]] bool isInFlightItem(const State &state, OperationType type, const QString &remotePath,
                                   const QString &localPath);
 
+/// @brief Returns true if the item the queue dispatched last is still in progress.
+[[nodiscard]] bool hasInFlightItem(const State &state);
+
 /// @brief Index of the in-flight item matching the given operation (see isInFlightItem()),
 ///        or -1 if the request is not the one the queue is waiting for.
 [[nodiscard]] int inFlightItemIndex(const State &state, OperationType type,

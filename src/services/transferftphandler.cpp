@@ -42,6 +42,8 @@ void TransferFtpHandler::connectFtpSignals()
             &TransferFtpHandler::onFtpDirectoryCreated);
     connect(ftpClient_, &IFtpClient::directoryListed, this, &TransferFtpHandler::onDirectoryListed);
     connect(ftpClient_, &IFtpClient::fileRemoved, this, &TransferFtpHandler::onFileRemoved);
+    connect(ftpClient_, &IFtpClient::connected, this, &TransferFtpHandler::onFtpConnected);
+    connect(ftpClient_, &IFtpClient::disconnected, this, &TransferFtpHandler::onFtpDisconnected);
 }
 
 // ============================================================================
@@ -164,10 +166,12 @@ void TransferFtpHandler::onFtpOperationFailed(IFtpClient::Operation operation,
                              << operation << remotePath;
         return;
     }
-    handleQueueRequestFailure(message);
+    if (recordQueueRequestFailure(message)) {
+        emit scheduleProcessNextRequested();
+    }
 }
 
-void TransferFtpHandler::handleQueueRequestFailure(const QString &message)
+bool TransferFtpHandler::recordQueueRequestFailure(const QString &message)
 {
     qCDebug(LogTransfer) << "TransferFtpHandler: queue request failed:" << message
                          << "state:" << transfer::queueStateToString(state_.queueState);
@@ -183,13 +187,13 @@ void TransferFtpHandler::handleQueueRequestFailure(const QString &message)
         emit operationFailed(result.deleteFileName, message);
         emit queueChanged();
         emit processNextDeleteRequested();
-        return;
+        return false;
     }
 
     if (result.isFolderCreationError) {
         emit operationFailed(result.folderName, message);
         emit completeBatchRequested(result.folderBatchId);
-        return;
+        return false;
     }
 
     if (result.hasCurrentItem && originalIndex >= 0 && originalIndex < state_.items.size()) {
@@ -199,14 +203,34 @@ void TransferFtpHandler::handleQueueRequestFailure(const QString &message)
         if (result.failedBatchId >= 0) {
             emit batchProgressRequested(result.failedBatchId, result.batchIsComplete, true);
             if (result.batchIsComplete) {
-                return;
+                return false;  // completing the batch schedules whatever runs next
             }
         }
     }
 
     emit queueChanged();
-    if (result.shouldScheduleProcessNext) {
+    return result.shouldScheduleProcessNext;
+}
+
+void TransferFtpHandler::onFtpConnected()
+{
+    // Items left Pending by a lost connection resume once it is back
+    if (transfer::canProcessNext(state_.queueState) &&
+        (transfer::pendingCount(state_) > 0 || !state_.pendingFolderOps.isEmpty())) {
         emit scheduleProcessNextRequested();
+    }
+}
+
+void TransferFtpHandler::onFtpDisconnected()
+{
+    stopTimeout();
+
+    // The client drops its queued requests when the connection goes, so no
+    // signal will ever end the transfer in flight: fail it now. The remaining
+    // items stay Pending until the connection is back (see onFtpConnected).
+    if (state_.queueState == transfer::QueueState::Transferring &&
+        transfer::hasInFlightItem(state_)) {
+        recordQueueRequestFailure(tr("Connection to the device was lost"));
     }
 }
 

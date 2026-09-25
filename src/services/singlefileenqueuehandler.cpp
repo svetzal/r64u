@@ -55,12 +55,12 @@ void SingleFileEnqueueHandler::activateAndSchedule(int batchIdx)
         state_.batches[batchIdx].scanned = true;
         state_.batches[batchIdx].folderConfirmed = true;
         emit batchStarted(state_.batches[batchIdx].batchId);
-        emit queueChanged();
-        if (!m_bulkQueuing && state_.queueState == QueueState::Idle)
-            emit scheduleProcessNextRequested();
-    } else {
-        emit queueChanged();
     }
+    emit queueChanged();
+    // An active batch does not mean anything is running: a lost connection can
+    // leave its items Pending with the queue Idle.
+    if (!m_bulkQueuing && state_.queueState == QueueState::Idle)
+        emit scheduleProcessNextRequested();
 }
 
 // ============================================================================

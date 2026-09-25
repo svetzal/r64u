@@ -45,13 +45,16 @@ private slots:
     void onFtpDirectoryCreated(const QString &path);
     void onDirectoryListed(const QString &path, const QList<FtpEntry> &entries);
     void onFileRemoved(const QString &path);
+    void onFtpConnected();
+    void onFtpDisconnected();
 
 private:
     /// True if the failed FTP request is one the transfer queue issued and still awaits.
     [[nodiscard]] bool isQueueRequest(IFtpClient::Operation operation, const QString &remotePath,
                                       const QString &localPath) const;
-    /// Applies a failure of the queue's own request to the queue state.
-    void handleQueueRequestFailure(const QString &message);
+    /// Applies a failure of the queue's own request to the queue state and reports it.
+    /// @return True if the queue should move on to its next item.
+    [[nodiscard]] bool recordQueueRequestFailure(const QString &message);
     void startTimeout();
     void stopTimeout();
 
