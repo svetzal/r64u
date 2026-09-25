@@ -197,6 +197,11 @@ void C64UFtpClient::applyAction(const FtpResponseAction &action)
 {
     applyTransferStateMutations(action);
     applyConnectionStateChanges(action);
+    if (!action.errorMessage.isEmpty()) {
+        // An error ends the operation: its remaining commands (e.g. the RETR
+        // after a failed PASV) would only fail again and report a second error.
+        dropRestOfCurrentOperation();
+    }
     emitResponseSignals(action);
     executeResponseAction(action);
 }
@@ -467,7 +472,26 @@ void C64UFtpClient::onDataError(QAbstractSocket::SocketError socketError)
         return;
     }
     qCWarning(LogFtp) << "FTP: Data socket error:" << socketError << dataSocket_->errorString();
-    emit error(tr("File transfer interrupted: %1").arg(dataSocket_->errorString()));
+    if (state_ != State::Busy || repliesToDiscard_ > 0 ||
+        !ftp::isDataTransferCommand(currentCommand_)) {
+        qCDebug(LogFtp) << "FTP: Ignoring data socket error outside a data transfer";
+        return;
+    }
+
+    // Report the failure once, here, and end the operation. The server will
+    // still answer the transfer command (typically 425/426); that reply is
+    // swallowed so it neither reports a second error nor gets paired with the
+    // next command.
+    const QString message = tr("File transfer interrupted: %1").arg(dataSocket_->errorString());
+    dropRestOfCurrentOperation();
+    discardDataTransfer();
+    if (awaitingFinalReply_) {
+        repliesToDiscard_ = 1;
+    }
+    emit error(message);
+    if (repliesToDiscard_ == 0 && state_ == State::Busy) {
+        processNextCommand();
+    }
 }
 
 void C64UFtpClient::discardReply(int code)

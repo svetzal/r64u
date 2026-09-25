@@ -715,6 +715,68 @@ private slots:
         QCOMPARE(entries.size(), 1);
         QCOMPARE(entries.first().name, QString("game.prg"));
     }
+
+    // =========================================================================
+    // Failure handling: one error per failed operation, then carry on
+    // =========================================================================
+
+    void testDownload_PasvRejected_ReportsOneErrorAndRunsNextOperation()
+    {
+        FakeFtpServer server;
+        server.setFile("/SD/game.prg", "GAME");
+        server.setListing(OneFileListing);
+        server.failNextPasv();
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
+
+        ftp->download("/SD/game.prg", dir.filePath("game.prg"));
+        ftp->list("/SD");
+
+        QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QVERIFY2(errorSpy.count() == 1, qPrintable(describeErrors(errorSpy)));
+        QCOMPARE(server.commandCount("RETR"), 0);
+    }
+
+    void testDownload_DataConnectionRefused_ReportsOneErrorAndRunsNextOperation()
+    {
+        FakeFtpServer server;
+        server.setFile("/SD/game.prg", "GAME");
+        server.setListing(OneFileListing);
+        server.advertiseDeadDataPortOnce();
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy finishedSpy(ftp, &C64UFtpClient::downloadFinished);
+        QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
+
+        ftp->download("/SD/game.prg", dir.filePath("game.prg"));
+        ftp->list("/SD");
+
+        QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QVERIFY2(errorSpy.count() == 1, qPrintable(describeErrors(errorSpy)));
+        QCOMPARE(finishedSpy.count(), 0);
+    }
+
+    void testRename_SourceMissing_ReportsOneErrorAndSkipsRnto()
+    {
+        FakeFtpServer server;
+        server.addReply("RNFR", "550 File not found\r\n");
+        QVERIFY(loginTo(server));
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy renamedSpy(ftp, &C64UFtpClient::fileRenamed);
+
+        ftp->rename("/SD/missing.prg", "/SD/new.prg");
+
+        QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QVERIFY2(errorSpy.count() == 1, qPrintable(describeErrors(errorSpy)));
+        QCOMPARE(server.commandCount("RNTO"), 0);
+        QCOMPARE(renamedSpy.count(), 0);
+    }
 };
 
 QTEST_MAIN(TestC64UFtpClientProtocol)
