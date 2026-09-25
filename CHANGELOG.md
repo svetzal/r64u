@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-25
+
+### Added
+- **Byte-weighted transfer progress** - batch progress follows bytes transferred rather than files completed, moves continuously while a large file (e.g. a 16 MB REU image) transfers, and shows sizes such as "4.0 MB of 16.0 MB"
+- **Upload progress** - uploads now report progress as they send, instead of jumping from 0 to done
+- **Transfers resume after reconnecting** - pending transfers restart automatically when the connection comes back
+- Folder uploads queued behind another folder operation now get the "folder already exists" prompt instead of silently merging
+
+### Changed
+- Downloads are written to `<name>.part` and replace the target only once complete, so a failed or cancelled download never destroys an existing local file
+- "Overwrite All" now applies only to the batch it was chosen in
+- "File exists" and "folder exists" checks ignore case, matching the device's FAT storage
+- Recursive deletes are queued like other folder operations instead of interrupting the running one
+- Cancelling a file preview no longer aborts a transfer that is in progress
+- A failed FTP request is reported once, by the feature that made it; the FTP client itself reports only connection problems
+- Architecture: error reporting unified through a single `IErrorEmitter` → `ErrorHandler` chain; classes renamed to consistent `*Service`/`*Manager`/`*Controller`/`*Handler` roles; source reorganised into `core/`, `ftp/`, `services/`, `models/`, `ui/` and `utils/`
+- `build_test.sh` caps build parallelism (default 4 jobs, `--jobs N` to override) and runs only CTest-registered tests
+- CI builds with Qt 6.11.2, and a newer push cancels superseded Build runs
+
+### Fixed
+- Every successful download and directory listing also reported "Connection closed during transfer", marking files failed and breaking folder downloads
+- Cancelling a transfer left the device's abort replies unread, so the next transfer or listing hung until reconnecting
+- Cancelling a transfer silently discarded queued requests from the remote browser, previews and playlists
+- Cancelling while disconnected blocked reconnecting
+- A failed transfer could leave its data connection open, breaking the next one, and could report two errors that failed the following file too
+- Two in-memory downloads (e.g. playlist lookups) could truncate each other's data
+- Errors from previews or the remote browser failed whichever transfer was running
+- A finished transfer could be matched to the wrong queue row, leaving a re-download stuck "In Progress"
+- Timed-out transfers were never counted against their batch, stalling the queue
+- The transfer timeout kept running after Cancel All and later aborted unrelated requests
+- After a disconnect, newly queued transfers never started; a clean disconnect left the current file "In Progress" for five minutes; "Not connected" was reported repeatedly
+- The next batch never started when a folder batch ended in a failure or skip
+- Downloading an empty folder never completed and blocked every folder queued behind it
+- A folder that could not be listed during a download silently dropped the rest of the tree
+- Cancelling one folder of a multi-folder transfer stalled the others
+- Deleting a file and a folder together skipped the file; starting a second folder delete left the first half-deleted
+- Cancel in the folder-exists dialog also dropped folders it did not ask about
+- The remote view refreshed mid-transfer, and stopped auto-refreshing after a cancel
+- Batch progress went backwards after a failed file
+- The transfer queue view was not notified when cancelled rows were removed
+- Every failed transfer, preview or remote listing was shown to the user twice
+- A failed config file download left the load hanging; a failed song length lookup leaked its pending entry
+- Windows CI builds failed to install Qt 6.11
+
 ## [0.10.0] - 2026-04-11
 
 ### Added
@@ -270,7 +314,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - macOS code signing and notarization
 - Multi-platform builds (macOS, Linux, Windows)
 
-[Unreleased]: https://github.com/svetzal/r64u/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/svetzal/r64u/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/svetzal/r64u/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/svetzal/r64u/compare/v0.9.1...v0.10.0
 [0.9.0]: https://github.com/svetzal/r64u/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/svetzal/r64u/compare/v0.8.0...v0.8.1
