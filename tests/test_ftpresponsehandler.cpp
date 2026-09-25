@@ -249,12 +249,11 @@ private slots:
 
     // --- handleBusyResponse: LIST ---
 
-    void testBusy_List_150_startsDownloading()
+    void testBusy_List_150_waitsForData()
     {
         auto ctx = makeCtx(FtpCommandQueue::Command::List, "/SD");
         auto action = handler->handleBusyResponse(150, "Opening data connection", ctx);
 
-        QVERIFY(action.setDownloading);
         QCOMPARE(action.kind, FtpResponseAction::Kind::None);
     }
 
@@ -286,7 +285,6 @@ private slots:
         auto ctx = makeCtx(FtpCommandQueue::Command::Retr, "/SD/tune.sid");
         auto action = handler->handleBusyResponse(150, "Opening BINARY (1024 bytes)", ctx);
 
-        QVERIFY(action.setDownloading);
         QCOMPARE(action.kind, FtpResponseAction::Kind::None);
         QCOMPARE(transferState->transferSize(), qint64(1024));
     }
@@ -299,7 +297,7 @@ private slots:
         auto ctx = makeCtx(FtpCommandQueue::Command::Retr, "/SD/tune.sid");
         auto action = handler->handleBusyResponse(150, "Opening BINARY connection", ctx);
 
-        QVERIFY(action.setDownloading);
+        QCOMPARE(action.kind, FtpResponseAction::Kind::None);
         QCOMPARE(transferState->transferSize(), qint64(0));
     }
 

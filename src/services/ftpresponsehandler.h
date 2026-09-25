@@ -83,7 +83,6 @@ struct FtpResponseAction
     bool clearCurrentRetrFile = false;
     bool clearCurrentStorFile = false;
     bool clearRetrBuffer = false;
-    bool setDownloading = false;
     bool clearListBuffer = false;
     bool startUpload = false;  ///< Server is ready for STOR data; start sending the file
 

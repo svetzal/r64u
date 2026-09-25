@@ -174,7 +174,6 @@ private slots:
         state.appendListData("list");
         state.appendRetrData("retr");
         state.setTransferSize(1024);
-        state.setDownloading(true);
         state.savePendingList("/dir", QByteArray("buf"));
         state.savePendingRetr("/remote", "/local", nullptr, true);
 
@@ -191,7 +190,6 @@ private slots:
         QVERIFY(state.listBuffer().isEmpty());
         QVERIFY(state.retrBuffer().isEmpty());
         QCOMPARE(state.transferSize(), 0LL);
-        QVERIFY(!state.isDownloading());
         QVERIFY(!state.hasPendingList());
         QVERIFY(!state.hasPendingRetr());
         QVERIFY(state.currentRetrFile() == nullptr);
@@ -221,21 +219,6 @@ private slots:
         FtpTransferState state;
         state.setTransferSize(42000LL);
         QCOMPARE(state.transferSize(), 42000LL);
-    }
-
-    void isDownloading_defaultIsFalse()
-    {
-        FtpTransferState state;
-        QVERIFY(!state.isDownloading());
-    }
-
-    void setDownloading_updatesValue()
-    {
-        FtpTransferState state;
-        state.setDownloading(true);
-        QVERIFY(state.isDownloading());
-        state.setDownloading(false);
-        QVERIFY(!state.isDownloading());
     }
 };
 

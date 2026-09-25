@@ -203,18 +203,6 @@ public:
      */
     void setTransferSize(qint64 size) { transferSize_ = size; }
 
-    /**
-     * @brief Returns true while a download is in progress.
-     * @return True when a data transfer is actively receiving data.
-     */
-    [[nodiscard]] bool isDownloading() const { return downloading_; }
-
-    /**
-     * @brief Sets the downloading flag.
-     * @param v True to indicate a download is in progress.
-     */
-    void setDownloading(bool v) { downloading_ = v; }
-
     // -----------------------------------------------------------------------
     // Reset: close all files, clear all state
     // -----------------------------------------------------------------------
@@ -227,10 +215,9 @@ public:
     void reset();
 
 private:
-    QByteArray listBuffer_;     ///< Accumulation buffer for LIST data
-    QByteArray retrBuffer_;     ///< Accumulation buffer for in-memory RETR data
-    qint64 transferSize_ = 0;   ///< Expected transfer size in bytes
-    bool downloading_ = false;  ///< True while a data transfer is active
+    QByteArray listBuffer_;    ///< Accumulation buffer for LIST data
+    QByteArray retrBuffer_;    ///< Accumulation buffer for in-memory RETR data
+    qint64 transferSize_ = 0;  ///< Expected transfer size in bytes
 
     std::shared_ptr<QFile> currentRetrFile_;  ///< File handle for active RETR
     std::shared_ptr<QFile> currentStorFile_;  ///< File handle for active STOR

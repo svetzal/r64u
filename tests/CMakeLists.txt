@@ -52,15 +52,6 @@ set(MOCK_STREAMING_HEADERS
     mocks/mocknetworkinterfaceprovider.h
 )
 
-# Legacy mock that shadows C64UFtpClient at link time (for ConfigFileLoader tests)
-set(LEGACY_MOCK_SOURCES
-    services/c64uftpclient.cpp
-)
-
-set(LEGACY_MOCK_HEADERS
-    services/c64uftpclient.h
-)
-
 # All transfer core implementation files (split from transfercore.cpp for cohesion)
 set(TRANSFER_CORE_SOURCES
     ${CMAKE_SOURCE_DIR}/src/core/transfercore.cpp

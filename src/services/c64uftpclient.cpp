@@ -248,9 +248,6 @@ void C64UFtpClient::applyAction(const FtpResponseAction &action)
 
 void C64UFtpClient::applyTransferStateMutations(const FtpResponseAction &action)
 {
-    if (action.setDownloading) {
-        transferState_.setDownloading(true);
-    }
     if (action.clearListBuffer) {
         transferState_.clearListBuffer();
     }

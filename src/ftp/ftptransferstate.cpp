@@ -130,5 +130,4 @@ void FtpTransferState::reset()
     listBuffer_.clear();
     retrBuffer_.clear();
     transferSize_ = 0;
-    downloading_ = false;
 }

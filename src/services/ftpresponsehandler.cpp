@@ -172,7 +172,6 @@ FtpResponseAction FtpResponseHandler::handleListResponse(int code, const QString
     FtpResponseAction action;
     action.kind = FtpResponseAction::Kind::ProcessNext;
     if (code == FtpReplyFileStatusOk || code == FtpReplyDataConnectionOpen) {
-        action.setDownloading = true;
         action.kind = FtpResponseAction::Kind::None;
     } else if (code == FtpReplyTransferComplete) {
         QString path = ctx.currentArg.isEmpty() ? ctx.currentDir : ctx.currentArg;
@@ -196,7 +195,6 @@ FtpResponseAction FtpResponseHandler::handleRetrResponse(int code, const QString
     FtpResponseAction action;
     action.kind = FtpResponseAction::Kind::ProcessNext;
     if (code == FtpReplyFileStatusOk || code == FtpReplyDataConnectionOpen) {
-        action.setDownloading = true;
         if (auto bytes = ftp::parseRetrByteCount(text)) {
             transferState_.setTransferSize(*bytes);
         }
@@ -323,7 +321,6 @@ void FtpResponseHandler::handleDataReceived(const QByteArray &data, const FtpRes
 FtpResponseAction FtpResponseHandler::handleDataDisconnected(const FtpResponseContext &ctx)
 {
     FtpResponseAction action;
-    transferState_.setDownloading(false);
 
     if (transferState_.hasPendingList()) {
         auto pending = transferState_.takePendingList();
