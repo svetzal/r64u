@@ -209,9 +209,10 @@ private:
 
     /// Allocates the id that groups the commands of one public operation.
     [[nodiscard]] quint64 beginOperation(const Request &request);
-    /// Emits error() and, if @p operationId stands for a public request, operationFailed().
+    /// Emits operationFailed() if @p operationId stands for a public request,
+    /// otherwise error() (a failure of the connection itself, e.g. login).
     void reportOperationError(quint64 operationId, const QString &message);
-    /// Emits error() and operationFailed() for a request that failed before being queued.
+    /// Emits operationFailed() for @p request; its requester reports it to the user.
     void reportRequestError(const Request &request, const QString &message);
     /// Drops the not-yet-sent commands of the operation currently in flight.
     void dropRestOfCurrentOperation();

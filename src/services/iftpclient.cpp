@@ -12,6 +12,7 @@
 
 IFtpClient::IFtpClient(QObject *parent) : IErrorEmitter(parent)
 {
+    // Only connection-level failures: a failed request is reported by its requester
     connect(this, &IFtpClient::error, this, [this](const QString &message) {
         emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, tr("Error"),
                            message);

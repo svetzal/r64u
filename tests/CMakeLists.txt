@@ -622,6 +622,10 @@ endif()
 add_executable(test_configfileloaderservice
     test_configfileloaderservice.cpp
     ${IERROREMITTER_SOURCES}
+    ${MOCK_FTP_SOURCES}
+    ${MOCK_FTP_HEADERS}
+    mocks/mockrestclient.cpp
+    mocks/mockrestclient.h
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/configfileloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
@@ -991,6 +995,69 @@ add_test(NAME C64UFtpClientProtocolTest COMMAND test_c64uftpclient_protocol)
 if(BUILD_COVERAGE)
     add_coverage_target(c64uftpclient_protocol test_c64uftpclient_protocol)
     add_dependencies(coverage coverage_c64uftpclient_protocol)
+endif()
+
+# FTP error reporting - how often the user hears of an FTP failure, end to end:
+# the real C64UFtpClient against FakeFtpServer, shared by the components that
+# make requests, all wired to ErrorHandler as the application does
+add_executable(test_ftperrorreporting
+    test_ftperrorreporting.cpp
+    fakes/fakeftpserver.cpp
+    fakes/fakeftpserver.h
+    stubs/errorsourceconnector_streaming_stub.cpp
+    ${IERROREMITTER_SOURCES}
+    ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/errorsourceconnector.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/iftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/ftpcommandqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/ftptransferstate.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ftpresponsehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/filepreviewservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
+    ${TRANSFER_CORE_SOURCES}
+    ${CMAKE_SOURCE_DIR}/src/services/transferservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferwiring.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/singlefileenqueuehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferhandlerbase.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdispatchhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferdeletehandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transferftphandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/batchmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfertimeoutmanager.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/transfereventhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/recursivescancoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/remotedirectorycoordinator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ftp/folderoperationcoordinator.cpp
+)
+
+target_include_directories(test_ftperrorreporting BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_ftperrorreporting PRIVATE
+    Qt6::Core
+    Qt6::Test
+    Qt6::Network
+    Qt6::Widgets
+    Qt6::Sql  # for headers errorsourceconnector.cpp includes
+)
+
+add_test(NAME FtpErrorReportingTest COMMAND test_ftperrorreporting)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(ftperrorreporting test_ftperrorreporting)
+    add_dependencies(coverage coverage_ftperrorreporting)
 endif()
 
 # FilePreview strategy tests

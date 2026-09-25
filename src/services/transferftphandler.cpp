@@ -178,6 +178,8 @@ void TransferFtpHandler::onFtpOperationFailed(IFtpClient::Operation operation,
         state_.requestedFolderCheckListings.contains(remotePath) && scanCoordinator_) {
         // Whether the folder exists cannot be told: go on as if it did not, rather than
         // check again forever. The upload reports whatever then fails.
+        qCWarning(LogTransfer) << "TransferFtpHandler: cannot check for existing folders in"
+                               << remotePath << ":" << message;
         scanCoordinator_->onDirectoryListed(remotePath, {});
         return;
     }
@@ -229,6 +231,10 @@ bool TransferFtpHandler::recordQueueRequestFailure(const QString &message)
         }
     }
 
+    if (!result.hasCurrentItem) {
+        qCWarning(LogTransfer) << "TransferFtpHandler: queue request failed with no item to fail:"
+                               << message;
+    }
     emit queueChanged();
     return result.shouldScheduleProcessNext;
 }

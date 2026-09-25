@@ -49,13 +49,34 @@ void writeLocalFile(const QString &path, const QByteArray &contents)
     file.write(contents);
 }
 
-QString describeErrors(const QSignalSpy &errorSpy)
+/**
+ * @brief Records every failure the client reports, whichever signal carries it.
+ *
+ * Connection-level failures arrive through error(), failed requests through
+ * operationFailed(). Each entry holds the message first, like a QSignalSpy on
+ * error(), so one entry per failure means nothing was reported twice.
+ */
+class FailureSpy : public QObject, public QList<QVariantList>
+{
+public:
+    explicit FailureSpy(IFtpClient *ftp)
+    {
+        connect(ftp, &IFtpClient::error, this,
+                [this](const QString &message) { append(QVariantList{message}); });
+        connect(ftp, &IFtpClient::operationFailed, this,
+                [this](IFtpClient::Operation /*operation*/, const QString & /*remotePath*/,
+                       const QString & /*localPath*/,
+                       const QString &message) { append(QVariantList{message}); });
+    }
+};
+
+QString describeFailures(const FailureSpy &failureSpy)
 {
     QStringList messages;
-    for (const auto &args : errorSpy) {
+    for (const auto &args : failureSpy) {
         messages << args.first().toString();
     }
-    return QString("errors: [%1]").arg(messages.join(" | "));
+    return QString("failures: [%1]").arg(messages.join(" | "));
 }
 
 QStringList filesIn(const QTemporaryDir &dir)
@@ -148,7 +169,7 @@ private slots:
 
     void testConnectToHost_EmitsError_WhenAlreadyConnecting()
     {
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->setHost("192.168.1.64");
         ftp->connectToHost();
@@ -160,8 +181,8 @@ private slots:
         ftp->connectToHost();
 
         // Should emit error
-        QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.first().first().toString().contains("already"));
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(failureSpy.first().first().toString().contains("already"));
     }
 
     void testConnectToHost_ChangesState_ToConnecting()
@@ -190,92 +211,92 @@ private slots:
 
     void testList_EmitsError_WhenNotLoggedIn()
     {
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->list("/some/path");
 
-        QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.first().first().toString().contains("not connected"));
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(failureSpy.first().first().toString().contains("not connected"));
     }
 
     void testChangeDirectory_EmitsError_WhenNotLoggedIn()
     {
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->changeDirectory("/some/path");
 
-        QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.first().first().toString().contains("not connected"));
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(failureSpy.first().first().toString().contains("not connected"));
     }
 
     void testMakeDirectory_EmitsError_WhenNotLoggedIn()
     {
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->makeDirectory("/new/dir");
 
-        QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.first().first().toString().contains("not connected"));
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(failureSpy.first().first().toString().contains("not connected"));
     }
 
     void testRemoveDirectory_EmitsError_WhenNotLoggedIn()
     {
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->removeDirectory("/some/dir");
 
-        QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.first().first().toString().contains("not connected"));
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(failureSpy.first().first().toString().contains("not connected"));
     }
 
     void testDownload_EmitsError_WhenNotLoggedIn()
     {
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->download("/remote/file.txt", "/local/file.txt");
 
-        QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.first().first().toString().contains("not connected"));
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(failureSpy.first().first().toString().contains("not connected"));
     }
 
     void testDownloadToMemory_EmitsError_WhenNotLoggedIn()
     {
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->downloadToMemory("/remote/file.txt");
 
-        QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.first().first().toString().contains("not connected"));
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(failureSpy.first().first().toString().contains("not connected"));
     }
 
     void testUpload_EmitsError_WhenNotLoggedIn()
     {
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->upload("/local/file.txt", "/remote/file.txt");
 
-        QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.first().first().toString().contains("not connected"));
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(failureSpy.first().first().toString().contains("not connected"));
     }
 
     void testRemove_EmitsError_WhenNotLoggedIn()
     {
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->remove("/some/file.txt");
 
-        QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.first().first().toString().contains("not connected"));
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(failureSpy.first().first().toString().contains("not connected"));
     }
 
     void testRename_EmitsError_WhenNotLoggedIn()
     {
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->rename("/old/path", "/new/path");
 
-        QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.first().first().toString().contains("not connected"));
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(failureSpy.first().first().toString().contains("not connected"));
     }
 
     // === Abort Tests ===
@@ -293,21 +314,21 @@ private slots:
 
     void testAbort_WhenDisconnected_DoesNotBlockReconnect()
     {
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         ftp->setHost("192.168.1.64");
 
         ftp->abort();
         ftp->connectToHost();
 
         QCOMPARE(ftp->state(), IFtpClient::State::Connecting);
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
     }
 
     // === Connection Timeout Tests ===
 
     void testConnectionTimeoutClearsTransferState()
     {
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->setHost("192.168.1.64");
         ftp->connectToHost();
@@ -319,8 +340,8 @@ private slots:
 
         QCOMPARE(ftp->state(), IFtpClient::State::Disconnected);
         QVERIFY(!ftp->isLoggedIn());
-        QCOMPARE(errorSpy.count(), 1);
-        QVERIFY(errorSpy.first().first().toString().contains("timed out"));
+        QCOMPARE(failureSpy.count(), 1);
+        QVERIFY(failureSpy.first().first().toString().contains("timed out"));
     }
 
     // === IsConnected Logic Tests ===
@@ -376,11 +397,11 @@ private slots:
 
         QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
 
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         ftp->list("/");
 
         // Guard should pass (logged in) — no error emitted
-        QCOMPARE(errorSpy.count(), 0);
+        QCOMPARE(failureSpy.count(), 0);
         // State transitions to Busy when an operation is pending
         QCOMPARE(ftp->state(), IFtpClient::State::Busy);
     }
@@ -396,10 +417,10 @@ private slots:
 
         QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
 
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         ftp->list("/");
 
-        QCOMPARE(errorSpy.count(), 0);
+        QCOMPARE(failureSpy.count(), 0);
     }
 
     void testAbort_DuringListPrelude_SkipsListAndReturnsToReady()
@@ -407,7 +428,7 @@ private slots:
         FakeFtpServer server;
         server.setListing(OneFileListing);
         QVERIFY(loginTo(server));
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
 
         ftp->list("/");
@@ -420,11 +441,11 @@ private slots:
         QCOMPARE(server.commandCount("LIST"), 0);
         QCOMPARE(server.commandCount("ABOR"), 0);
         QCOMPARE(listedSpy.count(), 0);
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
 
         ftp->list("/");
         QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
     }
 
     void testAbort_WhenIdle_DoesNotSendAbor()
@@ -432,7 +453,7 @@ private slots:
         FakeFtpServer server;
         server.setListing(OneFileListing);
         QVERIFY(loginTo(server));
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
 
         ftp->abort();
@@ -442,7 +463,7 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
         letLateSignalsArrive();
         QCOMPARE(server.commandCount("ABOR"), 0);
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
     }
 
     void testAbort_MidDownload_NextDownloadSucceeds_data()
@@ -470,13 +491,13 @@ private slots:
         ftp->abort();
 
         server.setStallAfterBytes(-1);
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy finishedSpy(ftp, &C64UFtpClient::downloadFinished);
         ftp->download("/SD/small.prg", dir.filePath("small.prg"));
 
         QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, SignalTimeoutMs);
         letLateSignalsArrive();
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
         QCOMPARE(finishedSpy.first().at(0).toString(), QString("/SD/small.prg"));
         QCOMPARE(readLocalFile(dir.filePath("small.prg")), QByteArray("SMALL"));
         QCOMPARE(server.commandCount("ABOR"), 1);
@@ -503,7 +524,7 @@ private slots:
         ftp->downloadToMemory("/SD/tune.sid");
         QTRY_VERIFY_WITH_TIMEOUT(!progressSpy.isEmpty(), SignalTimeoutMs);
         server.setStallAfterBytes(-1);
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->abort();
 
@@ -512,7 +533,7 @@ private slots:
         QCOMPARE(listedSpy.first().at(0).toString(), QString("/SD/browse"));
         QCOMPARE(memorySpy.first().at(1).toByteArray(), QByteArray("SID"));
         QCOMPARE(finishedSpy.count(), 0);
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
     }
 
     void testAbort_DuringListPrelude_KeepsLaterOperations()
@@ -520,7 +541,7 @@ private slots:
         FakeFtpServer server;
         server.setListing(OneFileListing);
         QVERIFY(loginTo(server));
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
 
         ftp->list("/SD/first");
@@ -532,7 +553,7 @@ private slots:
         QCOMPARE(listedSpy.count(), 1);
         QCOMPARE(listedSpy.first().at(0).toString(), QString("/SD/second"));
         QCOMPARE(server.commandCount("LIST"), 1);
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
     }
 
     void testAbortIfInFlight_AnotherRequestInFlight_LeavesItRunning()
@@ -541,7 +562,7 @@ private slots:
         server.setFile("/SD/game.prg", "GAME");
         QVERIFY(loginTo(server));
         QTemporaryDir dir;
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy finishedSpy(ftp, &C64UFtpClient::downloadFinished);
 
         ftp->download("/SD/game.prg", dir.filePath("game.prg"));  // e.g. the transfer queue's
@@ -551,7 +572,7 @@ private slots:
         letLateSignalsArrive();
         QCOMPARE(server.commandCount("ABOR"), 0);
         QCOMPARE(readLocalFile(dir.filePath("game.prg")), QByteArray("GAME"));
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
     }
 
     void testAbortIfInFlight_ItsOwnRequestInFlight_AbortsIt()
@@ -559,7 +580,7 @@ private slots:
         FakeFtpServer server;
         server.setFile("/SD/tune.sid", "SID");
         QVERIFY(loginTo(server));
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy memorySpy(ftp, &C64UFtpClient::downloadToMemoryFinished);
 
         ftp->downloadToMemory("/SD/tune.sid");
@@ -569,7 +590,7 @@ private slots:
         letLateSignalsArrive();
         QCOMPARE(memorySpy.count(), 0);
         QCOMPARE(server.commandCount("RETR"), 0);
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
     }
 
     void testServerDisconnect_AfterLogin_EmitsDisconnectedSignal()
@@ -609,13 +630,13 @@ private slots:
 
         QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
 
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         ftp->changeDirectory("/SD/Games");
 
         // Should transition to Busy (CWD was enqueued and processed)
         QCOMPARE(ftp->state(), IFtpClient::State::Busy);
         // No errors — guard passed
-        QCOMPARE(errorSpy.count(), 0);
+        QCOMPARE(failureSpy.count(), 0);
     }
 
     void testApplyAction_Mkd_257_EmitsDirectoryCreated()
@@ -631,12 +652,12 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
 
         QSignalSpy dirCreatedSpy(ftp, &C64UFtpClient::directoryCreated);
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->makeDirectory("/SD/NewDir");
 
         QTRY_COMPARE_WITH_TIMEOUT(dirCreatedSpy.count(), 1, 5000);
-        QCOMPARE(errorSpy.count(), 0);
+        QCOMPARE(failureSpy.count(), 0);
         QCOMPARE(dirCreatedSpy.at(0).at(0).toString(), QString("/SD/NewDir"));
     }
 
@@ -653,12 +674,12 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
 
         QSignalSpy fileRemovedSpy(ftp, &C64UFtpClient::fileRemoved);
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->remove("/SD/trash.prg");
 
         QTRY_COMPARE_WITH_TIMEOUT(fileRemovedSpy.count(), 1, 5000);
-        QCOMPARE(errorSpy.count(), 0);
+        QCOMPARE(failureSpy.count(), 0);
         QCOMPARE(fileRemovedSpy.at(0).at(0).toString(), QString("/SD/trash.prg"));
     }
 
@@ -674,11 +695,11 @@ private slots:
 
         QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
 
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->makeDirectory("/SD/NoAccess");
 
-        QTRY_COMPARE_WITH_TIMEOUT(errorSpy.count(), 1, 5000);
+        QTRY_COMPARE_WITH_TIMEOUT(failureSpy.count(), 1, 5000);
     }
 
     // =========================================================================
@@ -697,7 +718,7 @@ private slots:
         QVERIFY(loginTo(server));
         QTemporaryDir dir;
         const QString localPath = dir.filePath("game.prg");
-        QSignalSpy errorSpy(ftp, &IFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy finishedSpy(ftp, &IFtpClient::downloadFinished);
 
         ftp->download("/SD/game.prg", localPath);
@@ -705,7 +726,7 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, SignalTimeoutMs);
         letLateSignalsArrive();
         QCOMPARE(finishedSpy.count(), 1);
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
         QCOMPARE(finishedSpy.first().at(0).toString(), QString("/SD/game.prg"));
         QCOMPARE(finishedSpy.first().at(1).toString(), localPath);
         QCOMPARE(readLocalFile(localPath), contents);
@@ -722,7 +743,7 @@ private slots:
         server.setCompletionOrder(completionOrder);
         server.setFile("/SD/tune.sid", contents);
         QVERIFY(loginTo(server));
-        QSignalSpy errorSpy(ftp, &IFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy finishedSpy(ftp, &IFtpClient::downloadToMemoryFinished);
 
         ftp->downloadToMemory("/SD/tune.sid");
@@ -730,7 +751,7 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, SignalTimeoutMs);
         letLateSignalsArrive();
         QCOMPARE(finishedSpy.count(), 1);
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
         QCOMPARE(finishedSpy.first().at(1).toByteArray(), contents);
     }
 
@@ -743,7 +764,7 @@ private slots:
         server.setCompletionOrder(completionOrder);
         server.setListing(OneFileListing);
         QVERIFY(loginTo(server));
-        QSignalSpy errorSpy(ftp, &IFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy listedSpy(ftp, &IFtpClient::directoryListed);
 
         ftp->list("/SD");
@@ -751,7 +772,7 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
         letLateSignalsArrive();
         QCOMPARE(listedSpy.count(), 1);
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
         QCOMPARE(listedSpy.first().at(0).toString(), QString("/SD"));
         const auto entries = listedSpy.first().at(1).value<QList<FtpEntry>>();
         QCOMPARE(entries.size(), 1);
@@ -770,7 +791,7 @@ private slots:
         server.failNextPasv();
         QVERIFY(loginTo(server));
         QTemporaryDir dir;
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
 
         ftp->download("/SD/game.prg", dir.filePath("game.prg"));
@@ -778,7 +799,7 @@ private slots:
 
         QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
         letLateSignalsArrive();
-        QVERIFY2(errorSpy.count() == 1, qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.count() == 1, qPrintable(describeFailures(failureSpy)));
         QCOMPARE(server.commandCount("RETR"), 0);
     }
 
@@ -790,7 +811,7 @@ private slots:
         server.advertiseDeadDataPortOnce();
         QVERIFY(loginTo(server));
         QTemporaryDir dir;
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy finishedSpy(ftp, &C64UFtpClient::downloadFinished);
         QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
 
@@ -799,7 +820,7 @@ private slots:
 
         QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
         letLateSignalsArrive();
-        QVERIFY2(errorSpy.count() == 1, qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.count() == 1, qPrintable(describeFailures(failureSpy)));
         QCOMPARE(finishedSpy.count(), 0);
     }
 
@@ -808,14 +829,14 @@ private slots:
         FakeFtpServer server;
         server.addReply("RNFR", "550 File not found\r\n");
         QVERIFY(loginTo(server));
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy renamedSpy(ftp, &C64UFtpClient::fileRenamed);
 
         ftp->rename("/SD/missing.prg", "/SD/new.prg");
 
         QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, SignalTimeoutMs);
         letLateSignalsArrive();
-        QVERIFY2(errorSpy.count() == 1, qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.count() == 1, qPrintable(describeFailures(failureSpy)));
         QCOMPARE(server.commandCount("RNTO"), 0);
         QCOMPARE(renamedSpy.count(), 0);
     }
@@ -827,16 +848,16 @@ private slots:
         server.setKeepDataOpenOnError(true);
         QVERIFY(loginTo(server));
         QTemporaryDir dir;
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy finishedSpy(ftp, &C64UFtpClient::downloadFinished);
 
         ftp->download("/SD/missing.prg", dir.filePath("missing.prg"));
-        QTRY_COMPARE_WITH_TIMEOUT(errorSpy.count(), 1, SignalTimeoutMs);
+        QTRY_COMPARE_WITH_TIMEOUT(failureSpy.count(), 1, SignalTimeoutMs);
         ftp->download("/SD/game.prg", dir.filePath("game.prg"));
 
         QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, SignalTimeoutMs);
         letLateSignalsArrive();
-        QVERIFY2(errorSpy.count() == 1, qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.count() == 1, qPrintable(describeFailures(failureSpy)));
         QCOMPARE(readLocalFile(dir.filePath("game.prg")), QByteArray("GAME"));
     }
 
@@ -885,18 +906,84 @@ private slots:
     {
         FakeFtpServer server;
         QVERIFY(loginTo(server));
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy failedSpy(ftp, &C64UFtpClient::operationFailed);
 
         ftp->downloadToMemory("/SD/missing.sid");
 
         QTRY_COMPARE_WITH_TIMEOUT(failedSpy.count(), 1, SignalTimeoutMs);
         letLateSignalsArrive();
-        QCOMPARE(errorSpy.count(), 1);
+        QVERIFY2(failureSpy.count() == 1, qPrintable(describeFailures(failureSpy)));
         QCOMPARE(failedSpy.first().at(0).value<IFtpClient::Operation>(),
                  IFtpClient::Operation::DownloadToMemory);
         QCOMPARE(failedSpy.first().at(1).toString(), QString("/SD/missing.sid"));
-        QCOMPARE(failedSpy.first().at(3).toString(), errorSpy.first().first().toString());
+        QVERIFY(failedSpy.first().at(3).toString().contains("/SD/missing.sid"));
+    }
+
+    // =========================================================================
+    // Who tells the user: the requester for a failed request, the client for
+    // a failed connection
+    // =========================================================================
+
+    void testFailedRequest_IsLeftToTheRequesterToReport()
+    {
+        FakeFtpServer server;
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        QSignalSpy failedSpy(ftp, &IFtpClient::operationFailed);
+        QSignalSpy errorSpy(ftp, &IFtpClient::error);
+        QSignalSpy reportedSpy(ftp, &IErrorEmitter::errorReported);
+
+        ftp->download("/SD/missing.prg", dir.filePath("missing.prg"));
+
+        QTRY_COMPARE_WITH_TIMEOUT(failedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(errorSpy.count(), 0);
+        QCOMPARE(reportedSpy.count(), 0);
+    }
+
+    void testRequestWhileNotLoggedIn_IsLeftToTheRequesterToReport()
+    {
+        QSignalSpy failedSpy(ftp, &IFtpClient::operationFailed);
+        QSignalSpy reportedSpy(ftp, &IErrorEmitter::errorReported);
+
+        ftp->list("/SD");
+
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(reportedSpy.count(), 0);
+    }
+
+    void testLoginRejected_IsReportedToTheUserOnce()
+    {
+        FakeFtpServer server;
+        server.addReply("PASS", "530 Login incorrect\r\n");
+        QVERIFY(server.listen());
+        QSignalSpy reportedSpy(ftp, &IErrorEmitter::errorReported);
+        QSignalSpy failedSpy(ftp, &IFtpClient::operationFailed);
+        ftp->setHost("127.0.0.1", server.port());
+        ftp->setCredentials("user", "wrong");
+
+        ftp->connectToHost();
+
+        QTRY_COMPARE_WITH_TIMEOUT(reportedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(reportedSpy.count(), 1);
+        QVERIFY(reportedSpy.first().at(3).toString().contains("Login failed"));
+        QCOMPARE(failedSpy.count(), 0);
+    }
+
+    void testServerDropsConnection_IsReportedToTheUserOnce()
+    {
+        FakeFtpServer server;
+        QVERIFY(loginTo(server));
+        QSignalSpy reportedSpy(ftp, &IErrorEmitter::errorReported);
+        QSignalSpy disconnectedSpy(ftp, &IFtpClient::disconnected);
+
+        server.closeClientConnection();
+
+        QTRY_COMPARE_WITH_TIMEOUT(disconnectedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(reportedSpy.count(), 1);
     }
 
     void testOperationFailed_NotEmittedForSuccessfulRequests()
@@ -927,7 +1014,7 @@ private slots:
         server.setFile("/SD/first.d64", first);
         server.setFile("/SD/second.d64", second);
         QVERIFY(loginTo(server));
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy progressSpy(ftp, &C64UFtpClient::downloadProgress);
         QSignalSpy memorySpy(ftp, &C64UFtpClient::downloadToMemoryFinished);
 
@@ -936,7 +1023,7 @@ private slots:
         ftp->downloadToMemory("/SD/second.d64");
 
         QTRY_COMPARE_WITH_TIMEOUT(memorySpy.count(), 2, SignalTimeoutMs);
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
         QCOMPARE(memorySpy.at(0).at(0).toString(), QString("/SD/first.d64"));
         QCOMPARE(memorySpy.at(0).at(1).toByteArray().size(), first.size());
         QCOMPARE(memorySpy.at(0).at(1).toByteArray(), first);
@@ -962,11 +1049,11 @@ private slots:
         QTemporaryDir dir;
         const QString localPath = dir.filePath("game.prg");
         writeLocalFile(localPath, "PRECIOUS");
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->download("/SD/missing.prg", localPath);
 
-        QTRY_COMPARE_WITH_TIMEOUT(errorSpy.count(), 1, SignalTimeoutMs);
+        QTRY_COMPARE_WITH_TIMEOUT(failureSpy.count(), 1, SignalTimeoutMs);
         letLateSignalsArrive();
         QCOMPARE(readLocalFile(localPath), QByteArray("PRECIOUS"));
         QCOMPARE(filesIn(dir), QStringList{"game.prg"});
@@ -977,11 +1064,11 @@ private slots:
         FakeFtpServer server;
         QVERIFY(loginTo(server));
         QTemporaryDir dir;
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
 
         ftp->download("/SD/missing.prg", dir.filePath("missing.prg"));
 
-        QTRY_COMPARE_WITH_TIMEOUT(errorSpy.count(), 1, SignalTimeoutMs);
+        QTRY_COMPARE_WITH_TIMEOUT(failureSpy.count(), 1, SignalTimeoutMs);
         letLateSignalsArrive();
         QCOMPARE(filesIn(dir), QStringList());
     }
@@ -1019,7 +1106,7 @@ private slots:
         server.setListing(OneFileListing);
         QVERIFY(loginTo(server));
         QTemporaryDir dir;
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
 
         ftp->download("/SD/game.prg", dir.filePath("no-such-dir/game.prg"));
@@ -1027,8 +1114,8 @@ private slots:
 
         QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
         letLateSignalsArrive();
-        QVERIFY2(errorSpy.count() == 1, qPrintable(describeErrors(errorSpy)));
-        QVERIFY(errorSpy.first().first().toString().contains("no-such-dir/game.prg"));
+        QVERIFY2(failureSpy.count() == 1, qPrintable(describeFailures(failureSpy)));
+        QVERIFY(failureSpy.first().first().toString().contains("no-such-dir/game.prg"));
     }
 
     void testAbort_MidDownload_PreservesExistingLocalFile()
@@ -1089,14 +1176,14 @@ private slots:
         QTemporaryDir dir;
         const QString localPath = dir.filePath("disk.d64");
         writeLocalFile(localPath, contents);
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy progressSpy(ftp, &C64UFtpClient::uploadProgress);
         QSignalSpy finishedSpy(ftp, &C64UFtpClient::uploadFinished);
 
         ftp->upload(localPath, "/SD/disk.d64");
 
         QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, SignalTimeoutMs);
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
         QCOMPARE(server.storedFile("/SD/disk.d64"), contents);
         QVERIFY2(progressSpy.count() >= 2,
                  qPrintable(QString("progress signals: %1").arg(progressSpy.count())));
@@ -1117,13 +1204,13 @@ private slots:
         QTemporaryDir dir;
         const QString localPath = dir.filePath("empty.prg");
         writeLocalFile(localPath, QByteArray());
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy finishedSpy(ftp, &C64UFtpClient::uploadFinished);
 
         ftp->upload(localPath, "/SD/empty.prg");
 
         QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, SignalTimeoutMs);
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
         QCOMPARE(server.storedFile("/SD/empty.prg"), QByteArray());
         QCOMPARE(server.commandCount("STOR"), 1);
     }
@@ -1137,7 +1224,7 @@ private slots:
         FakeFtpServer server;
         server.setListing(OneFileListing);
         QVERIFY(server.listen());
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
         connect(ftp, &IFtpClient::connected, this, [this]() { ftp->list("/SD"); });
 
@@ -1147,7 +1234,7 @@ private slots:
 
         QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
         letLateSignalsArrive();
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
         QCOMPARE(server.commands(),
                  QStringList({"USER user", "PASS pass", "TYPE A", "PASV", "LIST /SD"}));
         QCOMPARE(ftp->state(), IFtpClient::State::Ready);
@@ -1160,7 +1247,7 @@ private slots:
         server.setFile("/SD/two.prg", "TWO");
         QVERIFY(loginTo(server));
         QTemporaryDir dir;
-        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        FailureSpy failureSpy(ftp);
         QSignalSpy finishedSpy(ftp, &C64UFtpClient::downloadFinished);
         connect(ftp, &IFtpClient::downloadFinished, this, [this, &dir](const QString &remotePath) {
             if (remotePath == "/SD/one.prg") {
@@ -1171,7 +1258,7 @@ private slots:
         ftp->download("/SD/one.prg", dir.filePath("one.prg"));
 
         QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 2, SignalTimeoutMs);
-        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QVERIFY2(failureSpy.isEmpty(), qPrintable(describeFailures(failureSpy)));
         QCOMPARE(readLocalFile(dir.filePath("two.prg")), QByteArray("TWO"));
     }
 };

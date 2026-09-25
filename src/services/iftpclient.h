@@ -104,24 +104,30 @@ signals:
     void stateChanged(IFtpClient::State state);
     void connected();
     void disconnected();
+    /**
+     * @brief A failure of the connection itself: socket error, rejected login,
+     *        connection timeout.
+     *
+     * Reported to the user (the base class forwards it to errorReported()).
+     * A failed request emits operationFailed() instead.
+     */
     void error(const QString &message);
 
     /**
-     * @brief Identifies the request that a failure ended.
+     * @brief A request failed; identifies which one.
      *
-     * The client is shared by several components, so error() alone does not
-     * tell a caller whether the failure belongs to one of its own requests.
-     * This signal is emitted right after error() whenever the failure ends a
-     * specific request, carrying the arguments that request was made with.
-     * Connection-level failures (socket errors, login, timeouts) emit error()
-     * only. It is a correlation signal, not an error path: the failure is
-     * reported to the user once, through error().
+     * The client is shared by several components, so the failure carries the
+     * arguments the request was made with for its requester to recognise its
+     * own. The client does not report it to the user: the component that made
+     * the request does, through its own errorReported(), so the user hears of
+     * it once. Components must therefore handle this signal for every request
+     * they make. Connection-level failures emit error() only.
      *
      * @param operation The kind of request that failed.
      * @param remotePath The remote path the request was made with (the source
      *                   path for rename()).
      * @param localPath The local path for download() and upload(); empty otherwise.
-     * @param message The same message passed to error().
+     * @param message What went wrong, ready to show to the user.
      */
     void operationFailed(IFtpClient::Operation operation, const QString &remotePath,
                          const QString &localPath, const QString &message);

@@ -15,6 +15,9 @@ private slots:
     void testCreateFolder_WithFtpClient_ForwardsFolderCreated();
     void testRenameItem_WithFtpClient_ForwardsItemRenamed();
     void testItemRemoved_WhenFtpClientEmits_ForwardsSignal();
+    void testCreateFolder_Fails_ReportsTheFailureOnce();
+    void testRenameItem_Fails_ReportsTheFailureOnce();
+    void testAnotherComponentsFailedRequest_IsNotReported();
 };
 
 void TestRemoteFileOperationsService::testCreateFolder_NullFtpClient_EmitsOperationFailed()
@@ -91,6 +94,57 @@ void TestRemoteFileOperationsService::testItemRemoved_WhenFtpClientEmits_Forward
 
     QCOMPARE(spy.count(), 1);
     QCOMPARE(spy.at(0).at(0).toString(), QString("/some/file"));
+}
+
+void TestRemoteFileOperationsService::testCreateFolder_Fails_ReportsTheFailureOnce()
+{
+    MockFtpClient mock;
+    mock.mockSetConnected(true);
+    RemoteFileOperationsService rfo(&mock);
+    QSignalSpy failedSpy(&rfo, &RemoteFileOperationsService::operationFailed);
+    QSignalSpy reportedSpy(&rfo, &IErrorEmitter::errorReported);
+    rfo.createFolder("/SD/new");
+
+    mock.mockSetNextOperationFails("Cannot create directory '/SD/new': 550");
+    mock.mockProcessNextOperation();
+
+    QCOMPARE(failedSpy.count(), 1);
+    QCOMPARE(failedSpy.first().at(0).toString(), QString("Create folder"));
+    QCOMPARE(reportedSpy.count(), 1);
+    QVERIFY(reportedSpy.first().at(3).toString().contains("550"));
+}
+
+void TestRemoteFileOperationsService::testRenameItem_Fails_ReportsTheFailureOnce()
+{
+    MockFtpClient mock;
+    mock.mockSetConnected(true);
+    RemoteFileOperationsService rfo(&mock);
+    QSignalSpy failedSpy(&rfo, &RemoteFileOperationsService::operationFailed);
+    QSignalSpy reportedSpy(&rfo, &IErrorEmitter::errorReported);
+    rfo.renameItem("/SD/old.prg", "/SD/new.prg");
+
+    mock.mockSetNextOperationFails("Cannot rename '/SD/old.prg': 550");
+    mock.mockProcessNextOperation();
+
+    QCOMPARE(failedSpy.count(), 1);
+    QCOMPARE(failedSpy.first().at(0).toString(), QString("Rename"));
+    QCOMPARE(reportedSpy.count(), 1);
+}
+
+void TestRemoteFileOperationsService::testAnotherComponentsFailedRequest_IsNotReported()
+{
+    MockFtpClient mock;
+    mock.mockSetConnected(true);
+    RemoteFileOperationsService rfo(&mock);
+    QSignalSpy reportedSpy(&rfo, &IErrorEmitter::errorReported);
+    rfo.createFolder("/SD/new");
+
+    // e.g. the transfer queue creating the folders of an upload on the shared client
+    emit mock.operationFailed(IFtpClient::Operation::MakeDirectory, "/SD/upload/sub", QString(),
+                              "550");
+    emit mock.operationFailed(IFtpClient::Operation::Rename, "/SD/new", QString(), "550");
+
+    QCOMPARE(reportedSpy.count(), 0);
 }
 
 QTEST_MAIN(TestRemoteFileOperationsService)

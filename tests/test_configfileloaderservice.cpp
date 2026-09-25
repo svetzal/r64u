@@ -1,6 +1,9 @@
+#include "mocks/mockftpclient.h"
+#include "mocks/mockrestclient.h"
 #include "services/configfileloaderservice.h"
 
 #include <QJsonDocument>
+#include <QSignalSpy>
 #include <QtTest>
 
 class TestConfigFileLoaderService : public QObject
@@ -394,6 +397,49 @@ private slots:
         QJsonObject result = ConfigFileLoaderService::parseConfigFile(data);
 
         QCOMPARE(result["Section"].toObject()["name"].toString(), QString::fromUtf8("Müller"));
+    }
+
+    // ========== loadConfigFile - failures reach the user once ==========
+
+    void testLoadConfigFile_DownloadFails_ReportsTheFailureOnce()
+    {
+        MockFtpClient ftp;
+        MockRestClient rest;
+        ftp.mockSetConnected(true);
+        ConfigFileLoaderService loader;
+        loader.setFtpClient(&ftp);
+        loader.setRestClient(&rest);
+        QSignalSpy failedSpy(&loader, &ConfigFileLoaderService::loadFailed);
+        QSignalSpy reportedSpy(&loader, &IErrorEmitter::errorReported);
+        loader.loadConfigFile("/SD/audio.cfg");
+
+        ftp.mockSetNextOperationFails("Download failed for '/SD/audio.cfg': File not found");
+        ftp.mockProcessNextOperation();
+
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(failedSpy.first().at(0).toString(), QString("/SD/audio.cfg"));
+        QVERIFY(failedSpy.first().at(1).toString().contains("File not found"));
+        QCOMPARE(reportedSpy.count(), 1);
+    }
+
+    void testLoadConfigFile_AnotherComponentsDownloadFails_KeepsWaiting()
+    {
+        MockFtpClient ftp;
+        MockRestClient rest;
+        ftp.mockSetConnected(true);
+        ConfigFileLoaderService loader;
+        loader.setFtpClient(&ftp);
+        loader.setRestClient(&rest);
+        QSignalSpy failedSpy(&loader, &ConfigFileLoaderService::loadFailed);
+        loader.loadConfigFile("/SD/audio.cfg");
+
+        // e.g. a preview's download on the shared client
+        emit ftp.operationFailed(IFtpClient::Operation::DownloadToMemory, "/SD/tune.sid", QString(),
+                                 "550");
+        emit ftp.operationFailed(IFtpClient::Operation::Download, "/SD/audio.cfg", "/tmp/audio.cfg",
+                                 "550");
+
+        QCOMPARE(failedSpy.count(), 0);
     }
 };
 

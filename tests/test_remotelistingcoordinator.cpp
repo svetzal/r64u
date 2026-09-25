@@ -113,7 +113,6 @@ private slots:
 
         // e.g. a transfer's RETR on the shared client
         const QString message = "Download failed for '/SD/x.prg': 550";
-        emit mockFtp->error(message);
         emit mockFtp->operationFailed(IFtpClient::Operation::Download, "/SD/x.prg", "/tmp/x.prg",
                                       message);
         emit mockFtp->operationFailed(IFtpClient::Operation::List, "/elsewhere", QString(),

@@ -2,10 +2,10 @@
 #define CONFIGFILELOADERSERVICE_H
 
 #include "ierroremitter.h"
+#include "iftpclient.h"
 
 #include <QJsonObject>
 
-class IFtpClient;
 class IRestClient;
 
 class ConfigFileLoaderService : public IErrorEmitter
@@ -32,6 +32,8 @@ private slots:
     void onDownloadFinished(const QString &remotePath, const QByteArray &data);
     void onConfigsUpdated();
     void onOperationFailed(const QString &operation, const QString &error);
+    void onFtpOperationFailed(IFtpClient::Operation operation, const QString &remotePath,
+                              const QString &localPath, const QString &message);
     void onFtpClientDestroyed();
     void onRestClientDestroyed();
 

@@ -30,6 +30,20 @@ PlaylistService::PlaylistService(DeviceConnectionManager *connection, QObject *p
     if (deviceConnection_ != nullptr && deviceConnection_->ftpClient() != nullptr) {
         connect(deviceConnection_->ftpClient(), &IFtpClient::downloadToMemoryFinished, this,
                 &PlaylistService::onSidDataReceived);
+        // The shared client leaves a failed request to its requester to report
+        connect(deviceConnection_->ftpClient(), &IFtpClient::operationFailed, this,
+                [this](IFtpClient::Operation operation, const QString &remotePath,
+                       const QString & /*localPath*/, const QString &message) {
+                    if (operation != IFtpClient::Operation::DownloadToMemory ||
+                        !pendingDurationLookups_.remove(remotePath)) {
+                        return;  // Not one of our song length lookups
+                    }
+                    // The item keeps its default duration
+                    emit errorReported(
+                        ErrorCategory::FileOperation, ErrorSeverity::Warning,
+                        tr("Song length lookup for %1").arg(QFileInfo(remotePath).fileName()),
+                        message);
+                });
     }
 
     loadSettings();

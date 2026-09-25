@@ -174,8 +174,7 @@ void MockFtpClient::mockProcessNextOperation()
     // Check if this operation should fail
     if (nextOpFails_) {
         nextOpFails_ = false;
-        // Mirrors C64UFtpClient: error() followed by the request it ended
-        emit error(nextOpError_);
+        // Mirrors C64UFtpClient: a failed request is left to its requester to report
         emit operationFailed(operationFor(op.type), op.path, op.localPath, nextOpError_);
         return;
     }

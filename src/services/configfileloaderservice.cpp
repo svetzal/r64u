@@ -40,6 +40,8 @@ void ConfigFileLoaderService::setFtpClient(IFtpClient *client)
     if (ftpClient_) {
         connect(ftpClient_, &IFtpClient::downloadToMemoryFinished, this,
                 &ConfigFileLoaderService::onDownloadFinished);
+        connect(ftpClient_, &IFtpClient::operationFailed, this,
+                &ConfigFileLoaderService::onFtpOperationFailed);
         // Track destruction to avoid dangling pointer access
         connect(ftpClient_, &QObject::destroyed, this,
                 &ConfigFileLoaderService::onFtpClientDestroyed);
@@ -188,6 +190,18 @@ void ConfigFileLoaderService::onOperationFailed(const QString &operation, const 
         emit loadFailed(pendingPath_, error);
         pendingPath_.clear();
     }
+}
+
+void ConfigFileLoaderService::onFtpOperationFailed(IFtpClient::Operation operation,
+                                                   const QString &remotePath,
+                                                   const QString & /*localPath*/,
+                                                   const QString &message)
+{
+    if (operation != IFtpClient::Operation::DownloadToMemory || remotePath != pendingPath_) {
+        return;  // Another component's request on the shared client
+    }
+    pendingPath_.clear();
+    emit loadFailed(remotePath, message);
 }
 
 void ConfigFileLoaderService::onFtpClientDestroyed()

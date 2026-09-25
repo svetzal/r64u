@@ -35,7 +35,7 @@ C64UFtpClient::C64UFtpClient(QObject *parent)
     connect(dataSocket_, &QTcpSocket::errorOccurred, this, &C64UFtpClient::onDataError);
     connect(dataSocket_, &QTcpSocket::bytesWritten, this, &C64UFtpClient::onDataBytesWritten);
 
-    // IFtpClient base constructor wires error() → errorReported()
+    // IFtpClient base constructor wires error() (connection-level failures) → errorReported()
 }
 
 C64UFtpClient::~C64UFtpClient()
@@ -637,16 +637,18 @@ quint64 C64UFtpClient::beginOperation(const Request &request)
 
 void C64UFtpClient::reportOperationError(quint64 operationId, const QString &message)
 {
-    emit error(message);
     const auto request = requests_.constFind(operationId);
-    if (request != requests_.cend()) {
-        emit operationFailed(request->operation, request->remotePath, request->localPath, message);
+    if (request == requests_.cend()) {
+        // Internal commands (login) belong to the connection itself
+        emit error(message);
+        return;
     }
+    reportRequestError(*request, message);
 }
 
 void C64UFtpClient::reportRequestError(const Request &request, const QString &message)
 {
-    emit error(message);
+    // The component that made the request tells the user, not the shared client
     emit operationFailed(request.operation, request.remotePath, request.localPath, message);
 }
 

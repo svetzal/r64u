@@ -219,7 +219,6 @@ void TestFilePreviewService::testAnotherComponentsFailure_KeepsThePreviewLoading
 
     // e.g. a transfer's RETR on the shared client
     const QString message = "Download failed for '/other.prg': 550";
-    emit mockFtp_->error(message);
     emit mockFtp_->operationFailed(IFtpClient::Operation::Download, "/other.prg", "/tmp/other.prg",
                                    message);
     emit mockFtp_->operationFailed(IFtpClient::Operation::DownloadToMemory, "/other.sid", QString(),
