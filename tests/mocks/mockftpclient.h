@@ -197,6 +197,8 @@ private:
         QString newPath;  // For rename operations
     };
 
+    [[nodiscard]] static Operation operationFor(PendingOp::Type type);
+
     bool connected_ = false;
     State state_ = State::Disconnected;
     QString host_;

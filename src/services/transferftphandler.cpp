@@ -36,7 +36,8 @@ void TransferFtpHandler::connectFtpSignals()
             &TransferFtpHandler::onDownloadProgress);
     connect(ftpClient_, &IFtpClient::downloadFinished, this,
             &TransferFtpHandler::onDownloadFinished);
-    connect(ftpClient_, &IFtpClient::error, this, &TransferFtpHandler::onFtpError);
+    connect(ftpClient_, &IFtpClient::operationFailed, this,
+            &TransferFtpHandler::onFtpOperationFailed);
     connect(ftpClient_, &IFtpClient::directoryCreated, this,
             &TransferFtpHandler::onFtpDirectoryCreated);
     connect(ftpClient_, &IFtpClient::directoryListed, this, &TransferFtpHandler::onDirectoryListed);
@@ -71,63 +72,102 @@ void TransferFtpHandler::stopTimeout()
 
 void TransferFtpHandler::onUploadProgress(const QString &file, qint64 sent, qint64 total)
 {
-    Q_UNUSED(file)
+    const int idx = transfer::inFlightUploadIndex(state_, file);
+    if (idx < 0) {
+        return;  // Another component's upload on the shared client
+    }
     startTimeout();
 
-    if (state_.currentIndex >= 0 && state_.currentIndex < state_.items.size()) {
-        state_.items[state_.currentIndex].bytesTransferred = sent;
-        state_.items[state_.currentIndex].totalBytes = total;
-        emit itemDataChanged(state_.currentIndex);
-    }
+    state_.items[idx].bytesTransferred = sent;
+    state_.items[idx].totalBytes = total;
+    emit itemDataChanged(idx);
 }
 
 void TransferFtpHandler::onUploadFinished(const QString &localPath, const QString &remotePath)
 {
+    int idx = transfer::findItemIndex(state_, localPath, remotePath);
+    if (idx < 0) {
+        return;  // Not one of the queue's uploads
+    }
     stopTimeout();
 
-    int idx = transfer::findItemIndex(state_, localPath, remotePath);
-    if (idx >= 0) {
-        state_.currentIndex = idx;
-        markCurrentComplete(transfer::TransferItem::Status::Completed);
-
-        QString fileName = QFileInfo(localPath).fileName();
-        emit operationCompleted(fileName);
-    }
+    state_.currentIndex = idx;
+    markCurrentComplete(transfer::TransferItem::Status::Completed);
+    emit operationCompleted(QFileInfo(localPath).fileName());
 
     completeAndNotify();
 }
 
 void TransferFtpHandler::onDownloadProgress(const QString &file, qint64 received, qint64 total)
 {
-    Q_UNUSED(file)
+    const int idx = transfer::inFlightDownloadIndex(state_, file);
+    if (idx < 0) {
+        return;  // e.g. a preview's downloadToMemory on the shared client
+    }
     startTimeout();
 
-    if (state_.currentIndex >= 0 && state_.currentIndex < state_.items.size()) {
-        state_.items[state_.currentIndex].bytesTransferred = received;
-        state_.items[state_.currentIndex].totalBytes = total;
-        emit itemDataChanged(state_.currentIndex);
-    }
+    state_.items[idx].bytesTransferred = received;
+    state_.items[idx].totalBytes = total;
+    emit itemDataChanged(idx);
 }
 
 void TransferFtpHandler::onDownloadFinished(const QString &remotePath, const QString &localPath)
 {
+    int idx = transfer::findItemIndex(state_, localPath, remotePath);
+    if (idx < 0) {
+        return;  // Not one of the queue's downloads
+    }
     stopTimeout();
 
-    int idx = transfer::findItemIndex(state_, localPath, remotePath);
-    if (idx >= 0) {
-        state_.currentIndex = idx;
-        markCurrentComplete(transfer::TransferItem::Status::Completed);
-
-        QString fileName = QFileInfo(remotePath).fileName();
-        emit operationCompleted(fileName);
-    }
+    state_.currentIndex = idx;
+    markCurrentComplete(transfer::TransferItem::Status::Completed);
+    emit operationCompleted(QFileInfo(remotePath).fileName());
 
     completeAndNotify();
 }
 
-void TransferFtpHandler::onFtpError(const QString &message)
+bool TransferFtpHandler::isQueueRequest(IFtpClient::Operation operation, const QString &remotePath,
+                                        const QString &localPath) const
 {
-    qCDebug(LogTransfer) << "TransferFtpHandler: onFtpError:" << message
+    using Operation = IFtpClient::Operation;
+    using transfer::OperationType;
+
+    switch (operation) {
+    case Operation::Download:
+        return transfer::isInFlightItem(state_, OperationType::Download, remotePath, localPath);
+    case Operation::Upload:
+        return transfer::isInFlightItem(state_, OperationType::Upload, remotePath, localPath);
+    case Operation::Remove:
+    case Operation::RemoveDirectory:
+        return transfer::isInFlightItem(state_, OperationType::Delete, remotePath, localPath) ||
+               transfer::isAwaitedRecursiveDelete(state_, remotePath);
+    case Operation::List:
+        return transfer::isAwaitedListing(state_, remotePath);
+    case Operation::MakeDirectory:
+        return transfer::isAwaitedMkdir(state_, remotePath);
+    case Operation::ChangeDirectory:
+    case Operation::DownloadToMemory:
+    case Operation::Rename:
+        return false;
+    }
+    return false;
+}
+
+void TransferFtpHandler::onFtpOperationFailed(IFtpClient::Operation operation,
+                                              const QString &remotePath, const QString &localPath,
+                                              const QString &message)
+{
+    if (!isQueueRequest(operation, remotePath, localPath)) {
+        qCDebug(LogTransfer) << "TransferFtpHandler: Ignoring failure of another component's"
+                             << operation << remotePath;
+        return;
+    }
+    handleQueueRequestFailure(message);
+}
+
+void TransferFtpHandler::handleQueueRequestFailure(const QString &message)
+{
+    qCDebug(LogTransfer) << "TransferFtpHandler: queue request failed:" << message
                          << "state:" << transfer::queueStateToString(state_.queueState);
 
     stopTimeout();
@@ -170,6 +210,9 @@ void TransferFtpHandler::onFtpError(const QString &message)
 
 void TransferFtpHandler::onFtpDirectoryCreated(const QString &path)
 {
+    if (!transfer::isAwaitedMkdir(state_, path)) {
+        return;  // e.g. a folder created from the remote browser
+    }
     if (dirCreator_) {
         dirCreator_->onDirectoryCreated(path);
     }

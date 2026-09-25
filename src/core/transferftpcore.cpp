@@ -61,6 +61,62 @@ FindDeleteItemResult findInProgressDeleteItem(const State &state, const QString 
     return result;
 }
 
+bool isInFlightItem(const State &state, OperationType type, const QString &remotePath,
+                    const QString &localPath)
+{
+    if (state.currentIndex < 0 || state.currentIndex >= state.items.size()) {
+        return false;
+    }
+    const TransferItem &item = state.items[state.currentIndex];
+    if (item.status != TransferItem::Status::InProgress || item.operationType != type ||
+        item.remotePath != remotePath) {
+        return false;
+    }
+    return type == OperationType::Delete || item.localPath == localPath;
+}
+
+int inFlightDownloadIndex(const State &state, const QString &remotePath)
+{
+    if (state.currentIndex < 0 || state.currentIndex >= state.items.size()) {
+        return -1;
+    }
+    const TransferItem &item = state.items[state.currentIndex];
+    return isInFlightItem(state, OperationType::Download, remotePath, item.localPath)
+               ? state.currentIndex
+               : -1;
+}
+
+int inFlightUploadIndex(const State &state, const QString &localPath)
+{
+    if (state.currentIndex < 0 || state.currentIndex >= state.items.size()) {
+        return -1;
+    }
+    const TransferItem &item = state.items[state.currentIndex];
+    return isInFlightItem(state, OperationType::Upload, item.remotePath, localPath)
+               ? state.currentIndex
+               : -1;
+}
+
+bool isAwaitedListing(const State &state, const QString &path)
+{
+    return state.requestedListings.contains(path) || state.requestedDeleteListings.contains(path) ||
+           state.requestedFolderCheckListings.contains(path) ||
+           state.requestedUploadFileCheckListings.contains(path);
+}
+
+bool isAwaitedMkdir(const State &state, const QString &path)
+{
+    return state.queueState == QueueState::CreatingDirectories && !state.pendingMkdirs.isEmpty() &&
+           state.pendingMkdirs.head().remotePath == path;
+}
+
+bool isAwaitedRecursiveDelete(const State &state, const QString &path)
+{
+    return state.queueState == QueueState::Deleting &&
+           state.deletedCount < state.deleteQueue.size() &&
+           state.deleteQueue[state.deletedCount].path == path;
+}
+
 EnqueueItemResult enqueueItem(const State &state, const TransferItem &item, int batchIdx)
 {
     State newState = state;

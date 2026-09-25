@@ -39,6 +39,22 @@ public:
     enum class State { Disconnected, Connecting, Connected, LoggingIn, Ready, Busy };
     Q_ENUM(State)
 
+    /**
+     * @brief The public request an operationFailed() signal refers to.
+     */
+    enum class Operation {
+        List,              ///< list()
+        ChangeDirectory,   ///< changeDirectory()
+        MakeDirectory,     ///< makeDirectory()
+        RemoveDirectory,   ///< removeDirectory()
+        Download,          ///< download()
+        DownloadToMemory,  ///< downloadToMemory()
+        Upload,            ///< upload()
+        Remove,            ///< remove()
+        Rename             ///< rename()
+    };
+    Q_ENUM(Operation)
+
     explicit IFtpClient(QObject *parent = nullptr);
 
     ~IFtpClient() override = default;
@@ -79,6 +95,26 @@ signals:
     void connected();
     void disconnected();
     void error(const QString &message);
+
+    /**
+     * @brief Identifies the request that a failure ended.
+     *
+     * The client is shared by several components, so error() alone does not
+     * tell a caller whether the failure belongs to one of its own requests.
+     * This signal is emitted right after error() whenever the failure ends a
+     * specific request, carrying the arguments that request was made with.
+     * Connection-level failures (socket errors, login, timeouts) emit error()
+     * only. It is a correlation signal, not an error path: the failure is
+     * reported to the user once, through error().
+     *
+     * @param operation The kind of request that failed.
+     * @param remotePath The remote path the request was made with (the source
+     *                   path for rename()).
+     * @param localPath The local path for download() and upload(); empty otherwise.
+     * @param message The same message passed to error().
+     */
+    void operationFailed(IFtpClient::Operation operation, const QString &remotePath,
+                         const QString &localPath, const QString &message);
 
     void directoryListed(const QString &path, const QList<FtpEntry> &entries);
     void directoryChanged(const QString &path);

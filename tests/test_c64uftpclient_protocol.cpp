@@ -804,6 +804,80 @@ private slots:
     }
 
     // =========================================================================
+    // operationFailed identifies which request a failure ended
+    // =========================================================================
+
+    void testOperationFailed_WhenNotLoggedIn_IdentifiesTheRequest()
+    {
+        QSignalSpy failedSpy(ftp, &C64UFtpClient::operationFailed);
+
+        ftp->download("/remote/file.txt", "/local/file.txt");
+
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(failedSpy.first().at(0).value<IFtpClient::Operation>(),
+                 IFtpClient::Operation::Download);
+        QCOMPARE(failedSpy.first().at(1).toString(), QString("/remote/file.txt"));
+        QCOMPARE(failedSpy.first().at(2).toString(), QString("/local/file.txt"));
+        QVERIFY(failedSpy.first().at(3).toString().contains("not connected"));
+    }
+
+    void testOperationFailed_PasvRejected_IdentifiesTheDownloadNotTheNextRequest()
+    {
+        FakeFtpServer server;
+        server.setFile("/SD/game.prg", "GAME");
+        server.setListing(OneFileListing);
+        server.failNextPasv();
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        QSignalSpy failedSpy(ftp, &C64UFtpClient::operationFailed);
+        QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
+
+        ftp->download("/SD/game.prg", dir.filePath("game.prg"));
+        ftp->list("/SD");
+
+        QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(failedSpy.first().at(0).value<IFtpClient::Operation>(),
+                 IFtpClient::Operation::Download);
+        QCOMPARE(failedSpy.first().at(1).toString(), QString("/SD/game.prg"));
+        QCOMPARE(failedSpy.first().at(2).toString(), dir.filePath("game.prg"));
+    }
+
+    void testOperationFailed_MissingFileInMemory_IdentifiesDownloadToMemory()
+    {
+        FakeFtpServer server;
+        QVERIFY(loginTo(server));
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy failedSpy(ftp, &C64UFtpClient::operationFailed);
+
+        ftp->downloadToMemory("/SD/missing.sid");
+
+        QTRY_COMPARE_WITH_TIMEOUT(failedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(errorSpy.count(), 1);
+        QCOMPARE(failedSpy.first().at(0).value<IFtpClient::Operation>(),
+                 IFtpClient::Operation::DownloadToMemory);
+        QCOMPARE(failedSpy.first().at(1).toString(), QString("/SD/missing.sid"));
+        QCOMPARE(failedSpy.first().at(3).toString(), errorSpy.first().first().toString());
+    }
+
+    void testOperationFailed_NotEmittedForSuccessfulRequests()
+    {
+        FakeFtpServer server;
+        server.setListing(OneFileListing);
+        QVERIFY(loginTo(server));
+        QSignalSpy failedSpy(ftp, &C64UFtpClient::operationFailed);
+        QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
+
+        ftp->list("/SD");
+
+        QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(failedSpy.count(), 0);
+    }
+
+    // =========================================================================
     // Per-operation state belongs to the operation, not to the queue
     // =========================================================================
 

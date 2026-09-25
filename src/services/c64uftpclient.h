@@ -9,6 +9,7 @@
 
 #include <QDateTime>
 #include <QFile>
+#include <QHash>
 #include <QTcpSocket>
 #include <QTimer>
 
@@ -197,8 +198,20 @@ private:
                           std::shared_ptr<QFile> file, bool isMemory, quint64 operationId);
     void queueStorCommand(const QString &remotePath, const QString &localPath,
                           std::shared_ptr<QFile> file, quint64 operationId);
+    /// The public request an operation id stands for (see IFtpClient::operationFailed).
+    struct Request
+    {
+        Operation operation = Operation::List;
+        QString remotePath;
+        QString localPath;
+    };
+
     /// Allocates the id that groups the commands of one public operation.
-    [[nodiscard]] quint64 beginOperation() { return nextOperationId_++; }
+    [[nodiscard]] quint64 beginOperation(const Request &request);
+    /// Emits error() and, if @p operationId stands for a public request, operationFailed().
+    void reportOperationError(quint64 operationId, const QString &message);
+    /// Emits error() and operationFailed() for a request that failed before being queued.
+    void reportRequestError(const Request &request, const QString &message);
     /// Drops the not-yet-sent commands of the operation currently in flight.
     void dropRestOfCurrentOperation();
     void processNextCommand();
@@ -217,7 +230,7 @@ private:
     void discardPartialDownloads();
     void discardDataTransfer();
     void discardReply(int code);
-    [[nodiscard]] bool ensureLoggedIn(const QString &operation);
+    [[nodiscard]] bool ensureLoggedIn(const QString &operation, const Request &request);
 
     /// Builds a context snapshot for the response handler.
     [[nodiscard]] FtpResponseContext buildContext() const;
@@ -227,7 +240,7 @@ private:
 
     void applyTransferStateMutations(const FtpResponseAction &action);
     void applyConnectionStateChanges(const FtpResponseAction &action);
-    void emitResponseSignals(const FtpResponseAction &action);
+    void emitResponseSignals(const FtpResponseAction &action, quint64 operationId);
     void executeResponseAction(const FtpResponseAction &action);
     void startUpload();
     void sendNextUploadChunks();
@@ -258,6 +271,8 @@ private:
     QString currentLocalPath_;
     quint64 currentOperationId_ = 0;
     quint64 nextOperationId_ = 1;  ///< 0 is reserved for internal (login) commands
+    /// Requests of queued or in-flight operations, keyed by operation id
+    QHash<quint64, Request> requests_;
     FtpCommandQueue commandQueue_;
     QString responseBuffer_;
     bool awaitingFinalReply_ = false;  ///< Current command has not had its 2xx-5xx reply yet

@@ -167,6 +167,8 @@ void C64UFtpClient::processNextCommand()
     }
 
     if (commandQueue_.isEmpty()) {
+        requests_.remove(currentOperationId_);
+        currentOperationId_ = 0;
         currentCommand_ = Command::None;
         setState(State::Ready);
         return;
@@ -174,6 +176,10 @@ void C64UFtpClient::processNextCommand()
 
     setState(State::Busy);
     PendingCommand pending = commandQueue_.dequeueNext();
+    if (pending.operationId != currentOperationId_) {
+        // An operation's commands are queued together, so the previous one is over
+        requests_.remove(currentOperationId_);
+    }
     currentCommand_ = pending.cmd;
     currentArg_ = pending.arg;
     currentLocalPath_ = pending.localPath;
@@ -222,6 +228,8 @@ FtpResponseContext C64UFtpClient::buildContext() const
 
 void C64UFtpClient::applyAction(const FtpResponseAction &action)
 {
+    // Captured before the mutations below can move on to the next operation
+    const quint64 operationId = currentOperationId_;
     if (!action.errorMessage.isEmpty()) {
         // An error ends the operation: its remaining commands (e.g. the RETR
         // after a failed PASV) would only fail again and report a second error.
@@ -234,7 +242,7 @@ void C64UFtpClient::applyAction(const FtpResponseAction &action)
     }
     applyTransferStateMutations(action);
     applyConnectionStateChanges(action);
-    emitResponseSignals(action);
+    emitResponseSignals(action, operationId);
     executeResponseAction(action);
 }
 
@@ -284,7 +292,7 @@ void C64UFtpClient::applyConnectionStateChanges(const FtpResponseAction &action)
     }
 }
 
-void C64UFtpClient::emitResponseSignals(const FtpResponseAction &action)
+void C64UFtpClient::emitResponseSignals(const FtpResponseAction &action, quint64 operationId)
 {
     if (action.emitConnected) {
         emit connected();
@@ -311,7 +319,8 @@ void C64UFtpClient::emitResponseSignals(const FtpResponseAction &action)
             emit downloadFinished(action.downloadFinishedRemotePath,
                                   action.downloadFinishedLocalPath);
         } else {
-            emit error(
+            reportOperationError(
+                operationId,
                 tr("Cannot save file '%1': %2").arg(action.downloadFinishedLocalPath, commitError));
         }
     }
@@ -329,7 +338,7 @@ void C64UFtpClient::emitResponseSignals(const FtpResponseAction &action)
                               action.downloadProgressTotal);
     }
     if (!action.errorMessage.isEmpty()) {
-        emit error(action.errorMessage);
+        reportOperationError(operationId, action.errorMessage);
     }
 }
 
@@ -567,7 +576,7 @@ void C64UFtpClient::failInFlightTransfer(const QString &message)
     if (awaitingFinalReply_) {
         repliesToDiscard_ = 1;
     }
-    emit error(message);
+    reportOperationError(currentOperationId_, message);
     if (repliesToDiscard_ == 0 && state_ == State::Busy) {
         processNextCommand();
     }
@@ -618,6 +627,30 @@ void C64UFtpClient::resetCommandTracking()
     awaitingFinalReply_ = false;
     repliesToDiscard_ = 0;
     currentCommand_ = Command::None;
+    currentOperationId_ = 0;
+    requests_.clear();
+}
+
+quint64 C64UFtpClient::beginOperation(const Request &request)
+{
+    const quint64 operationId = nextOperationId_++;
+    requests_.insert(operationId, request);
+    return operationId;
+}
+
+void C64UFtpClient::reportOperationError(quint64 operationId, const QString &message)
+{
+    emit error(message);
+    const auto request = requests_.constFind(operationId);
+    if (request != requests_.cend()) {
+        emit operationFailed(request->operation, request->remotePath, request->localPath, message);
+    }
+}
+
+void C64UFtpClient::reportRequestError(const Request &request, const QString &message)
+{
+    emit error(message);
+    emit operationFailed(request.operation, request.remotePath, request.localPath, message);
 }
 
 void C64UFtpClient::dropRestOfCurrentOperation()
@@ -656,7 +689,7 @@ void C64UFtpClient::failDownloadBeforeStart()
         tr("Cannot save file '%1': unable to create local file").arg(currentLocalPath_);
     dropRestOfCurrentOperation();
     abortDataConnection();  // PASV already opened it for this RETR
-    emit error(message);
+    reportOperationError(currentOperationId_, message);
     if (state_ == State::Busy) {
         processNextCommand();
     }
@@ -700,10 +733,10 @@ void C64UFtpClient::performDisconnectCleanup()
     setState(State::Disconnected);
 }
 
-bool C64UFtpClient::ensureLoggedIn(const QString &operation)
+bool C64UFtpClient::ensureLoggedIn(const QString &operation, const Request &request)
 {
     if (!loggedIn_) {
-        emit error(tr("Cannot %1: not connected to server").arg(operation));
+        reportRequestError(request, tr("Cannot %1: not connected to server").arg(operation));
         return false;
     }
     return true;
@@ -715,9 +748,10 @@ bool C64UFtpClient::ensureLoggedIn(const QString &operation)
 
 void C64UFtpClient::list(const QString &path)
 {
-    if (!ensureLoggedIn(tr("list directory")))
+    const Request request{Operation::List, path, {}};
+    if (!ensureLoggedIn(tr("list directory"), request))
         return;
-    const quint64 operationId = beginOperation();
+    const quint64 operationId = beginOperation(request);
     for (const auto &spec : ftp::buildListSequence(path)) {
         queueCommand(spec.cmd, spec.arg, QString(), operationId);
     }
@@ -725,33 +759,37 @@ void C64UFtpClient::list(const QString &path)
 
 void C64UFtpClient::changeDirectory(const QString &path)
 {
-    if (!ensureLoggedIn(tr("change directory")))
+    const Request request{Operation::ChangeDirectory, path, {}};
+    if (!ensureLoggedIn(tr("change directory"), request))
         return;
-    queueCommand(Command::Cwd, path, QString(), beginOperation());
+    queueCommand(Command::Cwd, path, QString(), beginOperation(request));
 }
 
 void C64UFtpClient::makeDirectory(const QString &path)
 {
-    if (!ensureLoggedIn(tr("create directory")))
+    const Request request{Operation::MakeDirectory, path, {}};
+    if (!ensureLoggedIn(tr("create directory"), request))
         return;
-    queueCommand(Command::Mkd, path, QString(), beginOperation());
+    queueCommand(Command::Mkd, path, QString(), beginOperation(request));
 }
 
 void C64UFtpClient::removeDirectory(const QString &path)
 {
-    if (!ensureLoggedIn(tr("remove directory")))
+    const Request request{Operation::RemoveDirectory, path, {}};
+    if (!ensureLoggedIn(tr("remove directory"), request))
         return;
-    queueCommand(Command::Rmd, path, QString(), beginOperation());
+    queueCommand(Command::Rmd, path, QString(), beginOperation(request));
 }
 
 void C64UFtpClient::download(const QString &remotePath, const QString &localPath)
 {
-    if (!ensureLoggedIn(tr("download file")))
+    const Request request{Operation::Download, remotePath, localPath};
+    if (!ensureLoggedIn(tr("download file"), request))
         return;
 
     // The destination is written via a ".part" file opened when the transfer
     // starts, so queuing (or failing) a download never touches an existing file.
-    const quint64 operationId = beginOperation();
+    const quint64 operationId = beginOperation(request);
     for (const auto &spec : ftp::buildDownloadPrelude()) {
         queueCommand(spec.cmd, spec.arg, QString(), operationId);
     }
@@ -760,10 +798,11 @@ void C64UFtpClient::download(const QString &remotePath, const QString &localPath
 
 void C64UFtpClient::downloadToMemory(const QString &remotePath)
 {
-    if (!ensureLoggedIn(tr("download file")))
+    const Request request{Operation::DownloadToMemory, remotePath, {}};
+    if (!ensureLoggedIn(tr("download file"), request))
         return;
 
-    const quint64 operationId = beginOperation();
+    const quint64 operationId = beginOperation(request);
     for (const auto &spec : ftp::buildDownloadPrelude()) {
         queueCommand(spec.cmd, spec.arg, QString(), operationId);
     }
@@ -772,16 +811,18 @@ void C64UFtpClient::downloadToMemory(const QString &remotePath)
 
 void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
 {
-    if (!ensureLoggedIn(tr("upload file")))
+    const Request request{Operation::Upload, remotePath, localPath};
+    if (!ensureLoggedIn(tr("upload file"), request))
         return;
 
     auto file = std::make_shared<QFile>(localPath);
     if (!file->open(QIODevice::ReadOnly)) {
-        emit error(tr("Cannot read file '%1': file not found or access denied").arg(localPath));
+        reportRequestError(
+            request, tr("Cannot read file '%1': file not found or access denied").arg(localPath));
         return;
     }
 
-    const quint64 operationId = beginOperation();
+    const quint64 operationId = beginOperation(request);
     for (const auto &spec : ftp::buildUploadPrelude()) {
         queueCommand(spec.cmd, spec.arg, QString(), operationId);
     }
@@ -790,16 +831,18 @@ void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
 
 void C64UFtpClient::remove(const QString &path)
 {
-    if (!ensureLoggedIn(tr("delete file")))
+    const Request request{Operation::Remove, path, {}};
+    if (!ensureLoggedIn(tr("delete file"), request))
         return;
-    queueCommand(Command::Dele, path, QString(), beginOperation());
+    queueCommand(Command::Dele, path, QString(), beginOperation(request));
 }
 
 void C64UFtpClient::rename(const QString &oldPath, const QString &newPath)
 {
-    if (!ensureLoggedIn(tr("rename file")))
+    const Request request{Operation::Rename, oldPath, {}};
+    if (!ensureLoggedIn(tr("rename file"), request))
         return;
-    const quint64 operationId = beginOperation();
+    const quint64 operationId = beginOperation(request);
     queueCommand(Command::RnFr, oldPath, oldPath, operationId);  // Store oldPath for signal
     queueCommand(Command::RnTo, newPath, QString(), operationId);
 }

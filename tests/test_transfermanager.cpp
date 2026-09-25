@@ -1,9 +1,13 @@
 #include "mocks/mockftpclient.h"
 #include "services/transfermanager.h"
+#include "services/transfertimeoutmanager.h"
 
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <QTimer>
 #include <QtTest>
+
+using Status = TransferItem::Status;
 
 class TestTransferManager : public QObject
 {
@@ -27,6 +31,27 @@ private:
             mockFtp->mockProcessAllOperations();
         }
         orchestrator->flushEventQueue();
+    }
+
+    [[nodiscard]] Status itemStatus(int row) const
+    {
+        return orchestrator->state().items.at(row).status;
+    }
+
+    [[nodiscard]] bool timeoutArmed() const
+    {
+        const auto *timeout = orchestrator->findChild<TransferTimeoutManager *>();
+        const auto *timer = timeout ? timeout->findChild<QTimer *>() : nullptr;
+        return timer && timer->isActive();
+    }
+
+    /// Queues downloads of /r/<name> into the temp dir, each with mock content.
+    void enqueueDownloads(const QStringList &names)
+    {
+        for (const QString &name : names) {
+            mockFtp->mockSetDownloadData("/r/" + name, "x");
+            orchestrator->enqueueDownload("/r/" + name, tempDir.path() + "/" + name);
+        }
     }
 
     void flushAndProcessNext()
@@ -262,6 +287,94 @@ private slots:
 
         // Assert: batchCompleted was emitted for the batch that contained the skipped item
         QCOMPARE(batchCompletedSpy.count(), 1);
+    }
+
+    // =========================================================================
+    // The FTP client is shared: only react to the queue's own operations
+    // =========================================================================
+
+    void testForeignOperationFailure_DuringTransfer_DoesNotFailTheItem()
+    {
+        enqueueDownloads({"a", "b"});
+        orchestrator->flushEventQueue();  // a in flight
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+
+        // A file preview on the same client fails
+        const QString message = "Download failed for '/preview.sid': 550";
+        emit mockFtp->error(message);
+        emit mockFtp->operationFailed(IFtpClient::Operation::DownloadToMemory, "/preview.sid",
+                                      QString(), message);
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(failedSpy.count(), 0);
+        QCOMPARE(itemStatus(0), Status::InProgress);
+        QCOMPARE(orchestrator->state().queueState, QueueState::Transferring);
+        QCOMPARE(mockFtp->mockGetDownloadRequests(), QStringList{"/r/a"});
+    }
+
+    void testForeignOperationFailure_DuringTransfer_BatchCompletesOnceWithAllItems()
+    {
+        enqueueDownloads({"a", "b", "c"});
+        orchestrator->flushEventQueue();
+        QSignalSpy batchCompletedSpy(orchestrator, &TransferManager::batchCompleted);
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+
+        emit mockFtp->operationFailed(IFtpClient::Operation::DownloadToMemory, "/preview.sid",
+                                      QString(), "550");
+        flushAndProcess();
+
+        QCOMPARE(itemStatus(0), Status::Completed);
+        QCOMPARE(itemStatus(1), Status::Completed);
+        QCOMPARE(itemStatus(2), Status::Completed);
+        QCOMPARE(batchCompletedSpy.count(), 1);
+        QCOMPARE(failedSpy.count(), 0);
+    }
+
+    void testOwnOperationFailure_FailsTheInFlightItem()
+    {
+        enqueueDownloads({"a", "b"});
+        orchestrator->flushEventQueue();
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+
+        mockFtp->mockSetNextOperationFails("550 No such file");
+        mockFtp->mockProcessNextOperation();
+
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(itemStatus(0), Status::Failed);
+        QCOMPARE(orchestrator->state().items.at(0).errorMessage, QString("550 No such file"));
+    }
+
+    void testForeignDownloadProgress_WhileIdle_DoesNotArmTimeout()
+    {
+        QVERIFY(!timeoutArmed());
+
+        emit mockFtp->downloadProgress("/preview.sid", 10, 100);
+
+        QVERIFY(!timeoutArmed());
+    }
+
+    void testForeignDownloadProgress_DuringTransfer_DoesNotUpdateTheItem()
+    {
+        enqueueDownloads({"a"});
+        orchestrator->flushEventQueue();
+        QSignalSpy dataChangedSpy(orchestrator, &TransferManager::itemDataChanged);
+
+        emit mockFtp->downloadProgress("/preview.sid", 10, 100);
+
+        QCOMPARE(dataChangedSpy.count(), 0);
+        QCOMPARE(orchestrator->state().items.at(0).bytesTransferred, qint64(0));
+    }
+
+    void testForeignDownloadFinished_DuringTransfer_KeepsTheQueueBusy()
+    {
+        enqueueDownloads({"a", "b"});
+        orchestrator->flushEventQueue();
+
+        emit mockFtp->downloadFinished("/elsewhere/x.prg", "/tmp/x.prg");
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(orchestrator->state().queueState, QueueState::Transferring);
+        QCOMPARE(mockFtp->mockGetDownloadRequests(), QStringList{"/r/a"});
     }
 };
 

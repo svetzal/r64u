@@ -88,6 +88,8 @@ private:
         QString localPath;
     };
 
+    [[nodiscard]] static Operation operationFor(PendingOp::Type type);
+
     bool connected_ = false;
     State state_ = State::Disconnected;
     QString host_;

@@ -53,6 +53,38 @@ struct FindDeleteItemResult
                                                             const QString &path);
 
 // ---------------------------------------------------------------------------
+// Ownership of FTP client events
+//
+// The FTP client is shared with the file browser, previews, playlists and the
+// config loader, so its signals only concern the queue when they belong to a
+// request the queue itself issued.
+// ---------------------------------------------------------------------------
+
+/// @brief Returns true if the item the queue dispatched last is in flight and matches
+///        the given operation.
+/// @param type Operation type of the FTP request (Download, Upload or Delete).
+/// @param remotePath Remote path of the request.
+/// @param localPath Local path of the request; ignored for Delete.
+[[nodiscard]] bool isInFlightItem(const State &state, OperationType type, const QString &remotePath,
+                                  const QString &localPath);
+
+/// @brief Index of the in-flight download of @p remotePath, or -1 if there is none.
+[[nodiscard]] int inFlightDownloadIndex(const State &state, const QString &remotePath);
+
+/// @brief Index of the in-flight upload of @p localPath, or -1 if there is none.
+[[nodiscard]] int inFlightUploadIndex(const State &state, const QString &localPath);
+
+/// @brief Returns true if the queue is waiting for a listing of @p path
+///        (recursive scan, delete scan, folder-exists or upload-exists check).
+[[nodiscard]] bool isAwaitedListing(const State &state, const QString &path);
+
+/// @brief Returns true if @p path is the directory the queue is creating right now.
+[[nodiscard]] bool isAwaitedMkdir(const State &state, const QString &path);
+
+/// @brief Returns true if @p path is the entry the recursive delete is removing right now.
+[[nodiscard]] bool isAwaitedRecursiveDelete(const State &state, const QString &path);
+
+// ---------------------------------------------------------------------------
 // Enqueue item helpers
 // ---------------------------------------------------------------------------
 

@@ -146,7 +146,9 @@ void C64UFtpClient::mockProcessNextOperation()
     // Check if this operation should fail
     if (nextOpFails_) {
         nextOpFails_ = false;
+        // Mirrors the real client: error() followed by the request it ended
         emit error(nextOpError_);
+        emit operationFailed(operationFor(op.type), op.path, op.localPath, nextOpError_);
         return;
     }
 
@@ -186,6 +188,23 @@ void C64UFtpClient::mockProcessNextOperation()
         break;
     }
     }
+}
+
+IFtpClient::Operation C64UFtpClient::operationFor(PendingOp::Type type)
+{
+    switch (type) {
+    case PendingOp::List:
+        return Operation::List;
+    case PendingOp::Download:
+        return Operation::Download;
+    case PendingOp::Upload:
+        return Operation::Upload;
+    case PendingOp::Mkdir:
+        return Operation::MakeDirectory;
+    case PendingOp::DownloadToMemory:
+        return Operation::DownloadToMemory;
+    }
+    return Operation::List;
 }
 
 void C64UFtpClient::mockProcessAllOperations()

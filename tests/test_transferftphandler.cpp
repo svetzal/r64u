@@ -143,14 +143,15 @@ private slots:
         QSignalSpy failedSpy(handler, &TransferFtpHandler::operationFailed);
         QSignalSpy queueSpy(handler, &TransferFtpHandler::queueChanged);
 
-        emit mockFtp->error("Connection reset");
+        emit mockFtp->operationFailed(IFtpClient::Operation::Upload, "/remote/file.txt",
+                                      "/local/file.txt", "Connection reset");
 
         QCOMPARE(dataChangedSpy.count(), 1);
         QCOMPARE(failedSpy.count(), 1);
         QCOMPARE(queueSpy.count(), 1);
     }
 
-    void testFtpErrorWithNoCurrentItem_emitsOnlyQueueChanged()
+    void testFtpErrorWithNoCurrentItem_isIgnored()
     {
         state_.currentIndex = -1;
         state_.queueState = transfer::QueueState::Idle;
@@ -159,9 +160,32 @@ private slots:
         QSignalSpy queueSpy(handler, &TransferFtpHandler::queueChanged);
 
         emit mockFtp->error("Connection error");
+        emit mockFtp->operationFailed(IFtpClient::Operation::Upload, "/remote/file.txt",
+                                      "/local/file.txt", "Connection error");
 
         QCOMPARE(failedSpy.count(), 0);
-        QCOMPARE(queueSpy.count(), 1);
+        QCOMPARE(queueSpy.count(), 0);
+    }
+
+    void testFtpErrorForAnotherRequest_leavesInFlightItemAlone()
+    {
+        transfer::TransferItem item;
+        item.localPath = "/local/file.txt";
+        item.remotePath = "/remote/file.txt";
+        item.operationType = transfer::OperationType::Download;
+        item.status = transfer::TransferItem::Status::InProgress;
+        state_.items.append(item);
+        state_.currentIndex = 0;
+        state_.queueState = transfer::QueueState::Transferring;
+
+        QSignalSpy failedSpy(handler, &TransferFtpHandler::operationFailed);
+
+        emit mockFtp->operationFailed(IFtpClient::Operation::List, "/browsed/dir", QString(),
+                                      "Cannot list directory contents");
+
+        QCOMPARE(failedSpy.count(), 0);
+        QCOMPARE(state_.items[0].status, transfer::TransferItem::Status::InProgress);
+        QCOMPARE(state_.queueState, transfer::QueueState::Transferring);
     }
 
     void testFileRemovedForSingleFileDelete()
