@@ -95,6 +95,8 @@ void TransferDispatchHandler::processNext()
         return;
 
     case transfer::ProcessNextAction::NeedOverwriteCheck_Upload:
+        // Busy until the listing answers: nothing else may start meanwhile
+        transitionTo(QueueState::CheckingUploadTarget);
         state_.currentIndex = decision.itemIndex;
         state_.requestedUploadFileCheckListings.insert(decision.uploadCheckDir);
         if (ftpClient_) {

@@ -50,6 +50,7 @@ enum class QueueState {
     AwaitingFolderConfirm,  ///< Waiting for Merge/Replace dialog
     Scanning,               ///< Scanning directories for recursive ops
     AwaitingFileConfirm,    ///< Waiting for Overwrite/Skip dialog
+    CheckingUploadTarget,   ///< Listing an upload's remote dir to see if the file exists
     CreatingDirectories,    ///< Creating remote dirs (upload only)
     Transferring,           ///< Active file transfer in progress
     Deleting,               ///< Active delete operation in progress
@@ -70,6 +71,8 @@ enum class QueueState {
         return "Scanning";
     case QueueState::AwaitingFileConfirm:
         return "AwaitingFileConfirm";
+    case QueueState::CheckingUploadTarget:
+        return "CheckingUploadTarget";
     case QueueState::CreatingDirectories:
         return "CreatingDirectories";
     case QueueState::Transferring:

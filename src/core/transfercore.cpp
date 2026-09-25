@@ -483,6 +483,8 @@ State cancelAllItems(const State &state)
     result.requestedDeleteListings.clear();
     result.deleteQueue.clear();
     result.deletedCount = 0;
+    result.requestedUploadFileCheckListings.clear();
+    result.requestedFolderCheckListings.clear();
 
     result.pendingConfirmation.clear();
     result.pendingFolderOps.clear();
@@ -518,6 +520,10 @@ CancelBatchResult cancelBatch(const State &state, int batchId)
 
         if (result.newState.queueState == QueueState::CreatingDirectories) {
             result.newState.pendingMkdirs.clear();
+        }
+
+        if (result.newState.queueState == QueueState::CheckingUploadTarget) {
+            result.newState.requestedUploadFileCheckListings.clear();
         }
 
         if (result.newState.queueState == QueueState::Deleting) {

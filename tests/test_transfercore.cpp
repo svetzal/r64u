@@ -1697,6 +1697,7 @@ void TestTransferCore::testCheckUploadFileExists_fileExists()
     item.operationType = transfer::OperationType::Upload;
     state.items.append(item);
     state.currentIndex = 0;
+    state.queueState = transfer::QueueState::CheckingUploadTarget;
 
     FtpEntry existing;
     existing.name = "Turrican.prg";
@@ -1716,10 +1717,12 @@ void TestTransferCore::testCheckUploadFileExists_fileDoesNotExist()
     item.confirmed = false;
     state.items.append(item);
     state.currentIndex = 0;
+    state.queueState = transfer::QueueState::CheckingUploadTarget;
 
     auto result = transfer::checkUploadFileExists(state, {});
     QVERIFY(!result.fileExists);
     QVERIFY(result.newState.items[0].confirmed);
+    QCOMPARE(result.newState.queueState, transfer::QueueState::Idle);
 }
 
 void TestTransferCore::testCheckUploadFileExists_invalidCurrentIndex()

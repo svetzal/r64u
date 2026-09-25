@@ -176,6 +176,7 @@ private slots:
     {
         transfer::State state;
         state.currentIndex = 0;
+        state.queueState = transfer::QueueState::CheckingUploadTarget;
         transfer::TransferItem item;
         item.remotePath = "/remote/dir/file.prg";
         item.operationType = transfer::OperationType::Upload;
@@ -192,6 +193,7 @@ private slots:
     {
         transfer::State state;
         state.currentIndex = 0;
+        state.queueState = transfer::QueueState::CheckingUploadTarget;
         transfer::TransferItem item;
         item.remotePath = "/remote/dir/file.prg";
         item.operationType = transfer::OperationType::Upload;
@@ -213,6 +215,41 @@ private slots:
 
         QVERIFY(!result.fileExists);
         QCOMPARE(result.newState.queueState, transfer::QueueState::Idle);
+    }
+
+    void testCheckUploadFileExists_staleListingAfterCheckEnded_leavesStateAlone()
+    {
+        transfer::State state;
+        state.currentIndex = 0;
+        state.queueState = transfer::QueueState::CreatingDirectories;
+        transfer::TransferItem item;
+        item.remotePath = "/remote/dir/file.prg";
+        item.operationType = transfer::OperationType::Upload;
+        state.items.append(item);
+
+        auto result = transfer::checkUploadFileExists(state, {makeFile("file.prg")});
+
+        QVERIFY(!result.fileExists);
+        QCOMPARE(result.newState.queueState, transfer::QueueState::CreatingDirectories);
+        QVERIFY(!result.newState.items[0].confirmed);
+    }
+
+    void testAbandonUploadCheck_returnsToIdleAndKeepsItemPending()
+    {
+        transfer::State state;
+        state.currentIndex = 0;
+        state.queueState = transfer::QueueState::CheckingUploadTarget;
+        state.requestedUploadFileCheckListings.insert("/remote/dir");
+        transfer::TransferItem item;
+        item.status = transfer::TransferItem::Status::Pending;
+        state.items.append(item);
+
+        auto result = transfer::abandonUploadCheck(state);
+
+        QCOMPARE(result.queueState, transfer::QueueState::Idle);
+        QCOMPARE(result.currentIndex, -1);
+        QVERIFY(result.requestedUploadFileCheckListings.isEmpty());
+        QCOMPARE(result.items[0].status, transfer::TransferItem::Status::Pending);
     }
 };
 

@@ -58,8 +58,18 @@ struct UploadFileCheckResult
 };
 
 /// @brief Check if the current upload item's remote target file exists in a directory listing.
+///
+/// Only applies while the queue is in CheckingUploadTarget; otherwise the listing is stale
+/// (e.g. the check was cancelled) and the state is returned unchanged. When the file does not
+/// exist the item is confirmed and the queue returns to Idle.
 [[nodiscard]] UploadFileCheckResult checkUploadFileExists(const State &state,
                                                           const QList<FtpEntry> &entries);
+
+/// @brief Drop an upload-exists check whose listing will never arrive (e.g. disconnected).
+///
+/// Leaves the item Pending so it is checked again, and returns the queue to Idle.
+/// No-op unless the queue is in CheckingUploadTarget.
+[[nodiscard]] State abandonUploadCheck(const State &state);
 
 }  // namespace transfer
 

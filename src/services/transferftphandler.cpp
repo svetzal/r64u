@@ -231,6 +231,9 @@ void TransferFtpHandler::onFtpDisconnected()
     if (state_.queueState == transfer::QueueState::Transferring &&
         transfer::hasInFlightItem(state_)) {
         recordQueueRequestFailure(tr("Connection to the device was lost"));
+    } else if (state_.queueState == transfer::QueueState::CheckingUploadTarget) {
+        state_ = transfer::abandonUploadCheck(state_);
+        emit queueChanged();
     }
 }
 

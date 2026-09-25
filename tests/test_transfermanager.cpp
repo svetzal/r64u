@@ -716,6 +716,66 @@ private slots:
         }
         QCOMPARE(processed, (QList<int>{1, 2, 3}));
     }
+
+    // =========================================================================
+    // Upload "file exists?" check
+    // =========================================================================
+
+    void testUploadExistsCheck_WhileListing_QueueDispatchesNothingElse()
+    {
+        orchestrator->setAutoOverwrite(false);
+        const QString upload = createLocalFile("checked-upload.prg");
+        orchestrator->enqueueUpload(upload, "/r/checked-upload.prg");
+        orchestrator->flushEventQueue();
+        QCOMPARE(mockFtp->mockGetListRequests(), QStringList{"/r"});
+
+        enqueueDownloads({"while-checking"});
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(mockFtp->mockGetListRequests(), QStringList{"/r"});
+        QVERIFY(mockFtp->mockGetDownloadRequests().isEmpty());
+
+        flushAndProcess();
+
+        QCOMPARE(mockFtp->mockGetUploadRequests(), QStringList{upload});
+        QCOMPARE(mockFtp->mockGetDownloadRequests(), QStringList{"/r/while-checking"});
+    }
+
+    void testUploadExistsCheck_CancelAll_IgnoresTheLateListing()
+    {
+        orchestrator->setAutoOverwrite(false);
+        mockFtp->mockSetDirectoryListing("/r", {remoteFile("cancelled-check.prg")});
+        const QString upload = createLocalFile("cancelled-check.prg");
+        orchestrator->enqueueUpload(upload, "/r/cancelled-check.prg");
+        orchestrator->flushEventQueue();
+        QSignalSpy confirmSpy(orchestrator, &TransferManager::overwriteConfirmationNeeded);
+
+        orchestrator->cancelAll();
+        flushAndProcess();
+
+        QCOMPARE(confirmSpy.count(), 0);
+        QCOMPARE(orchestrator->state().queueState, QueueState::Idle);
+        QVERIFY(mockFtp->mockGetUploadRequests().isEmpty());
+    }
+
+    void testUploadExistsCheck_Disconnect_KeepsTheItemForReconnect()
+    {
+        orchestrator->setAutoOverwrite(false);
+        const QString upload = createLocalFile("check-then-disconnect.prg");
+        orchestrator->enqueueUpload(upload, "/r/check-then-disconnect.prg");
+        orchestrator->flushEventQueue();
+
+        mockFtp->mockSimulateDisconnect();
+        mockFtp->mockReset();  // the real client drops its queue on disconnect
+        orchestrator->flushEventQueue();
+        QCOMPARE(orchestrator->state().queueState, QueueState::Idle);
+        QCOMPARE(itemStatus(0), Status::Pending);
+
+        mockFtp->mockSimulateConnect();
+        flushAndProcess();
+
+        QCOMPARE(mockFtp->mockGetUploadRequests(), QStringList{upload});
+    }
 };
 
 QTEST_MAIN(TestTransferManager)

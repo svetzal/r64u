@@ -127,7 +127,8 @@ UploadFileCheckResult checkUploadFileExists(const State &state, const QList<FtpE
     UploadFileCheckResult result;
     result.newState = state;
 
-    if (state.currentIndex < 0 || state.currentIndex >= state.items.size()) {
+    if (state.queueState != QueueState::CheckingUploadTarget || state.currentIndex < 0 ||
+        state.currentIndex >= state.items.size()) {
         return result;
     }
 
@@ -144,8 +145,22 @@ UploadFileCheckResult checkUploadFileExists(const State &state, const QList<FtpE
         result.newState.pendingConfirmation.opType = OperationType::Upload;
     } else {
         result.newState.items[state.currentIndex].confirmed = true;
+        result.newState.queueState = QueueState::Idle;
     }
 
+    return result;
+}
+
+State abandonUploadCheck(const State &state)
+{
+    State result = state;
+    if (result.queueState != QueueState::CheckingUploadTarget) {
+        return result;
+    }
+    // The item stays Pending and is checked again when the queue resumes
+    result.requestedUploadFileCheckListings.clear();
+    result.currentIndex = -1;
+    result.queueState = QueueState::Idle;
     return result;
 }
 
