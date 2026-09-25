@@ -121,6 +121,8 @@ void FolderOperationCoordinator::respondToFolderExists(transfer::FolderExistsRes
 
     if (result.shouldCancelFolderOps) {
         emit operationsCancelled();
+        // Transfers queued while the dialog was open run now
+        emit scheduleProcessNextRequested();
         return;
     }
 

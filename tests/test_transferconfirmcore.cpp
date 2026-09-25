@@ -124,12 +124,38 @@ private slots:
         QVERIFY(result.newState.replaceExisting);
     }
 
+    void testRespondToFolderExists_cancel_keepsFoldersTheDialogDidNotAskAbout()
+    {
+        transfer::State state;
+        state.queueState = transfer::QueueState::AwaitingFolderConfirm;
+        transfer::PendingFolderOp existing;
+        existing.sourcePath = "/local/A";
+        existing.destExists = true;
+        transfer::PendingFolderOp fresh;
+        fresh.sourcePath = "/local/B";
+        fresh.destExists = false;
+        transfer::PendingFolderOp alsoExisting;
+        alsoExisting.sourcePath = "/local/C";
+        alsoExisting.destExists = true;
+        state.pendingFolderOps << existing << fresh << alsoExisting;
+
+        auto result =
+            transfer::respondToFolderExists(state, transfer::FolderExistsResponse::Cancel);
+
+        QVERIFY(!result.shouldCancelFolderOps);
+        QVERIFY(result.shouldStartFolderOp);
+        QCOMPARE(result.folderOpToStart.sourcePath, QString("/local/B"));
+        QVERIFY(result.newState.pendingFolderOps.isEmpty());
+        QCOMPARE(result.newState.queueState, transfer::QueueState::Idle);
+    }
+
     void testRespondToFolderExists_cancel_clearsPendingOps()
     {
         transfer::State state;
         state.queueState = transfer::QueueState::AwaitingFolderConfirm;
         transfer::PendingFolderOp op;
         op.batchId = 1;
+        op.destExists = true;
         state.pendingFolderOps.enqueue(op);
 
         auto result =

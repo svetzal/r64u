@@ -7,6 +7,8 @@
 
 #include <QFileInfo>
 
+#include <algorithm>
+
 namespace transfer {
 
 OverwriteResult respondToOverwrite(const State &state, OverwriteResponse response)
@@ -90,11 +92,20 @@ FolderExistsResult respondToFolderExists(const State &state, FolderExistsRespons
         }
         break;
 
-    case FolderExistsResponse::Cancel:
-        result.newState.pendingFolderOps.clear();
-        result.newState.currentFolderOp = PendingFolderOp{};
-        result.shouldCancelFolderOps = true;
+    case FolderExistsResponse::Cancel: {
+        // Only the folders the dialog asked about are cancelled; the others still run
+        auto &ops = result.newState.pendingFolderOps;
+        ops.erase(std::remove_if(ops.begin(), ops.end(),
+                                 [](const PendingFolderOp &op) { return op.destExists; }),
+                  ops.end());
+        if (!ops.isEmpty()) {
+            result.folderOpToStart = ops.dequeue();
+            result.shouldStartFolderOp = true;
+        } else {
+            result.shouldCancelFolderOps = true;
+        }
         break;
+    }
     }
 
     return result;

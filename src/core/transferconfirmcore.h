@@ -27,8 +27,8 @@ struct FolderExistsResult
 {
     State newState;
     bool shouldStartFolderOp = false;
-    PendingFolderOp folderOpToStart;  ///< Valid when shouldStartFolderOp is true
-    bool shouldCancelFolderOps = false;
+    PendingFolderOp folderOpToStart;     ///< Valid when shouldStartFolderOp is true
+    bool shouldCancelFolderOps = false;  ///< Cancel left no folder operation to start
 };
 
 /// @brief Result of checking folder confirmation requirements.
@@ -47,6 +47,10 @@ struct FolderConfirmResult
 [[nodiscard]] OverwriteResult respondToOverwrite(const State &state, OverwriteResponse response);
 
 /// @brief Process a folder-exists confirmation response.
+///
+/// Merge and Replace apply to every existing folder the dialog listed. Cancel drops only those
+/// folders (the pending operations whose destination exists); the others still run, and
+/// shouldCancelFolderOps is set only when nothing is left to start.
 /// Precondition: state.queueState == QueueState::AwaitingFolderConfirm.
 /// Returns unchanged state if precondition not met.
 [[nodiscard]] FolderExistsResult respondToFolderExists(const State &state,

@@ -1525,6 +1525,7 @@ void TestTransferCore::testRespondToFolderExists_cancel_clearsFolderOps()
     transfer::State state;
     state.queueState = transfer::QueueState::AwaitingFolderConfirm;
     transfer::PendingFolderOp op;
+    op.destExists = true;
     state.pendingFolderOps.enqueue(op);
 
     auto result = transfer::respondToFolderExists(state, transfer::FolderExistsResponse::Cancel);

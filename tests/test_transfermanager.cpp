@@ -1282,6 +1282,54 @@ private slots:
         QVERIFY(!orchestrator->isPathBeingTransferred("/r/dc-del", OperationType::Delete));
     }
 
+    // =========================================================================
+    // Cancel in the folder-exists dialog cancels only the folders it asked about
+    // =========================================================================
+
+    void testFolderExistsCancel_OtherSelectedFoldersStillUpload()
+    {
+        orchestrator->setAutoMerge(false);
+        createLocalFile("sel/existing/e.prg");
+        const QString fresh = createLocalFile("sel/fresh/f.prg");
+        mockFtp->mockSetDirectoryListing("/r", {remoteDir("existing")});
+        QSignalSpy folderConfirmSpy(orchestrator, &TransferManager::folderExistsConfirmationNeeded);
+        QSignalSpy allDoneSpy(orchestrator, &TransferManager::allOperationsCompleted);
+        orchestrator->enqueueRecursiveUpload(tempDir.path() + "/sel/existing", "/r");
+        orchestrator->enqueueRecursiveUpload(tempDir.path() + "/sel/fresh", "/r");
+        QTest::qWait(100);      // folder-exists debounce
+        flushAndProcessNext();  // listing of /r
+        QCOMPARE(folderConfirmSpy.count(), 1);
+        QCOMPARE(folderConfirmSpy.first().at(0).toStringList(), QStringList{"existing"});
+
+        orchestrator->respondToFolderExists(FolderExistsResponse::Cancel);
+        flushAndProcess();
+
+        QCOMPARE(mockFtp->mockGetUploadRequests(), QStringList{fresh});
+        QVERIFY(!mockFtp->mockGetMkdirRequests().contains("/r/existing"));
+        QCOMPARE(allDoneSpy.count(), 1);
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+        QCOMPARE(orchestrator->state().queueState, QueueState::Idle);
+    }
+
+    void testFolderExistsCancel_OnlyConflictingFolder_ReportsCancelledAndQueueRunsOn()
+    {
+        orchestrator->setAutoMerge(false);
+        createLocalFile("only/existing2/e.prg");
+        mockFtp->mockSetDirectoryListing("/r", {remoteDir("existing2")});
+        QSignalSpy cancelledSpy(orchestrator, &TransferManager::operationsCancelled);
+        orchestrator->enqueueRecursiveUpload(tempDir.path() + "/only/existing2", "/r");
+        QTest::qWait(100);
+        flushAndProcessNext();
+        enqueueDownloads({"queued-meanwhile"});  // waits while the dialog is open
+
+        orchestrator->respondToFolderExists(FolderExistsResponse::Cancel);
+        flushAndProcess();
+
+        QCOMPARE(cancelledSpy.count(), 1);
+        QVERIFY(mockFtp->mockGetUploadRequests().isEmpty());
+        QCOMPARE(mockFtp->mockGetDownloadRequests(), QStringList{"/r/queued-meanwhile"});
+    }
+
     void testOverwriteAll_ThenCancelAll_NextDownloadStillAsks()
     {
         orchestrator->setAutoOverwrite(false);
