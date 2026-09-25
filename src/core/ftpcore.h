@@ -190,6 +190,18 @@ struct CommandSpec
  */
 [[nodiscard]] bool isTransferPreludeCommand(FtpCommandQueue::Command cmd);
 
+/**
+ * @brief Returns the temporary path a download is written to until it completes.
+ *
+ * The destination file is only replaced (by renaming this file over it) once
+ * the transfer has succeeded, so a failed or aborted download never destroys
+ * an existing local file.
+ *
+ * @param localPath Final destination of the download.
+ * @return @p localPath with a ".part" suffix.
+ */
+[[nodiscard]] QString partialDownloadPath(const QString &localPath);
+
 }  // namespace ftp
 
 #endif  // FTPCORE_H

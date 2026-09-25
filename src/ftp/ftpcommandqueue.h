@@ -63,7 +63,8 @@ public:
      * @brief Enqueues a RETR command with a pre-opened file handle.
      * @param remotePath Remote path to retrieve.
      * @param localPath Local destination path.
-     * @param file Pre-opened QFile for writing (may be nullptr for memory downloads).
+     * @param file Optional pre-opened QFile for writing. C64UFtpClient passes nullptr and
+     *             opens the destination when the RETR is dispatched.
      * @param isMemory True when data should be delivered to memory rather than disk.
      * @param operationId Operation this command belongs to (see takeOperation()).
      */

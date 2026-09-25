@@ -204,6 +204,14 @@ private:
     void performDisconnectCleanup();
     void resetCommandTracking();
     void abortDataConnection();
+    /// Opens the ".part" file a download is written to; nullptr if it cannot be created.
+    [[nodiscard]] static std::shared_ptr<QFile> openPartialDownload(const QString &localPath);
+    /// Ends the current download operation when its local file cannot be created.
+    void failDownloadBeforeStart();
+    /// Moves a completed ".part" file over @p localPath; returns an error message on failure.
+    [[nodiscard]] static QString commitPartialDownload(const QString &localPath);
+    /// Closes and deletes the ".part" file of an unfinished download, if any.
+    void discardPartialDownloads();
     void discardDataTransfer();
     void discardReply(int code);
     [[nodiscard]] bool ensureLoggedIn(const QString &operation);

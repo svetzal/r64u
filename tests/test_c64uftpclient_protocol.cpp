@@ -58,6 +58,11 @@ QString describeErrors(const QSignalSpy &errorSpy)
     return QString("errors: [%1]").arg(messages.join(" | "));
 }
 
+QStringList filesIn(const QTemporaryDir &dir)
+{
+    return QDir(dir.path()).entryList(QDir::Files, QDir::Name);
+}
+
 const QByteArray OneFileListing = "-rw-r--r-- 1 user group 1234 Jan 01 00:00 game.prg\r\n";
 
 }  // namespace
@@ -833,6 +838,129 @@ private slots:
         }
         QCOMPARE(lastTotal.value("/SD/first.d64"), qint64(first.size()));
         QCOMPARE(lastTotal.value("/SD/second.d64"), qint64(second.size()));
+    }
+
+    // =========================================================================
+    // Local files are only replaced by a completed download
+    // =========================================================================
+
+    void testDownload_MissingRemoteFile_PreservesExistingLocalFile()
+    {
+        FakeFtpServer server;
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        const QString localPath = dir.filePath("game.prg");
+        writeLocalFile(localPath, "PRECIOUS");
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+
+        ftp->download("/SD/missing.prg", localPath);
+
+        QTRY_COMPARE_WITH_TIMEOUT(errorSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(readLocalFile(localPath), QByteArray("PRECIOUS"));
+        QCOMPARE(filesIn(dir), QStringList{"game.prg"});
+    }
+
+    void testDownload_MissingRemoteFile_LeavesNoLocalFile()
+    {
+        FakeFtpServer server;
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+
+        ftp->download("/SD/missing.prg", dir.filePath("missing.prg"));
+
+        QTRY_COMPARE_WITH_TIMEOUT(errorSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(filesIn(dir), QStringList());
+    }
+
+    void testDownload_Success_ReplacesExistingLocalFile_data() { addCompletionOrderRows(); }
+
+    void testDownload_Success_ReplacesExistingLocalFile()
+    {
+        QFETCH(FakeFtpServer::CompletionOrder, completionOrder);
+        FakeFtpServer server;
+        server.setCompletionOrder(completionOrder);
+        server.setFile("/SD/game.prg", "NEW");
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        const QString localPath = dir.filePath("game.prg");
+        writeLocalFile(localPath, "OLD AND LONGER CONTENT");
+        QByteArray contentWhenFinished;
+        connect(ftp, &IFtpClient::downloadFinished, this, [&contentWhenFinished, localPath]() {
+            contentWhenFinished = readLocalFile(localPath);
+        });
+        QSignalSpy finishedSpy(ftp, &C64UFtpClient::downloadFinished);
+
+        ftp->download("/SD/game.prg", localPath);
+
+        QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, SignalTimeoutMs);
+        QCOMPARE(contentWhenFinished, QByteArray("NEW"));
+        QCOMPARE(readLocalFile(localPath), QByteArray("NEW"));
+        QCOMPARE(filesIn(dir), QStringList{"game.prg"});
+    }
+
+    void testDownload_CannotCreateLocalFile_ReportsErrorAndRunsNextOperation()
+    {
+        FakeFtpServer server;
+        server.setFile("/SD/game.prg", "GAME");
+        server.setListing(OneFileListing);
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
+
+        ftp->download("/SD/game.prg", dir.filePath("no-such-dir/game.prg"));
+        ftp->list("/SD");
+
+        QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QVERIFY2(errorSpy.count() == 1, qPrintable(describeErrors(errorSpy)));
+        QVERIFY(errorSpy.first().first().toString().contains("no-such-dir/game.prg"));
+    }
+
+    void testAbort_MidDownload_PreservesExistingLocalFile()
+    {
+        FakeFtpServer server;
+        server.setFile("/SD/big.d64", QByteArray(200000, 'b'));
+        server.setStallAfterBytes(1000);
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        const QString localPath = dir.filePath("big.d64");
+        writeLocalFile(localPath, "PRECIOUS");
+        QSignalSpy progressSpy(ftp, &C64UFtpClient::downloadProgress);
+
+        ftp->download("/SD/big.d64", localPath);
+        QTRY_VERIFY_WITH_TIMEOUT(!progressSpy.isEmpty(), SignalTimeoutMs);
+        ftp->abort();
+
+        QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, SignalTimeoutMs);
+        QCOMPARE(readLocalFile(localPath), QByteArray("PRECIOUS"));
+        QCOMPARE(filesIn(dir), QStringList{"big.d64"});
+    }
+
+    void testConnectionLost_MidDownload_PreservesExistingLocalFile()
+    {
+        FakeFtpServer server;
+        server.setFile("/SD/big.d64", QByteArray(200000, 'b'));
+        server.setStallAfterBytes(1000);
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        const QString localPath = dir.filePath("big.d64");
+        writeLocalFile(localPath, "PRECIOUS");
+        QSignalSpy progressSpy(ftp, &C64UFtpClient::downloadProgress);
+        QSignalSpy finishedSpy(ftp, &C64UFtpClient::downloadFinished);
+
+        ftp->download("/SD/big.d64", localPath);
+        QTRY_VERIFY_WITH_TIMEOUT(!progressSpy.isEmpty(), SignalTimeoutMs);
+        server.closeClientConnection();
+
+        QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Disconnected, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(finishedSpy.count(), 0);
+        QCOMPARE(readLocalFile(localPath), QByteArray("PRECIOUS"));
+        QCOMPARE(filesIn(dir), QStringList{"big.d64"});
     }
 };
 

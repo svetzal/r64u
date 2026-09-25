@@ -387,6 +387,11 @@ private slots:
         QVERIFY(!ftp::isTransferPreludeCommand(Command::Mkd));
         QVERIFY(!ftp::isTransferPreludeCommand(Command::None));
     }
+
+    void partialDownloadPath_AppendsPartSuffix()
+    {
+        QCOMPARE(ftp::partialDownloadPath("/home/me/game.prg"), QString("/home/me/game.prg.part"));
+    }
 };
 
 QTEST_MAIN(TestFtpCore)

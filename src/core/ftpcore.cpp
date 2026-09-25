@@ -197,4 +197,9 @@ bool isTransferPreludeCommand(FtpCommandQueue::Command cmd)
     return cmd == FtpCommandQueue::Command::Type || cmd == FtpCommandQueue::Command::Pasv;
 }
 
+QString partialDownloadPath(const QString &localPath)
+{
+    return localPath + QStringLiteral(".part");
+}
+
 }  // namespace ftp

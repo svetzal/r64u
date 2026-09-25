@@ -8,6 +8,10 @@
 #include <QFileInfo>
 #include <QRegularExpression>
 
+#include <array>
+#include <filesystem>
+#include <system_error>
+
 C64UFtpClient::C64UFtpClient(QObject *parent)
     : IFtpClient(parent), controlSocket_(new QTcpSocket(this)), dataSocket_(new QTcpSocket(this)),
       connectionTimer_(new QTimer(this)), abortReplyTimer_(new QTimer(this)),
@@ -36,7 +40,7 @@ C64UFtpClient::C64UFtpClient(QObject *parent)
 C64UFtpClient::~C64UFtpClient()
 {
     drainCommandQueue();
-    transferState_.reset();
+    resetTransferState();
 }
 
 void C64UFtpClient::setHost(const QString &host, quint16 port)
@@ -90,10 +94,7 @@ void C64UFtpClient::disconnect()
     commandQueue_.drain();
     loggedIn_ = false;
     resetCommandTracking();
-
-    if (dataSocket_->state() != QAbstractSocket::UnconnectedState) {
-        dataSocket_->abort();
-    }
+    discardDataTransfer();
 
     if (controlSocket_->state() == QAbstractSocket::ConnectedState) {
         sendCommand("QUIT");
@@ -173,8 +174,15 @@ void C64UFtpClient::processNextCommand()
     } else if (currentCommand_ == Command::Retr) {
         transferState_.clearRetrBuffer();
         transferState_.setTransferSize(0);
-        transferState_.setCurrentRetrFile(std::move(pending.transferFile),
-                                          pending.isMemoryDownload);
+        std::shared_ptr<QFile> partFile;
+        if (!pending.isMemoryDownload) {
+            partFile = openPartialDownload(currentLocalPath_);
+            if (!partFile) {
+                failDownloadBeforeStart();
+                return;
+            }
+        }
+        transferState_.setCurrentRetrFile(std::move(partFile), pending.isMemoryDownload);
         qCDebug(LogFtp) << "FTP: Processing RETR, file:" << transferState_.currentRetrFile().get()
                         << "isMemory:" << transferState_.isCurrentRetrMemory();
     } else if (currentCommand_ == Command::Stor) {
@@ -201,16 +209,18 @@ FtpResponseContext C64UFtpClient::buildContext() const
 
 void C64UFtpClient::applyAction(const FtpResponseAction &action)
 {
-    applyTransferStateMutations(action);
-    applyConnectionStateChanges(action);
     if (!action.errorMessage.isEmpty()) {
         // An error ends the operation: its remaining commands (e.g. the RETR
         // after a failed PASV) would only fail again and report a second error.
         // Servers may leave the passive connection open after refusing the
-        // transfer; close it so the next PASV can connect.
+        // transfer; close it so the next PASV can connect. A partial download
+        // is removed before the state mutations below release its handle.
         dropRestOfCurrentOperation();
         abortDataConnection();
+        discardPartialDownloads();
     }
+    applyTransferStateMutations(action);
+    applyConnectionStateChanges(action);
     emitResponseSignals(action);
     executeResponseAction(action);
 }
@@ -283,7 +293,14 @@ void C64UFtpClient::emitResponseSignals(const FtpResponseAction &action)
         emit fileRenamed(action.fileRenamedOldPath, action.fileRenamedNewPath);
     }
     if (!action.downloadFinishedRemotePath.isEmpty()) {
-        emit downloadFinished(action.downloadFinishedRemotePath, action.downloadFinishedLocalPath);
+        const QString commitError = commitPartialDownload(action.downloadFinishedLocalPath);
+        if (commitError.isEmpty()) {
+            emit downloadFinished(action.downloadFinishedRemotePath,
+                                  action.downloadFinishedLocalPath);
+        } else {
+            emit error(
+                tr("Cannot save file '%1': %2").arg(action.downloadFinishedLocalPath, commitError));
+        }
     }
     if (!action.downloadToMemoryPath.isEmpty()) {
         emit downloadToMemoryFinished(action.downloadToMemoryPath, action.downloadToMemoryData);
@@ -565,7 +582,58 @@ void C64UFtpClient::drainCommandQueue()
 
 void C64UFtpClient::resetTransferState()
 {
+    discardPartialDownloads();
     transferState_.reset();
+}
+
+std::shared_ptr<QFile> C64UFtpClient::openPartialDownload(const QString &localPath)
+{
+    auto file = std::make_shared<QFile>(ftp::partialDownloadPath(localPath));
+    if (!file->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        qCWarning(LogFtp) << "FTP: Cannot create" << file->fileName() << file->errorString();
+        return nullptr;
+    }
+    return file;
+}
+
+void C64UFtpClient::failDownloadBeforeStart()
+{
+    const QString message =
+        tr("Cannot save file '%1': unable to create local file").arg(currentLocalPath_);
+    dropRestOfCurrentOperation();
+    abortDataConnection();  // PASV already opened it for this RETR
+    emit error(message);
+    if (state_ == State::Busy) {
+        processNextCommand();
+    }
+}
+
+QString C64UFtpClient::commitPartialDownload(const QString &localPath)
+{
+    const QString partPath = ftp::partialDownloadPath(localPath);
+    std::error_code errorCode;
+    // Atomically replaces any existing file at localPath
+    std::filesystem::rename(std::filesystem::path(partPath.toStdU16String()),
+                            std::filesystem::path(localPath.toStdU16String()), errorCode);
+    if (errorCode) {
+        qCWarning(LogFtp) << "FTP: Cannot move" << partPath << "to" << localPath
+                          << QString::fromStdString(errorCode.message());
+        QFile::remove(partPath);
+        return QString::fromStdString(errorCode.message());
+    }
+    return {};
+}
+
+void C64UFtpClient::discardPartialDownloads()
+{
+    const std::array<QFile *, 2> partFiles = {transferState_.currentRetrFile().get(),
+                                              transferState_.pendingRetrFile()};
+    for (QFile *file : partFiles) {
+        if (file) {
+            file->close();
+            QFile::remove(file->fileName());
+        }
+    }
 }
 
 void C64UFtpClient::performDisconnectCleanup()
@@ -627,17 +695,13 @@ void C64UFtpClient::download(const QString &remotePath, const QString &localPath
     if (!ensureLoggedIn(tr("download file")))
         return;
 
-    auto file = std::make_shared<QFile>(localPath);
-    if (!file->open(QIODevice::WriteOnly)) {
-        emit error(tr("Cannot save file '%1': unable to create local file").arg(localPath));
-        return;
-    }
-
+    // The destination is written via a ".part" file opened when the transfer
+    // starts, so queuing (or failing) a download never touches an existing file.
     const quint64 operationId = beginOperation();
     for (const auto &spec : ftp::buildDownloadPrelude()) {
         queueCommand(spec.cmd, spec.arg, QString(), operationId);
     }
-    queueRetrCommand(remotePath, localPath, std::move(file), false, operationId);
+    queueRetrCommand(remotePath, localPath, nullptr, false, operationId);
 }
 
 void C64UFtpClient::downloadToMemory(const QString &remotePath)
