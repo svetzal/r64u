@@ -825,11 +825,14 @@ private slots:
         QCOMPARE(memorySpy.at(0).at(1).toByteArray().size(), first.size());
         QCOMPARE(memorySpy.at(0).at(1).toByteArray(), first);
         QCOMPARE(memorySpy.at(1).at(1).toByteArray(), second);
+        // Data may overtake the 150 reply that announces the size (total 0 means
+        // unknown), but queuing the second download must not reset the first's total.
+        QHash<QString, qint64> lastTotal;
         for (const auto &progress : progressSpy) {
-            const qint64 expectedTotal =
-                progress.at(0).toString() == "/SD/first.d64" ? first.size() : second.size();
-            QCOMPARE(progress.at(2).toLongLong(), expectedTotal);
+            lastTotal[progress.at(0).toString()] = progress.at(2).toLongLong();
         }
+        QCOMPARE(lastTotal.value("/SD/first.d64"), qint64(first.size()));
+        QCOMPARE(lastTotal.value("/SD/second.d64"), qint64(second.size()));
     }
 };
 
