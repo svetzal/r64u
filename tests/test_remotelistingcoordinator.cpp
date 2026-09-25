@@ -89,21 +89,68 @@ private slots:
         QCOMPARE(readySpy.count(), 0);
     }
 
-    void testFtpErrorClearsPendingAndEmitsFailure()
+    void testOwnListingFails_OnlyThatPathFails()
     {
         QSignalSpy failedSpy(coordinator, &RemoteListingCoordinator::listingFailed);
-
         coordinator->requestListing("/SD");
+        coordinator->requestListing("/USB");
 
-        // Simulate FTP error
-        emit mockFtp->error("Connection lost");
+        mockFtp->mockSetNextOperationFails("550 No such directory");
+        mockFtp->mockProcessNextOperation();  // LIST /SD
 
         QCOMPARE(failedSpy.count(), 1);
-        QCOMPARE(failedSpy.first().first().toString(), QString("Connection lost"));
+        QCOMPARE(failedSpy.first().at(0).toString(), QString("/SD"));
+        QCOMPARE(failedSpy.first().at(1).toString(), QString("550 No such directory"));
+        QVERIFY(coordinator->requestListing("/SD"));    // may be requested again
+        QVERIFY(!coordinator->requestListing("/USB"));  // still in flight
+    }
 
-        // After error, same path can be requested again (not deduplicated)
-        bool canRequest = coordinator->requestListing("/SD");
-        QVERIFY(canRequest);
+    void testAnotherComponentsFailure_LeavesListingsPending()
+    {
+        QSignalSpy failedSpy(coordinator, &RemoteListingCoordinator::listingFailed);
+        QSignalSpy abortedSpy(coordinator, &RemoteListingCoordinator::listingsAborted);
+        coordinator->requestListing("/SD");
+
+        // e.g. a transfer's RETR on the shared client
+        const QString message = "Download failed for '/SD/x.prg': 550";
+        emit mockFtp->error(message);
+        emit mockFtp->operationFailed(IFtpClient::Operation::Download, "/SD/x.prg", "/tmp/x.prg",
+                                      message);
+        emit mockFtp->operationFailed(IFtpClient::Operation::List, "/elsewhere", QString(),
+                                      message);
+
+        QCOMPARE(failedSpy.count(), 0);
+        QCOMPARE(abortedSpy.count(), 0);
+        QVERIFY(!coordinator->requestListing("/SD"));  // still in flight
+    }
+
+    void testDisconnect_DropsAllPendingListings()
+    {
+        QSignalSpy abortedSpy(coordinator, &RemoteListingCoordinator::listingsAborted);
+        coordinator->requestListing("/SD");
+        coordinator->requestListing("/USB");
+
+        mockFtp->mockSimulateDisconnect();
+
+        QCOMPARE(abortedSpy.count(), 1);
+        QVERIFY(coordinator->requestListing("/SD"));
+        QVERIFY(coordinator->requestListing("/USB"));
+    }
+
+    void testConnectionLevelError_DropsAllPendingListings()
+    {
+        QSignalSpy abortedSpy(coordinator, &RemoteListingCoordinator::listingsAborted);
+        coordinator->requestListing("/SD");
+        {
+            // A socket error or timeout ends the connection without disconnected()
+            const QSignalBlocker blocker(mockFtp);
+            mockFtp->mockSetConnected(false);
+        }
+
+        emit mockFtp->error("Connection refused");
+
+        QCOMPARE(abortedSpy.count(), 1);
+        QVERIFY(coordinator->requestListing("/SD"));
     }
 
     void testCancelPendingClearsAllState()

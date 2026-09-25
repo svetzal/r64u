@@ -12,9 +12,10 @@
  * @brief Orchestrates lazy-load FTP directory listing requests.
  *
  * Owns the FTP client reference, deduplicates concurrent listing
- * requests for the same path, and filters out listings that were
- * not initiated by this coordinator.  The owning view-model connects
- * to listingReady() / listingFailed() to drive tree mutations.
+ * requests for the same path, and filters out listings (and failures)
+ * that were not initiated by this coordinator: the client is shared with
+ * the transfer queue and previews.  The owning view-model connects to
+ * listingReady() / listingFailed() / listingsAborted() to drive tree mutations.
  */
 class RemoteListingCoordinator : public QObject
 {
@@ -73,16 +74,30 @@ signals:
     void listingReady(const QString &path, const QList<FtpEntry> &entries);
 
     /**
-     * @brief Emitted when an FTP error occurs.
+     * @brief Emitted when a listing this coordinator requested fails.
+     * @param path    The directory whose listing failed.
      * @param message The error message from the FTP client.
      */
-    void listingFailed(const QString &message);
+    void listingFailed(const QString &path, const QString &message);
+
+    /**
+     * @brief Emitted when the connection is lost: every pending listing is dropped.
+     *
+     * The client reports the connection problem itself; this only tells the
+     * owner that none of the pending listings will arrive.
+     */
+    void listingsAborted();
 
 private slots:
     void onDirectoryListed(const QString &path, const QList<FtpEntry> &entries);
+    void onFtpOperationFailed(IFtpClient::Operation operation, const QString &remotePath,
+                              const QString &localPath, const QString &message);
     void onFtpError(const QString &message);
+    void onFtpDisconnected();
 
 private:
+    void abortPendingListings();
+
     QPointer<IFtpClient> ftpClient_;
     QSet<QString> pendingPaths_;
     QSet<QString> requestedListings_;

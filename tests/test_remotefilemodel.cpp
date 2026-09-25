@@ -634,20 +634,47 @@ private slots:
 
     // === Error Handling Tests ===
 
-    void testFtpErrorClearsPendingFetches()
+    void testOwnListingFailure_ReportsAndAllowsFetchingAgain()
     {
         QSignalSpy errorSpy(model, &RemoteFileModel::errorOccurred);
-
         model->fetchMore(QModelIndex());
 
-        // Simulate error
-        emit mockFtp->error("Connection lost");
+        mockFtp->mockSetNextOperationFails("550 No such directory");
+        mockFtp->mockProcessNextOperation();
 
         QCOMPARE(errorSpy.count(), 1);
-        QCOMPARE(errorSpy.first().first().toString(), QString("Connection lost"));
-
-        // Should be able to fetch again after error
+        QCOMPARE(errorSpy.first().first().toString(), QString("550 No such directory"));
         QVERIFY(model->canFetchMore(QModelIndex()));
+    }
+
+    void testAnotherComponentsFailure_KeepsTheFetchInFlight()
+    {
+        QSignalSpy errorSpy(model, &RemoteFileModel::errorOccurred);
+        model->fetchMore(QModelIndex());
+
+        emit mockFtp->error("Download failed");
+        emit mockFtp->operationFailed(IFtpClient::Operation::Download, "/x.prg", "/tmp/x.prg",
+                                      "Download failed");
+        FtpEntry file;
+        file.name = "game.prg";
+        mockFtp->mockSetDirectoryListing("/", {file});
+        mockFtp->mockProcessAllOperations();
+
+        QCOMPARE(errorSpy.count(), 0);
+        QCOMPARE(model->rowCount(), 1);
+    }
+
+    void testDisconnect_AllowsFetchingAgainAfterReconnect()
+    {
+        model->fetchMore(QModelIndex());
+
+        mockFtp->mockSimulateDisconnect();
+        mockFtp->mockReset();
+        mockFtp->mockSimulateConnect();
+
+        QVERIFY(model->canFetchMore(QModelIndex()));
+        model->fetchMore(QModelIndex());
+        QCOMPARE(mockFtp->mockGetListRequests(), QStringList{"/"});
     }
 
     void testFetchMoreWithNullFtpClientEmitsError()

@@ -103,7 +103,8 @@ signals:
 
 private slots:
     void onListingReady(const QString &path, const QList<FtpEntry> &entries);
-    void onListingFailed(const QString &message);
+    void onListingFailed(const QString &path, const QString &message);
+    void onListingsAborted();
 
 private:
     struct TreeNode

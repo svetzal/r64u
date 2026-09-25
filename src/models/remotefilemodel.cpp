@@ -8,6 +8,7 @@
 #include <QStyle>
 
 #include <functional>
+#include <utility>
 
 RemoteFileModel::RemoteFileModel(QObject *parent)
     : QAbstractItemModel(parent), coordinator_(new RemoteListingCoordinator(this)),
@@ -22,6 +23,8 @@ RemoteFileModel::RemoteFileModel(QObject *parent)
             &RemoteFileModel::onListingReady);
     connect(coordinator_, &RemoteListingCoordinator::listingFailed, this,
             &RemoteFileModel::onListingFailed);
+    connect(coordinator_, &RemoteListingCoordinator::listingsAborted, this,
+            &RemoteFileModel::onListingsAborted);
 }
 
 RemoteFileModel::~RemoteFileModel()
@@ -444,15 +447,22 @@ void RemoteFileModel::onListingReady(const QString &path, const QList<FtpEntry> 
     emit loadingFinished(path);
 }
 
-void RemoteFileModel::onListingFailed(const QString &message)
+void RemoteFileModel::onListingFailed(const QString &path, const QString &message)
 {
-    // Mark any pending fetches as failed
-    for (TreeNode *node : pendingFetches_.values()) {
+    // The node can be fetched again
+    if (TreeNode *node = pendingFetches_.take(path)) {
+        node->fetching = false;
+    }
+    emit errorOccurred(message);
+}
+
+void RemoteFileModel::onListingsAborted()
+{
+    // The connection is gone (and reported by the client): every node can be fetched again
+    for (TreeNode *node : std::as_const(pendingFetches_)) {
         node->fetching = false;
     }
     pendingFetches_.clear();
-
-    emit errorOccurred(message);
 }
 
 RemoteFileModel::TreeNode *RemoteFileModel::nodeFromIndex(const QModelIndex &index) const

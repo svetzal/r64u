@@ -19,7 +19,11 @@ void RemoteListingCoordinator::setFtpClient(IFtpClient *client)
     if (ftpClient_) {
         connect(ftpClient_, &IFtpClient::directoryListed, this,
                 &RemoteListingCoordinator::onDirectoryListed);
+        connect(ftpClient_, &IFtpClient::operationFailed, this,
+                &RemoteListingCoordinator::onFtpOperationFailed);
         connect(ftpClient_, &IFtpClient::error, this, &RemoteListingCoordinator::onFtpError);
+        connect(ftpClient_, &IFtpClient::disconnected, this,
+                &RemoteListingCoordinator::onFtpDisconnected);
     }
 }
 
@@ -66,10 +70,42 @@ void RemoteListingCoordinator::onDirectoryListed(const QString &path,
     emit listingReady(path, entries);
 }
 
+void RemoteListingCoordinator::onFtpOperationFailed(IFtpClient::Operation operation,
+                                                    const QString &remotePath,
+                                                    const QString & /*localPath*/,
+                                                    const QString &message)
+{
+    if (operation != IFtpClient::Operation::List || !requestedListings_.contains(remotePath)) {
+        return;  // Another component's request on the shared client
+    }
+    qCDebug(LogFileOps) << "Coordinator: listing failed for" << remotePath << ":" << message;
+    requestedListings_.remove(remotePath);
+    pendingPaths_.remove(remotePath);
+    emit listingFailed(remotePath, message);
+}
+
 void RemoteListingCoordinator::onFtpError(const QString &message)
 {
-    qCDebug(LogFileOps) << "Coordinator: onFtpError:" << message;
+    // Failures of single requests are matched through operationFailed(); an error
+    // that leaves the client disconnected (socket error, timeout) drops everything
+    if (ftpClient_ && ftpClient_->isConnected()) {
+        return;
+    }
+    qCDebug(LogFileOps) << "Coordinator: connection-level error:" << message;
+    abortPendingListings();
+}
+
+void RemoteListingCoordinator::onFtpDisconnected()
+{
+    abortPendingListings();
+}
+
+void RemoteListingCoordinator::abortPendingListings()
+{
+    if (requestedListings_.isEmpty() && pendingPaths_.isEmpty()) {
+        return;
+    }
     pendingPaths_.clear();
     requestedListings_.clear();
-    emit listingFailed(message);
+    emit listingsAborted();
 }
