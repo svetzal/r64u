@@ -166,13 +166,19 @@ void C64UFtpClient::processNextCommand()
     currentLocalPath_ = pending.localPath;
     currentOperationId_ = pending.operationId;
 
-    // RETR and STOR require transfer-state mutation before sending the wire command
-    if (currentCommand_ == Command::Retr) {
+    // Per-transfer state is initialised when the transfer starts, never when it
+    // is queued: other transfers may still be using the shared state until then.
+    if (currentCommand_ == Command::List) {
+        transferState_.clearListBuffer();
+    } else if (currentCommand_ == Command::Retr) {
+        transferState_.clearRetrBuffer();
+        transferState_.setTransferSize(0);
         transferState_.setCurrentRetrFile(std::move(pending.transferFile),
                                           pending.isMemoryDownload);
         qCDebug(LogFtp) << "FTP: Processing RETR, file:" << transferState_.currentRetrFile().get()
                         << "isMemory:" << transferState_.isCurrentRetrMemory();
     } else if (currentCommand_ == Command::Stor) {
+        transferState_.setTransferSize(pending.transferFile ? pending.transferFile->size() : 0);
         transferState_.setCurrentStorFile(std::move(pending.transferFile));
         qCDebug(LogFtp) << "FTP: Processing STOR, file:" << transferState_.currentStorFile().get();
     }
@@ -627,7 +633,6 @@ void C64UFtpClient::download(const QString &remotePath, const QString &localPath
         return;
     }
 
-    transferState_.setTransferSize(0);
     const quint64 operationId = beginOperation();
     for (const auto &spec : ftp::buildDownloadPrelude()) {
         queueCommand(spec.cmd, spec.arg, QString(), operationId);
@@ -640,8 +645,6 @@ void C64UFtpClient::downloadToMemory(const QString &remotePath)
     if (!ensureLoggedIn(tr("download file")))
         return;
 
-    transferState_.clearRetrBuffer();
-    transferState_.setTransferSize(0);
     const quint64 operationId = beginOperation();
     for (const auto &spec : ftp::buildDownloadPrelude()) {
         queueCommand(spec.cmd, spec.arg, QString(), operationId);
@@ -660,7 +663,6 @@ void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
         return;
     }
 
-    transferState_.setTransferSize(file->size());
     const quint64 operationId = beginOperation();
     for (const auto &spec : ftp::buildUploadPrelude()) {
         queueCommand(spec.cmd, spec.arg, QString(), operationId);

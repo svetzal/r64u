@@ -797,6 +797,40 @@ private slots:
         QVERIFY2(errorSpy.count() == 1, qPrintable(describeErrors(errorSpy)));
         QCOMPARE(readLocalFile(dir.filePath("game.prg")), QByteArray("GAME"));
     }
+
+    // =========================================================================
+    // Per-operation state belongs to the operation, not to the queue
+    // =========================================================================
+
+    void testDownloadToMemory_SecondQueuedMidTransfer_EachGetsFullContent()
+    {
+        const QByteArray first(2 * 1024 * 1024, 'a');
+        const QByteArray second(1024 * 1024, 'b');
+        FakeFtpServer server;
+        server.setCompletionOrder(FakeFtpServer::CompletionOrder::ReplyThenCloseData);
+        server.setFile("/SD/first.d64", first);
+        server.setFile("/SD/second.d64", second);
+        QVERIFY(loginTo(server));
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy progressSpy(ftp, &C64UFtpClient::downloadProgress);
+        QSignalSpy memorySpy(ftp, &C64UFtpClient::downloadToMemoryFinished);
+
+        ftp->downloadToMemory("/SD/first.d64");
+        QTRY_VERIFY_WITH_TIMEOUT(!progressSpy.isEmpty(), SignalTimeoutMs);
+        ftp->downloadToMemory("/SD/second.d64");
+
+        QTRY_COMPARE_WITH_TIMEOUT(memorySpy.count(), 2, SignalTimeoutMs);
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QCOMPARE(memorySpy.at(0).at(0).toString(), QString("/SD/first.d64"));
+        QCOMPARE(memorySpy.at(0).at(1).toByteArray().size(), first.size());
+        QCOMPARE(memorySpy.at(0).at(1).toByteArray(), first);
+        QCOMPARE(memorySpy.at(1).at(1).toByteArray(), second);
+        for (const auto &progress : progressSpy) {
+            const qint64 expectedTotal =
+                progress.at(0).toString() == "/SD/first.d64" ? first.size() : second.size();
+            QCOMPARE(progress.at(2).toLongLong(), expectedTotal);
+        }
+    }
 };
 
 QTEST_MAIN(TestC64UFtpClientProtocol)
