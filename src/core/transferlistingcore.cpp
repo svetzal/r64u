@@ -11,6 +11,16 @@
 
 namespace transfer {
 
+namespace {
+
+/// The device's storage is FAT, where names differing only in case are the same entry.
+bool isSameDeviceName(const QString &a, const QString &b)
+{
+    return QString::compare(a, b, Qt::CaseInsensitive) == 0;
+}
+
+}  // namespace
+
 QList<DeleteItem> sortDeleteQueue(const QList<DeleteItem> &queue)
 {
     QList<DeleteItem> result = queue;
@@ -101,23 +111,14 @@ State updateFolderExistence(const State &state, const QString &parentPath,
 {
     State result = state;
 
-    QSet<QString> existingDirs;
-    for (const FtpEntry &entry : entries) {
-        if (entry.isDirectory) {
-            existingDirs.insert(entry.name);
-        }
-    }
-
-    QQueue<PendingFolderOp> updatedOps;
-    while (!result.pendingFolderOps.isEmpty()) {
-        PendingFolderOp op = result.pendingFolderOps.dequeue();
+    for (PendingFolderOp &op : result.pendingFolderOps) {
         if (op.destPath == parentPath) {
-            QString targetFolderName = QFileInfo(op.targetPath).fileName();
-            op.destExists = existingDirs.contains(targetFolderName);
+            const QString targetFolderName = QFileInfo(op.targetPath).fileName();
+            op.destExists = std::any_of(entries.begin(), entries.end(), [&](const FtpEntry &entry) {
+                return entry.isDirectory && isSameDeviceName(entry.name, targetFolderName);
+            });
         }
-        updatedOps.enqueue(op);
     }
-    result.pendingFolderOps = updatedOps;
 
     return result;
 }
@@ -136,7 +137,7 @@ UploadFileCheckResult checkUploadFileExists(const State &state, const QList<FtpE
     result.fileName = targetFileName;
 
     result.fileExists = std::any_of(entries.begin(), entries.end(), [&](const FtpEntry &entry) {
-        return !entry.isDirectory && entry.name == targetFileName;
+        return !entry.isDirectory && isSameDeviceName(entry.name, targetFileName);
     });
 
     if (result.fileExists) {

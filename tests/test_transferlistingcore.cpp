@@ -172,6 +172,21 @@ private slots:
         QVERIFY(!newState.pendingFolderOps.head().destExists);
     }
 
+    void testUpdateFolderExistence_nameDiffersOnlyInCase_marksDestExists()
+    {
+        transfer::State state;
+        transfer::PendingFolderOp op;
+        op.destPath = "/remote";
+        op.targetPath = "/remote/games";
+        op.destExists = false;
+        state.pendingFolderOps.enqueue(op);
+
+        QList<FtpEntry> entries = {makeDir("GAMES")};
+        auto newState = transfer::updateFolderExistence(state, "/remote", entries);
+
+        QVERIFY(newState.pendingFolderOps.head().destExists);
+    }
+
     void testCheckUploadFileExists_fileFoundTransitionsToAwaitingConfirm()
     {
         transfer::State state;
@@ -187,6 +202,25 @@ private slots:
 
         QVERIFY(result.fileExists);
         QCOMPARE(result.newState.queueState, transfer::QueueState::AwaitingFileConfirm);
+    }
+
+    void testCheckUploadFileExists_nameDiffersOnlyInCase_countsAsExisting()
+    {
+        // The device's storage is FAT: GAME.PRG and game.prg are the same file
+        transfer::State state;
+        state.currentIndex = 0;
+        state.queueState = transfer::QueueState::CheckingUploadTarget;
+        transfer::TransferItem item;
+        item.remotePath = "/remote/dir/game.prg";
+        item.operationType = transfer::OperationType::Upload;
+        state.items.append(item);
+
+        QList<FtpEntry> entries = {makeFile("GAME.PRG")};
+        auto result = transfer::checkUploadFileExists(state, entries);
+
+        QVERIFY(result.fileExists);
+        QCOMPARE(result.newState.queueState, transfer::QueueState::AwaitingFileConfirm);
+        QVERIFY(!result.newState.items[0].confirmed);
     }
 
     void testCheckUploadFileExists_fileNotFoundConfirmsItem()
