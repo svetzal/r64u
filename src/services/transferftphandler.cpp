@@ -8,6 +8,8 @@
 
 #include <QFileInfo>
 
+#include <tuple>
+
 TransferFtpHandler::TransferFtpHandler(transfer::State &state, QObject *parent)
     : TransferHandlerBase(state, parent)
 {
@@ -240,12 +242,31 @@ void TransferFtpHandler::onFtpDisconnected()
     // The client drops its queued requests when the connection goes, so no
     // signal will ever end the transfer in flight: fail it now. The remaining
     // items stay Pending until the connection is back (see onFtpConnected).
-    if (state_.queueState == transfer::QueueState::Transferring &&
-        transfer::hasInFlightItem(state_)) {
-        recordQueueRequestFailure(tr("Connection to the device was lost"));
-    } else if (state_.queueState == transfer::QueueState::CheckingUploadTarget) {
+    const QString message = tr("Connection to the device was lost");
+    switch (state_.queueState) {
+    case transfer::QueueState::Transferring:
+        if (transfer::hasInFlightItem(state_)) {
+            // Nothing is scheduled: the queue has to wait for the connection anyway
+            std::ignore = recordQueueRequestFailure(message);
+        }
+        break;
+    case transfer::QueueState::CheckingUploadTarget:
         state_ = transfer::abandonUploadCheck(state_);
         emit queueChanged();
+        break;
+    case transfer::QueueState::Scanning:
+    case transfer::QueueState::CreatingDirectories:
+    case transfer::QueueState::Deleting:
+        // A folder operation cannot pick up a half-done scan, mkdir or delete
+        // again: end it once, and leave queued work for when the connection is back
+        emit abandonFolderOperationRequested(message);
+        break;
+    case transfer::QueueState::Idle:
+    case transfer::QueueState::CollectingItems:
+    case transfer::QueueState::AwaitingFolderConfirm:
+    case transfer::QueueState::AwaitingFileConfirm:
+    case transfer::QueueState::BatchComplete:
+        break;
     }
 }
 

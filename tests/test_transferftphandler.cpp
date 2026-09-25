@@ -188,6 +188,39 @@ private slots:
         QCOMPARE(state_.queueState, transfer::QueueState::Transferring);
     }
 
+    void testDisconnect_duringFolderSteps_requestsAbandoningTheFolderOperation_data()
+    {
+        QTest::addColumn<transfer::QueueState>("queueState");
+        QTest::newRow("scanning") << transfer::QueueState::Scanning;
+        QTest::newRow("creating directories") << transfer::QueueState::CreatingDirectories;
+        QTest::newRow("deleting") << transfer::QueueState::Deleting;
+    }
+
+    void testDisconnect_duringFolderSteps_requestsAbandoningTheFolderOperation()
+    {
+        QFETCH(transfer::QueueState, queueState);
+        state_.queueState = queueState;
+        state_.currentFolderOp.batchId = 1;
+        QSignalSpy abandonSpy(handler, &TransferFtpHandler::abandonFolderOperationRequested);
+        QSignalSpy failedSpy(handler, &TransferFtpHandler::operationFailed);
+
+        mockFtp->mockSimulateDisconnect();
+
+        QCOMPARE(abandonSpy.count(), 1);
+        QCOMPARE(failedSpy.count(), 0);  // reported once, by whoever fails the operation
+    }
+
+    void testDisconnect_whileIdle_doesNothing()
+    {
+        QSignalSpy abandonSpy(handler, &TransferFtpHandler::abandonFolderOperationRequested);
+        QSignalSpy failedSpy(handler, &TransferFtpHandler::operationFailed);
+
+        mockFtp->mockSimulateDisconnect();
+
+        QCOMPARE(abandonSpy.count(), 0);
+        QCOMPARE(failedSpy.count(), 0);
+    }
+
     void testFileRemovedForSingleFileDelete()
     {
         transfer::TransferItem item;

@@ -161,6 +161,8 @@ private slots:
 
     // cancelBatch tests
     void testCancelBatch_ofRunningFolderOperation_endsItAndGoesIdle();
+    void testFailFolderOperation_failsOutstandingItemsAndCompletesTheBatch();
+    void testFailFolderOperation_withoutFolderOperation_changesNothing();
     void testCancelBatch_ofOtherBatch_leavesRunningFolderScanAlone();
     void testCancelBatch_marksItemsAsFailed();
     void testCancelBatch_detectsActiveBatch();
@@ -1348,6 +1350,47 @@ void TestTransferCore::testCancelBatch_ofOtherBatch_leavesRunningFolderScanAlone
     QCOMPARE(result.newState.currentFolderOp.batchId, 2);
     QCOMPARE(result.newState.pendingScans.size(), 1);
     QVERIFY(result.newState.requestedListings.contains("/r/folder"));
+}
+
+void TestTransferCore::testFailFolderOperation_failsOutstandingItemsAndCompletesTheBatch()
+{
+    transfer::State state = makeStateWithItem(transfer::OperationType::Download,
+                                              transfer::TransferItem::Status::Pending, 1);
+    state.batches[0].scanned = false;
+    state.queueState = transfer::QueueState::Scanning;
+    state.currentFolderOp.batchId = 1;
+    state.currentFolderOp.sourcePath = "/r/Games";
+    transfer::PendingScan scan;
+    scan.remotePath = "/r/Games/sub";
+    scan.batchId = 1;
+    state.pendingScans.enqueue(scan);
+    state.requestedListings.insert(scan.remotePath);
+
+    auto result = transfer::failFolderOperation(state, "Connection lost");
+
+    QVERIFY(result.failed);
+    QCOMPARE(result.batchId, 1);
+    QCOMPARE(result.folderName, QString("Games"));
+    QCOMPARE(result.changedRows, QList<int>{0});
+    QCOMPARE(result.newState.items[0].status, transfer::TransferItem::Status::Failed);
+    QCOMPARE(result.newState.items[0].errorMessage, QString("Connection lost"));
+    QVERIFY(result.newState.batches[0].isComplete());
+    QCOMPARE(result.newState.queueState, transfer::QueueState::Idle);
+    QVERIFY(result.newState.pendingScans.isEmpty());
+    QVERIFY(result.newState.requestedListings.isEmpty());
+    // Stays current until its batch is completed, which hands over to the next operation
+    QCOMPARE(result.newState.currentFolderOp.batchId, 1);
+}
+
+void TestTransferCore::testFailFolderOperation_withoutFolderOperation_changesNothing()
+{
+    transfer::State state = makeStateWithItem(transfer::OperationType::Download,
+                                              transfer::TransferItem::Status::Pending, 1);
+
+    auto result = transfer::failFolderOperation(state, "Connection lost");
+
+    QVERIFY(!result.failed);
+    QCOMPARE(result.newState.items[0].status, transfer::TransferItem::Status::Pending);
 }
 
 // ---------------------------------------------------------------------------

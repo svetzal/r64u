@@ -295,8 +295,12 @@ private slots:
 
         orchestrator->enqueueRecursiveDelete(remotePath);
 
-        // Disconnect FTP before the scan result is processed
-        mockFtp->mockSetConnected(false);
+        // Disconnect FTP before the scan result is processed, without the queue
+        // hearing about it (a disconnect it hears about ends the delete right away)
+        {
+            const QSignalBlocker blocker(mockFtp);
+            mockFtp->mockSetConnected(false);
+        }
 
         QSignalSpy spy(orchestrator, &TransferManager::operationFailed);
 
@@ -1179,6 +1183,103 @@ private slots:
         QCOMPARE(mockFtp->mockGetUploadRequests(), QStringList{file});
         QCOMPARE(allDoneSpy.count(), 1);
         QCOMPARE(orchestrator->queuedBatchCount(), 0);
+    }
+
+    // =========================================================================
+    // A disconnect during a folder operation's scan, mkdir or delete ends it
+    // =========================================================================
+
+    void testDisconnect_WhileScanning_FailsTheFolderOnceAndGoesIdle()
+    {
+        mockFtp->mockSetDirectoryListing("/r/dc-scan", {remoteDir("sub"), remoteFile("a")});
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+        QSignalSpy batchCompletedSpy(orchestrator, &TransferManager::batchCompleted);
+        QSignalSpy allDoneSpy(orchestrator, &TransferManager::allOperationsCompleted);
+        orchestrator->enqueueRecursiveDownload("/r/dc-scan", tempDir.path());
+        flushAndProcessNext();  // root listing: a found, sub still to list
+        QCOMPARE(orchestrator->state().queueState, QueueState::Scanning);
+
+        mockFtp->mockSimulateDisconnect();
+        mockFtp->mockReset();  // the real client drops its queue on disconnect
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(failedSpy.first().at(0).toString(), QString("dc-scan"));
+        QCOMPARE(orchestrator->state().queueState, QueueState::Idle);
+        QCOMPARE(orchestrator->state().currentFolderOp.batchId, -1);
+        QCOMPARE(itemStatus(0), Status::Failed);
+        QCOMPARE(batchCompletedSpy.count(), 1);
+        QCOMPARE(allDoneSpy.count(), 1);
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+    }
+
+    void testDisconnect_WhileScanning_QueuedFolderRunsAfterReconnect()
+    {
+        mockFtp->mockSetDirectoryListing("/r/dc-first", {remoteDir("sub")});
+        orchestrator->enqueueRecursiveDownload("/r/dc-first", tempDir.path());
+        orchestrator->enqueueRecursiveDownload("/r/dc-second", tempDir.path());
+        flushAndProcessNext();  // root listing of dc-first
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+
+        mockFtp->mockSimulateDisconnect();
+        mockFtp->mockReset();
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(failedSpy.count(), 1);
+        QVERIFY(mockFtp->mockGetListRequests().isEmpty());  // nothing started while offline
+        QCOMPARE(orchestrator->state().pendingFolderOps.size(), 1);
+
+        mockFtp->mockSetDirectoryListing("/r/dc-second", {remoteFile("b")});
+        mockFtp->mockSetDownloadData("/r/dc-second/b", "x");
+        mockFtp->mockSimulateConnect();
+        flushAndProcess();
+
+        QVERIFY(QFile::exists(tempDir.path() + "/dc-second/b"));
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+    }
+
+    void testDisconnect_WhileCreatingDirectories_FailsTheUploadOnce()
+    {
+        createLocalFile("dc-up/sub/f.prg");
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+        orchestrator->enqueueRecursiveUpload(tempDir.path() + "/dc-up", "/r");
+        QCOMPARE(orchestrator->state().queueState, QueueState::CreatingDirectories);
+
+        mockFtp->mockSimulateDisconnect();
+        mockFtp->mockReset();
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(failedSpy.first().at(0).toString(), QString("dc-up"));
+        QCOMPARE(orchestrator->state().queueState, QueueState::Idle);
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+        QVERIFY(orchestrator->state().pendingMkdirs.isEmpty());
+
+        mockFtp->mockSimulateConnect();
+        orchestrator->enqueueRecursiveUpload(tempDir.path() + "/dc-up", "/r");
+        flushAndProcess();
+        QCOMPARE(mockFtp->mockGetUploadRequests(),
+                 QStringList{tempDir.path() + "/dc-up/sub/f.prg"});
+    }
+
+    void testDisconnect_WhileDeleting_FailsTheDeleteOnce()
+    {
+        mockFtp->mockSetDirectoryListing("/r/dc-del", {remoteFile("a"), remoteFile("b")});
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+        orchestrator->enqueueRecursiveDelete("/r/dc-del");
+        flushAndProcessNext();  // listing; removal of a dispatched
+        QCOMPARE(orchestrator->state().queueState, QueueState::Deleting);
+
+        mockFtp->mockSimulateDisconnect();
+        mockFtp->mockReset();
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(orchestrator->state().queueState, QueueState::Idle);
+        QVERIFY(orchestrator->state().deleteQueue.isEmpty());
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+        QVERIFY(!orchestrator->isPathBeingTransferred("/r/dc-del", OperationType::Delete));
     }
 
     void testOverwriteAll_ThenCancelAll_NextDownloadStillAsks()
