@@ -41,6 +41,13 @@ jobs:
             name: Windows-x64
             artifact: r64u-windows-x64
             qt_arch: win64_msvc2022_64
+            # Qt 6.11+ publishes Windows packages in per-compiler subfolders
+            # (qt6_6112/qt6_6112_msvc2022_64/), which aqtinstall 3.3.0 cannot
+            # find ("Failed to locate XML data"). Support landed upstream in
+            # miurahr/aqtinstall#1000 but is not released yet, so install
+            # aqtinstall from a pinned master commit. Drop this once
+            # install-qt-action defaults to aqtinstall >= 3.4.
+            aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7'
           # Windows ARM disabled - runners stuck in queue
           # - os: windows-11-arm64
           #   name: Windows-ARM
@@ -60,6 +67,7 @@ jobs:
           version: ${{ matrix.qt_version || env.QT_VERSION }}
           arch: ${{ matrix.qt_arch }}
           modules: 'qtmultimedia'
+          aqtsource: ${{ matrix.aqtsource }}
           cache: true
 
       - name: Install Linux dependencies
