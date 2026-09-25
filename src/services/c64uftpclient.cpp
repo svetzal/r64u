@@ -440,14 +440,13 @@ void C64UFtpClient::onDataDisconnected()
 void C64UFtpClient::onDataError(QAbstractSocket::SocketError socketError)
 {
     if (socketError == QAbstractSocket::RemoteHostClosedError) {
+        // The server closing the data connection is how every RETR and LIST
+        // ends in FTP, so it is not an error here. A transfer that was cut
+        // short is reported on the control channel (426/451), which the
+        // response handler turns into the operation's error.
         qCDebug(LogFtp) << "FTP: Data socket closed by server, reading remaining data...";
         if (dataSocket_->bytesAvailable() > 0) {
             onDataReadyRead();
-        }
-        // A remote close mid-transfer (no remaining data) is a premature close
-        if (transferState_.isDownloading() && dataSocket_->bytesAvailable() == 0) {
-            qCWarning(LogFtp) << "FTP: Server closed data connection during active transfer";
-            emit error(tr("Connection closed during transfer"));
         }
         return;
     }

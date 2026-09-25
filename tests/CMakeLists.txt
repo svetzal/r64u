@@ -971,6 +971,8 @@ endif()
 # C64UFtpClient protocol tests - tests the real FTP client implementation
 add_executable(test_c64uftpclient_protocol
     test_c64uftpclient_protocol.cpp
+    fakes/fakeftpserver.cpp
+    fakes/fakeftpserver.h
     ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/services/c64uftpclient.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ftpcore.cpp

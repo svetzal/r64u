@@ -6,95 +6,61 @@
  * - State machine transitions
  * - Operation guards (not-logged-in behavior)
  * - Connected/Ready state transitions via local FTP server
+ * - End-to-end LIST/RETR/STOR over a real passive data connection
+ *   (FakeFtpServer), including abort and failure paths
  *
  * Note: FTP parsing tests (PASV response, directory listing) have been
  * migrated to test_ftpcore.cpp, where they test the pure ftp:: namespace
  * functions directly without requiring a socket-owning class instance.
  */
 
+#include "fakes/fakeftpserver.h"
+
 #include <QSignalSpy>
-#include <QTcpServer>
-#include <QTcpSocket>
+#include <QTemporaryDir>
 #include <QtTest>
 
 // Use angle brackets to force include path search order (avoids tests/services shadow)
 #include <services/c64uftpclient.h>
 
-/**
- * @brief Minimal FTP server that handles login sequence for testing.
- *
- * Listens on localhost:0, accepts one connection, and performs the
- * FTP greeting → USER → PASS exchange.
- */
-class SimpleFtpServer : public QObject
+namespace {
+
+constexpr int SignalTimeoutMs = 5000;
+
+/// Grace period for detecting signals that must NOT arrive (late errors, duplicates).
+void letLateSignalsArrive()
 {
-    Q_OBJECT
+    QTest::qWait(150);
+}
 
-public:
-    explicit SimpleFtpServer(QObject *parent = nullptr) : QObject(parent)
-    {
-        server_.setMaxPendingConnections(1);
-        connect(&server_, &QTcpServer::newConnection, this, &SimpleFtpServer::onNewConnection);
+QByteArray readLocalFile(const QString &path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return {};
     }
+    return file.readAll();
+}
 
-    bool listen() { return server_.listen(QHostAddress::LocalHost, 0); }
+void writeLocalFile(const QString &path, const QByteArray &contents)
+{
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.write(contents);
+}
 
-    quint16 port() const { return server_.serverPort(); }
-
-    /// Register an extra command prefix → reply mapping.
-    /// The first matching prefix wins.  Replies must include CRLF.
-    void addReply(const QString &prefix, const QString &reply)
-    {
-        extraReplies_.append({prefix, reply});
+QString describeErrors(const QSignalSpy &errorSpy)
+{
+    QStringList messages;
+    for (const auto &args : errorSpy) {
+        messages << args.first().toString();
     }
+    return QString("errors: [%1]").arg(messages.join(" | "));
+}
 
-    void closeClientConnection()
-    {
-        if (clientSocket_) {
-            clientSocket_->disconnectFromHost();
-            clientSocket_ = nullptr;
-        }
-    }
+const QByteArray OneFileListing = "-rw-r--r-- 1 user group 1234 Jan 01 00:00 game.prg\r\n";
 
-private slots:
-    void onNewConnection()
-    {
-        clientSocket_ = server_.nextPendingConnection();
-        connect(clientSocket_, &QTcpSocket::readyRead, this, &SimpleFtpServer::onReadyRead);
-        clientSocket_->write("220 FTP Server Ready\r\n");
-        clientSocket_->flush();
-    }
-
-    void onReadyRead()
-    {
-        if (!clientSocket_) {
-            return;
-        }
-        while (clientSocket_->canReadLine()) {
-            const QString line = QString::fromLatin1(clientSocket_->readLine()).trimmed();
-            if (line.startsWith("USER")) {
-                clientSocket_->write("331 Password required\r\n");
-                clientSocket_->flush();
-            } else if (line.startsWith("PASS")) {
-                clientSocket_->write("230 User logged in\r\n");
-                clientSocket_->flush();
-            } else {
-                for (const auto &pair : extraReplies_) {
-                    if (line.startsWith(pair.first)) {
-                        clientSocket_->write(pair.second.toUtf8());
-                        clientSocket_->flush();
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-private:
-    QTcpServer server_;
-    QTcpSocket *clientSocket_ = nullptr;
-    QList<QPair<QString, QString>> extraReplies_;
-};
+}  // namespace
 
 class TestC64UFtpClientProtocol : public QObject
 {
@@ -102,6 +68,28 @@ class TestC64UFtpClientProtocol : public QObject
 
 private:
     C64UFtpClient *ftp;
+
+    /// Starts @p server and logs the client in; returns false if login did not complete.
+    [[nodiscard]] bool loginTo(FakeFtpServer &server)
+    {
+        if (!server.listen()) {
+            return false;
+        }
+        ftp->setHost("127.0.0.1", server.port());
+        ftp->setCredentials("user", "pass");
+        ftp->connectToHost();
+        return QTest::qWaitFor([this]() { return ftp->state() == IFtpClient::State::Ready; },
+                               SignalTimeoutMs);
+    }
+
+    static void addCompletionOrderRows()
+    {
+        QTest::addColumn<FakeFtpServer::CompletionOrder>("completionOrder");
+        QTest::newRow("data closed before 226")
+            << FakeFtpServer::CompletionOrder::CloseDataThenReply;
+        QTest::newRow("226 before data closed")
+            << FakeFtpServer::CompletionOrder::ReplyThenCloseData;
+    }
 
 private slots:
     void init() { ftp = new C64UFtpClient(this); }
@@ -330,11 +318,11 @@ private slots:
         QVERIFY(!ftp->isConnected());
     }
 
-    // === Connected/Ready State Tests (via local SimpleFtpServer) ===
+    // === Connected/Ready State Tests (via local FakeFtpServer) ===
 
     void testLoginSequence_StateBecomesReady()
     {
-        SimpleFtpServer server;
+        FakeFtpServer server;
         QVERIFY(server.listen());
 
         ftp->setHost("127.0.0.1", server.port());
@@ -347,7 +335,7 @@ private slots:
 
     void testLoginSequence_EmitsConnected()
     {
-        SimpleFtpServer server;
+        FakeFtpServer server;
         QVERIFY(server.listen());
 
         QSignalSpy connectedSpy(ftp, &C64UFtpClient::connected);
@@ -361,7 +349,7 @@ private slots:
 
     void testList_AfterLogin_TransitionsToBusy()
     {
-        SimpleFtpServer server;
+        FakeFtpServer server;
         QVERIFY(server.listen());
 
         ftp->setHost("127.0.0.1", server.port());
@@ -381,7 +369,7 @@ private slots:
 
     void testList_AfterLogin_DoesNotEmitError()
     {
-        SimpleFtpServer server;
+        FakeFtpServer server;
         QVERIFY(server.listen());
 
         ftp->setHost("127.0.0.1", server.port());
@@ -398,7 +386,7 @@ private slots:
 
     void testAbort_AfterLogin_ResetsToReady()
     {
-        SimpleFtpServer server;
+        FakeFtpServer server;
         QVERIFY(server.listen());
 
         ftp->setHost("127.0.0.1", server.port());
@@ -416,7 +404,7 @@ private slots:
 
     void testServerDisconnect_AfterLogin_EmitsDisconnectedSignal()
     {
-        SimpleFtpServer server;
+        FakeFtpServer server;
         QVERIFY(server.listen());
 
         ftp->setHost("127.0.0.1", server.port());
@@ -436,13 +424,13 @@ private slots:
     //
     // These tests verify that representative FTP server responses cause
     // C64UFtpClient::applyAction to produce the correct state mutations and
-    // signal emissions.  Each test logs in (using SimpleFtpServer) and then
+    // signal emissions.  Each test logs in (using FakeFtpServer) and then
     // sends a specific command + server reply pair.
     // =========================================================================
 
     void testApplyAction_Cwd_250_EmitsDirectoryChanged()
     {
-        SimpleFtpServer server;
+        FakeFtpServer server;
         QVERIFY(server.listen());
 
         ftp->setHost("127.0.0.1", server.port());
@@ -462,7 +450,7 @@ private slots:
 
     void testApplyAction_Mkd_257_EmitsDirectoryCreated()
     {
-        SimpleFtpServer server;
+        FakeFtpServer server;
         server.addReply("MKD", "257 \"/SD/NewDir\" created\r\n");
         QVERIFY(server.listen());
 
@@ -484,7 +472,7 @@ private slots:
 
     void testApplyAction_Dele_250_EmitsFileRemoved()
     {
-        SimpleFtpServer server;
+        FakeFtpServer server;
         server.addReply("DELE", "250 File deleted\r\n");
         QVERIFY(server.listen());
 
@@ -506,7 +494,7 @@ private slots:
 
     void testApplyAction_ErrorResponse_EmitsError()
     {
-        SimpleFtpServer server;
+        FakeFtpServer server;
         server.addReply("MKD", "550 Permission denied\r\n");
         QVERIFY(server.listen());
 
@@ -521,6 +509,83 @@ private slots:
         ftp->makeDirectory("/SD/NoAccess");
 
         QTRY_COMPARE_WITH_TIMEOUT(errorSpy.count(), 1, 5000);
+    }
+
+    // =========================================================================
+    // End-to-end transfers over a real passive data connection (FakeFtpServer)
+    // =========================================================================
+
+    void testDownload_Succeeds_WithoutError_data() { addCompletionOrderRows(); }
+
+    void testDownload_Succeeds_WithoutError()
+    {
+        QFETCH(FakeFtpServer::CompletionOrder, completionOrder);
+        const QByteArray contents(5000, 'x');
+        FakeFtpServer server;
+        server.setCompletionOrder(completionOrder);
+        server.setFile("/SD/game.prg", contents);
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        const QString localPath = dir.filePath("game.prg");
+        QSignalSpy errorSpy(ftp, &IFtpClient::error);
+        QSignalSpy finishedSpy(ftp, &IFtpClient::downloadFinished);
+
+        ftp->download("/SD/game.prg", localPath);
+
+        QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(finishedSpy.count(), 1);
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QCOMPARE(finishedSpy.first().at(0).toString(), QString("/SD/game.prg"));
+        QCOMPARE(finishedSpy.first().at(1).toString(), localPath);
+        QCOMPARE(readLocalFile(localPath), contents);
+        QCOMPARE(ftp->state(), IFtpClient::State::Ready);
+    }
+
+    void testDownloadToMemory_Succeeds_WithoutError_data() { addCompletionOrderRows(); }
+
+    void testDownloadToMemory_Succeeds_WithoutError()
+    {
+        QFETCH(FakeFtpServer::CompletionOrder, completionOrder);
+        const QByteArray contents(7000, 'm');
+        FakeFtpServer server;
+        server.setCompletionOrder(completionOrder);
+        server.setFile("/SD/tune.sid", contents);
+        QVERIFY(loginTo(server));
+        QSignalSpy errorSpy(ftp, &IFtpClient::error);
+        QSignalSpy finishedSpy(ftp, &IFtpClient::downloadToMemoryFinished);
+
+        ftp->downloadToMemory("/SD/tune.sid");
+
+        QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(finishedSpy.count(), 1);
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QCOMPARE(finishedSpy.first().at(1).toByteArray(), contents);
+    }
+
+    void testList_Succeeds_WithoutError_data() { addCompletionOrderRows(); }
+
+    void testList_Succeeds_WithoutError()
+    {
+        QFETCH(FakeFtpServer::CompletionOrder, completionOrder);
+        FakeFtpServer server;
+        server.setCompletionOrder(completionOrder);
+        server.setListing(OneFileListing);
+        QVERIFY(loginTo(server));
+        QSignalSpy errorSpy(ftp, &IFtpClient::error);
+        QSignalSpy listedSpy(ftp, &IFtpClient::directoryListed);
+
+        ftp->list("/SD");
+
+        QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(listedSpy.count(), 1);
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QCOMPARE(listedSpy.first().at(0).toString(), QString("/SD"));
+        const auto entries = listedSpy.first().at(1).value<QList<FtpEntry>>();
+        QCOMPARE(entries.size(), 1);
+        QCOMPARE(entries.first().name, QString("game.prg"));
     }
 };
 
