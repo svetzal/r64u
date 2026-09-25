@@ -133,20 +133,25 @@ FtpErrorResult handleFtpError(const State &state, const QString &message)
     return result;
 }
 
-State handleOperationTimeout(const State &state)
+OperationTimeoutResult handleOperationTimeout(const State &state, const QString &errorMessage)
 {
-    State result = state;
+    OperationTimeoutResult result;
+    result.newState = state;
 
-    auto it = std::find_if(result.items.begin(), result.items.end(), [](const TransferItem &item) {
+    auto it = std::find_if(state.items.cbegin(), state.items.cend(), [](const TransferItem &item) {
         return item.status == TransferItem::Status::InProgress;
     });
-    if (it != result.items.end()) {
-        it->status = TransferItem::Status::Failed;
-        it->errorMessage = QStringLiteral("Operation timed out");
+    if (it != state.items.cend()) {
+        result.failedIndex = static_cast<int>(std::distance(state.items.cbegin(), it));
+        auto marked =
+            markItemComplete(state, result.failedIndex, TransferItem::Status::Failed, errorMessage);
+        result.newState = marked.newState;
+        result.batchId = marked.batchId;
+        result.batchIsComplete = marked.batchIsComplete;
     }
 
-    result.currentIndex = -1;
-    result.queueState = QueueState::Idle;
+    result.newState.currentIndex = -1;
+    result.newState.queueState = QueueState::Idle;
 
     return result;
 }

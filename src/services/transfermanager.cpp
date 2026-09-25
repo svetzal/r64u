@@ -447,21 +447,26 @@ void TransferManager::onOperationTimeout()
 {
     qCDebug(LogTransfer) << "TransferManager: Operation timeout!";
 
+    const QString errorMessage = timeoutManager_->timeoutErrorMessage();
+    const auto result = transfer::handleOperationTimeout(state_, errorMessage);
+    // Settle the queue before aborting, so nothing the client reports for the
+    // aborted request can be taken for the queue's own and reported again.
+    state_ = result.newState;
     abortActiveFtpOperation();
 
-    int originalIndex = state_.currentIndex;
-    state_ = transfer::handleOperationTimeout(state_);
-
-    if (originalIndex >= 0 && originalIndex < state_.items.size()) {
-        QString errorMessage = timeoutManager_->timeoutErrorMessage();
-        state_.items[originalIndex].errorMessage = errorMessage;
-
-        QString fileName = QFileInfo(state_.items[originalIndex].localPath.isEmpty()
-                                         ? state_.items[originalIndex].remotePath
-                                         : state_.items[originalIndex].localPath)
-                               .fileName();
-        emit itemDataChanged(originalIndex);
+    if (result.failedIndex >= 0) {
+        const TransferItem &item = state_.items[result.failedIndex];
+        const QString fileName =
+            QFileInfo(item.localPath.isEmpty() ? item.remotePath : item.localPath).fileName();
+        emit itemDataChanged(result.failedIndex);
         emit operationFailed(fileName, errorMessage);
+
+        if (result.batchId >= 0) {
+            emitBatchProgressAndComplete(result.batchId, result.batchIsComplete, true);
+            if (result.batchIsComplete) {
+                return;  // completeBatch() schedules whatever runs next
+            }
+        }
     }
 
     scheduleProcessNext();

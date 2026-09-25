@@ -1934,7 +1934,7 @@ void TestTransferCore::testHandleOperationTimeout_marksInProgressAsFailed()
     state.items.append(item);
     state.currentIndex = 0;
 
-    transfer::State result = transfer::handleOperationTimeout(state);
+    transfer::State result = transfer::handleOperationTimeout(state, "timed out").newState;
     QCOMPARE(result.items[0].status, transfer::TransferItem::Status::Failed);
     QVERIFY(!result.items[0].errorMessage.isEmpty());
 }
@@ -1943,7 +1943,7 @@ void TestTransferCore::testHandleOperationTimeout_resetsCurrentIndex()
 {
     transfer::State state;
     state.currentIndex = 5;
-    transfer::State result = transfer::handleOperationTimeout(state);
+    transfer::State result = transfer::handleOperationTimeout(state, "timed out").newState;
     QCOMPARE(result.currentIndex, -1);
 }
 
@@ -1951,7 +1951,7 @@ void TestTransferCore::testHandleOperationTimeout_transitionsToIdle()
 {
     transfer::State state;
     state.queueState = transfer::QueueState::Transferring;
-    transfer::State result = transfer::handleOperationTimeout(state);
+    transfer::State result = transfer::handleOperationTimeout(state, "timed out").newState;
     QCOMPARE(result.queueState, transfer::QueueState::Idle);
 }
 

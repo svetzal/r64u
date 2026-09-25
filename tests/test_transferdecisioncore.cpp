@@ -179,12 +179,36 @@ private slots:
         auto state = makeStateWithItem(transfer::OperationType::Download,
                                        transfer::TransferItem::Status::InProgress);
 
-        auto newState = transfer::handleOperationTimeout(state);
+        auto result = transfer::handleOperationTimeout(state, "Operation timed out");
+        const auto &newState = result.newState;
 
         QCOMPARE(newState.items[0].status, transfer::TransferItem::Status::Failed);
         QCOMPARE(newState.items[0].errorMessage, QString("Operation timed out"));
         QCOMPARE(newState.currentIndex, -1);
         QCOMPARE(newState.queueState, transfer::QueueState::Idle);
+        QCOMPARE(result.failedIndex, 0);
+    }
+
+    void testHandleOperationTimeout_countsFailureAgainstBatch()
+    {
+        transfer::State state;
+        transfer::TransferBatch batch;
+        batch.batchId = 7;
+        batch.scanned = true;
+        batch.folderConfirmed = true;
+        transfer::TransferItem item;
+        item.batchId = 7;
+        item.status = transfer::TransferItem::Status::InProgress;
+        batch.items.append(item);
+        state.batches.append(batch);
+        state.items.append(item);
+        state.currentIndex = 0;
+
+        auto result = transfer::handleOperationTimeout(state, "timed out");
+
+        QCOMPARE(result.newState.batches[0].failedCount, 1);
+        QCOMPARE(result.batchId, 7);
+        QVERIFY(result.batchIsComplete);
     }
 
     void testHandleOperationTimeout_noChangeWhenNoInProgress()
@@ -192,10 +216,11 @@ private slots:
         auto state = makeStateWithItem(transfer::OperationType::Download,
                                        transfer::TransferItem::Status::Pending);
 
-        auto newState = transfer::handleOperationTimeout(state);
+        auto result = transfer::handleOperationTimeout(state, "timed out");
 
-        QCOMPARE(newState.items[0].status, transfer::TransferItem::Status::Pending);
-        QCOMPARE(newState.queueState, transfer::QueueState::Idle);
+        QCOMPARE(result.newState.items[0].status, transfer::TransferItem::Status::Pending);
+        QCOMPARE(result.newState.queueState, transfer::QueueState::Idle);
+        QCOMPARE(result.failedIndex, -1);
     }
 
     void testDecideNextDeleteAction_dispatchNextWhenQueueNotExhausted()

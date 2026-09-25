@@ -45,6 +45,13 @@ private:
         return timer && timer->isActive();
     }
 
+    void fireOperationTimeout()
+    {
+        auto *timeout = orchestrator->findChild<TransferTimeoutManager *>();
+        QVERIFY(timeout);
+        emit timeout->operationTimedOut();
+    }
+
     /// Queues downloads of /r/<name> into the temp dir, each with mock content.
     void enqueueDownloads(const QStringList &names)
     {
@@ -410,6 +417,92 @@ private slots:
         QVERIFY(!progressSpy.isEmpty());
         QCOMPARE(progressSpy.last().at(1).toInt(), 2);  // completed
         QCOMPARE(progressSpy.last().at(2).toInt(), 2);  // total
+    }
+
+    // =========================================================================
+    // Operation timeout
+    // =========================================================================
+
+    void testTimeout_CountsTheFailureAgainstTheBatch()
+    {
+        enqueueDownloads({"a", "b"});
+        orchestrator->flushEventQueue();  // a in flight
+        QSignalSpy batchCompletedSpy(orchestrator, &TransferManager::batchCompleted);
+        const int batchId = orchestrator->state().batches.first().batchId;
+
+        fireOperationTimeout();
+
+        QCOMPARE(itemStatus(0), Status::Failed);
+        QCOMPARE(orchestrator->batchProgress(batchId).failedItems, 1);
+
+        flushAndProcess();
+
+        QCOMPARE(itemStatus(1), Status::Completed);
+        QCOMPARE(batchCompletedSpy.count(), 1);
+    }
+
+    void testTimeout_OnLastItem_CompletesTheBatchSoLaterDownloadsRun()
+    {
+        enqueueDownloads({"timeout-last"});
+        orchestrator->flushEventQueue();
+        QSignalSpy batchCompletedSpy(orchestrator, &TransferManager::batchCompleted);
+
+        fireOperationTimeout();
+        flushAndProcess();
+        QCOMPARE(batchCompletedSpy.count(), 1);
+
+        enqueueDownloads({"after-timeout"});
+        flushAndProcess();
+
+        const auto &items = orchestrator->state().items;
+        QCOMPARE(items.last().remotePath, QString("/r/after-timeout"));
+        QCOMPARE(items.last().status, Status::Completed);
+    }
+
+    void testTimeout_ReportsTheFailureOnce()
+    {
+        enqueueDownloads({"a", "b"});
+        orchestrator->flushEventQueue();
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+
+        fireOperationTimeout();
+        flushAndProcess();
+
+        QCOMPARE(failedSpy.count(), 1);
+        QVERIFY(failedSpy.first().at(1).toString().contains("timed out"));
+    }
+
+    void testTimeout_ReportsTheFailureOnce_WhenAbortReportsTheRequestSynchronously()
+    {
+        // A client that (unlike the contract) reports the aborted request
+        class ReportingAbortFtpClient : public MockFtpClient
+        {
+        public:
+            using MockFtpClient::MockFtpClient;
+            QString remotePath;
+            QString localPath;
+            void abort() override
+            {
+                MockFtpClient::abort();
+                emit error("Aborted");
+                emit operationFailed(Operation::Download, remotePath, localPath, "Aborted");
+            }
+        };
+        ReportingAbortFtpClient reportingFtp;
+        reportingFtp.mockSetConnected(true);
+        orchestrator->setFtpClient(&reportingFtp);
+        reportingFtp.remotePath = "/r/a";
+        reportingFtp.localPath = tempDir.path() + "/a";
+        orchestrator->enqueueDownload(reportingFtp.remotePath, reportingFtp.localPath);
+        orchestrator->flushEventQueue();
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+
+        fireOperationTimeout();
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(itemStatus(0), Status::Failed);
+        orchestrator->setFtpClient(mockFtp);
     }
 };
 

@@ -75,10 +75,21 @@ struct FtpErrorResult
 // Phase 7: Operation timeout
 // ---------------------------------------------------------------------------
 
-/// @brief Handle an operation timeout — mark any InProgress item as Failed.
+/// @brief Result of handling an operation timeout.
+struct OperationTimeoutResult
+{
+    State newState;
+    int failedIndex = -1;          ///< Row of the item that timed out, -1 if none was in flight
+    int batchId = -1;              ///< Batch of the failed item, -1 if none
+    bool batchIsComplete = false;  ///< True if the failure was the last outstanding batch item
+};
+
+/// @brief Handle an operation timeout — fail the InProgress item and count it against its batch.
 /// @param state Current transfer queue state.
+/// @param errorMessage Message recorded on the failed item.
 /// @return Updated state with the timed-out item marked Failed and queue transitioned to Idle.
-[[nodiscard]] State handleOperationTimeout(const State &state);
+[[nodiscard]] OperationTimeoutResult handleOperationTimeout(const State &state,
+                                                            const QString &errorMessage);
 
 // ---------------------------------------------------------------------------
 // Delete decision helpers
