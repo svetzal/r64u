@@ -58,6 +58,43 @@ private slots:
         QCOMPARE(state_.items[0].totalBytes, qint64(1024));
     }
 
+    void testProgress_RequestsItsBatchProgressUpdate()
+    {
+        transfer::TransferItem item;
+        item.localPath = "/local/big.reu";
+        item.remotePath = "/remote/big.reu";
+        item.operationType = transfer::OperationType::Upload;
+        item.status = transfer::TransferItem::Status::InProgress;
+        item.batchId = 7;
+        state_.items.append(item);
+        state_.currentIndex = 0;
+        QSignalSpy spy(handler, &TransferFtpHandler::batchProgressRequested);
+
+        emit mockFtp->uploadProgress("/local/big.reu", 65536, 16777216);
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.first().at(0).toInt(), 7);
+        QCOMPARE(spy.first().at(1).toBool(), false);  // the batch goes on
+    }
+
+    void testDownloadProgress_SizeNotAnnounced_KeepsTheExpectedSize()
+    {
+        transfer::TransferItem item;
+        item.localPath = "/local/big.reu";
+        item.remotePath = "/remote/big.reu";
+        item.operationType = transfer::OperationType::Download;
+        item.status = transfer::TransferItem::Status::InProgress;
+        item.totalBytes = 16777216;  // from the directory listing
+        state_.items.append(item);
+        state_.currentIndex = 0;
+
+        // Data may arrive before (or without) the 150 reply that announces the size
+        emit mockFtp->downloadProgress("/remote/big.reu", 4096, 0);
+
+        QCOMPARE(state_.items[0].bytesTransferred, qint64(4096));
+        QCOMPARE(state_.items[0].totalBytes, qint64(16777216));
+    }
+
     void testUploadFinishedMarksItemCompleted()
     {
         transfer::TransferItem item;

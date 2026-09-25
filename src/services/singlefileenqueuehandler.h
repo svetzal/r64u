@@ -97,9 +97,10 @@ public:
      * @param remotePath    Absolute path on the remote device.
      * @param localPath     Absolute path on the local machine.
      * @param targetBatchId Batch to append to, or -1 to auto-select.
+     * @param expectedSize  The file's size in bytes if known (e.g. from a listing), else 0.
      */
     void enqueueDownload(const QString &remotePath, const QString &localPath,
-                         int targetBatchId = -1);
+                         int targetBatchId = -1, qint64 expectedSize = 0);
 
 public slots:
     /**

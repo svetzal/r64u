@@ -247,9 +247,9 @@ void TransferManager::enqueueUpload(const QString &localPath, const QString &rem
 }
 
 void TransferManager::enqueueDownload(const QString &remotePath, const QString &localPath,
-                                      int targetBatchId)
+                                      int targetBatchId, qint64 expectedSize)
 {
-    enqueueHandler_->enqueueDownload(remotePath, localPath, targetBatchId);
+    enqueueHandler_->enqueueDownload(remotePath, localPath, targetBatchId, expectedSize);
 }
 
 // ============================================================================

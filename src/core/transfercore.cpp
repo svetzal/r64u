@@ -153,19 +153,109 @@ std::optional<QString> validateEnqueuePreconditions(bool connected, bool localDi
 // Progress computation
 // ---------------------------------------------------------------------------
 
+namespace {
+
+bool isFinished(TransferItem::Status status)
+{
+    return status == TransferItem::Status::Completed || status == TransferItem::Status::Failed ||
+           status == TransferItem::Status::Skipped;
+}
+
+void fillBatchCounts(BatchProgress &progress, const State &state, int batchIndex)
+{
+    const TransferBatch &batch = state.batches[batchIndex];
+    progress.batchId = batch.batchId;
+    progress.description = batch.description;
+    progress.folderName = batch.folderName;
+    progress.operationType = batch.operationType;
+    progress.totalItems = batch.totalCount();
+    progress.completedItems = batch.completedCount;
+    progress.failedItems = batch.failedCount;
+
+    const BatchWork work = computeBatchWork(state, batchIndex);
+    progress.permilleDone = work.permilleDone;
+    progress.bytesDone = work.bytesDone;
+    progress.bytesTotal = work.bytesTotal;
+}
+
+/// The files of one batch still in the queue's list, and what is known of their sizes.
+struct BatchFiles
+{
+    QList<const TransferItem *> listed;
+    qint64 knownBytes = 0;
+    qsizetype knownCount = 0;
+    int finishedCount = 0;
+};
+
+BatchFiles listBatchFiles(const State &state, int batchId)
+{
+    BatchFiles files;
+    for (const TransferItem &item : state.items) {
+        if (item.batchId != batchId) {
+            continue;
+        }
+        files.listed.append(&item);
+        if (item.totalBytes > 0) {
+            files.knownBytes += item.totalBytes;
+            ++files.knownCount;
+        }
+        if (isFinished(item.status)) {
+            ++files.finishedCount;
+        }
+    }
+    return files;
+}
+
+}  // namespace
+
+BatchWork computeBatchWork(const State &state, int batchIndex)
+{
+    constexpr int PerMille = 1000;
+    BatchWork work;
+    if (batchIndex < 0 || batchIndex >= state.batches.size()) {
+        return work;
+    }
+    const TransferBatch &batch = state.batches[batchIndex];
+    const BatchFiles files = listBatchFiles(state, batch.batchId);
+
+    // Weight of a file of unknown size: the average known file, or one unit when no
+    // size is known (then every file weighs the same and progress counts files)
+    const qint64 unknownWeight = files.knownCount > 0 ? files.knownBytes / files.knownCount : 1;
+    // Files removed from the list while the batch runs ("remove completed") are finished
+    const qint64 unlisted = std::max<qint64>(0, batch.totalCount() - files.listed.size());
+    const qint64 unlistedFinished = std::min<qint64>(
+        unlisted, std::max(0, batch.completedCount + batch.failedCount - files.finishedCount));
+
+    qint64 totalWeight = unlisted * unknownWeight;
+    qint64 doneWeight = unlistedFinished * unknownWeight;
+    for (const TransferItem *file : files.listed) {
+        const qint64 weight = file->totalBytes > 0 ? file->totalBytes : unknownWeight;
+        totalWeight += weight;
+        if (isFinished(file->status)) {
+            doneWeight += weight;
+        } else if (file->status == TransferItem::Status::InProgress && file->totalBytes > 0) {
+            doneWeight += std::clamp<qint64>(file->bytesTransferred, 0, file->totalBytes);
+        }
+    }
+
+    if (totalWeight > 0) {
+        work.permilleDone =
+            static_cast<int>(std::min<qint64>(PerMille, doneWeight * PerMille / totalWeight));
+    }
+    if (files.knownCount == files.listed.size() && unlisted == 0) {
+        // Every weight is a real size, so the weights are bytes
+        work.bytesDone = doneWeight;
+        work.bytesTotal = totalWeight;
+    }
+    return work;
+}
+
 BatchProgress computeActiveBatchProgress(const State &state)
 {
     BatchProgress progress;
 
     if (state.activeBatchIndex >= 0 && state.activeBatchIndex < state.batches.size()) {
-        const TransferBatch &batch = state.batches[state.activeBatchIndex];
-        progress.batchId = batch.batchId;
-        progress.description = batch.description;
-        progress.folderName = batch.folderName;
-        progress.operationType = batch.operationType;
-        progress.totalItems = batch.totalCount();
-        progress.completedItems = batch.completedCount;
-        progress.failedItems = batch.failedCount;
+        fillBatchCounts(progress, state, state.activeBatchIndex);
     }
 
     progress.isScanning = (state.queueState == QueueState::Scanning);
@@ -190,13 +280,7 @@ BatchProgress computeBatchProgress(const State &state, int batchId)
     for (int i = 0; i < state.batches.size(); ++i) {
         const TransferBatch &batch = state.batches[i];
         if (batch.batchId == batchId) {
-            progress.batchId = batch.batchId;
-            progress.description = batch.description;
-            progress.folderName = batch.folderName;
-            progress.operationType = batch.operationType;
-            progress.totalItems = batch.totalCount();
-            progress.completedItems = batch.completedCount;
-            progress.failedItems = batch.failedCount;
+            fillBatchCounts(progress, state, i);
 
             if (state.activeBatchIndex == i) {
                 progress.isScanning = (state.queueState == QueueState::Scanning);

@@ -101,6 +101,24 @@ namespace transfer {
 // Progress computation
 // ---------------------------------------------------------------------------
 
+/// @brief How much of a batch's transfer work is done, weighted by file size.
+struct BatchWork
+{
+    int permilleDone = 0;   ///< 0..1000
+    qint64 bytesDone = 0;   ///< Bytes of the batch's files processed so far
+    qint64 bytesTotal = 0;  ///< Total bytes of the batch; 0 while any file's size is unknown
+};
+
+/// @brief Work done in the batch at @p batchIndex, each file weighted by its size.
+///
+/// Finished files (completed, failed or skipped) count in full, the file in flight by
+/// the bytes transferred so far, and pending files not at all. A file whose size is
+/// not known yet weighs as much as the batch's average known file; with no size known
+/// at all every file weighs the same, i.e. progress counts files. Files already
+/// removed from the queue's list while the batch runs count as finished. Never
+/// exceeds 1000 per mille.
+[[nodiscard]] BatchWork computeBatchWork(const State &state, int batchIndex);
+
 /// @brief Compute BatchProgress for the active batch (activeBatchIndex).
 /// Returns invalid BatchProgress (batchId == -1) if no active batch.
 [[nodiscard]] BatchProgress computeActiveBatchProgress(const State &state);

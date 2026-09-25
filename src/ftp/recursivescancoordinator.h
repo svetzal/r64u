@@ -53,7 +53,9 @@ public:
     void startDeleteScan(const QString &remotePath);
 
 signals:
-    void downloadFileDiscovered(const QString &remotePath, const QString &localPath, int batchId);
+    /// A file to download; @p size is its size in bytes from the listing.
+    void downloadFileDiscovered(const QString &remotePath, const QString &localPath, int batchId,
+                                qint64 size);
     /// Every directory of the download scan for @p batchId has been listed (or failed).
     void downloadScanComplete(int batchId);
     /// The remote directory @p remotePath (mirrored to @p localPath) could not be listed.

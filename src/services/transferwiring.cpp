@@ -78,10 +78,11 @@ void connectAll(TransferManager &mgr)
                      &TransferManager::onOperationTimeout);
 
     // --- RecursiveScanCoordinator ---
-    QObject::connect(mgr.scanCoordinator_, &RecursiveScanCoordinator::downloadFileDiscovered, &mgr,
-                     [&mgr](const QString &remotePath, const QString &localPath, int batchId) {
-                         mgr.enqueueDownload(remotePath, localPath, batchId);
-                     });
+    QObject::connect(
+        mgr.scanCoordinator_, &RecursiveScanCoordinator::downloadFileDiscovered, &mgr,
+        [&mgr](const QString &remotePath, const QString &localPath, int batchId, qint64 size) {
+            mgr.enqueueDownload(remotePath, localPath, batchId, size);
+        });
     QObject::connect(mgr.scanCoordinator_, &RecursiveScanCoordinator::downloadScanComplete, &mgr,
                      &TransferManager::onScanCompleted);
     QObject::connect(mgr.scanCoordinator_, &RecursiveScanCoordinator::downloadDirectoryFailed, &mgr,

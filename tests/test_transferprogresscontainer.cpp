@@ -14,8 +14,11 @@
 #include "models/transferqueue.h"
 #include "services/deviceconnectionmanager.h"
 #include "services/transferservice.h"
+#include "ui/batchprogresswidget.h"
 #include "ui/transferprogresscontainer.h"
 
+#include <QProgressBar>
+#include <QTemporaryDir>
 #include <QtTest>
 
 class TestTransferProgressContainer : public QObject
@@ -65,6 +68,29 @@ private slots:
         TransferProgressContainer container;
         container.setTransferService(service_);
         QVERIFY(true);
+    }
+
+    void testUploadInFlight_BatchBarFollowsItsBytes()
+    {
+        makeService();
+        queue_->setFtpClient(mockFtp_);
+        mockFtp_->mockSetConnected(true);
+        TransferProgressContainer container;
+        container.setTransferService(service_);
+        QTemporaryDir dir;
+        const QString localPath = dir.filePath("big.reu");
+        QFile file(localPath);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        QVERIFY(file.resize(4000));
+        file.close();
+
+        queue_->setAutoOverwrite(true);  // no "file exists?" listing first
+        queue_->enqueueUpload(localPath, "/SD/big.reu");
+        QTRY_COMPARE(mockFtp_->mockGetUploadRequests(), QStringList{localPath});
+        emit mockFtp_->uploadProgress(localPath, 1000, 4000);
+
+        auto *bar = container.findChild<BatchProgressWidget *>()->findChild<QProgressBar *>();
+        QCOMPARE(bar->value(), 25);
     }
 
     void testOnOperationCompleted_EmitsStatusMessage()

@@ -17,10 +17,44 @@
 #include "models/transferqueue.h"
 #include "ui/batchprogresswidget.h"
 
+#include <QLabel>
+#include <QLocale>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QSignalSpy>
 #include <QtTest>
+
+namespace {
+
+constexpr qint64 MiB = qint64{1024} * 1024;
+
+BatchProgress activeTransfer(int totalItems, int completedItems, int permilleDone, qint64 bytesDone,
+                             qint64 bytesTotal)
+{
+    BatchProgress progress;
+    progress.batchId = 1;
+    progress.operationType = OperationType::Upload;
+    progress.totalItems = totalItems;
+    progress.completedItems = completedItems;
+    progress.permilleDone = permilleDone;
+    progress.bytesDone = bytesDone;
+    progress.bytesTotal = bytesTotal;
+    return progress;
+}
+
+/// Text of the status label (the widest of the widget's labels; the other is the icon).
+QString labelText(const BatchProgressWidget &widget)
+{
+    QString longest;
+    for (const QLabel *label : widget.findChildren<QLabel *>()) {
+        if (label->text().size() > longest.size()) {
+            longest = label->text();
+        }
+    }
+    return longest;
+}
+
+}  // namespace
 
 class TestBatchProgressWidget : public QObject
 {
@@ -174,6 +208,7 @@ private slots:
         progress.totalItems = 5;
         progress.completedItems = 5;
         progress.failedItems = 0;
+        progress.permilleDone = 1000;
         progress.operationType = OperationType::Upload;
 
         widget.updateProgress(progress);
@@ -181,6 +216,54 @@ private slots:
         auto *bar = widget.findChild<QProgressBar *>();
         QVERIFY(bar != nullptr);
         QCOMPARE(bar->value(), 100);
+    }
+
+    // =========================================================================
+    // updateProgress() — the bar follows bytes, not file count
+    // =========================================================================
+
+    void testUpdateProgress_LargeFileInFlight_BarFollowsItsBytes()
+    {
+        BatchProgressWidget widget(1);
+
+        widget.updateProgress(activeTransfer(1, 0, 250, 4 * MiB, 16 * MiB));
+
+        QCOMPARE(widget.findChild<QProgressBar *>()->value(), 25);
+    }
+
+    void testUpdateProgress_LessWorkDoneThanShown_BarDoesNotGoBack()
+    {
+        BatchProgressWidget widget(1);
+        widget.updateProgress(activeTransfer(2, 1, 600, 0, 0));
+
+        // e.g. a file's size became known and outweighs the files already done
+        widget.updateProgress(activeTransfer(2, 1, 400, 0, 0));
+
+        QCOMPARE(widget.findChild<QProgressBar *>()->value(), 60);
+    }
+
+    void testUpdateProgress_SizesKnown_LabelShowsBytesAndFileCount()
+    {
+        QLocale::setDefault(QLocale::c());
+        BatchProgressWidget widget(1);
+
+        widget.updateProgress(activeTransfer(1, 0, 250, 4 * MiB, 16 * MiB));
+
+        const QString text = labelText(widget);
+        QVERIFY2(text.contains("1 of 1"), qPrintable(text));
+        QVERIFY2(text.contains("4.0 MB of 16.0 MB"), qPrintable(text));
+    }
+
+    void testUpdateProgress_SizesUnknown_LabelShowsFileCountOnly()
+    {
+        QLocale::setDefault(QLocale::c());
+        BatchProgressWidget widget(1);
+
+        widget.updateProgress(activeTransfer(3, 1, 333, 0, 0));
+
+        const QString text = labelText(widget);
+        QVERIFY2(text.contains("2 of 3"), qPrintable(text));
+        QVERIFY2(!text.contains("MB"), qPrintable(text));
     }
 
     // =========================================================================

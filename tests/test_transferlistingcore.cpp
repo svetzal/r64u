@@ -81,8 +81,9 @@ private slots:
         auto result = transfer::processDirectoryListingForDownload(scan, entries);
 
         QCOMPARE(result.newFileDownloads.size(), 1);
-        QCOMPARE(result.newFileDownloads[0].first, QString("/remote/dir/game.prg"));
-        QCOMPARE(result.newFileDownloads[0].second, QString("/local/base/game.prg"));
+        QCOMPARE(result.newFileDownloads[0].remotePath, QString("/remote/dir/game.prg"));
+        QCOMPARE(result.newFileDownloads[0].localPath, QString("/local/base/game.prg"));
+        QCOMPARE(result.newFileDownloads[0].size, qint64(4096));
     }
 
     void testProcessDirectoryListingForDownload_dirEntryCreatesSubScan()
@@ -112,7 +113,7 @@ private slots:
         QList<FtpEntry> entries = {makeFile("nested.prg")};
         auto result = transfer::processDirectoryListingForDownload(scan, entries);
 
-        QCOMPARE(result.newFileDownloads[0].second, QString("/local/base/sub/nested.prg"));
+        QCOMPARE(result.newFileDownloads[0].localPath, QString("/local/base/sub/nested.prg"));
     }
 
     void testProcessDirectoryListingForDelete_fileEntriesProduceFileItems()

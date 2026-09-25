@@ -105,6 +105,15 @@ private slots:
     void testComputeActiveBatchProgress_withActiveBatch();
     void testComputeBatchProgress_found();
     void testComputeBatchProgress_notFound();
+    void testBatchWork_fileInFlight_countsItsBytesSoFar();
+    void testBatchWork_smallFileDone_weighsLessThanLargeFileToGo();
+    void testBatchWork_failedAndSkippedFiles_countAsProcessed();
+    void testBatchWork_noSizesKnown_countsFiles();
+    void testBatchWork_unknownSize_countsAsAverageFile();
+    void testBatchWork_moreBytesThanExpected_neverExceedsWhole();
+    void testBatchWork_finishedFilesRemovedFromQueue_stillCount();
+    void testBatchWork_emptyBatch_isZero();
+    void testComputeActiveBatchProgress_carriesBatchWork();
 
     // itemData tests
     void testItemData_displayRole_upload();
@@ -727,6 +736,151 @@ void TestTransferCore::testComputeBatchProgress_notFound()
     transfer::State state;
     transfer::BatchProgress p = transfer::computeBatchProgress(state, 999);
     QVERIFY(!p.isValid());
+}
+
+// ---------------------------------------------------------------------------
+// Batch work: progress weighted by file size
+// ---------------------------------------------------------------------------
+
+namespace {
+
+constexpr qint64 MiB = qint64{1024} * 1024;
+
+/// One batch (id 1) holding a file of each given size (0 = not known yet).
+transfer::State makeBatchOfFiles(const QList<qint64> &sizes)
+{
+    transfer::State state;
+    transfer::TransferBatch batch;
+    batch.batchId = 1;
+    batch.operationType = transfer::OperationType::Upload;
+    for (qint64 size : sizes) {
+        transfer::TransferItem item;
+        item.batchId = 1;
+        item.totalBytes = size;
+        batch.items.append(item);
+        state.items.append(item);
+    }
+    state.batches.append(batch);
+    state.activeBatchIndex = 0;
+    return state;
+}
+
+void finishItem(transfer::State &state, int index, transfer::TransferItem::Status status)
+{
+    state = transfer::markItemComplete(state, index, status).newState;
+}
+
+void startItem(transfer::State &state, int index, qint64 bytesSoFar)
+{
+    state.items[index].status = transfer::TransferItem::Status::InProgress;
+    state.items[index].bytesTransferred = bytesSoFar;
+}
+
+}  // namespace
+
+void TestTransferCore::testBatchWork_fileInFlight_countsItsBytesSoFar()
+{
+    auto state = makeBatchOfFiles({16 * MiB});
+    startItem(state, 0, 4 * MiB);
+
+    const auto work = transfer::computeBatchWork(state, 0);
+
+    QCOMPARE(work.permilleDone, 250);
+    QCOMPARE(work.bytesDone, 4 * MiB);
+    QCOMPARE(work.bytesTotal, 16 * MiB);
+}
+
+void TestTransferCore::testBatchWork_smallFileDone_weighsLessThanLargeFileToGo()
+{
+    auto state = makeBatchOfFiles({1 * MiB, 15 * MiB});
+    finishItem(state, 0, transfer::TransferItem::Status::Completed);
+    startItem(state, 1, 3 * MiB);
+
+    const auto work = transfer::computeBatchWork(state, 0);
+
+    QCOMPARE(work.permilleDone, 250);  // 4 of 16 MiB, not "1 of 2 files"
+    QCOMPARE(work.bytesDone, 4 * MiB);
+}
+
+void TestTransferCore::testBatchWork_failedAndSkippedFiles_countAsProcessed()
+{
+    auto state = makeBatchOfFiles({1000, 1000, 2000});
+    finishItem(state, 0, transfer::TransferItem::Status::Failed);
+    finishItem(state, 1, transfer::TransferItem::Status::Skipped);
+
+    const auto work = transfer::computeBatchWork(state, 0);
+
+    QCOMPARE(work.permilleDone, 500);
+}
+
+void TestTransferCore::testBatchWork_noSizesKnown_countsFiles()
+{
+    auto state = makeBatchOfFiles({0, 0, 0, 0});
+    finishItem(state, 0, transfer::TransferItem::Status::Completed);
+    startItem(state, 1, 5000);  // size unknown: its bytes cannot be weighed yet
+
+    const auto work = transfer::computeBatchWork(state, 0);
+
+    QCOMPARE(work.permilleDone, 250);
+    QCOMPARE(work.bytesTotal, qint64(0));
+}
+
+void TestTransferCore::testBatchWork_unknownSize_countsAsAverageFile()
+{
+    auto state = makeBatchOfFiles({3000, 1000, 0});
+    finishItem(state, 0, transfer::TransferItem::Status::Completed);
+
+    const auto work = transfer::computeBatchWork(state, 0);
+
+    // The unknown file weighs as much as the average known one (2000 bytes)
+    QCOMPARE(work.permilleDone, 500);
+    QCOMPARE(work.bytesTotal, qint64(0));  // the batch's total is not known
+}
+
+void TestTransferCore::testBatchWork_moreBytesThanExpected_neverExceedsWhole()
+{
+    auto state = makeBatchOfFiles({1000});
+    startItem(state, 0, 1500);
+
+    const auto work = transfer::computeBatchWork(state, 0);
+
+    QCOMPARE(work.permilleDone, 1000);
+    QCOMPARE(work.bytesDone, qint64(1000));
+}
+
+void TestTransferCore::testBatchWork_finishedFilesRemovedFromQueue_stillCount()
+{
+    auto state = makeBatchOfFiles({1000, 1000});
+    finishItem(state, 0, transfer::TransferItem::Status::Completed);
+    state.items.removeFirst();  // "remove completed" while the batch still runs
+
+    const auto work = transfer::computeBatchWork(state, 0);
+
+    QCOMPARE(work.permilleDone, 500);
+}
+
+void TestTransferCore::testBatchWork_emptyBatch_isZero()
+{
+    const auto state = makeBatchOfFiles({});
+
+    const auto work = transfer::computeBatchWork(state, 0);
+
+    QCOMPARE(work.permilleDone, 0);
+    QCOMPARE(work.bytesTotal, qint64(0));
+}
+
+void TestTransferCore::testComputeActiveBatchProgress_carriesBatchWork()
+{
+    auto state = makeBatchOfFiles({16 * MiB});
+    startItem(state, 0, 8 * MiB);
+
+    const transfer::BatchProgress active = transfer::computeActiveBatchProgress(state);
+    const transfer::BatchProgress byId = transfer::computeBatchProgress(state, 1);
+
+    QCOMPARE(active.permilleDone, 500);
+    QCOMPARE(active.bytesDone, 8 * MiB);
+    QCOMPARE(active.bytesTotal, 16 * MiB);
+    QCOMPARE(byId.permilleDone, 500);
 }
 
 // ---------------------------------------------------------------------------
@@ -1649,8 +1803,8 @@ void TestTransferCore::testProcessDirListingDownload_filesOnly()
     auto result = transfer::processDirectoryListingForDownload(scan, {file});
     QCOMPARE(result.newFileDownloads.size(), 1);
     QCOMPARE(result.newSubScans.size(), 0);
-    QCOMPARE(result.newFileDownloads[0].first, QString("/SD/Games/Turrican.prg"));
-    QCOMPARE(result.newFileDownloads[0].second, QString("/home/user/Games/Turrican.prg"));
+    QCOMPARE(result.newFileDownloads[0].remotePath, QString("/SD/Games/Turrican.prg"));
+    QCOMPARE(result.newFileDownloads[0].localPath, QString("/home/user/Games/Turrican.prg"));
 }
 
 void TestTransferCore::testProcessDirListingDownload_directoriesOnly()
@@ -1705,7 +1859,7 @@ void TestTransferCore::testProcessDirListingDownload_correctPathConstruction()
     file.isDirectory = false;
 
     auto result = transfer::processDirectoryListingForDownload(scan, {file});
-    QCOMPARE(result.newFileDownloads[0].second, QString("/home/user/Games/Action/Turrican.prg"));
+    QCOMPARE(result.newFileDownloads[0].localPath, QString("/home/user/Games/Action/Turrican.prg"));
 }
 
 // ---------------------------------------------------------------------------

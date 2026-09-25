@@ -176,7 +176,7 @@ void SingleFileEnqueueHandler::enqueueUpload(const QString &localPath, const QSt
 }
 
 void SingleFileEnqueueHandler::enqueueDownload(const QString &remotePath, const QString &localPath,
-                                               int targetBatchId)
+                                               int targetBatchId, qint64 expectedSize)
 {
     int batchIdx = -1;
 
@@ -217,6 +217,7 @@ void SingleFileEnqueueHandler::enqueueDownload(const QString &remotePath, const 
     item.remotePath = remotePath;
     item.operationType = OperationType::Download;
     item.status = transfer::TransferItem::Status::Pending;
+    item.totalBytes = expectedSize;
     item.batchId = state_.batches[batchIdx].batchId;
 
     emit itemsAboutToBeInserted(state_.items.size(), state_.items.size());

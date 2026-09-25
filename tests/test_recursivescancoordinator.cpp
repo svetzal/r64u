@@ -116,6 +116,7 @@ private slots:
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.at(0).at(0).toString(), QString("/remote/dir/game.prg"));
         QCOMPARE(spy.at(0).at(2).toInt(), 1);
+        QCOMPARE(spy.at(0).at(3).toLongLong(), qint64(4096));  // its size from the listing
     }
 
     void testOnDirectoryListed_download_lastListing_reportsScanCompleteForItsBatch()

@@ -173,6 +173,11 @@ struct BatchProgress
     int directoriesCreated = 0;   ///< Number of directories created so far
     int directoriesToCreate = 0;  ///< Total directories to create
 
+    // Share of the transfers done, weighted by file size (see transfer::computeBatchWork)
+    int permilleDone = 0;   ///< 0..1000
+    qint64 bytesDone = 0;   ///< Bytes of the batch's files processed so far
+    qint64 bytesTotal = 0;  ///< Total bytes of the batch; 0 while any file's size is unknown
+
     [[nodiscard]] bool isValid() const { return batchId >= 0; }
     [[nodiscard]] int pendingItems() const { return totalItems - completedItems - failedItems; }
 };

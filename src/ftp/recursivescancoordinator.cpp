@@ -155,9 +155,10 @@ void RecursiveScanCoordinator::handleDirectoryListingForDownload(const QString &
 
     auto listing = transfer::processDirectoryListingForDownload(currentScan, entries);
 
-    for (const auto &[remotePath, localPath] : listing.newFileDownloads) {
+    for (const auto &file : listing.newFileDownloads) {
         state_.filesDiscovered++;
-        emit downloadFileDiscovered(remotePath, localPath, currentScan.batchId);
+        emit downloadFileDiscovered(file.remotePath, file.localPath, currentScan.batchId,
+                                    file.size);
     }
 
     for (const auto &subScan : listing.newSubScans) {

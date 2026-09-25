@@ -1,6 +1,18 @@
 #include "batchprogresswidget.h"
 
 #include <QHBoxLayout>
+#include <QLocale>
+
+#include <algorithm>
+
+namespace {
+
+QString formatBytes(const QLocale &locale, qint64 bytes)
+{
+    return locale.formattedDataSize(bytes, 1, QLocale::DataSizeTraditionalFormat);
+}
+
+}  // namespace
 
 BatchProgressWidget::BatchProgressWidget(int batchId, QWidget *parent)
     : QWidget(parent), batchId_(batchId)
@@ -78,9 +90,10 @@ void BatchProgressWidget::updateProgress(const BatchProgress &progress)
     } else if (progress.totalItems > 0) {
         setState(State::Active);
         progressBar_->setMaximum(100);
+        // Weighted by bytes; never back, e.g. when a newly known size outweighs what is done
+        shownPermille_ = std::max(shownPermille_, progress.permilleDone);
+        progressBar_->setValue(shownPermille_ / 10);
         int completed = progress.completedItems + progress.failedItems;
-        int pct = (completed * 100) / progress.totalItems;
-        progressBar_->setValue(pct);
 
         QString actionVerb;
         switch (progress.operationType) {
@@ -97,18 +110,26 @@ void BatchProgressWidget::updateProgress(const BatchProgress &progress)
         // Show "X of Y" where X is the item currently being processed (1-indexed)
         // Cap at totalItems to avoid showing "17 of 16" when complete
         int displayItem = qMin(completed + 1, progress.totalItems);
+        QString text;
         if (!progress.folderName.isEmpty()) {
-            statusLabel_->setText(tr("%1 - %2 %3 of %4 items...")
-                                      .arg(progress.folderName)
-                                      .arg(actionVerb)
-                                      .arg(displayItem)
-                                      .arg(progress.totalItems));
+            text = tr("%1 - %2 %3 of %4 items...")
+                       .arg(progress.folderName)
+                       .arg(actionVerb)
+                       .arg(displayItem)
+                       .arg(progress.totalItems);
         } else {
-            statusLabel_->setText(tr("%1 %2 of %3 items...")
-                                      .arg(actionVerb)
-                                      .arg(displayItem)
-                                      .arg(progress.totalItems));
+            text = tr("%1 %2 of %3 items...")
+                       .arg(actionVerb)
+                       .arg(displayItem)
+                       .arg(progress.totalItems);
         }
+        if (progress.bytesTotal > 0) {
+            const QLocale locale;
+            text += tr(" (%1 of %2)")
+                        .arg(formatBytes(locale, progress.bytesDone),
+                             formatBytes(locale, progress.bytesTotal));
+        }
+        statusLabel_->setText(text);
     }
 
     // Update icon based on operation type

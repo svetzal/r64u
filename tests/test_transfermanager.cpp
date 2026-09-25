@@ -265,6 +265,29 @@ private slots:
         QCOMPARE(spy.count(), 1);
     }
 
+    void testRecursiveDownload_FilesCarryTheirListedSizes()
+    {
+        FtpEntry big = remoteFile("big.reu");
+        big.size = 16777216;
+        FtpEntry small = remoteFile("small.prg");
+        small.size = 2048;
+        mockFtp->mockSetDirectoryListing("/r/sized", {big, small});
+
+        orchestrator->enqueueRecursiveDownload("/r/sized", tempDir.path());
+        flushAndProcessNext();  // listing
+
+        QCOMPARE(orchestrator->state().items.size(), 2);
+        QCOMPARE(orchestrator->state().items.at(0).totalBytes, qint64(16777216));
+        QCOMPARE(orchestrator->state().items.at(1).totalBytes, qint64(2048));
+    }
+
+    void testDownload_WithExpectedSize_ItemCarriesIt()
+    {
+        orchestrator->enqueueDownload("/r/big.reu", tempDir.path() + "/big.reu", -1, 16777216);
+
+        QCOMPARE(orchestrator->state().items.at(0).totalBytes, qint64(16777216));
+    }
+
     void testEnqueueRecursiveDownload_NotConnected_EmitsOperationFailed()
     {
         mockFtp->mockSetConnected(false);
@@ -881,9 +904,12 @@ private slots:
 
         flushAndProcess();
 
+        // Byte progress of a file in flight repeats the processed count so far
         QList<int> processed;
         for (const auto &args : progressSpy) {
-            processed << args.at(1).toInt();
+            if (processed.isEmpty() || processed.last() != args.at(1).toInt()) {
+                processed << args.at(1).toInt();
+            }
         }
         QCOMPARE(processed, (QList<int>{1, 2, 3}));
     }

@@ -81,10 +81,21 @@ void TransferFtpHandler::onUploadProgress(const QString &file, qint64 sent, qint
         return;  // Another component's upload on the shared client
     }
     startTimeout();
+    recordProgress(idx, sent, total);
+}
 
-    state_.items[idx].bytesTransferred = sent;
-    state_.items[idx].totalBytes = total;
+void TransferFtpHandler::recordProgress(int idx, qint64 bytesSoFar, qint64 total)
+{
+    transfer::TransferItem &item = state_.items[idx];
+    item.bytesTransferred = bytesSoFar;
+    if (total > 0) {
+        // Unknown (0) until the server announces it: keep the size from the listing
+        item.totalBytes = total;
+    }
     emit itemDataChanged(idx);
+    if (item.batchId >= 0) {
+        emit batchProgressRequested(item.batchId, false);  // the bar follows the bytes
+    }
 }
 
 void TransferFtpHandler::onUploadFinished(const QString &localPath, const QString &remotePath)
@@ -110,10 +121,7 @@ void TransferFtpHandler::onDownloadProgress(const QString &file, qint64 received
         return;  // e.g. a preview's downloadToMemory on the shared client
     }
     startTimeout();
-
-    state_.items[idx].bytesTransferred = received;
-    state_.items[idx].totalBytes = total;
-    emit itemDataChanged(idx);
+    recordProgress(idx, received, total);
 }
 
 void TransferFtpHandler::onDownloadFinished(const QString &remotePath, const QString &localPath)

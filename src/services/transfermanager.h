@@ -64,8 +64,9 @@ public:
     void setLocalFileSystem(ILocalFileSystemService *fs);
 
     void enqueueUpload(const QString &localPath, const QString &remotePath, int targetBatchId = -1);
+    /// @p expectedSize is the file's size in bytes if known (e.g. from a listing), else 0.
     void enqueueDownload(const QString &remotePath, const QString &localPath,
-                         int targetBatchId = -1);
+                         int targetBatchId = -1, qint64 expectedSize = 0);
     void enqueueRecursiveUpload(const QString &localDir, const QString &remoteDir);
     void enqueueRecursiveDownload(const QString &remoteDir, const QString &localDir);
     void enqueueDelete(const QString &remotePath, bool isDirectory);

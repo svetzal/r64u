@@ -55,6 +55,8 @@ private:
     /// Applies a failure of the queue's own request to the queue state and reports it.
     /// @return True if the queue should move on to its next item.
     [[nodiscard]] bool recordQueueRequestFailure(const QString &message);
+    /// Records the in-flight item's progress and asks for its batch's progress to be shown.
+    void recordProgress(int idx, qint64 bytesSoFar, qint64 total);
     void startTimeout();
     void stopTimeout();
 

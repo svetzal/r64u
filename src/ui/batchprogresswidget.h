@@ -83,6 +83,7 @@ private:
     State state_ = State::Queued;
     OperationType operationType_ = OperationType::Download;
     bool isActive_ = false;
+    int shownPermille_ = 0;  ///< Highest share of the transfers shown done so far
 
     QLabel *iconLabel_ = nullptr;
     QLabel *statusLabel_ = nullptr;

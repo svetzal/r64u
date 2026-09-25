@@ -17,11 +17,19 @@ namespace transfer {
 /// @brief Sort a delete queue: files first, then directories deepest-first.
 [[nodiscard]] QList<DeleteItem> sortDeleteQueue(const QList<DeleteItem> &queue);
 
+/// @brief A file found by a download scan.
+struct FileDownload
+{
+    QString remotePath;
+    QString localPath;
+    qint64 size = 0;  ///< Size from the listing, in bytes
+};
+
 /// @brief Result of processing a directory listing for download scanning.
 struct DirectoryListingResult
 {
-    QList<PendingScan> newSubScans;                   ///< Subdirectories to scan next
-    QList<QPair<QString, QString>> newFileDownloads;  ///< (remotePath, localPath) pairs
+    QList<PendingScan> newSubScans;        ///< Subdirectories to scan next
+    QList<FileDownload> newFileDownloads;  ///< Files to download
     int directoriesScanned = 0;
 };
 

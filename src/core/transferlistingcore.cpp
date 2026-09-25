@@ -71,7 +71,7 @@ DirectoryListingResult processDirectoryListingForDownload(const PendingScan &cur
             result.newSubScans.append(subScan);
         } else {
             QString localFilePath = localTargetDir + '/' + entry.name;
-            result.newFileDownloads.append({entryRemotePath, localFilePath});
+            result.newFileDownloads.append({entryRemotePath, localFilePath, entry.size});
         }
     }
 
