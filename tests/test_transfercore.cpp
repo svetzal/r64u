@@ -167,7 +167,7 @@ private slots:
 
     // respondToOverwrite tests
     void testRespondToOverwrite_overwrite_confirmsItem();
-    void testRespondToOverwrite_overwriteAll_setsFlag();
+    void testRespondToOverwrite_overwriteAll_withoutItem_setsNoBatch();
     void testRespondToOverwrite_skip_marksSkipped();
     void testRespondToOverwrite_skip_updatesBatchCount();
     void testRespondToOverwrite_cancel_flagsCancelAll();
@@ -1320,13 +1320,13 @@ void TestTransferCore::testRespondToOverwrite_overwrite_confirmsItem()
     QVERIFY(!result.shouldCancelAll);
 }
 
-void TestTransferCore::testRespondToOverwrite_overwriteAll_setsFlag()
+void TestTransferCore::testRespondToOverwrite_overwriteAll_withoutItem_setsNoBatch()
 {
     transfer::State state;
     state.queueState = transfer::QueueState::AwaitingFileConfirm;
 
     auto result = transfer::respondToOverwrite(state, transfer::OverwriteResponse::OverwriteAll);
-    QVERIFY(result.newState.overwriteAll);
+    QCOMPARE(result.newState.overwriteAllBatchId, -1);
     QVERIFY(result.shouldScheduleProcessNext);
 }
 
@@ -1779,7 +1779,7 @@ void TestTransferCore::testDecideNext_overwriteCheck_download_fileExists()
     item.localPath = "/home/user/file.prg";
     item.confirmed = false;
     state.items.append(item);
-    state.overwriteAll = false;
+    state.autoOverwrite = false;
 
     // Local file "exists"
     auto d = transfer::decideNextAction(state, true, [](const QString &) { return true; });
@@ -1797,7 +1797,7 @@ void TestTransferCore::testDecideNext_startTransfer_download()
     item.localPath = "/home/user/file.prg";
     item.remotePath = "/SD/file.prg";
     item.confirmed = false;
-    state.overwriteAll = true;  // Skip overwrite check
+    state.autoOverwrite = true;  // Skip overwrite check
     state.items.append(item);
 
     auto d = transfer::decideNextAction(state, true, [](const QString &) { return false; });
@@ -1832,7 +1832,7 @@ void TestTransferCore::testDecideNext_overwriteCheck_upload_notConfirmed()
     item.localPath = "/home/user/game.prg";
     item.remotePath = "/SD/games/game.prg";
     item.confirmed = false;
-    state.overwriteAll = false;
+    state.autoOverwrite = false;
     state.items.append(item);
 
     auto d = transfer::decideNextAction(state, true, [](const QString &) { return false; });

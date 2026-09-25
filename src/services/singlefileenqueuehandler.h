@@ -133,6 +133,10 @@ signals:
 
 private:
     [[nodiscard]] int findBatchIndex(int batchId) const;
+    /// Index of the active batch if a new single @p type transfer may join it, else -1.
+    /// A running folder operation's batch is never joined: its answers (e.g. "Overwrite
+    /// All") belong to that folder only.
+    [[nodiscard]] int joinableActiveBatchIndex(OperationType type) const;
     void activateAndSchedule(int batchIdx);
 
     transfer::State &state_;

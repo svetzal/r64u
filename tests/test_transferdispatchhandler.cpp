@@ -184,7 +184,7 @@ private slots:
         addPendingUpload("/local/file.txt", "/remote/file.txt");
         state_.queueState = transfer::QueueState::Idle;
         // Skip the remote overwrite check so decideNextAction goes straight to StartTransfer
-        state_.overwriteAll = true;
+        state_.autoOverwrite = true;
 
         QSignalSpy operationStartedSpy(handler, &TransferDispatchHandler::operationStarted);
         QSignalSpy dataChangedSpy(handler, &TransferDispatchHandler::itemDataChanged);

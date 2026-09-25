@@ -9,6 +9,12 @@
 
 namespace transfer {
 
+bool mayOverwriteWithoutAsking(const State &state, const TransferItem &item)
+{
+    return state.autoOverwrite || item.confirmed ||
+           (state.overwriteAllBatchId >= 0 && item.batchId == state.overwriteAllBatchId);
+}
+
 ProcessNextDecision decideNextAction(const State &state, bool ftpConnected,
                                      const std::function<bool(const QString &)> &localFileExists)
 {
@@ -44,9 +50,10 @@ ProcessNextDecision decideNextAction(const State &state, bool ftpConnected,
                                .fileName();
         decision.fileNameForSignal = fileName;
 
+        const bool mayOverwrite = mayOverwriteWithoutAsking(state, item);
+
         // Check for file existence confirmation (downloads)
-        if (item.operationType == OperationType::Download && !state.overwriteAll &&
-            !item.confirmed) {
+        if (item.operationType == OperationType::Download && !mayOverwrite) {
             if (localFileExists(item.localPath)) {
                 decision.action = ProcessNextAction::NeedOverwriteCheck_Download;
                 return decision;
@@ -54,7 +61,7 @@ ProcessNextDecision decideNextAction(const State &state, bool ftpConnected,
         }
 
         // Check for remote file existence (uploads)
-        if (item.operationType == OperationType::Upload && !state.overwriteAll && !item.confirmed) {
+        if (item.operationType == OperationType::Upload && !mayOverwrite) {
             QString parentDir = QFileInfo(item.remotePath).path();
             if (parentDir.isEmpty()) {
                 parentDir = QStringLiteral("/");

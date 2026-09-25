@@ -31,7 +31,11 @@ OverwriteResult respondToOverwrite(const State &state, OverwriteResponse respons
         break;
 
     case OverwriteResponse::OverwriteAll:
-        result.newState.overwriteAll = true;
+        // Covers the rest of this batch only, never transfers started later
+        if (itemIdx >= 0 && itemIdx < result.newState.items.size()) {
+            result.newState.items[itemIdx].confirmed = true;
+            result.newState.overwriteAllBatchId = result.newState.items[itemIdx].batchId;
+        }
         result.shouldScheduleProcessNext = true;
         break;
 

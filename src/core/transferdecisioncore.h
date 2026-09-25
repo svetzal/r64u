@@ -27,6 +27,10 @@ enum class ProcessNextAction {
     NoPending                     ///< No pending items remain
 };
 
+/// @brief Returns true if @p item may replace an existing destination file without asking:
+///        the user confirmed it, chose "Overwrite All" in its batch, or never wants prompts.
+[[nodiscard]] bool mayOverwriteWithoutAsking(const State &state, const TransferItem &item);
+
 /// @brief Decision produced by decideNextAction().
 struct ProcessNextDecision
 {

@@ -48,6 +48,19 @@ int SingleFileEnqueueHandler::findBatchIndex(int batchId) const
     return -1;
 }
 
+int SingleFileEnqueueHandler::joinableActiveBatchIndex(OperationType type) const
+{
+    const int batchIdx = state_.activeBatchIndex;
+    if (batchIdx < 0 || batchIdx >= state_.batches.size()) {
+        return -1;
+    }
+    const transfer::TransferBatch &batch = state_.batches[batchIdx];
+    if (batch.operationType != type || batch.batchId == state_.currentFolderOp.batchId) {
+        return -1;
+    }
+    return batchIdx;
+}
+
 void SingleFileEnqueueHandler::activateAndSchedule(int batchIdx)
 {
     if (state_.activeBatchIndex < 0) {
@@ -128,8 +141,8 @@ void SingleFileEnqueueHandler::enqueueUpload(const QString &localPath, const QSt
     int batchIdx = (targetBatchId >= 0) ? findBatchIndex(targetBatchId) : -1;
 
     if (batchIdx < 0) {
-        batchIdx = state_.activeBatchIndex;
-        if (batchIdx < 0 || state_.batches[batchIdx].operationType != OperationType::Upload) {
+        batchIdx = joinableActiveBatchIndex(OperationType::Upload);
+        if (batchIdx < 0) {
             QString fileName = QFileInfo(localPath).fileName();
             QString sourcePath = state_.currentFolderOp.sourcePath.isEmpty()
                                      ? QString()
@@ -180,8 +193,8 @@ void SingleFileEnqueueHandler::enqueueDownload(const QString &remotePath, const 
     }
 
     if (batchIdx < 0) {
-        batchIdx = state_.activeBatchIndex;
-        if (batchIdx < 0 || state_.batches[batchIdx].operationType != OperationType::Download) {
+        batchIdx = joinableActiveBatchIndex(OperationType::Download);
+        if (batchIdx < 0) {
             QString fileName = QFileInfo(remotePath).fileName();
             QString sourcePath = (state_.queueState == QueueState::Scanning)
                                      ? state_.currentFolderOp.sourcePath

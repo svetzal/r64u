@@ -73,8 +73,6 @@ void FolderOperationCoordinator::enqueueRecursive(transfer::OperationType type,
     const bool skipConfirmation = state_.autoMerge || (!isUpload && !op.destExists);
     if (skipConfirmation) {
         if (state_.queueState == transfer::QueueState::Idle) {
-            // New user operation starting - reset overwrite preference
-            state_.overwriteAll = false;
             startFolderOperation(op);
         } else {
             state_.pendingFolderOps.enqueue(op);
@@ -86,8 +84,6 @@ void FolderOperationCoordinator::enqueueRecursive(transfer::OperationType type,
     state_.pendingFolderOps.enqueue(op);
 
     if (state_.queueState == transfer::QueueState::Idle) {
-        // New user operation starting - reset overwrite preference
-        state_.overwriteAll = false;
         state_.queueState = transfer::QueueState::CollectingItems;
         debounceTimer_->start(DebounceMs);
     }

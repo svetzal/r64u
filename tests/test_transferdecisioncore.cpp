@@ -77,7 +77,7 @@ private slots:
                                        transfer::TransferItem::Status::Pending);
         state.queueState = transfer::QueueState::Idle;
         state.items[0].localPath = "/local/file.prg";
-        state.overwriteAll = false;
+        state.autoOverwrite = false;
         state.items[0].confirmed = false;
 
         auto decision =
@@ -92,7 +92,7 @@ private slots:
                                        transfer::TransferItem::Status::Pending);
         state.queueState = transfer::QueueState::Idle;
         state.items[0].remotePath = "/remote/dir/file.prg";
-        state.overwriteAll = false;
+        state.autoOverwrite = false;
         state.items[0].confirmed = false;
 
         auto decision =

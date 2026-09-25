@@ -58,7 +58,7 @@ private:
         return entry;
     }
 
-    [[nodiscard]] QString createLocalFile(const QString &relativePath)
+    QString createLocalFile(const QString &relativePath)
     {
         const QString path = tempDir.path() + "/" + relativePath;
         QDir().mkpath(QFileInfo(path).absolutePath());
@@ -90,6 +90,17 @@ private:
         orchestrator->flushEventQueue();
         mockFtp->mockProcessNextOperation();
         orchestrator->flushEventQueue();
+    }
+
+    /// Downloads @p remoteDir into the temp dir, answering its first overwrite prompt
+    /// with "Overwrite All", and runs it to completion.
+    void answerOverwriteAllForFolder(const QString &remoteDir)
+    {
+        orchestrator->enqueueRecursiveDownload(remoteDir, tempDir.path());
+        flushAndProcessNext();  // listing
+        QCOMPARE(orchestrator->state().queueState, QueueState::AwaitingFileConfirm);
+        orchestrator->respondToOverwrite(OverwriteResponse::OverwriteAll);
+        flushAndProcess();
     }
 
 private slots:
@@ -775,6 +786,96 @@ private slots:
         flushAndProcess();
 
         QCOMPARE(mockFtp->mockGetUploadRequests(), QStringList{upload});
+    }
+
+    // =========================================================================
+    // "Overwrite All" applies to the batch it was chosen in, nothing later
+    // =========================================================================
+
+    void testOverwriteAll_InFolderDownload_CoversTheRestOfThatFolder()
+    {
+        orchestrator->setAutoOverwrite(false);
+        mockFtp->mockSetDirectoryListing("/r/ow-all", {remoteFile("a"), remoteFile("b")});
+        createLocalFile("ow-all/a");
+        createLocalFile("ow-all/b");
+        QSignalSpy confirmSpy(orchestrator, &TransferManager::overwriteConfirmationNeeded);
+
+        answerOverwriteAllForFolder("/r/ow-all");
+
+        QCOMPARE(confirmSpy.count(), 1);
+        QCOMPARE(mockFtp->mockGetDownloadRequests(), (QStringList{"/r/ow-all/a", "/r/ow-all/b"}));
+    }
+
+    void testOverwriteAll_InFolderDownload_LaterSingleDownloadStillAsks()
+    {
+        orchestrator->setAutoOverwrite(false);
+        mockFtp->mockSetDirectoryListing("/r/ow-folder", {remoteFile("a")});
+        createLocalFile("ow-folder/a");
+        answerOverwriteAllForFolder("/r/ow-folder");
+        const QString existing = createLocalFile("later.prg");
+        QSignalSpy confirmSpy(orchestrator, &TransferManager::overwriteConfirmationNeeded);
+
+        orchestrator->enqueueDownload("/r/later.prg", existing);
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(confirmSpy.count(), 1);
+        QCOMPARE(orchestrator->state().queueState, QueueState::AwaitingFileConfirm);
+        QVERIFY(!mockFtp->mockGetDownloadRequests().contains("/r/later.prg"));
+    }
+
+    void testOverwriteAll_InFolderDownload_LaterUploadStillChecksTheRemoteFile()
+    {
+        orchestrator->setAutoOverwrite(false);
+        mockFtp->mockSetDirectoryListing("/r/ow-folder-2", {remoteFile("a")});
+        createLocalFile("ow-folder-2/a");
+        answerOverwriteAllForFolder("/r/ow-folder-2");
+        const QString upload = createLocalFile("later-upload.prg");
+
+        orchestrator->enqueueUpload(upload, "/r/later-upload.prg");
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(orchestrator->state().queueState, QueueState::CheckingUploadTarget);
+        QVERIFY(mockFtp->mockGetListRequests().contains("/r"));
+        QVERIFY(mockFtp->mockGetUploadRequests().isEmpty());
+    }
+
+    void testOverwriteAll_InRunningFolderDownload_SingleDownloadQueuedMeanwhileStillAsks()
+    {
+        orchestrator->setAutoOverwrite(false);
+        mockFtp->mockSetDirectoryListing("/r/ow-busy", {remoteFile("a"), remoteFile("b")});
+        createLocalFile("ow-busy/a");
+        createLocalFile("ow-busy/b");
+        orchestrator->enqueueRecursiveDownload("/r/ow-busy", tempDir.path());
+        flushAndProcessNext();  // listing
+        orchestrator->respondToOverwrite(OverwriteResponse::OverwriteAll);
+        orchestrator->flushEventQueue();  // a in flight
+        const QString existing = createLocalFile("meanwhile.prg");
+        QSignalSpy confirmSpy(orchestrator, &TransferManager::overwriteConfirmationNeeded);
+
+        orchestrator->enqueueDownload("/r/meanwhile.prg", existing);
+        flushAndProcess();
+
+        QCOMPARE(confirmSpy.count(), 1);
+        QVERIFY(!mockFtp->mockGetDownloadRequests().contains("/r/meanwhile.prg"));
+    }
+
+    void testOverwriteAll_ThenCancelAll_NextDownloadStillAsks()
+    {
+        orchestrator->setAutoOverwrite(false);
+        const QString first = createLocalFile("first.prg");
+        const QString second = createLocalFile("second.prg");
+        orchestrator->enqueueDownload("/r/first.prg", first);
+        orchestrator->enqueueDownload("/r/second.prg", second);
+        orchestrator->flushEventQueue();
+        orchestrator->respondToOverwrite(OverwriteResponse::OverwriteAll);
+        orchestrator->flushEventQueue();  // first in flight
+        orchestrator->cancelAll();
+        QSignalSpy confirmSpy(orchestrator, &TransferManager::overwriteConfirmationNeeded);
+
+        orchestrator->enqueueDownload("/r/second.prg", second);
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(confirmSpy.count(), 1);
     }
 };
 

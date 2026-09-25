@@ -76,7 +76,7 @@ public:
     void cancelBatch(int batchId);
 
     void respondToOverwrite(OverwriteResponse response);
-    void setAutoOverwrite(bool autoOverwrite) { state_.overwriteAll = autoOverwrite; }
+    void setAutoOverwrite(bool autoOverwrite) { state_.autoOverwrite = autoOverwrite; }
     void respondToFolderExists(FolderExistsResponse response);
     void setAutoMerge(bool autoMerge) { state_.autoMerge = autoMerge; }
 

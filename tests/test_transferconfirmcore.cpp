@@ -41,15 +41,23 @@ private slots:
         QCOMPARE(result.newState.queueState, transfer::QueueState::Idle);
     }
 
-    void testRespondToOverwrite_overwriteAll_setsFlag()
+    void testRespondToOverwrite_overwriteAll_coversTheItemsBatchOnly()
     {
         auto state = makeConfirmState(0);
 
         auto result =
             transfer::respondToOverwrite(state, transfer::OverwriteResponse::OverwriteAll);
 
-        QVERIFY(result.newState.overwriteAll);
+        QCOMPARE(result.newState.overwriteAllBatchId, 1);
+        QVERIFY(result.newState.items[0].confirmed);
         QVERIFY(result.shouldScheduleProcessNext);
+
+        transfer::TransferItem sameBatch;
+        sameBatch.batchId = 1;
+        transfer::TransferItem laterBatch;
+        laterBatch.batchId = 2;
+        QVERIFY(transfer::mayOverwriteWithoutAsking(result.newState, sameBatch));
+        QVERIFY(!transfer::mayOverwriteWithoutAsking(result.newState, laterBatch));
     }
 
     void testRespondToOverwrite_skip_marksSkipped()

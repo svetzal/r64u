@@ -382,6 +382,10 @@ CompleteBatchResult completeBatch(const State &state, int batchId)
     result.newState.currentIndex = -1;
     result.newState.queueState = QueueState::Idle;
 
+    if (result.newState.overwriteAllBatchId == batchId) {
+        result.newState.overwriteAllBatchId = -1;
+    }
+
     // Detect if this is a folder operation batch
     result.isFolderOperation = (result.newState.currentFolderOp.batchId == batchId);
 
@@ -391,10 +395,6 @@ CompleteBatchResult completeBatch(const State &state, int batchId)
         result.hasRemainingActiveBatches =
             std::any_of(result.newState.batches.begin(), result.newState.batches.end(),
                         [](const TransferBatch &b) { return !b.isComplete(); });
-
-        if (!result.hasRemainingActiveBatches) {
-            result.newState.overwriteAll = false;
-        }
     }
 
     return result;
@@ -490,6 +490,7 @@ State cancelAllItems(const State &state)
     result.pendingFolderOps.clear();
     result.currentFolderOp = PendingFolderOp();
     result.replaceExisting = false;
+    result.overwriteAllBatchId = -1;
 
     result.queueState = QueueState::Idle;
 
@@ -543,6 +544,9 @@ CancelBatchResult cancelBatch(const State &state, int batchId)
     }
 
     result.newState = purgeBatch(result.newState, batchId);
+    if (result.newState.overwriteAllBatchId == batchId) {
+        result.newState.overwriteAllBatchId = -1;
+    }
 
     if (result.wasActiveBatch) {
         result.newState = activateNextBatch(result.newState);

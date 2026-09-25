@@ -264,8 +264,11 @@ struct State
     int activeBatchIndex = -1;
 
     // User preferences
-    bool overwriteAll = false;
+    bool autoOverwrite = false;  ///< Never ask before overwriting (standing preference)
     bool autoMerge = false;
+    /// Batch in which the user answered "Overwrite All" (-1 if none). The answer covers
+    /// that batch only, never transfers the user starts later.
+    int overwriteAllBatchId = -1;
     bool replaceExisting = false;
 
     // Folder operations
