@@ -462,8 +462,8 @@ State removeCompleted(const State &state)
 
 namespace {
 
-/// Drops everything the running folder operation still had to do (scan, mkdir, delete).
-void dropFolderOperationWork(State &state)
+/// Drops the scan, directory creation and delete work of the running folder operation.
+void dropFolderOperationSteps(State &state)
 {
     state.pendingScans.clear();
     state.requestedListings.clear();
@@ -474,6 +474,12 @@ void dropFolderOperationWork(State &state)
     state.deletedCount = 0;
     state.recursiveDeleteBase.clear();
     state.pendingUploadAfterDelete = false;
+}
+
+/// Drops everything the running folder operation still had to do, and the operation itself.
+void dropFolderOperationWork(State &state)
+{
+    dropFolderOperationSteps(state);
     state.currentFolderOp = PendingFolderOp();
 }
 
@@ -578,6 +584,42 @@ CancelBatchResult cancelBatch(const State &state, int batchId)
     if (result.wasActiveBatch) {
         next = activateNextBatch(next);
     }
+
+    return result;
+}
+
+FailFolderOperationResult failFolderOperation(const State &state, const QString &errorMessage)
+{
+    FailFolderOperationResult result;
+    result.newState = state;
+
+    const int batchIdx = findBatchIndex(state, state.currentFolderOp.batchId);
+    if (state.currentFolderOp.batchId < 0 || batchIdx < 0) {
+        return result;
+    }
+
+    State &next = result.newState;
+    result.failed = true;
+    result.batchId = state.currentFolderOp.batchId;
+    result.folderName = QFileInfo(state.currentFolderOp.sourcePath).fileName();
+
+    TransferBatch &batch = next.batches[batchIdx];
+    for (int row = 0; row < next.items.size(); ++row) {
+        TransferItem &item = next.items[row];
+        if (item.batchId == result.batchId && (item.status == TransferItem::Status::Pending ||
+                                               item.status == TransferItem::Status::InProgress)) {
+            item.status = TransferItem::Status::Failed;
+            item.errorMessage = errorMessage;
+            batch.failedCount++;
+            result.changedRows.append(row);
+        }
+    }
+    batch.scanned = true;
+    batch.folderConfirmed = true;
+
+    dropFolderOperationSteps(next);
+    next.currentIndex = -1;
+    next.queueState = QueueState::Idle;
 
     return result;
 }

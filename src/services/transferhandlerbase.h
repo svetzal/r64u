@@ -34,6 +34,8 @@ signals:
     void scheduleProcessNextRequested();
     void itemDataChanged(int row);
     void batchProgressRequested(int batchId, bool isComplete);
+    /// The running folder operation cannot go on and should be failed with @p message.
+    void abandonFolderOperationRequested(const QString &message);
 
 protected:
     /**

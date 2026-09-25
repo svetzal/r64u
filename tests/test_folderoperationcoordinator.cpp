@@ -62,6 +62,54 @@ private slots:
         QCOMPARE(spy.at(0).at(0).toString(), QString("/remote/Games"));
     }
 
+    void testEnqueueRecursive_delete_whenFree_startsADeleteOperationWithItsOwnBatch()
+    {
+        QSignalSpy spy(coordinator, &FolderOperationCoordinator::startDeleteRequested);
+
+        coordinator->enqueueRecursive(transfer::OperationType::Delete, "/remote/Games", QString());
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QString("/remote/Games"));
+        QCOMPARE(state_.batches.size(), 1);
+        QCOMPARE(state_.batches.first().operationType, transfer::OperationType::Delete);
+        QCOMPARE(state_.currentFolderOp.batchId, state_.batches.first().batchId);
+        QVERIFY(transfer::isPathBeingTransferred(state_, "/remote/Games",
+                                                 transfer::OperationType::Delete));
+    }
+
+    void testEnqueueRecursive_whileAnotherFolderOperationRuns_waitsItsTurn()
+    {
+        coordinator->enqueueRecursive(transfer::OperationType::Delete, "/remote/A", QString());
+        state_.queueState = transfer::QueueState::Idle;  // e.g. between two of its steps
+        QSignalSpy startSpy(coordinator, &FolderOperationCoordinator::startDeleteRequested);
+        QSignalSpy scheduleSpy(coordinator,
+                               &FolderOperationCoordinator::scheduleProcessNextRequested);
+
+        coordinator->enqueueRecursive(transfer::OperationType::Delete, "/remote/B", QString());
+
+        QCOMPARE(startSpy.count(), 0);
+        QCOMPARE(state_.pendingFolderOps.size(), 1);
+        QCOMPARE(state_.pendingFolderOps.head().sourcePath, QString("/remote/B"));
+        QCOMPARE(scheduleSpy.count(), 1);
+    }
+
+    void testOnFolderOperationComplete_notConnected_keepsQueuedOperations()
+    {
+        coordinator->enqueueRecursive(transfer::OperationType::Delete, "/remote/A", QString());
+        state_.queueState = transfer::QueueState::Scanning;
+        coordinator->enqueueRecursive(transfer::OperationType::Delete, "/remote/B", QString());
+        mockFtp->mockSetConnected(false);
+        QSignalSpy startSpy(coordinator, &FolderOperationCoordinator::startDeleteRequested);
+        QSignalSpy allDoneSpy(coordinator, &FolderOperationCoordinator::allOperationsCompleted);
+
+        coordinator->onFolderOperationComplete();
+
+        QCOMPARE(startSpy.count(), 0);
+        QCOMPARE(allDoneSpy.count(), 0);
+        QCOMPARE(state_.pendingFolderOps.size(), 1);
+        QCOMPARE(state_.currentFolderOp.batchId, -1);
+    }
+
     void testEnqueueRecursive_download_destExists_queuesInPendingFolderOps()
     {
         mockFs->mockSetDirectoryExists("/local/target/Games", true);

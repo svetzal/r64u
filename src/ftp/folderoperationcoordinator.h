@@ -41,7 +41,9 @@ public:
                                                   const QString &, const QString &)>
                                     callback);
 
-    /// Enqueue a new recursive upload or download operation
+    /// Enqueue a new recursive upload, download or delete operation.
+    /// For deletes @p sourcePath is the remote folder and @p destPath is unused.
+    /// The operation starts right away when nothing else runs, otherwise it waits its turn.
     void enqueueRecursive(transfer::OperationType type, const QString &sourcePath,
                           const QString &destPath);
 
@@ -68,7 +70,7 @@ signals:
     /// Request TransferQueue to queue directories and start directory creation
     void startDirectoryCreationRequested(const QString &localDir, const QString &remoteDir);
 
-    /// Request TransferQueue to start a recursive delete
+    /// Request the start of a recursive delete of @p remotePath (a Delete folder operation)
     void startDeleteRequested(const QString &remotePath);
 
     /// Ask the user whether to Merge/Replace/Cancel the listed existing folders
@@ -94,6 +96,8 @@ private slots:
     void onDebounceTimeout();
 
 private:
+    [[nodiscard]] static QString batchDescription(transfer::OperationType type,
+                                                  const QString &folderName);
     void startFolderOperation(const transfer::PendingFolderOp &op);
     void checkFolderConfirmation();
 

@@ -122,11 +122,10 @@ void connectAll(TransferManager &mgr)
                      &FolderOperationCoordinator::startDirectoryCreationRequested, &mgr,
                      &TransferManager::onStartDirectoryCreationRequested);
     QObject::connect(mgr.folderCoordinator_, &FolderOperationCoordinator::startDeleteRequested,
-                     &mgr,
-                     [&mgr](const QString &remotePath) { mgr.enqueueRecursiveDelete(remotePath); });
+                     mgr.deleteHandler_, &TransferDeleteHandler::startRecursiveDelete);
     QObject::connect(mgr.folderCoordinator_,
-                     &FolderOperationCoordinator::pendingUploadAfterDeleteSet, &mgr,
-                     [&mgr](const QString &targetPath) { mgr.enqueueRecursiveDelete(targetPath); });
+                     &FolderOperationCoordinator::pendingUploadAfterDeleteSet, mgr.deleteHandler_,
+                     &TransferDeleteHandler::startRecursiveDelete);
     QObject::connect(mgr.folderCoordinator_, &FolderOperationCoordinator::folderConfirmationNeeded,
                      &mgr, &TransferManager::folderExistsConfirmationNeeded);
     QObject::connect(mgr.folderCoordinator_, &FolderOperationCoordinator::operationStarted, &mgr,
@@ -158,6 +157,8 @@ void connectAll(TransferManager &mgr)
                      [&mgr]() { mgr.scheduleProcessNext(); });
     QObject::connect(mgr.ftpHandler_, &TransferFtpHandler::processNextDeleteRequested, &mgr,
                      [&mgr]() { mgr.deleteHandler_->processNextDelete(); });
+    QObject::connect(mgr.ftpHandler_, &TransferFtpHandler::abandonFolderOperationRequested, &mgr,
+                     &TransferManager::onAbandonFolderOperationRequested);
     QObject::connect(mgr.ftpHandler_, &TransferFtpHandler::completeBatchRequested, &mgr,
                      [&mgr](int batchId) { mgr.completeBatch(batchId); });
     QObject::connect(mgr.ftpHandler_, &TransferFtpHandler::batchProgressRequested, &mgr,
@@ -198,8 +199,10 @@ void connectAll(TransferManager &mgr)
                      &TransferManager::operationFailed);
     QObject::connect(mgr.deleteHandler_, &TransferDeleteHandler::operationCompleted, &mgr,
                      &TransferManager::operationCompleted);
-    QObject::connect(mgr.deleteHandler_, &TransferDeleteHandler::allOperationsCompleted, &mgr,
-                     &TransferManager::allOperationsCompleted);
+    QObject::connect(mgr.deleteHandler_, &TransferDeleteHandler::recursiveDeleteFinished, &mgr,
+                     &TransferManager::onRecursiveDeleteFinished);
+    QObject::connect(mgr.deleteHandler_, &TransferDeleteHandler::abandonFolderOperationRequested,
+                     &mgr, &TransferManager::onAbandonFolderOperationRequested);
     QObject::connect(mgr.deleteHandler_, &TransferDeleteHandler::statusMessage, &mgr,
                      &TransferManager::statusMessage);
     QObject::connect(mgr.deleteHandler_, &TransferDeleteHandler::queueChanged, &mgr,

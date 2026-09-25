@@ -156,6 +156,16 @@ struct CancelBatchResult
     bool wasFolderOperation = false;  ///< True if the batch was the running folder operation
 };
 
+/// @brief Result of failing the running folder operation.
+struct FailFolderOperationResult
+{
+    State newState;
+    bool failed = false;     ///< False if no folder operation was running
+    int batchId = -1;        ///< The folder operation's batch, now complete
+    QString folderName;      ///< Name of the folder the operation was for
+    QList<int> changedRows;  ///< Rows marked Failed
+};
+
 /// @brief Result of marking an item complete.
 struct MarkCompleteResult
 {
@@ -227,6 +237,14 @@ struct PurgeBatchPlan
 /// running folder operation's batch also ends that operation, so queued folder operations
 /// can start. Work belonging to other batches is left alone.
 [[nodiscard]] CancelBatchResult cancelBatch(const State &state, int batchId);
+
+/// @brief Fail the running folder operation when it cannot go on (e.g. the connection is gone).
+///
+/// Its batch's outstanding items are marked Failed with @p errorMessage and the batch is marked
+/// scanned, so it is complete; its remaining scan, directory creation and delete work is dropped
+/// and the queue returns to Idle. The operation stays current until its batch is completed.
+[[nodiscard]] FailFolderOperationResult failFolderOperation(const State &state,
+                                                            const QString &errorMessage);
 
 }  // namespace transfer
 

@@ -102,48 +102,51 @@ private slots:
         QCOMPARE(spy.count(), 1);
     }
 
-    void testEnqueueRecursiveDelete_notConnected_emitsOperationFailed()
+    void testStartRecursiveDelete_notConnected_requestsAbandoningTheFolderOperation()
     {
         mockFtp->mockSetConnected(false);
 
-        QSignalSpy spy(handler, &TransferDeleteHandler::operationFailed);
+        QSignalSpy abandonSpy(handler, &TransferDeleteHandler::abandonFolderOperationRequested);
+        QSignalSpy failedSpy(handler, &TransferDeleteHandler::operationFailed);
 
-        handler->enqueueRecursiveDelete("/remote/Games");
+        handler->startRecursiveDelete("/remote/Games");
 
-        QCOMPARE(spy.count(), 1);
+        QCOMPARE(abandonSpy.count(), 1);
+        QCOMPARE(failedSpy.count(), 0);  // reported once, by whoever fails the operation
+        QVERIFY(mockFtp->mockGetListRequests().isEmpty());
     }
 
-    void testEnqueueRecursiveDelete_connected_transitionsToScanning()
+    void testStartRecursiveDelete_connected_transitionsToScanning()
     {
         QSignalSpy spy(handler, &TransferDeleteHandler::transitionToRequested);
 
-        handler->enqueueRecursiveDelete("/remote/Games");
+        handler->startRecursiveDelete("/remote/Games");
 
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy[0][0].value<transfer::QueueState>(), transfer::QueueState::Scanning);
+        QCOMPARE(mockFtp->mockGetListRequests(), QStringList{"/remote/Games"});
     }
 
-    void testProcessNextDelete_notConnected_transitionsToIdleAndEmitsFailed()
+    void testProcessNextDelete_notConnected_requestsAbandoningTheFolderOperation()
     {
         mockFtp->mockSetConnected(false);
 
-        QSignalSpy failedSpy(handler, &TransferDeleteHandler::operationFailed);
-        QSignalSpy transitionSpy(handler, &TransferDeleteHandler::transitionToRequested);
+        QSignalSpy abandonSpy(handler, &TransferDeleteHandler::abandonFolderOperationRequested);
 
         handler->processNextDelete();
 
-        QCOMPARE(transitionSpy.count(), 1);
-        QCOMPARE(transitionSpy[0][0].value<transfer::QueueState>(), transfer::QueueState::Idle);
-        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(abandonSpy.count(), 1);
     }
 
-    void testProcessNextDelete_emptyDeleteQueue_emitsOperationCompleted()
+    void testProcessNextDelete_emptyDeleteQueue_reportsTheDeleteFinished()
     {
-        QSignalSpy spy(handler, &TransferDeleteHandler::operationCompleted);
+        QSignalSpy completedSpy(handler, &TransferDeleteHandler::operationCompleted);
+        QSignalSpy finishedSpy(handler, &TransferDeleteHandler::recursiveDeleteFinished);
 
         handler->processNextDelete();
 
-        QCOMPARE(spy.count(), 1);
+        QCOMPARE(completedSpy.count(), 1);
+        QCOMPARE(finishedSpy.count(), 1);
     }
 
     void testProcessNextDelete_pendingFileInQueue_callsFtpRemove()

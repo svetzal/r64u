@@ -76,40 +76,29 @@ void TransferDeleteHandler::enqueueDelete(const QString &remotePath, bool isDire
     }
 }
 
-void TransferDeleteHandler::enqueueRecursiveDelete(const QString &remotePath)
+void TransferDeleteHandler::startRecursiveDelete(const QString &remotePath)
 {
     if (!ftpConnected()) {
-        qCWarning(LogTransfer) << "enqueueRecursiveDelete skipped: FTP not connected";
-        emit operationFailed(QFileInfo(remotePath).fileName(), tr("Not connected to device"));
-        return;
-    }
-
-    QString normalizedPath = transfer::normalizePath(remotePath);
-
-    if (transfer::isPathBeingTransferred(state_, normalizedPath, OperationType::Delete)) {
-        qCDebug(LogTransfer) << "TransferDeleteHandler: Ignoring duplicate delete request for"
-                             << normalizedPath;
-        emit statusMessage(
-            tr("'%1' is already being deleted").arg(QFileInfo(normalizedPath).fileName()));
+        qCWarning(LogTransfer) << "startRecursiveDelete: FTP not connected";
+        emit abandonFolderOperationRequested(tr("Not connected to device"));
         return;
     }
 
     state_.deleteQueue.clear();
     state_.deletedCount = 0;
-    state_.recursiveDeleteBase = normalizedPath;
+    state_.recursiveDeleteBase = remotePath;
 
     emit queueChanged();
 
     emit transitionToRequested(QueueState::Scanning);
-    scanCoordinator_->startDeleteScan(normalizedPath);
+    scanCoordinator_->startDeleteScan(remotePath);
 }
 
 void TransferDeleteHandler::processNextDelete()
 {
     if (!ftpConnected()) {
-        qCWarning(LogTransfer) << "processNextDelete: FTP disconnected, resetting to Idle";
-        emit transitionToRequested(QueueState::Idle);
-        emit operationFailed(QString(), tr("Not connected to device"));
+        qCWarning(LogTransfer) << "processNextDelete: FTP disconnected, abandoning the delete";
+        emit abandonFolderOperationRequested(tr("Not connected to device"));
         return;
     }
 
@@ -122,7 +111,7 @@ void TransferDeleteHandler::processNextDelete()
         state_.deleteQueue.clear();
         state_.recursiveDeleteBase.clear();
         emit operationCompleted(tr("Deleted %1 items").arg(decision.completedCount));
-        emit allOperationsCompleted();
+        emit recursiveDeleteFinished();
         return;
 
     case transfer::NextDeleteAction::PendingUploadReady:

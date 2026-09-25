@@ -40,18 +40,35 @@ void FolderOperationCoordinator::setCreateBatchCallback(
     createBatchCallback_ = std::move(callback);
 }
 
+namespace {
+
+QString pastTenseVerb(transfer::OperationType type)
+{
+    switch (type) {
+    case transfer::OperationType::Upload:
+        return FolderOperationCoordinator::tr("uploaded");
+    case transfer::OperationType::Download:
+        return FolderOperationCoordinator::tr("downloaded");
+    case transfer::OperationType::Delete:
+        return FolderOperationCoordinator::tr("deleted");
+    }
+    return {};
+}
+
+}  // namespace
+
 void FolderOperationCoordinator::enqueueRecursive(transfer::OperationType type,
                                                   const QString &sourcePath,
                                                   const QString &destPath)
 {
     const bool isUpload = (type == transfer::OperationType::Upload);
-    const QString verb = isUpload ? tr("uploaded") : tr("downloaded");
+    const bool isDelete = (type == transfer::OperationType::Delete);
 
     if (transfer::isPathBeingTransferred(state_, sourcePath, type)) {
-        qCDebug(LogTransfer) << "FolderOperationCoordinator: Ignoring duplicate"
-                             << (isUpload ? "upload" : "download") << "request for" << sourcePath;
-        emit statusMessage(
-            tr("'%1' is already being %2").arg(QFileInfo(sourcePath).fileName(), verb));
+        qCDebug(LogTransfer) << "FolderOperationCoordinator: Ignoring duplicate request for"
+                             << sourcePath << "type:" << static_cast<int>(type);
+        emit statusMessage(tr("'%1' is already being %2")
+                               .arg(QFileInfo(sourcePath).fileName(), pastTenseVerb(type)));
         return;
     }
 
@@ -65,17 +82,25 @@ void FolderOperationCoordinator::enqueueRecursive(transfer::OperationType type,
     op.operationType = type;
     op.sourcePath = sourcePath;
     op.destPath = destPath;
-    op.targetPath = targetDir;
+    op.targetPath = isDelete ? sourcePath : targetDir;
     // For downloads: query local existence via gateway; uploads never have local destExists
-    op.destExists = isUpload ? false : (localFs_ ? localFs_->directoryExists(targetDir) : false);
+    op.destExists =
+        (isUpload || isDelete) ? false : (localFs_ ? localFs_->directoryExists(targetDir) : false);
 
-    // Skip confirmation when: autoMerge is set, or (download and dest doesn't exist yet)
-    const bool skipConfirmation = state_.autoMerge || (!isUpload && !op.destExists);
+    // Only one folder operation runs at a time; the others wait their turn
+    const bool queueFree = state_.queueState == transfer::QueueState::Idle &&
+                           state_.currentFolderOp.batchId < 0 && state_.pendingFolderOps.isEmpty();
+
+    // Skip confirmation when: autoMerge is set, deleting, or (download and dest doesn't exist)
+    const bool skipConfirmation = state_.autoMerge || isDelete || (!isUpload && !op.destExists);
     if (skipConfirmation) {
-        if (state_.queueState == transfer::QueueState::Idle) {
+        if (queueFree) {
             startFolderOperation(op);
         } else {
             state_.pendingFolderOps.enqueue(op);
+            if (state_.queueState == transfer::QueueState::Idle) {
+                emit scheduleProcessNextRequested();
+            }
         }
         return;
     }
@@ -83,7 +108,7 @@ void FolderOperationCoordinator::enqueueRecursive(transfer::OperationType type,
     // Queue for debounce and folder existence check / confirmation
     state_.pendingFolderOps.enqueue(op);
 
-    if (state_.queueState == transfer::QueueState::Idle) {
+    if (queueFree) {
         state_.queueState = transfer::QueueState::CollectingItems;
         debounceTimer_->start(DebounceMs);
     }
@@ -131,6 +156,12 @@ void FolderOperationCoordinator::onFolderOperationComplete()
 
     // Process next pending folder operation if any
     if (!state_.pendingFolderOps.isEmpty()) {
+        if (!ftpClient_ || !ftpClient_->isConnected()) {
+            // Left queued: the queue resumes them once the connection is back
+            qCDebug(LogTransfer) << "FolderOperationCoordinator: Not connected, keeping"
+                                 << state_.pendingFolderOps.size() << "folder operations queued";
+            return;
+        }
         transfer::PendingFolderOp op = state_.pendingFolderOps.dequeue();
         startFolderOperation(op);
         return;
@@ -187,6 +218,20 @@ void FolderOperationCoordinator::checkFolderConfirmation()
     }
 }
 
+QString FolderOperationCoordinator::batchDescription(transfer::OperationType type,
+                                                     const QString &folderName)
+{
+    switch (type) {
+    case transfer::OperationType::Upload:
+        return tr("Uploading %1").arg(folderName);
+    case transfer::OperationType::Download:
+        return tr("Downloading %1").arg(folderName);
+    case transfer::OperationType::Delete:
+        return tr("Deleting %1").arg(folderName);
+    }
+    return folderName;
+}
+
 void FolderOperationCoordinator::startFolderOperation(const transfer::PendingFolderOp &op)
 {
     state_.currentFolderOp = op;
@@ -198,11 +243,9 @@ void FolderOperationCoordinator::startFolderOperation(const transfer::PendingFol
     // Create batch for this operation
     int batchId = 0;
     if (createBatchCallback_) {
-        batchId = createBatchCallback_(op.operationType,
-                                       op.operationType == transfer::OperationType::Upload
-                                           ? tr("Uploading %1").arg(folderName)
-                                           : tr("Downloading %1").arg(folderName),
-                                       folderName, op.sourcePath);
+        batchId =
+            createBatchCallback_(op.operationType, batchDescription(op.operationType, folderName),
+                                 folderName, op.sourcePath);
     }
     state_.currentFolderOp.batchId = batchId;
 
@@ -216,6 +259,11 @@ void FolderOperationCoordinator::startFolderOperation(const transfer::PendingFol
     }
 
     emit operationStarted(folderName, op.operationType);
+
+    if (op.operationType == transfer::OperationType::Delete) {
+        emit startDeleteRequested(op.sourcePath);
+        return;
+    }
 
     if (op.operationType == transfer::OperationType::Upload) {
         // Handle Replace: delete existing folder first

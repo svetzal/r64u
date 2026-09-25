@@ -95,6 +95,39 @@ void TransferManager::onDeleteScanComplete()
     deleteHandler_->processNextDelete();
 }
 
+void TransferManager::onRecursiveDeleteFinished()
+{
+    TransferBatch *batch = findBatch(state_.currentFolderOp.batchId);
+    if (!batch) {
+        transitionTo(QueueState::Idle);
+        scheduleProcessNext();
+        return;
+    }
+    // Completing the delete's batch hands over to the next folder operation or batch
+    batch->scanned = true;
+    completeBatch(batch->batchId);
+}
+
+void TransferManager::onAbandonFolderOperationRequested(const QString &message)
+{
+    const auto result = transfer::failFolderOperation(state_, message);
+    state_ = result.newState;
+    stopOperationTimeout();
+
+    if (!result.failed) {
+        transitionTo(QueueState::Idle);
+        emit queueChanged();
+        return;
+    }
+
+    for (int row : result.changedRows) {
+        emit itemDataChanged(row);
+    }
+    emit operationFailed(result.folderName, message);
+    emit queueChanged();
+    emitBatchProgressAndComplete(result.batchId, true);
+}
+
 void TransferManager::onStartDownloadScanRequested(const QString &remotePath,
                                                    const QString &localBase,
                                                    const QString &remoteBase, int batchId)
@@ -247,7 +280,16 @@ void TransferManager::enqueueDelete(const QString &remotePath, bool isDirectory)
 
 void TransferManager::enqueueRecursiveDelete(const QString &remotePath)
 {
-    deleteHandler_->enqueueRecursiveDelete(remotePath);
+    auto err =
+        transfer::validateEnqueuePreconditions(ftpClient_ && ftpClient_->isConnected(), true);
+    if (err) {
+        qCWarning(LogTransfer) << "enqueueRecursiveDelete skipped:" << *err;
+        emit operationFailed(QFileInfo(remotePath).fileName(), tr(err->toUtf8().constData()));
+        return;
+    }
+
+    folderCoordinator_->enqueueRecursive(OperationType::Delete, transfer::normalizePath(remotePath),
+                                         QString());
 }
 
 // ============================================================================

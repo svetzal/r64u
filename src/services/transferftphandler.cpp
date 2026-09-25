@@ -172,6 +172,12 @@ void TransferFtpHandler::onFtpOperationFailed(IFtpClient::Operation operation,
         scanCoordinator_->onDownloadListingFailed(remotePath, message);
         return;
     }
+    if (operation == IFtpClient::Operation::List &&
+        state_.requestedDeleteListings.contains(remotePath)) {
+        // Deleting part of a tree that cannot be fully listed is not safe: delete nothing
+        emit abandonFolderOperationRequested(message);
+        return;
+    }
     if (recordQueueRequestFailure(message)) {
         emit scheduleProcessNextRequested();
     }

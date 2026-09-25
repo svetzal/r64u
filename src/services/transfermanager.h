@@ -159,6 +159,8 @@ private slots:
     void onScanDirectoryFailed(const QString &remotePath, const QString &localPath, int batchId,
                                const QString &message);
     void onDeleteScanComplete();
+    void onRecursiveDeleteFinished();
+    void onAbandonFolderOperationRequested(const QString &message);
     void onStartDownloadScanRequested(const QString &remotePath, const QString &localBase,
                                       const QString &remoteBase, int batchId);
     void onStartDirectoryCreationRequested(const QString &localDir, const QString &remoteDir);

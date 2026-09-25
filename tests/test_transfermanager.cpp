@@ -1061,6 +1061,126 @@ private slots:
         QVERIFY(QFile::exists(tempDir.path() + "/c2/b"));
     }
 
+    // =========================================================================
+    // Recursive deletes are queued like any other folder operation
+    // =========================================================================
+
+    void testMixedDelete_FileAndFolder_BothAreDeleted()
+    {
+        mockFtp->mockSetDirectoryListing("/r/dir", {remoteFile("z")});
+        QSignalSpy allDoneSpy(orchestrator, &TransferManager::allOperationsCompleted);
+
+        orchestrator->enqueueDelete("/r/f.prg", false);
+        orchestrator->enqueueRecursiveDelete("/r/dir");
+        flushAndProcess();
+
+        const QStringList deleted = mockFtp->mockGetDeleteRequests();
+        QVERIFY(deleted.contains("/r/f.prg"));
+        QVERIFY(deleted.contains("/r/dir/z"));
+        QVERIFY(deleted.contains("/r/dir"));
+        QCOMPARE(allDoneSpy.count(), 1);
+        QCOMPARE(orchestrator->pendingCount(), 0);
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+        QCOMPARE(orchestrator->state().queueState, QueueState::Idle);
+    }
+
+    void testRecursiveDelete_DuringTransfer_WaitsForTheQueue()
+    {
+        enqueueDownloads({"a", "b"});
+        mockFtp->mockSetDirectoryListing("/r/dir", {remoteFile("z")});
+        orchestrator->flushEventQueue();  // a in flight
+        QList<int> pendingWhenAllDone;
+        connect(orchestrator, &TransferManager::allOperationsCompleted, this,
+                [&]() { pendingWhenAllDone << orchestrator->pendingCount(); });
+
+        orchestrator->enqueueRecursiveDelete("/r/dir");
+        QCOMPARE(orchestrator->state().queueState, QueueState::Transferring);
+        flushAndProcess();
+
+        QCOMPARE(itemStatus(0), Status::Completed);
+        QCOMPARE(itemStatus(1), Status::Completed);
+        QVERIFY(mockFtp->mockGetDeleteRequests().contains("/r/dir"));
+        QCOMPARE(pendingWhenAllDone, QList<int>{0});
+    }
+
+    void testSecondRecursiveDelete_WhileFirstRuns_BothDeleteEverything()
+    {
+        mockFtp->mockSetDirectoryListing("/r/A",
+                                         {remoteFile("a"), remoteFile("b"), remoteFile("c")});
+        mockFtp->mockSetDirectoryListing("/r/B", {remoteFile("x")});
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+        orchestrator->enqueueRecursiveDelete("/r/A");
+        flushAndProcessNext();  // listing of A
+        flushAndProcessNext();  // a removed
+
+        orchestrator->enqueueRecursiveDelete("/r/B");
+        flushAndProcess();
+
+        const QStringList deleted = mockFtp->mockGetDeleteRequests();
+        for (const QString &path : {"/r/A/a", "/r/A/b", "/r/A/c", "/r/A", "/r/B/x", "/r/B"}) {
+            QVERIFY2(deleted.contains(path), qPrintable(path));
+        }
+        QCOMPARE(failedSpy.count(), 0);
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+        QCOMPARE(orchestrator->state().queueState, QueueState::Idle);
+    }
+
+    void testRecursiveDelete_SameFolderAgainWhileRunning_IsIgnored()
+    {
+        mockFtp->mockSetDirectoryListing("/r/twice", {remoteFile("a")});
+        orchestrator->enqueueRecursiveDelete("/r/twice");
+
+        orchestrator->enqueueRecursiveDelete("/r/twice/");
+        flushAndProcess();
+
+        QCOMPARE(mockFtp->mockGetListRequests(), QStringList{"/r/twice"});
+        QCOMPARE(mockFtp->mockGetDeleteRequests().count("/r/twice"), 1);
+    }
+
+    void testRecursiveDelete_ListingFails_ReportsOnceDeletesNothingAndMovesOn()
+    {
+        mockFtp->mockSetDirectoryListing("/r/del-ok", {remoteFile("k")});
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+        QSignalSpy allDoneSpy(orchestrator, &TransferManager::allOperationsCompleted);
+        orchestrator->enqueueRecursiveDelete("/r/del-bad");
+        orchestrator->enqueueRecursiveDelete("/r/del-ok");
+
+        mockFtp->mockSetNextOperationFails("550 Permission denied");
+        flushAndProcessNext();
+        flushAndProcess();
+
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(failedSpy.first().at(0).toString(), QString("del-bad"));
+        QVERIFY(!mockFtp->mockGetDeleteRequests().contains("/r/del-bad"));
+        QVERIFY(mockFtp->mockGetDeleteRequests().contains("/r/del-ok"));
+        QCOMPARE(allDoneSpy.count(), 1);
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+    }
+
+    void testFolderUploadReplace_DeletesTheRemoteFolderThenUploads()
+    {
+        orchestrator->setAutoMerge(false);
+        const QString file = createLocalFile("replace-up/new.prg");
+        mockFtp->mockSetDirectoryListing("/r", {remoteDir("replace-up")});
+        mockFtp->mockSetDirectoryListing("/r/replace-up", {remoteFile("old.prg")});
+        QSignalSpy folderConfirmSpy(orchestrator, &TransferManager::folderExistsConfirmationNeeded);
+        QSignalSpy allDoneSpy(orchestrator, &TransferManager::allOperationsCompleted);
+        orchestrator->enqueueRecursiveUpload(tempDir.path() + "/replace-up", "/r");
+        QTest::qWait(100);      // folder-exists debounce
+        flushAndProcessNext();  // listing of /r
+        QCOMPARE(folderConfirmSpy.count(), 1);
+
+        orchestrator->respondToFolderExists(FolderExistsResponse::Replace);
+        flushAndProcess();
+
+        const QStringList deleted = mockFtp->mockGetDeleteRequests();
+        QVERIFY(deleted.contains("/r/replace-up/old.prg"));
+        QVERIFY(deleted.contains("/r/replace-up"));
+        QCOMPARE(mockFtp->mockGetUploadRequests(), QStringList{file});
+        QCOMPARE(allDoneSpy.count(), 1);
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+    }
+
     void testOverwriteAll_ThenCancelAll_NextDownloadStillAsks()
     {
         orchestrator->setAutoOverwrite(false);

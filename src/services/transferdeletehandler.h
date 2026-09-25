@@ -17,7 +17,7 @@ using transfer::QueueState;
 /**
  * @brief Handles enqueue and dispatch of delete operations.
  *
- * Encapsulates enqueueDelete(), enqueueRecursiveDelete(), and processNextDelete()
+ * Encapsulates enqueueDelete(), startRecursiveDelete(), and processNextDelete()
  * that were previously part of TransferManager. Operates on the shared
  * transfer::State by reference. Emits Qt signals for model notifications
  * (rowsAboutToBeInserted / rowsInserted) and orchestration callbacks
@@ -42,12 +42,15 @@ public:
     void setCreateBatchCallback(CreateBatchFn fn);
 
     void enqueueDelete(const QString &remotePath, bool isDirectory);
-    void enqueueRecursiveDelete(const QString &remotePath);
+    /// Scans @p remotePath and deletes its whole tree. Runs as a step of the current
+    /// folder operation (a recursive delete, or the Replace step of a folder upload).
+    void startRecursiveDelete(const QString &remotePath);
     void processNextDelete();
 
 signals:
     void operationCompleted(const QString &message);
-    void allOperationsCompleted();
+    /// Every entry of the recursive delete has been processed (removed or reported).
+    void recursiveDeleteFinished();
     void statusMessage(const QString &message, int timeout = 0);
     void batchStarted(int batchId);
     void startDirectoryCreationAfterDeleteRequested();
