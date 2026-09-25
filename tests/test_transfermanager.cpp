@@ -700,6 +700,22 @@ private slots:
 
         QCOMPARE(allDoneSpy.count(), 0);
     }
+
+    void testBatchProgress_CountsFailedItemsAsProcessed()
+    {
+        enqueueDownloads({"p1", "p2", "p3"});
+        QSignalSpy progressSpy(orchestrator, &TransferManager::batchProgressUpdate);
+        orchestrator->flushEventQueue();
+        mockFtp->mockSetNextOperationFails("550 No such file");
+
+        flushAndProcess();
+
+        QList<int> processed;
+        for (const auto &args : progressSpy) {
+            processed << args.at(1).toInt();
+        }
+        QCOMPARE(processed, (QList<int>{1, 2, 3}));
+    }
 };
 
 QTEST_MAIN(TestTransferManager)

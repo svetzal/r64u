@@ -149,13 +149,11 @@ bool BatchManager::handleSkipBatchCompletion(int batchId)
     return true;
 }
 
-void BatchManager::emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
-                                                bool includeFailed)
+void BatchManager::emitBatchProgressAndComplete(int batchId, bool batchIsComplete)
 {
     if (TransferBatch *batch = findBatch(batchId)) {
-        int completed =
-            includeFailed ? batch->completedCount + batch->failedCount : batch->completedCount;
-        emit batchProgressUpdate(batchId, completed, batch->totalCount());
+        const int processed = batch->completedCount + batch->failedCount;
+        emit batchProgressUpdate(batchId, processed, batch->totalCount());
     }
     if (batchIsComplete) {
         completeBatch(batchId);

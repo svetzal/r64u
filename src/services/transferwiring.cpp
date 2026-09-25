@@ -161,8 +161,8 @@ void connectAll(TransferManager &mgr)
     QObject::connect(mgr.ftpHandler_, &TransferFtpHandler::completeBatchRequested, &mgr,
                      [&mgr](int batchId) { mgr.completeBatch(batchId); });
     QObject::connect(mgr.ftpHandler_, &TransferFtpHandler::batchProgressRequested, &mgr,
-                     [&mgr](int batchId, bool isComplete, bool includeFailed) {
-                         mgr.emitBatchProgressAndComplete(batchId, isComplete, includeFailed);
+                     [&mgr](int batchId, bool isComplete) {
+                         mgr.emitBatchProgressAndComplete(batchId, isComplete);
                      });
 
     // --- TransferDispatchHandler ---

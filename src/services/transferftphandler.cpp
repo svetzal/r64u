@@ -201,7 +201,7 @@ bool TransferFtpHandler::recordQueueRequestFailure(const QString &message)
         emit operationFailed(result.transferFileName, message);
 
         if (result.failedBatchId >= 0) {
-            emit batchProgressRequested(result.failedBatchId, result.batchIsComplete, true);
+            emit batchProgressRequested(result.failedBatchId, result.batchIsComplete);
             if (result.batchIsComplete) {
                 return false;  // completing the batch schedules whatever runs next
             }

@@ -33,7 +33,7 @@ signals:
     void queueChanged();
     void scheduleProcessNextRequested();
     void itemDataChanged(int row);
-    void batchProgressRequested(int batchId, bool isComplete, bool includeFailed);
+    void batchProgressRequested(int batchId, bool isComplete);
 
 protected:
     /**

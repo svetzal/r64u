@@ -38,8 +38,9 @@ public:
     void purgeBatch(int batchId);
 
     // Batch progress
-    void emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
-                                      bool includeFailed = false);
+    /// Emits batchProgressUpdate with the number of processed (completed or failed)
+    /// items, then completes the batch if @p batchIsComplete.
+    void emitBatchProgressAndComplete(int batchId, bool batchIsComplete);
 
     /// Check whether the batch for a skipped item is now complete and, if so,
     /// emit progress and complete it. Returns true when the batch was complete

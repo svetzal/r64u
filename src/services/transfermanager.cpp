@@ -279,10 +279,9 @@ void TransferManager::purgeBatch(int batchId)
     batchManager_->purgeBatch(batchId);
 }
 
-void TransferManager::emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
-                                                   bool includeFailed)
+void TransferManager::emitBatchProgressAndComplete(int batchId, bool batchIsComplete)
 {
-    batchManager_->emitBatchProgressAndComplete(batchId, batchIsComplete, includeFailed);
+    batchManager_->emitBatchProgressAndComplete(batchId, batchIsComplete);
 }
 
 void TransferManager::markCurrentComplete(TransferItem::Status status)
@@ -467,7 +466,7 @@ void TransferManager::onOperationTimeout()
         emit operationFailed(fileName, errorMessage);
 
         if (result.batchId >= 0) {
-            emitBatchProgressAndComplete(result.batchId, result.batchIsComplete, true);
+            emitBatchProgressAndComplete(result.batchId, result.batchIsComplete);
             if (result.batchIsComplete) {
                 return;  // completeBatch() schedules whatever runs next
             }

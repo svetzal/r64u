@@ -43,7 +43,7 @@ void TransferHandlerBase::markCurrentComplete(transfer::TransferItem::Status sta
     emit itemDataChanged(completedIndex);
 
     if (result.batchId >= 0) {
-        emit batchProgressRequested(result.batchId, result.batchIsComplete, false);
+        emit batchProgressRequested(result.batchId, result.batchIsComplete);
     }
 }
 

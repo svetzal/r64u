@@ -343,7 +343,7 @@ signals:
     /**
      * @brief Emitted when batch progress updates.
      * @param batchId The batch identifier.
-     * @param completed Number of completed items.
+     * @param completed Number of processed items (completed or failed).
      * @param total Total items in batch.
      */
     void batchProgressUpdate(int batchId, int completed, int total);

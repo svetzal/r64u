@@ -180,8 +180,7 @@ private:
     void completeBatch(int batchId);
     void purgeBatch(int batchId);
     [[nodiscard]] TransferBatch *activeBatch();
-    void emitBatchProgressAndComplete(int batchId, bool batchIsComplete,
-                                      bool includeFailed = false);
+    void emitBatchProgressAndComplete(int batchId, bool batchIsComplete);
 
     void markCurrentComplete(TransferItem::Status status);
 
