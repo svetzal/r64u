@@ -54,6 +54,8 @@ private slots:
     void onUploadRequested(const QString &localPath, bool isDirectory);
     void onDownloadRequested(const QString &remotePath, bool isDirectory);
     void onDeleteRequested(const QString &remotePath, bool isDirectory);
+    /// Ends the auto-refresh suppression held while the queue worked, and refreshes once.
+    void resumeRemoteRefresh();
 
 private:
     void setupUi();

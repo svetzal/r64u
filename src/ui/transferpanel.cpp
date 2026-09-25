@@ -102,20 +102,32 @@ void TransferPanel::setupConnections()
         connect(transferService_, &TransferService::statusMessage, this,
                 &TransferPanel::statusMessage);
 
-        // Suppress auto-refresh during queue operations to prevent constant reloading
+        // Suppress auto-refresh during queue operations to prevent constant reloading.
+        // One guard is held for the whole run of operations; replacing it would let the
+        // old guard's destructor switch suppression back off.
         connect(transferService_, &TransferService::operationStarted, this, [this]() {
-            if (remoteBrowser_) {
+            if (remoteBrowser_ && !refreshSuppressor_) {
                 refreshSuppressor_ =
                     std::make_unique<RemoteFileBrowserWidget::AutoRefreshSuppressor>(
                         remoteBrowser_);
             }
         });
-        connect(transferService_, &TransferService::allOperationsCompleted, this, [this]() {
-            refreshSuppressor_.reset();
-            if (remoteBrowser_) {
-                remoteBrowser_->refresh();
-            }
-        });
+        connect(transferService_, &TransferService::allOperationsCompleted, this,
+                &TransferPanel::resumeRemoteRefresh);
+        // Cancelled operations may have changed the device too (e.g. partial uploads)
+        connect(transferService_, &TransferService::operationsCancelled, this,
+                &TransferPanel::resumeRemoteRefresh);
+    }
+}
+
+void TransferPanel::resumeRemoteRefresh()
+{
+    if (!refreshSuppressor_) {
+        return;
+    }
+    refreshSuppressor_.reset();
+    if (remoteBrowser_) {
+        remoteBrowser_->refresh();
     }
 }
 

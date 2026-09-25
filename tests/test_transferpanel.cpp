@@ -21,12 +21,15 @@
 #include "services/errorhandler.h"
 #include "services/remotefileoperationsservice.h"
 #include "services/transferservice.h"
+#include "ui/refreshpolicymanager.h"
 #include "ui/transferpanel.h"
 
 #include <QSettings>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QtTest>
+
+#include <memory>
 
 class TestTransferPanel : public QObject
 {
@@ -275,6 +278,48 @@ private slots:
 
         QCOMPARE(spy.count(), 1);
         QVERIFY(spy.at(0).at(0).toString().contains("not connected"));
+    }
+
+    // =========================================================================
+    // Remote auto-refresh is suppressed while the transfer queue works
+    // =========================================================================
+
+    void testRemoteRefresh_StaysSuppressedAcrossSeveralOperations()
+    {
+        std::unique_ptr<TransferPanel> panel(makePanel());
+
+        emit transferService_->operationStarted("a.prg", OperationType::Upload);
+        emit transferService_->operationStarted("b.prg", OperationType::Upload);
+
+        QVERIFY(remoteRefreshSuppressed(*panel));
+    }
+
+    void testRemoteRefresh_ResumesWhenAllOperationsComplete()
+    {
+        std::unique_ptr<TransferPanel> panel(makePanel());
+        emit transferService_->operationStarted("a.prg", OperationType::Upload);
+        emit transferService_->operationStarted("b.prg", OperationType::Upload);
+
+        emit transferService_->allOperationsCompleted();
+
+        QVERIFY(!remoteRefreshSuppressed(*panel));
+    }
+
+    void testRemoteRefresh_ResumesWhenOperationsAreCancelled()
+    {
+        std::unique_ptr<TransferPanel> panel(makePanel());
+        emit transferService_->operationStarted("a.prg", OperationType::Upload);
+
+        emit transferService_->operationsCancelled();
+
+        QVERIFY(!remoteRefreshSuppressed(*panel));
+    }
+
+private:
+    [[nodiscard]] static bool remoteRefreshSuppressed(const TransferPanel &panel)
+    {
+        const auto *policy = panel.findChild<RefreshPolicyManager *>();
+        return policy != nullptr && policy->isSuppressed();
     }
 };
 
