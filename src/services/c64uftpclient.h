@@ -46,10 +46,11 @@ public:
     /// Longest wait for the replies to ABOR before dispatching the next command.
     /// Servers differ in how many replies they send, so this bounds the wait.
     static constexpr int AbortReplyTimeoutMs = 2000;
-    static constexpr qint64 UploadChunkSize = 64 * 1024;  ///< Bytes read from disk per upload write
-    static constexpr int FtpReplyCodeLength = 3;          ///< Length of FTP reply code
-    static constexpr int FtpReplyTextOffset = 4;          ///< Offset to reply text after code
-    static constexpr int CrLfLength = 2;                  ///< Length of CRLF line ending
+    static constexpr qint64 UploadChunkSize =
+        qint64{64} * 1024;                             ///< Bytes read from disk per upload write
+    static constexpr int FtpReplyCodeLength = 3;       ///< Length of FTP reply code
+    static constexpr int FtpReplyTextOffset = 4;       ///< Offset to reply text after code
+    static constexpr int CrLfLength = 2;               ///< Length of CRLF line ending
     static constexpr int PassivePortMultiplier = 256;  ///< Multiplier for passive port calculation
     /// @}
 

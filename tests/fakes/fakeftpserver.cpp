@@ -3,6 +3,8 @@
 #include <QHostAddress>
 #include <QTimer>
 
+#include <algorithm>
+
 namespace {
 constexpr int PassivePortMultiplier = 256;
 constexpr int ReplyThenCloseDelayMs = 50;
@@ -113,13 +115,14 @@ void FakeFtpServer::reply(const QByteArray &text)
 
 bool FakeFtpServer::replyFromOverride(const QString &line)
 {
-    for (const auto &[prefix, text] : overrides_) {
-        if (line.startsWith(prefix)) {
-            reply(text.toUtf8());
-            return true;
-        }
+    const auto match =
+        std::find_if(overrides_.cbegin(), overrides_.cend(),
+                     [&line](const auto &entry) { return line.startsWith(entry.first); });
+    if (match == overrides_.cend()) {
+        return false;
     }
-    return false;
+    reply(match->second.toUtf8());
+    return true;
 }
 
 void FakeFtpServer::handleCommand(const QString &line)

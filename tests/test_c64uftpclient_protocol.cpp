@@ -63,7 +63,7 @@ QStringList filesIn(const QTemporaryDir &dir)
     return QDir(dir.path()).entryList(QDir::Files, QDir::Name);
 }
 
-const QByteArray OneFileListing = "-rw-r--r-- 1 user group 1234 Jan 01 00:00 game.prg\r\n";
+constexpr char OneFileListing[] = "-rw-r--r-- 1 user group 1234 Jan 01 00:00 game.prg\r\n";
 
 }  // namespace
 
@@ -809,8 +809,8 @@ private slots:
 
     void testDownloadToMemory_SecondQueuedMidTransfer_EachGetsFullContent()
     {
-        const QByteArray first(2 * 1024 * 1024, 'a');
-        const QByteArray second(1024 * 1024, 'b');
+        const QByteArray first(qsizetype{2} * 1024 * 1024, 'a');
+        const QByteArray second(qsizetype{1024} * 1024, 'b');
         FakeFtpServer server;
         server.setCompletionOrder(FakeFtpServer::CompletionOrder::ReplyThenCloseData);
         server.setFile("/SD/first.d64", first);
