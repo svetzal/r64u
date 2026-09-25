@@ -777,6 +777,26 @@ private slots:
         QCOMPARE(server.commandCount("RNTO"), 0);
         QCOMPARE(renamedSpy.count(), 0);
     }
+
+    void testDownload_MissingFileWithDataLeftOpen_NextDownloadSucceeds()
+    {
+        FakeFtpServer server;
+        server.setFile("/SD/game.prg", "GAME");
+        server.setKeepDataOpenOnError(true);
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy finishedSpy(ftp, &C64UFtpClient::downloadFinished);
+
+        ftp->download("/SD/missing.prg", dir.filePath("missing.prg"));
+        QTRY_COMPARE_WITH_TIMEOUT(errorSpy.count(), 1, SignalTimeoutMs);
+        ftp->download("/SD/game.prg", dir.filePath("game.prg"));
+
+        QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QVERIFY2(errorSpy.count() == 1, qPrintable(describeErrors(errorSpy)));
+        QCOMPARE(readLocalFile(dir.filePath("game.prg")), QByteArray("GAME"));
+    }
 };
 
 QTEST_MAIN(TestC64UFtpClientProtocol)

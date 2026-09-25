@@ -203,6 +203,7 @@ private:
     void resetTransferState();
     void performDisconnectCleanup();
     void resetCommandTracking();
+    void abortDataConnection();
     void discardDataTransfer();
     void discardReply(int code);
     [[nodiscard]] bool ensureLoggedIn(const QString &operation);

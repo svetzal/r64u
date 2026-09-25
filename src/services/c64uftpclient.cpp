@@ -200,7 +200,10 @@ void C64UFtpClient::applyAction(const FtpResponseAction &action)
     if (!action.errorMessage.isEmpty()) {
         // An error ends the operation: its remaining commands (e.g. the RETR
         // after a failed PASV) would only fail again and report a second error.
+        // Servers may leave the passive connection open after refusing the
+        // transfer; close it so the next PASV can connect.
         dropRestOfCurrentOperation();
+        abortDataConnection();
     }
     emitResponseSignals(action);
     executeResponseAction(action);
@@ -312,6 +315,8 @@ void C64UFtpClient::connectDataSocketForAction(const FtpResponseAction &action)
     QString actualHost = controlSocket_->peerAddress().toString();
     qCDebug(LogFtp) << "FTP: PASV response host:" << action.dataHost << "port:" << action.dataPort;
     qCDebug(LogFtp) << "FTP: Using actual host:" << actualHost << "port:" << action.dataPort;
+    // connectToHost() is ignored while a previous connection lingers
+    abortDataConnection();
     dataSocket_->connectToHost(actualHost, action.dataPort);
 }
 
@@ -515,13 +520,18 @@ void C64UFtpClient::onAbortReplyTimeout()
     processNextCommand();
 }
 
-void C64UFtpClient::discardDataTransfer()
+void C64UFtpClient::abortDataConnection()
 {
     if (dataSocket_->state() != QAbstractSocket::UnconnectedState) {
         // Block signals so the teardown is not mistaken for a completed transfer
         const QSignalBlocker blocker(dataSocket_);
         dataSocket_->abort();
     }
+}
+
+void C64UFtpClient::discardDataTransfer()
+{
+    abortDataConnection();
     resetTransferState();
 }
 
