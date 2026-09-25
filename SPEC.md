@@ -61,7 +61,7 @@
 | Class | Responsibility | Status |
 |-------|----------------|--------|
 | `MainWindow` | Application shell, mode switching, menu/toolbar | ✅ |
-| `DeviceConnection` | Manages REST API and FTP connections to a C64U | ✅ |
+| `DeviceConnectionManager` | Manages REST API and FTP connections to a C64U | ✅ |
 | `C64URestClient` | HTTP client for Ultimate REST API v1 | ✅ |
 | `C64UFtpClient` | FTP client for file browsing and transfers | ✅ |
 | `RemoteFileModel` | QAbstractItemModel for C64U filesystem tree | ✅ |
@@ -71,13 +71,13 @@
 | `FileDetailsPanel` | File info and text/HTML preview panel | ✅ |
 | `TransferQueueWidget` | UI widget for transfer queue display | ✅ |
 | `VideoDisplayWidget` | VIC-II video frame display widget | ✅ |
-| `VideoStreamReceiver` | UDP receiver for video stream packets | ✅ |
-| `AudioStreamReceiver` | UDP receiver for audio stream packets | ✅ |
+| `VideoStreamReceiverService` | UDP receiver for video stream packets | ✅ |
+| `AudioStreamReceiverService` | UDP receiver for audio stream packets | ✅ |
 | `AudioPlaybackService` | Audio playback via Qt Multimedia | ✅ |
-| `StreamControlClient` | TCP client for video/audio stream control | ✅ |
+| `StreamControlService` | TCP client for video/audio stream control | ✅ |
 | `KeyboardInputService` | PETSCII keyboard input via REST API | ✅ |
-| `ConfigFileLoader` | Load and apply .cfg files to device | ✅ |
-| `CredentialStore` | Secure password storage (macOS Keychain) | ✅ |
+| `ConfigFileLoaderService` | Load and apply .cfg files to device | ✅ |
+| `SystemCredentialStore` | Secure password storage (macOS Keychain) via `ICredentialStore` | ✅ |
 
 ## Application Modes
 
