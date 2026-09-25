@@ -247,14 +247,22 @@ jobs:
           DMG_FILE=$(ls build/*.dmg | head -1)
           echo "Notarizing DMG: $DMG_FILE"
 
-          # Submit and capture output to get submission ID
+          # Submit and capture output to get submission ID. The step shell runs
+          # with -e, so without "|| ..." a rejected submission (bad credentials,
+          # missing Apple agreement) would exit here before printing why.
+          SUBMIT_EXIT=0
           SUBMIT_OUTPUT=$(xcrun notarytool submit "$DMG_FILE" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait 2>&1)
+            --wait 2>&1) || SUBMIT_EXIT=$?
 
           echo "$SUBMIT_OUTPUT"
+
+          if [ "$SUBMIT_EXIT" -ne 0 ] && ! echo "$SUBMIT_OUTPUT" | grep -q "id:"; then
+            echo "::error::notarytool submit failed (exit $SUBMIT_EXIT) before creating a submission; see output above"
+            exit 1
+          fi
 
           # Extract submission ID and check status
           # Use sed to reliably extract values after the colon, handling any leading whitespace
