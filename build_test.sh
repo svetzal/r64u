@@ -1,10 +1,13 @@
 #!/bin/bash
 #
 # Build and test script for r64u
-# Usage: ./build_test.sh [--quick]
+# Usage: ./build_test.sh [--quick] [--jobs N]
 #
 # Options:
 #   --quick    Skip cmake configure step (faster for incremental builds)
+#   --jobs N   Parallel build jobs (default: $BUILD_JOBS or 4). The generator is
+#              Unix Makefiles, where an unbounded --parallel means make -j with
+#              no limit and will exhaust RAM on a full rebuild.
 #
 
 set -e
@@ -21,12 +24,18 @@ NC='\033[0m' # No Color
 
 # Parse arguments
 QUICK_BUILD=false
-for arg in "$@"; do
-    case $arg in
+BUILD_JOBS="${BUILD_JOBS:-4}"
+while [ $# -gt 0 ]; do
+    case $1 in
         --quick)
             QUICK_BUILD=true
             ;;
+        --jobs)
+            shift
+            BUILD_JOBS="$1"
+            ;;
     esac
+    shift
 done
 
 echo "========================================"
@@ -43,7 +52,7 @@ fi
 
 # Build step
 echo -e "${YELLOW}Building...${NC}"
-cmake --build "$BUILD_DIR" --parallel
+cmake --build "$BUILD_DIR" --parallel "$BUILD_JOBS"
 echo ""
 
 # Test step
@@ -57,14 +66,15 @@ TOTAL_FAILED=0
 TOTAL_SKIPPED=0
 FAILED_TESTS=""
 
-for test_exe in "$BUILD_DIR"/tests/test_*; do
-    # Skip non-executables and directories
-    [[ -x "$test_exe" && ! -d "$test_exe" ]] || continue
+# Run only the executables registered with CTest. Globbing build/tests would
+# also pick up stale binaries left behind when a test target is renamed.
+TEST_EXES=$(ctest --test-dir "$BUILD_DIR" --show-only=json-v1 |
+    python3 -c 'import json, sys
+for t in json.load(sys.stdin)["tests"]:
+    print(t["command"][0])' | sort -u)
 
+for test_exe in $TEST_EXES; do
     test_name=$(basename "$test_exe")
-
-    # Skip autogen directories
-    [[ "$test_name" == *_autogen ]] && continue
 
     echo -n "  $test_name: "
 
@@ -72,13 +82,14 @@ for test_exe in "$BUILD_DIR"/tests/test_*; do
     output=$("$test_exe" 2>&1) || true
 
     # Parse results - format: "Totals: X passed, Y failed, Z skipped, W blacklisted, Nms"
+    # Executables that run several test classes print one Totals line per class,
+    # so sum across all of them.
     totals=$(echo "$output" | grep "^Totals:" || echo "")
 
     if [ -n "$totals" ]; then
-        # Extract numbers using awk
-        passed=$(echo "$totals" | awk '{print $2}')
-        failed=$(echo "$totals" | awk '{print $4}')
-        skipped=$(echo "$totals" | awk '{print $6}')
+        passed=$(echo "$totals" | awk '{s += $2} END {print s}')
+        failed=$(echo "$totals" | awk '{s += $4} END {print s}')
+        skipped=$(echo "$totals" | awk '{s += $6} END {print s}')
 
         # Default to 0 if empty
         passed=${passed:-0}
