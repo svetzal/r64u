@@ -37,22 +37,24 @@ QList<DeleteItem> sortDeleteQueue(const QList<DeleteItem> &queue)
     return result;
 }
 
+QString localDirectoryForScan(const PendingScan &scan)
+{
+    if (scan.remotePath == scan.remoteBasePath) {
+        return scan.localBasePath;
+    }
+    QString relativePath = scan.remotePath.mid(scan.remoteBasePath.length());
+    if (relativePath.startsWith('/'))
+        relativePath = relativePath.mid(1);
+    return scan.localBasePath + '/' + relativePath;
+}
+
 DirectoryListingResult processDirectoryListingForDownload(const PendingScan &currentScan,
                                                           const QList<FtpEntry> &entries)
 {
     DirectoryListingResult result;
     result.directoriesScanned = 1;
 
-    // Calculate local directory for this path
-    QString localTargetDir;
-    if (currentScan.remotePath == currentScan.remoteBasePath) {
-        localTargetDir = currentScan.localBasePath;
-    } else {
-        QString relativePath = currentScan.remotePath.mid(currentScan.remoteBasePath.length());
-        if (relativePath.startsWith('/'))
-            relativePath = relativePath.mid(1);
-        localTargetDir = currentScan.localBasePath + '/' + relativePath;
-    }
+    const QString localTargetDir = localDirectoryForScan(currentScan);
 
     for (const FtpEntry &entry : entries) {
         QString entryRemotePath = currentScan.remotePath;

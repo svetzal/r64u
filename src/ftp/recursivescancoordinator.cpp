@@ -12,6 +12,8 @@
 
 #include <QFileInfo>
 
+#include <algorithm>
+
 RecursiveScanCoordinator::RecursiveScanCoordinator(transfer::State &state, IFtpClient *ftpClient,
                                                    ILocalFileSystemService *localFs,
                                                    QObject *parent)
@@ -48,6 +50,35 @@ void RecursiveScanCoordinator::onDirectoryListed(const QString &path,
     } else if (state_.requestedListings.contains(path)) {
         handleDirectoryListingForDownload(path, entries);
     }
+}
+
+bool RecursiveScanCoordinator::awaitsDownloadListing(const QString &path) const
+{
+    return state_.requestedListings.contains(path);
+}
+
+void RecursiveScanCoordinator::onDownloadListingFailed(const QString &path, const QString &message)
+{
+    state_.requestedListings.remove(path);
+
+    const auto it = std::find_if(
+        state_.pendingScans.cbegin(), state_.pendingScans.cend(),
+        [&path](const transfer::PendingScan &scan) { return scan.remotePath == path; });
+    if (it == state_.pendingScans.cend()) {
+        qCDebug(LogTransfer) << "RecursiveScanCoordinator: No matching pending scan for" << path;
+        return;
+    }
+    const transfer::PendingScan failedScan = *it;
+    state_.pendingScans.removeAt(static_cast<int>(std::distance(state_.pendingScans.cbegin(), it)));
+    state_.directoriesScanned++;
+
+    qCDebug(LogTransfer) << "RecursiveScanCoordinator: Listing of" << path << "failed:" << message;
+    emit downloadDirectoryFailed(failedScan.remotePath, transfer::localDirectoryForScan(failedScan),
+                                 failedScan.batchId, message);
+    emit scanningProgress(state_.directoriesScanned, state_.pendingScans.size(),
+                          state_.filesDiscovered);
+
+    continueDownloadScan(failedScan.batchId);
 }
 
 void RecursiveScanCoordinator::startDownloadScan(const QString &remotePath,
@@ -149,14 +180,20 @@ void RecursiveScanCoordinator::handleDirectoryListingForDownload(const QString &
     emit scanningProgress(state_.directoriesScanned, state_.pendingScans.size(),
                           state_.filesDiscovered);
 
+    continueDownloadScan(currentScan.batchId);
+}
+
+void RecursiveScanCoordinator::continueDownloadScan(int batchId)
+{
     if (!state_.pendingScans.isEmpty()) {
-        transfer::PendingScan next = state_.pendingScans.head();
         if (ftpClient_) {
-            ftpClient_->list(next.remotePath);
+            ftpClient_->list(state_.pendingScans.head().remotePath);
         }
-    } else {
-        finishScanning(currentScan.batchId);
+        return;
     }
+    qCDebug(LogTransfer) << "RecursiveScanCoordinator: Scanning complete, filesDiscovered:"
+                         << state_.filesDiscovered;
+    emit downloadScanComplete(batchId);
 }
 
 void RecursiveScanCoordinator::handleDirectoryListingForDelete(const QString &path,
@@ -229,11 +266,4 @@ void RecursiveScanCoordinator::handleUploadCheck(const QString &path,
     } else {
         emit uploadCheckNoConflict();
     }
-}
-
-void RecursiveScanCoordinator::finishScanning(int batchId)
-{
-    qCDebug(LogTransfer) << "RecursiveScanCoordinator: Scanning complete, filesDiscovered:"
-                         << state_.filesDiscovered;
-    emit downloadScanComplete(batchId);
 }

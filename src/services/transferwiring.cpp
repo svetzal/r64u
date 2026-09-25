@@ -84,6 +84,8 @@ void connectAll(TransferManager &mgr)
                      });
     QObject::connect(mgr.scanCoordinator_, &RecursiveScanCoordinator::downloadScanComplete, &mgr,
                      &TransferManager::onScanCompleted);
+    QObject::connect(mgr.scanCoordinator_, &RecursiveScanCoordinator::downloadDirectoryFailed, &mgr,
+                     &TransferManager::onScanDirectoryFailed);
     QObject::connect(mgr.scanCoordinator_, &RecursiveScanCoordinator::statusMessage, &mgr,
                      &TransferManager::statusMessage);
     QObject::connect(mgr.scanCoordinator_, &RecursiveScanCoordinator::scanningStarted, &mgr,

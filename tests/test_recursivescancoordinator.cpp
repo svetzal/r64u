@@ -133,6 +133,38 @@ private slots:
         QCOMPARE(completeSpy.first().at(0).toInt(), 7);
     }
 
+    void testDownloadListingFailed_reportsTheFolderAndListsTheNextOne()
+    {
+        scanner->startDownloadScan("/remote/root", "/local/base", "/remote/root", 3);
+        mockFtp->mockSetDirectoryListing("/remote/root", {makeDir("bad"), makeDir("good")});
+        mockFtp->mockProcessNextOperation();
+        QSignalSpy failedSpy(scanner, &RecursiveScanCoordinator::downloadDirectoryFailed);
+        QSignalSpy completeSpy(scanner, &RecursiveScanCoordinator::downloadScanComplete);
+
+        QVERIFY(scanner->awaitsDownloadListing("/remote/root/bad"));
+        scanner->onDownloadListingFailed("/remote/root/bad", "550 Denied");
+
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(failedSpy.first().at(0).toString(), QString("/remote/root/bad"));
+        QCOMPARE(failedSpy.first().at(1).toString(), QString("/local/base/bad"));
+        QCOMPARE(failedSpy.first().at(2).toInt(), 3);
+        QCOMPARE(failedSpy.first().at(3).toString(), QString("550 Denied"));
+        QVERIFY(!scanner->awaitsDownloadListing("/remote/root/bad"));
+        QCOMPARE(mockFtp->mockGetListRequests().last(), QString("/remote/root/good"));
+        QCOMPARE(completeSpy.count(), 0);
+    }
+
+    void testDownloadListingFailed_lastDirectory_completesTheScan()
+    {
+        scanner->startDownloadScan("/remote/only", "/local/base", "/remote/only", 4);
+        QSignalSpy completeSpy(scanner, &RecursiveScanCoordinator::downloadScanComplete);
+
+        scanner->onDownloadListingFailed("/remote/only", "550 Gone");
+
+        QCOMPARE(completeSpy.count(), 1);
+        QCOMPARE(completeSpy.first().at(0).toInt(), 4);
+    }
+
     void testOnDirectoryListed_download_createsLocalDirForSubdirs()
     {
         scanner->startDownloadScan("/remote/root", "/local/base", "/remote/root", 1);

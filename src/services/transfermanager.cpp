@@ -57,6 +57,37 @@ void TransferManager::onScanCompleted(int batchId)
     scheduleProcessNext();
 }
 
+void TransferManager::onScanDirectoryFailed(const QString &remotePath, const QString &localPath,
+                                            int batchId, const QString &message)
+{
+    const QString folderName = QFileInfo(remotePath).fileName();
+    emit operationFailed(folderName, message);
+
+    const int batchIdx = transfer::findBatchIndex(state_, batchId);
+    if (batchIdx < 0) {
+        return;
+    }
+
+    // The folder shows up as a failed row and counts against its batch
+    TransferItem item;
+    item.remotePath = remotePath;
+    item.localPath = localPath;
+    item.operationType = OperationType::Download;
+    item.isDirectory = true;
+    item.batchId = batchId;
+
+    const int row = static_cast<int>(state_.items.size());
+    emit itemsAboutToBeInserted(row, row);
+    state_ = transfer::enqueueItem(state_, item, batchIdx).newState;
+    emit itemsInserted();
+
+    state_ =
+        transfer::markItemComplete(state_, row, TransferItem::Status::Failed, message).newState;
+    emit itemDataChanged(row);
+    emit queueChanged();
+    emitBatchProgressAndComplete(batchId, false);  // the scan is still running
+}
+
 void TransferManager::onDeleteScanComplete()
 {
     transitionTo(QueueState::Deleting);

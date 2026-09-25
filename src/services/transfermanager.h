@@ -156,6 +156,8 @@ private slots:
 
     // Orchestration slots — bound to collaborator signals in connectCollaborators()
     void onScanCompleted(int batchId);
+    void onScanDirectoryFailed(const QString &remotePath, const QString &localPath, int batchId,
+                               const QString &message);
     void onDeleteScanComplete();
     void onStartDownloadScanRequested(const QString &remotePath, const QString &localBase,
                                       const QString &remoteBase, int batchId);

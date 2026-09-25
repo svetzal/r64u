@@ -25,6 +25,9 @@ struct DirectoryListingResult
     int directoriesScanned = 0;
 };
 
+/// @brief Local directory a download scan's remote directory is mirrored into.
+[[nodiscard]] QString localDirectoryForScan(const PendingScan &scan);
+
 /// @brief Process a FTP directory listing for download scanning.
 /// Produces sub-scans for subdirectories and download file pairs.
 /// @note Does NOT create local directories — caller must call QDir().mkpath()

@@ -58,6 +58,14 @@ private:
         return entry;
     }
 
+    [[nodiscard]] static FtpEntry remoteDir(const QString &name)
+    {
+        FtpEntry entry;
+        entry.name = name;
+        entry.isDirectory = true;
+        return entry;
+    }
+
     QString createLocalFile(const QString &relativePath)
     {
         const QString path = tempDir.path() + "/" + relativePath;
@@ -893,6 +901,66 @@ private slots:
 
         QVERIFY(QFile::exists(tempDir.path() + "/full/f.prg"));
         QCOMPARE(batchCompletedSpy.count(), 2);
+        QCOMPARE(allDoneSpy.count(), 1);
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+    }
+
+    // =========================================================================
+    // A folder that cannot be listed during a scan is reported, the rest is kept
+    // =========================================================================
+
+    void testScanListingFails_ReportsOnceAndDownloadsTheRestOfTheTree()
+    {
+        mockFtp->mockSetDirectoryListing(
+            "/r/scan", {remoteDir("bad"), remoteDir("good"), remoteFile("top.prg")});
+        mockFtp->mockSetDirectoryListing("/r/scan/good", {remoteFile("g.prg")});
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+        QSignalSpy batchCompletedSpy(orchestrator, &TransferManager::batchCompleted);
+        orchestrator->enqueueRecursiveDownload("/r/scan", tempDir.path());
+        flushAndProcessNext();  // root listing
+
+        mockFtp->mockSetNextOperationFails("550 Permission denied");
+        flushAndProcessNext();  // listing of bad fails
+        flushAndProcess();
+
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(failedSpy.first().at(0).toString(), QString("bad"));
+        QCOMPARE(failedSpy.first().at(1).toString(), QString("550 Permission denied"));
+        QVERIFY(mockFtp->mockGetDownloadRequests().contains("/r/scan/top.prg"));
+        QVERIFY(mockFtp->mockGetDownloadRequests().contains("/r/scan/good/g.prg"));
+        QCOMPARE(batchCompletedSpy.count(), 1);
+        QCOMPARE(orchestrator->queuedBatchCount(), 0);
+        QCOMPARE(orchestrator->state().queueState, QueueState::Idle);
+    }
+
+    void testScanListingFails_FailureIsCountedAgainstTheBatch()
+    {
+        mockFtp->mockSetDirectoryListing("/r/scan-count", {remoteDir("bad"), remoteFile("a")});
+        QSignalSpy progressSpy(orchestrator, &TransferManager::batchProgressUpdate);
+        orchestrator->enqueueRecursiveDownload("/r/scan-count", tempDir.path());
+        flushAndProcessNext();  // root listing
+
+        mockFtp->mockSetNextOperationFails("550 Permission denied");
+        flushAndProcessNext();
+        flushAndProcess();
+
+        QVERIFY(!progressSpy.isEmpty());
+        QCOMPARE(progressSpy.last().at(1).toInt(), 2);  // processed: the folder and a
+        QCOMPARE(progressSpy.last().at(2).toInt(), 2);  // total
+    }
+
+    void testScanListingFails_OnlyFolderFails_QueuedFolderStillRuns()
+    {
+        mockFtp->mockSetDirectoryListing("/r/after-fail", {remoteFile("f.prg")});
+        QSignalSpy allDoneSpy(orchestrator, &TransferManager::allOperationsCompleted);
+        orchestrator->enqueueRecursiveDownload("/r/unlistable", tempDir.path());
+        orchestrator->enqueueRecursiveDownload("/r/after-fail", tempDir.path());
+
+        mockFtp->mockSetNextOperationFails("550 No such directory");
+        flushAndProcessNext();
+        flushAndProcess();
+
+        QVERIFY(mockFtp->mockGetDownloadRequests().contains("/r/after-fail/f.prg"));
         QCOMPARE(allDoneSpy.count(), 1);
         QCOMPARE(orchestrator->queuedBatchCount(), 0);
     }

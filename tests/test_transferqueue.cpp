@@ -1179,6 +1179,10 @@ private slots:
         rootEntries << subdir;
         mockFtp->mockSetDirectoryListing("/remote/folder", rootEntries);
 
+        QSignalSpy failedSpy(queue, &TransferQueue::operationFailed);
+        QSignalSpy batchCompletedSpy(queue, &TransferQueue::batchCompleted);
+        QSignalSpy allDoneSpy(queue, &TransferQueue::allOperationsCompleted);
+
         queue->enqueueRecursiveDownload("/remote/folder", tempDir.path());
 
         QVERIFY(queue->isScanning());
@@ -1188,10 +1192,19 @@ private slots:
 
         mockFtp->mockSetNextOperationFails("Directory listing failed");
         flushAndProcessNext();  // Fail subdir listing
+        flushAndProcess();
 
-        // Scanning should handle the error gracefully
-        // Current implementation may leave scanning in incomplete state
-        // This test documents behavior for future improvement
+        // The unlistable folder is reported once and counted as a failed row;
+        // the batch completes instead of staying stuck in Scanning
+        QVERIFY(!queue->isScanning());
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(failedSpy.first().at(0).toString(), QString("subdir"));
+        QCOMPARE(queue->rowCount(), 1);
+        QCOMPARE(queue->data(queue->index(0), TransferQueue::StatusRole).toInt(),
+                 static_cast<int>(TransferItem::Status::Failed));
+        QCOMPARE(batchCompletedSpy.count(), 1);
+        QCOMPARE(allDoneSpy.count(), 1);
+        QVERIFY(queue->allBatchIds().isEmpty());
     }
 
     // Test recovery after reconnection

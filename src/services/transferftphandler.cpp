@@ -166,6 +166,12 @@ void TransferFtpHandler::onFtpOperationFailed(IFtpClient::Operation operation,
                              << operation << remotePath;
         return;
     }
+    if (operation == IFtpClient::Operation::List && scanCoordinator_ &&
+        scanCoordinator_->awaitsDownloadListing(remotePath)) {
+        // One unlistable folder must not cost the user the rest of the tree
+        scanCoordinator_->onDownloadListingFailed(remotePath, message);
+        return;
+    }
     if (recordQueueRequestFailure(message)) {
         emit scheduleProcessNextRequested();
     }
