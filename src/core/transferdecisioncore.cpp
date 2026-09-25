@@ -26,7 +26,8 @@ ProcessNextDecision decideNextAction(const State &state, bool ftpConnected,
     }
 
     if (!ftpConnected) {
-        decision.action = ProcessNextAction::NoFtpClient;
+        decision.action = state.connectionLossReported ? ProcessNextAction::AwaitingConnection
+                                                       : ProcessNextAction::NoFtpClient;
         return decision;
     }
 

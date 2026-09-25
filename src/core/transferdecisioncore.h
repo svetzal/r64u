@@ -19,7 +19,8 @@ namespace transfer {
 /// @brief Describes what action TransferQueue::processNext() should take.
 enum class ProcessNextAction {
     Blocked,                      ///< State machine disallows processing
-    NoFtpClient,                  ///< FTP client not connected
+    NoFtpClient,                  ///< FTP client not connected, not yet reported
+    AwaitingConnection,           ///< Connection loss already reported: wait for reconnect
     StartFolderOp,                ///< Dequeue and start a pending folder op
     NeedOverwriteCheck_Download,  ///< Local file exists, ask user
     NeedOverwriteCheck_Upload,    ///< Check remote file existence first

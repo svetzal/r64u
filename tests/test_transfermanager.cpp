@@ -724,6 +724,58 @@ private slots:
         QCOMPARE(itemStatus(1), Status::Completed);
     }
 
+    void testDisconnect_WithPendingItemsInAnotherBatch_ReportsOnceAndResumesOnReconnect()
+    {
+        enqueueDownloads({"last-of-batch"});
+        orchestrator->flushEventQueue();  // in flight
+        const QString upload = createLocalFile("other-batch.prg");
+        orchestrator->enqueueUpload(upload, "/r/other-batch.prg");
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+
+        mockFtp->mockSimulateDisconnect();
+        mockFtp->mockReset();
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(itemStatus(1), Status::Pending);
+
+        mockFtp->mockSimulateConnect();
+        flushAndProcess();
+
+        QCOMPARE(mockFtp->mockGetUploadRequests(), QStringList{upload});
+        QCOMPARE(failedSpy.count(), 1);
+    }
+
+    void testDisconnect_WhileScanning_WithPendingUploadBatch_ReportsOnce()
+    {
+        mockFtp->mockSetDirectoryListing("/r/dc-scan-2", {remoteDir("sub")});
+        orchestrator->enqueueRecursiveDownload("/r/dc-scan-2", tempDir.path());
+        flushAndProcessNext();  // root listing; sub still to list
+        const QString upload = createLocalFile("waits-for-scan.prg");
+        orchestrator->enqueueUpload(upload, "/r/waits-for-scan.prg");
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+
+        mockFtp->mockSimulateDisconnect();
+        mockFtp->mockReset();
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(failedSpy.count(), 1);
+    }
+
+    void testDisconnect_NothingReported_NextDispatchStillReportsNotConnectedOnce()
+    {
+        enqueueDownloads({"x"});
+        mockFtp->mockSetConnected(false);  // before anything was dispatched
+        QSignalSpy failedSpy(orchestrator, &TransferManager::operationFailed);
+
+        orchestrator->flushEventQueue();
+        enqueueDownloads({"y"});
+        orchestrator->flushEventQueue();
+
+        QCOMPARE(failedSpy.count(), 1);
+        QCOMPARE(failedSpy.first().at(1).toString(), QString("Not connected to device"));
+    }
+
     void testEnqueue_AfterReconnect_RunsDespiteStaleActiveBatch()
     {
         enqueueDownloads({"a", "b"});

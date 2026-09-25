@@ -54,6 +54,18 @@ private slots:
         QCOMPARE(decision.action, transfer::ProcessNextAction::NoFtpClient);
     }
 
+    void testDecideNextAction_disconnectAlreadyReported_waitsWithoutReporting()
+    {
+        auto state = makeStateWithItem(transfer::OperationType::Download,
+                                       transfer::TransferItem::Status::Pending);
+        state.connectionLossReported = true;
+
+        auto decision =
+            transfer::decideNextAction(state, false, [](const QString &) { return false; });
+
+        QCOMPARE(decision.action, transfer::ProcessNextAction::AwaitingConnection);
+    }
+
     void testDecideNextAction_startFolderOpWhenPendingFolderOps()
     {
         transfer::State state;

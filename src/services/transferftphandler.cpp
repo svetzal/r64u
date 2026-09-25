@@ -235,6 +235,8 @@ bool TransferFtpHandler::recordQueueRequestFailure(const QString &message)
 
 void TransferFtpHandler::onFtpConnected()
 {
+    state_.connectionLossReported = false;
+
     // Items left Pending by a lost connection resume once it is back
     if (transfer::canProcessNext(state_.queueState) &&
         (transfer::pendingCount(state_) > 0 || !state_.pendingFolderOps.isEmpty())) {
@@ -253,7 +255,9 @@ void TransferFtpHandler::onFtpDisconnected()
     switch (state_.queueState) {
     case transfer::QueueState::Transferring:
         if (transfer::hasInFlightItem(state_)) {
-            // Nothing is scheduled: the queue has to wait for the connection anyway
+            // Reported once: work this unblocks waits for the connection without a
+            // "Not connected" report of its own
+            state_.connectionLossReported = true;
             std::ignore = recordQueueRequestFailure(message);
         }
         break;
@@ -271,6 +275,7 @@ void TransferFtpHandler::onFtpDisconnected()
     case transfer::QueueState::Deleting:
         // A folder operation cannot pick up a half-done scan, mkdir or delete
         // again: end it once, and leave queued work for when the connection is back
+        state_.connectionLossReported = true;
         emit abandonFolderOperationRequested(message);
         break;
     case transfer::QueueState::Idle:

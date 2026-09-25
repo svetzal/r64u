@@ -60,7 +60,10 @@ void TransferDispatchHandler::processNext()
     qCDebug(LogTransfer) << "TransferDispatchHandler: processNext, state:"
                          << transfer::queueStateToString(state_.queueState);
 
-    bool ftpReady = ftpConnected();
+    const bool ftpReady = ftpConnected();
+    if (ftpReady) {
+        state_.connectionLossReported = false;  // even if the reconnect went unheard
+    }
 
     auto localFileExists = [this](const QString &path) -> bool {
         return localFs_ && localFs_->fileExists(path);
@@ -77,7 +80,13 @@ void TransferDispatchHandler::processNext()
 
     case transfer::ProcessNextAction::NoFtpClient:
         qCDebug(LogTransfer) << "TransferDispatchHandler: FTP client not ready";
+        state_.connectionLossReported = true;
         emit operationFailed(QString(), tr("Not connected to device"));
+        return;
+
+    case transfer::ProcessNextAction::AwaitingConnection:
+        // Already reported: pending items resume when the client connects again
+        qCDebug(LogTransfer) << "TransferDispatchHandler: waiting for the connection";
         return;
 
     case transfer::ProcessNextAction::StartFolderOp:

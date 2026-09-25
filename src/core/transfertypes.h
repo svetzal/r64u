@@ -266,6 +266,10 @@ struct State
     int nextBatchId = 1;
     int activeBatchIndex = -1;
 
+    /// The user has been told the connection is gone (a failed transfer or folder operation,
+    /// or "Not connected"). Until it is back, pending work waits without another report.
+    bool connectionLossReported = false;
+
     // User preferences
     bool autoOverwrite = false;  ///< Never ask before overwriting (standing preference)
     bool autoMerge = false;
