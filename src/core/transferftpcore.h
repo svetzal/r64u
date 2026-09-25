@@ -8,6 +8,8 @@
 
 #include "transfercore.h"
 
+#include <optional>
+
 namespace transfer {
 
 // ---------------------------------------------------------------------------
@@ -88,6 +90,21 @@ struct FindDeleteItemResult
 /// @brief Returns true if the queue is waiting for a listing of @p path
 ///        (recursive scan, delete scan, folder-exists or upload-exists check).
 [[nodiscard]] bool isAwaitedListing(const State &state, const QString &path);
+
+/// @brief An FTP request of the queue's that cancelling or a timeout may abort.
+struct AbortableRequest
+{
+    OperationType type = OperationType::Download;
+    bool isDirectory = false;  ///< For deletes: the entry removed is a directory
+    QString remotePath;
+};
+
+/// @brief The request the queue is waiting for that cancelling or a timeout must abort:
+///        the in-flight item's transfer or delete, or the recursive delete's current removal.
+///
+/// Returns std::nullopt when the queue has nothing of that kind in flight (scans, directory
+/// creation and existence checks are left to finish; their replies are ignored).
+[[nodiscard]] std::optional<AbortableRequest> abortableRequest(const State &state);
 
 /// @brief Returns true if @p path is the directory the queue is creating right now.
 [[nodiscard]] bool isAwaitedMkdir(const State &state, const QString &path);

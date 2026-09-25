@@ -197,10 +197,30 @@ void TransferManager::transitionTo(QueueState newState)
 // FTP client
 // ============================================================================
 
-void TransferManager::abortActiveFtpOperation()
+namespace {
+
+IFtpClient::Operation ftpOperationFor(const transfer::AbortableRequest &request)
 {
-    if (ftpClient_) {
-        ftpClient_->abort();
+    switch (request.type) {
+    case OperationType::Upload:
+        return IFtpClient::Operation::Upload;
+    case OperationType::Download:
+        return IFtpClient::Operation::Download;
+    case OperationType::Delete:
+        return request.isDirectory ? IFtpClient::Operation::RemoveDirectory
+                                   : IFtpClient::Operation::Remove;
+    }
+    return IFtpClient::Operation::Download;
+}
+
+}  // namespace
+
+void TransferManager::abortQueueRequest(const std::optional<transfer::AbortableRequest> &request)
+{
+    // The client is shared: a plain abort() would cancel whatever another
+    // component (a preview, the remote browser) has in flight
+    if (ftpClient_ && request) {
+        ftpClient_->abortIfInFlight(ftpOperationFor(*request), request->remotePath);
     }
 }
 
@@ -419,9 +439,7 @@ void TransferManager::clear()
 
 void TransferManager::cancelAll()
 {
-    if (transfer::shouldAbortFtp(state_.queueState)) {
-        abortActiveFtpOperation();
-    }
+    abortQueueRequest(transfer::abortableRequest(state_));
     // Nothing of the queue's is in flight any more; a timer left running would
     // later abort whatever the shared client is doing and force the queue Idle.
     stopOperationTimeout();
@@ -445,7 +463,7 @@ void TransferManager::cancelBatch(int batchId)
         return;
     }
 
-    const QueueState stateBefore = state_.queueState;
+    const auto requestBefore = transfer::abortableRequest(state_);
 
     // Cancelling purges the batch's rows (not necessarily contiguous) from the model
     emit modelAboutToReset();
@@ -456,9 +474,7 @@ void TransferManager::cancelBatch(int batchId)
     if (result.stoppedQueueWork) {
         // Settled first: nothing the client reports for the aborted request is ours any more
         stopOperationTimeout();
-        if (transfer::shouldAbortFtp(stateBefore)) {
-            abortActiveFtpOperation();
-        }
+        abortQueueRequest(requestBefore);
     }
     emit queueChanged();
 
@@ -540,11 +556,12 @@ void TransferManager::onOperationTimeout()
     qCDebug(LogTransfer) << "TransferManager: Operation timeout!";
 
     const QString errorMessage = timeoutManager_->timeoutErrorMessage();
+    const auto timedOutRequest = transfer::abortableRequest(state_);
     const auto result = transfer::handleOperationTimeout(state_, errorMessage);
     // Settle the queue before aborting, so nothing the client reports for the
     // aborted request can be taken for the queue's own and reported again.
     state_ = result.newState;
-    abortActiveFtpOperation();
+    abortQueueRequest(timedOutRequest);
 
     if (result.failedIndex >= 0) {
         const TransferItem &item = state_.items[result.failedIndex];

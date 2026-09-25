@@ -301,6 +301,48 @@ private slots:
         state.deletedCount = 2;
         QVERIFY(!transfer::isAwaitedRecursiveDelete(state, "/remote/dir"));
     }
+
+    void testAbortableRequest_inFlightItem_isItsTransfer()
+    {
+        transfer::State state;
+        transfer::TransferItem item;
+        item.operationType = transfer::OperationType::Delete;
+        item.isDirectory = true;
+        item.remotePath = "/remote/old";
+        item.status = transfer::TransferItem::Status::InProgress;
+        state.items.append(item);
+        state.currentIndex = 0;
+        state.queueState = transfer::QueueState::Transferring;
+
+        const auto request = transfer::abortableRequest(state);
+
+        QVERIFY(request.has_value());
+        QCOMPARE(request->type, transfer::OperationType::Delete);
+        QVERIFY(request->isDirectory);
+        QCOMPARE(request->remotePath, QString("/remote/old"));
+    }
+
+    void testAbortableRequest_recursiveDelete_isTheEntryBeingRemoved()
+    {
+        transfer::State state;
+        state.queueState = transfer::QueueState::Deleting;
+        state.deleteQueue = {{"/remote/dir/a", false}, {"/remote/dir", true}};
+        state.deletedCount = 1;
+
+        const auto request = transfer::abortableRequest(state);
+
+        QVERIFY(request.has_value());
+        QCOMPARE(request->remotePath, QString("/remote/dir"));
+        QVERIFY(request->isDirectory);
+    }
+
+    void testAbortableRequest_scanningOrIdle_isNothing()
+    {
+        transfer::State state;
+        QVERIFY(!transfer::abortableRequest(state).has_value());
+        state.queueState = transfer::QueueState::Scanning;
+        QVERIFY(!transfer::abortableRequest(state).has_value());
+    }
 };
 
 QTEST_MAIN(TestTransferFtpCore)

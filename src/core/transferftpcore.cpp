@@ -115,6 +115,19 @@ bool isAwaitedListing(const State &state, const QString &path)
            state.requestedUploadFileCheckListings.contains(path);
 }
 
+std::optional<AbortableRequest> abortableRequest(const State &state)
+{
+    if (state.queueState == QueueState::Transferring && hasInFlightItem(state)) {
+        const TransferItem &item = state.items[state.currentIndex];
+        return AbortableRequest{item.operationType, item.isDirectory, item.remotePath};
+    }
+    if (state.queueState == QueueState::Deleting && state.deletedCount < state.deleteQueue.size()) {
+        const DeleteItem &entry = state.deleteQueue[state.deletedCount];
+        return AbortableRequest{OperationType::Delete, entry.isDirectory, entry.path};
+    }
+    return std::nullopt;
+}
+
 bool isAwaitedMkdir(const State &state, const QString &path)
 {
     return state.queueState == QueueState::CreatingDirectories && !state.pendingMkdirs.isEmpty() &&

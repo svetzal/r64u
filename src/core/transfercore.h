@@ -83,16 +83,6 @@ namespace transfer {
 [[nodiscard]] bool canProcessNext(QueueState queueState);
 
 // ---------------------------------------------------------------------------
-// FTP abort decision
-// ---------------------------------------------------------------------------
-
-/// @brief Returns true if cancelling should trigger an FTP client abort().
-///
-/// Only the Transferring and Deleting states have an active FTP data connection
-/// that must be aborted; all other states are idle and need no abort.
-[[nodiscard]] bool shouldAbortFtp(QueueState queueState);
-
-// ---------------------------------------------------------------------------
 // Enqueue precondition validation
 // ---------------------------------------------------------------------------
 

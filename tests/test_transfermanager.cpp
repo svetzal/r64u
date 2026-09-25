@@ -7,6 +7,8 @@
 #include <QTimer>
 #include <QtTest>
 
+#include <memory>
+
 using Status = TransferItem::Status;
 
 class TestTransferManager : public QObject
@@ -119,6 +121,15 @@ private:
         orchestrator->enqueueRecursiveUpload(tempDir.path() + "/" + name, "/r");
         QTest::qWait(100);  // folder-exists debounce
         QCOMPARE(mockFtp->mockGetListRequests(), QStringList{"/r"});
+    }
+
+    /// Issues a preview download on the shared client, as another component would.
+    /// @return A spy on the preview's completion.
+    [[nodiscard]] std::unique_ptr<QSignalSpy> startForeignPreview()
+    {
+        mockFtp->mockSetDownloadData("/r/preview.prg", "p");
+        mockFtp->downloadToMemory("/r/preview.prg");
+        return std::make_unique<QSignalSpy>(mockFtp, &IFtpClient::downloadToMemoryFinished);
     }
 
 private slots:
@@ -560,6 +571,81 @@ private slots:
         QCOMPARE(failedSpy.count(), 1);
         QCOMPARE(itemStatus(0), Status::Failed);
         orchestrator->setFtpClient(mockFtp);
+    }
+
+    void testTimeout_DoesNotAbortAnotherComponentsRequestInFlight()
+    {
+        const auto previewSpy = startForeignPreview();
+        enqueueDownloads({"slow"});
+        orchestrator->flushEventQueue();  // queued on the client behind the preview
+
+        fireOperationTimeout();
+        mockFtp->mockProcessNextOperation();
+
+        QCOMPARE(previewSpy->count(), 1);
+        QCOMPARE(itemStatus(0), Status::Failed);
+    }
+
+    void testTimeout_AbortsTheQueuesOwnRequestInFlight()
+    {
+        enqueueDownloads({"stuck"});
+        orchestrator->flushEventQueue();
+        QCOMPARE(mockFtp->mockPendingOperationCount(), 1);
+
+        fireOperationTimeout();
+
+        QCOMPARE(mockFtp->mockPendingOperationCount(), 0);
+    }
+
+    void testCancelAll_DuringTransfer_DoesNotAbortAnotherComponentsRequestInFlight()
+    {
+        const auto previewSpy = startForeignPreview();
+        enqueueDownloads({"cancelled"});
+        orchestrator->flushEventQueue();
+
+        orchestrator->cancelAll();
+        mockFtp->mockProcessNextOperation();
+
+        QCOMPARE(previewSpy->count(), 1);
+    }
+
+    void testCancelBatch_DuringTransfer_DoesNotAbortAnotherComponentsRequestInFlight()
+    {
+        const auto previewSpy = startForeignPreview();
+        enqueueDownloads({"cancelled-batch"});
+        orchestrator->flushEventQueue();
+
+        orchestrator->cancelBatch(orchestrator->state().batches.first().batchId);
+        mockFtp->mockProcessNextOperation();
+
+        QCOMPARE(previewSpy->count(), 1);
+    }
+
+    void testCancelAll_DuringRecursiveDelete_AbortsOnlyItsOwnRemoval()
+    {
+        mockFtp->mockSetDirectoryListing("/r/del-cancel", {remoteFile("a")});
+        orchestrator->enqueueRecursiveDelete("/r/del-cancel");
+        orchestrator->flushEventQueue();
+        const auto previewSpy = startForeignPreview();
+        flushAndProcessNext();  // listing; removal of a queued behind the preview
+        QCOMPARE(orchestrator->state().queueState, QueueState::Deleting);
+
+        orchestrator->cancelAll();
+        mockFtp->mockProcessNextOperation();
+
+        QCOMPARE(previewSpy->count(), 1);
+    }
+
+    void testCancelAll_DuringRecursiveDelete_AbortsItsRemovalInFlight()
+    {
+        mockFtp->mockSetDirectoryListing("/r/del-own", {remoteFile("a")});
+        orchestrator->enqueueRecursiveDelete("/r/del-own");
+        flushAndProcessNext();  // listing; removal of a in flight
+        QCOMPARE(mockFtp->mockPendingOperationCount(), 1);
+
+        orchestrator->cancelAll();
+
+        QCOMPARE(mockFtp->mockPendingOperationCount(), 0);
     }
 
     void testCancelAll_StopsTheTimeout()

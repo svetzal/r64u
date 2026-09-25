@@ -138,11 +138,6 @@ bool canProcessNext(QueueState queueState)
     return queueState == QueueState::Idle;
 }
 
-bool shouldAbortFtp(QueueState queueState)
-{
-    return queueState == QueueState::Transferring || queueState == QueueState::Deleting;
-}
-
 std::optional<QString> validateEnqueuePreconditions(bool connected, bool localDirExists)
 {
     if (!connected) {

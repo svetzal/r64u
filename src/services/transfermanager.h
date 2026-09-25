@@ -173,7 +173,8 @@ private:
     void processNext();
     void scheduleProcessNext();
     void transitionTo(QueueState newState);
-    void abortActiveFtpOperation();
+    /// Aborts @p request on the shared client only if it is the one in flight there.
+    void abortQueueRequest(const std::optional<transfer::AbortableRequest> &request);
 
     void startOperationTimeout();
     void stopOperationTimeout();
