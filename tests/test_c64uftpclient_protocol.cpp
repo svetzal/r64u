@@ -1016,6 +1016,53 @@ private slots:
         QCOMPARE(server.storedFile("/SD/empty.prg"), QByteArray());
         QCOMPARE(server.commandCount("STOR"), 1);
     }
+
+    // =========================================================================
+    // Re-entrancy: requests made from inside signal handlers
+    // =========================================================================
+
+    void testList_CalledFromConnectedSlot_WaitsForEachReply()
+    {
+        FakeFtpServer server;
+        server.setListing(OneFileListing);
+        QVERIFY(server.listen());
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
+        connect(ftp, &IFtpClient::connected, this, [this]() { ftp->list("/SD"); });
+
+        ftp->setHost("127.0.0.1", server.port());
+        ftp->setCredentials("user", "pass");
+        ftp->connectToHost();
+
+        QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QCOMPARE(server.commands(),
+                 QStringList({"USER user", "PASS pass", "TYPE A", "PASV", "LIST /SD"}));
+        QCOMPARE(ftp->state(), IFtpClient::State::Ready);
+    }
+
+    void testDownload_QueuedFromFinishedSlot_RunsAfterCurrentCompletes()
+    {
+        FakeFtpServer server;
+        server.setFile("/SD/one.prg", "ONE");
+        server.setFile("/SD/two.prg", "TWO");
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy finishedSpy(ftp, &C64UFtpClient::downloadFinished);
+        connect(ftp, &IFtpClient::downloadFinished, this, [this, &dir](const QString &remotePath) {
+            if (remotePath == "/SD/one.prg") {
+                ftp->download("/SD/two.prg", dir.filePath("two.prg"));
+            }
+        });
+
+        ftp->download("/SD/one.prg", dir.filePath("one.prg"));
+
+        QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 2, SignalTimeoutMs);
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QCOMPARE(readLocalFile(dir.filePath("two.prg")), QByteArray("TWO"));
+    }
 };
 
 QTEST_MAIN(TestC64UFtpClientProtocol)

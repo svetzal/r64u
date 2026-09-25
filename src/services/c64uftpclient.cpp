@@ -155,6 +155,17 @@ void C64UFtpClient::queueStorCommand(const QString &remotePath, const QString &l
 
 void C64UFtpClient::processNextCommand()
 {
+    // Signal handlers may issue requests re-entrantly (e.g. list() from a slot
+    // on connected()) and so dispatch a command before the code that emitted
+    // the signal asks for the next one. Only one command may await a reply.
+    if (awaitingFinalReply_ || repliesToDiscard_ > 0) {
+        return;
+    }
+    // A handler may also have disconnected; never revive the state from there.
+    if (state_ == State::Disconnected) {
+        return;
+    }
+
     if (commandQueue_.isEmpty()) {
         currentCommand_ = Command::None;
         setState(State::Ready);
@@ -571,6 +582,7 @@ void C64UFtpClient::discardReply(int code)
     qCDebug(LogFtp) << "FTP: Discarded reply" << code << "belonging to an aborted command";
     if (--repliesToDiscard_ == 0) {
         abortReplyTimer_->stop();
+        awaitingFinalReply_ = false;
         processNextCommand();
     }
 }
@@ -580,6 +592,7 @@ void C64UFtpClient::onAbortReplyTimeout()
     qCWarning(LogFtp) << "FTP: Gave up waiting for" << repliesToDiscard_
                       << "reply(ies) to ABOR; resuming command queue";
     repliesToDiscard_ = 0;
+    awaitingFinalReply_ = false;
     processNextCommand();
 }
 
