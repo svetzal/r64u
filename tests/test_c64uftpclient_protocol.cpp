@@ -275,14 +275,27 @@ private slots:
 
     // === Abort Tests ===
 
-    void testAbort_WhenDisconnected_SetsReady()
+    void testAbort_WhenDisconnected_StaysDisconnected()
     {
-        // Currently abort() sets state to Ready even when disconnected.
-        // This may be unexpected behavior - abort when disconnected could
-        // arguably be a no-op. Documenting current behavior.
+        QSignalSpy stateSpy(ftp, &C64UFtpClient::stateChanged);
+
         ftp->abort();
-        // Note: This sets Ready even though we're not actually connected
-        QCOMPARE(ftp->state(), IFtpClient::State::Ready);
+
+        QCOMPARE(ftp->state(), IFtpClient::State::Disconnected);
+        QVERIFY(!ftp->isConnected());
+        QCOMPARE(stateSpy.count(), 0);
+    }
+
+    void testAbort_WhenDisconnected_DoesNotBlockReconnect()
+    {
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        ftp->setHost("192.168.1.64");
+
+        ftp->abort();
+        ftp->connectToHost();
+
+        QCOMPARE(ftp->state(), IFtpClient::State::Connecting);
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
     }
 
     // === Connection Timeout Tests ===

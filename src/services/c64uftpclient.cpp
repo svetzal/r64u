@@ -582,6 +582,13 @@ void C64UFtpClient::rename(const QString &oldPath, const QString &newPath)
 
 void C64UFtpClient::abort()
 {
+    if (!loggedIn_) {
+        // Nothing can be in flight before login completes; changing state here
+        // would make a disconnected client look connected and block reconnects.
+        qCDebug(LogFtp) << "FTP: abort() ignored — not logged in";
+        return;
+    }
+
     drainCommandQueue();
 
     if (dataSocket_->state() != QAbstractSocket::UnconnectedState) {
