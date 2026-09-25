@@ -186,4 +186,15 @@ QList<CommandSpec> buildUploadPrelude()
     return {{FtpCommandQueue::Command::Type, "I"}, {FtpCommandQueue::Command::Pasv, {}}};
 }
 
+bool isDataTransferCommand(FtpCommandQueue::Command cmd)
+{
+    return cmd == FtpCommandQueue::Command::List || cmd == FtpCommandQueue::Command::Retr ||
+           cmd == FtpCommandQueue::Command::Stor;
+}
+
+bool isTransferPreludeCommand(FtpCommandQueue::Command cmd)
+{
+    return cmd == FtpCommandQueue::Command::Type || cmd == FtpCommandQueue::Command::Pasv;
+}
+
 }  // namespace ftp

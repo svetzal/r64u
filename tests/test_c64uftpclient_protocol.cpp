@@ -397,21 +397,84 @@ private slots:
         QCOMPARE(errorSpy.count(), 0);
     }
 
-    void testAbort_AfterLogin_ResetsToReady()
+    void testAbort_DuringListPrelude_SkipsListAndReturnsToReady()
     {
         FakeFtpServer server;
-        QVERIFY(server.listen());
-
-        ftp->setHost("127.0.0.1", server.port());
-        ftp->setCredentials("user", "pass");
-        ftp->connectToHost();
-
-        QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, 5000);
+        server.setListing(OneFileListing);
+        QVERIFY(loginTo(server));
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
 
         ftp->list("/");
         QCOMPARE(ftp->state(), IFtpClient::State::Busy);
+        ftp->abort();
+
+        // TYPE is already on the wire; its reply is consumed before going idle
+        QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(server.commandCount("LIST"), 0);
+        QCOMPARE(server.commandCount("ABOR"), 0);
+        QCOMPARE(listedSpy.count(), 0);
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+
+        ftp->list("/");
+        QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+    }
+
+    void testAbort_WhenIdle_DoesNotSendAbor()
+    {
+        FakeFtpServer server;
+        server.setListing(OneFileListing);
+        QVERIFY(loginTo(server));
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
 
         ftp->abort();
+        QCOMPARE(ftp->state(), IFtpClient::State::Ready);
+        ftp->list("/");
+
+        QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(server.commandCount("ABOR"), 0);
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+    }
+
+    void testAbort_MidDownload_NextDownloadSucceeds_data()
+    {
+        QTest::addColumn<QByteArray>("aborReply");
+        QTest::newRow("426 then 226 (RFC 959)")
+            << QByteArray("426 Transfer aborted\r\n226 ABOR successful\r\n");
+        QTest::newRow("single 226") << QByteArray("226 ABOR successful\r\n");
+    }
+
+    void testAbort_MidDownload_NextDownloadSucceeds()
+    {
+        QFETCH(QByteArray, aborReply);
+        FakeFtpServer server;
+        server.setFile("/SD/big.d64", QByteArray(200000, 'b'));
+        server.setFile("/SD/small.prg", "SMALL");
+        server.setStallAfterBytes(1000);
+        server.setAborReplyDuringTransfer(aborReply);
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        QSignalSpy progressSpy(ftp, &C64UFtpClient::downloadProgress);
+
+        ftp->download("/SD/big.d64", dir.filePath("big.d64"));
+        QTRY_VERIFY_WITH_TIMEOUT(!progressSpy.isEmpty(), SignalTimeoutMs);
+        ftp->abort();
+
+        server.setStallAfterBytes(-1);
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy finishedSpy(ftp, &C64UFtpClient::downloadFinished);
+        ftp->download("/SD/small.prg", dir.filePath("small.prg"));
+
+        QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+        QCOMPARE(finishedSpy.first().at(0).toString(), QString("/SD/small.prg"));
+        QCOMPARE(readLocalFile(dir.filePath("small.prg")), QByteArray("SMALL"));
+        QCOMPARE(server.commandCount("ABOR"), 1);
         QCOMPARE(ftp->state(), IFtpClient::State::Ready);
     }
 

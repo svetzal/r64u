@@ -363,6 +363,30 @@ private slots:
     {
         QVERIFY(ftp::formatCommand(FtpCommandQueue::Command::None, {}, {}, {}).isEmpty());
     }
+
+    // --- Command classification ---
+
+    void isDataTransferCommand_TrueOnlyForListRetrStor()
+    {
+        using Command = FtpCommandQueue::Command;
+        QVERIFY(ftp::isDataTransferCommand(Command::List));
+        QVERIFY(ftp::isDataTransferCommand(Command::Retr));
+        QVERIFY(ftp::isDataTransferCommand(Command::Stor));
+        QVERIFY(!ftp::isDataTransferCommand(Command::Pasv));
+        QVERIFY(!ftp::isDataTransferCommand(Command::Type));
+        QVERIFY(!ftp::isDataTransferCommand(Command::Cwd));
+        QVERIFY(!ftp::isDataTransferCommand(Command::None));
+    }
+
+    void isTransferPreludeCommand_TrueOnlyForTypeAndPasv()
+    {
+        using Command = FtpCommandQueue::Command;
+        QVERIFY(ftp::isTransferPreludeCommand(Command::Type));
+        QVERIFY(ftp::isTransferPreludeCommand(Command::Pasv));
+        QVERIFY(!ftp::isTransferPreludeCommand(Command::Retr));
+        QVERIFY(!ftp::isTransferPreludeCommand(Command::Mkd));
+        QVERIFY(!ftp::isTransferPreludeCommand(Command::None));
+    }
 };
 
 QTEST_MAIN(TestFtpCore)

@@ -10,12 +10,15 @@
 
 C64UFtpClient::C64UFtpClient(QObject *parent)
     : IFtpClient(parent), controlSocket_(new QTcpSocket(this)), dataSocket_(new QTcpSocket(this)),
-      connectionTimer_(new QTimer(this)),
+      connectionTimer_(new QTimer(this)), abortReplyTimer_(new QTimer(this)),
       responseHandler_(new FtpResponseHandler(transferState_, this))
 {
     // Connection timeout timer
     connectionTimer_->setSingleShot(true);
     connect(connectionTimer_, &QTimer::timeout, this, &C64UFtpClient::onConnectionTimeout);
+
+    abortReplyTimer_->setSingleShot(true);
+    connect(abortReplyTimer_, &QTimer::timeout, this, &C64UFtpClient::onAbortReplyTimeout);
 
     connect(controlSocket_, &QTcpSocket::connected, this, &C64UFtpClient::onControlConnected);
     connect(controlSocket_, &QTcpSocket::disconnected, this, &C64UFtpClient::onControlDisconnected);
@@ -86,6 +89,7 @@ void C64UFtpClient::disconnect()
 
     commandQueue_.drain();
     loggedIn_ = false;
+    resetCommandTracking();
 
     if (dataSocket_->state() != QAbstractSocket::UnconnectedState) {
         dataSocket_->abort();
@@ -148,6 +152,7 @@ void C64UFtpClient::queueStorCommand(const QString &remotePath, const QString &l
 void C64UFtpClient::processNextCommand()
 {
     if (commandQueue_.isEmpty()) {
+        currentCommand_ = Command::None;
         setState(State::Ready);
         return;
     }
@@ -171,6 +176,7 @@ void C64UFtpClient::processNextCommand()
 
     QString wireCommand = ftp::formatCommand(currentCommand_, currentArg_, user_, password_);
     if (!wireCommand.isEmpty()) {
+        awaitingFinalReply_ = true;
         sendCommand(wireCommand);
     } else {
         // Command::None or any unrecognised command — skip and process the next one
@@ -374,12 +380,19 @@ void C64UFtpClient::onControlReadyRead()
     responseBuffer_ = parsed.remainingBuffer;
 
     for (const auto &line : parsed.lines) {
-        FtpResponseContext ctx = buildContext();
-        FtpResponseAction action;
-
         qCDebug(LogFtp) << "FTP: <<" << line.code << line.text
                         << "(state:" << static_cast<int>(state_) << ")";
 
+        if (repliesToDiscard_ > 0) {
+            discardReply(line.code);
+            continue;
+        }
+        if (state_ == State::Busy && line.code >= FtpReplyFinalThreshold) {
+            awaitingFinalReply_ = false;
+        }
+
+        FtpResponseContext ctx = buildContext();
+        FtpResponseAction action;
         if (state_ == State::Busy) {
             action = responseHandler_->handleBusyResponse(line.code, line.text, ctx);
         } else {
@@ -454,6 +467,45 @@ void C64UFtpClient::onDataError(QAbstractSocket::SocketError socketError)
     emit error(tr("File transfer interrupted: %1").arg(dataSocket_->errorString()));
 }
 
+void C64UFtpClient::discardReply(int code)
+{
+    // Preliminary (1xx) replies never complete a command
+    if (code < FtpReplyFinalThreshold) {
+        return;
+    }
+    qCDebug(LogFtp) << "FTP: Discarded reply" << code << "belonging to an aborted command";
+    if (--repliesToDiscard_ == 0) {
+        abortReplyTimer_->stop();
+        processNextCommand();
+    }
+}
+
+void C64UFtpClient::onAbortReplyTimeout()
+{
+    qCWarning(LogFtp) << "FTP: Gave up waiting for" << repliesToDiscard_
+                      << "reply(ies) to ABOR; resuming command queue";
+    repliesToDiscard_ = 0;
+    processNextCommand();
+}
+
+void C64UFtpClient::discardDataTransfer()
+{
+    if (dataSocket_->state() != QAbstractSocket::UnconnectedState) {
+        // Block signals so the teardown is not mistaken for a completed transfer
+        const QSignalBlocker blocker(dataSocket_);
+        dataSocket_->abort();
+    }
+    resetTransferState();
+}
+
+void C64UFtpClient::resetCommandTracking()
+{
+    abortReplyTimer_->stop();
+    awaitingFinalReply_ = false;
+    repliesToDiscard_ = 0;
+    currentCommand_ = Command::None;
+}
+
 void C64UFtpClient::drainCommandQueue()
 {
     commandQueue_.drain();
@@ -469,6 +521,7 @@ void C64UFtpClient::performDisconnectCleanup()
     connectionTimer_->stop();
     drainCommandQueue();
     resetTransferState();
+    resetCommandTracking();
     loggedIn_ = false;
     setState(State::Disconnected);
 }
@@ -591,12 +644,39 @@ void C64UFtpClient::abort()
 
     drainCommandQueue();
 
-    if (dataSocket_->state() != QAbstractSocket::UnconnectedState) {
-        dataSocket_->abort();
+    if (state_ != State::Busy || repliesToDiscard_ > 0) {
+        qCDebug(LogFtp) << "FTP: abort() ignored — nothing in flight";
+        return;
     }
 
-    resetTransferState();
+    if (ftp::isTransferPreludeCommand(currentCommand_)) {
+        // TYPE/PASV cannot be aborted on the wire. Swallow the reply that is on
+        // its way so the transfer it prepares is never started.
+        if (awaitingFinalReply_) {
+            repliesToDiscard_ = 1;
+        } else {
+            processNextCommand();
+        }
+        return;
+    }
 
+    if (!ftp::isDataTransferCommand(currentCommand_)) {
+        // Control-only commands (CWD, MKD, DELE, ...) complete on their own
+        qCDebug(LogFtp) << "FTP: abort() ignored — no data transfer in flight";
+        return;
+    }
+
+    discardDataTransfer();
+
+    if (!awaitingFinalReply_) {
+        // The server already reported completion; only the data close was pending
+        processNextCommand();
+        return;
+    }
+
+    // Expect the aborted command's final reply (e.g. 426) plus the reply to ABOR
+    // (225/226). Servers that send only one are covered by the timeout.
+    repliesToDiscard_ = 2;
+    abortReplyTimer_->start(AbortReplyTimeoutMs);
     sendCommand("ABOR");
-    setState(State::Ready);
 }

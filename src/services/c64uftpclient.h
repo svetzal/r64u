@@ -43,6 +43,9 @@ public:
     /// @{
     static constexpr quint16 DefaultPort = 21;         ///< Default FTP control port
     static constexpr int ConnectionTimeoutMs = 15000;  ///< Connection timeout in milliseconds
+    /// Longest wait for the replies to ABOR before dispatching the next command.
+    /// Servers differ in how many replies they send, so this bounds the wait.
+    static constexpr int AbortReplyTimeoutMs = 2000;
     static constexpr int FtpReplyCodeLength = 3;       ///< Length of FTP reply code
     static constexpr int FtpReplyTextOffset = 4;       ///< Offset to reply text after code
     static constexpr int CrLfLength = 2;               ///< Length of CRLF line ending
@@ -51,6 +54,7 @@ public:
 
     /// @name FTP Response Codes (RFC 959)
     /// @{
+    static constexpr int FtpReplyFinalThreshold = 200;    ///< Codes >= this complete a command
     static constexpr int FtpReplyServiceReady = 220;      ///< Service ready for new user
     static constexpr int FtpReplyUserLoggedIn = 230;      ///< User logged in, proceed
     static constexpr int FtpReplyPasswordRequired = 331;  ///< User name okay, need password
@@ -151,7 +155,13 @@ public:
     /// @}
 
     /**
-     * @brief Aborts the current operation.
+     * @brief Aborts the in-flight data transfer (LIST, RETR or STOR).
+     *
+     * Sends ABOR and consumes the server's replies to it (and to the aborted
+     * transfer command) before the next queued command is dispatched, so
+     * replies are never paired with the wrong command. If a transfer prelude
+     * (TYPE/PASV) is in flight, its reply is consumed and the transfer is not
+     * started. A no-op when not logged in or when nothing is in flight.
      */
     void abort() override;
 
@@ -166,6 +176,8 @@ private slots:
     void onDataReadyRead();
     void onDataDisconnected();
     void onDataError(QAbstractSocket::SocketError error);
+
+    void onAbortReplyTimeout();
 
 private:
     using Command = FtpCommandQueue::Command;
@@ -183,6 +195,9 @@ private:
     void drainCommandQueue();
     void resetTransferState();
     void performDisconnectCleanup();
+    void resetCommandTracking();
+    void discardDataTransfer();
+    void discardReply(int code);
     [[nodiscard]] bool ensureLoggedIn(const QString &operation);
 
     /// Builds a context snapshot for the response handler.
@@ -202,6 +217,7 @@ private:
     QTcpSocket *controlSocket_ = nullptr;
     QTcpSocket *dataSocket_ = nullptr;
     QTimer *connectionTimer_ = nullptr;
+    QTimer *abortReplyTimer_ = nullptr;
 
     // Configuration
     QString host_;
@@ -220,6 +236,8 @@ private:
     QString currentLocalPath_;
     FtpCommandQueue commandQueue_;
     QString responseBuffer_;
+    bool awaitingFinalReply_ = false;  ///< Current command has not had its 2xx-5xx reply yet
+    int repliesToDiscard_ = 0;         ///< Final replies still to swallow (abort) before resuming
 
     // Data transfer state
     FtpTransferState transferState_;

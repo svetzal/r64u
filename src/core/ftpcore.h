@@ -172,6 +172,24 @@ struct CommandSpec
  */
 [[nodiscard]] QList<CommandSpec> buildUploadPrelude();
 
+/**
+ * @brief Returns true for commands that move data over the passive data connection.
+ *
+ * These (LIST, RETR, STOR) are the only commands ABOR can interrupt.
+ *
+ * @param cmd Command to classify.
+ * @return True for LIST, RETR and STOR.
+ */
+[[nodiscard]] bool isDataTransferCommand(FtpCommandQueue::Command cmd);
+
+/**
+ * @brief Returns true for commands that only prepare a data transfer.
+ *
+ * @param cmd Command to classify.
+ * @return True for TYPE and PASV.
+ */
+[[nodiscard]] bool isTransferPreludeCommand(FtpCommandQueue::Command cmd);
+
 }  // namespace ftp
 
 #endif  // FTPCORE_H
