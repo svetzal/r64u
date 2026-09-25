@@ -2,6 +2,7 @@
 #include "services/filepreviewservice.h"
 
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QtTest/QtTest>
 
 class TestFilePreviewService : public QObject
@@ -24,7 +25,12 @@ private slots:
     // Edge cases
     void testMultipleRequests();
     void testIgnoresUnrelatedDownloads();
-    void testErrorDuringLoad();
+    void testOwnDownloadFails_ReportsPreviewFailed();
+    void testAnotherComponentsFailure_KeepsThePreviewLoading();
+    void testDisconnect_FailsThePendingPreview();
+    void testConnectionLevelError_FailsThePendingPreview();
+    void testCancelRequest_AbortsItsOwnInFlightDownload();
+    void testCancelRequest_DoesNotAbortAnotherComponentsTransfer();
 
 private:
     MockFtpClient *mockFtp_ = nullptr;
@@ -190,22 +196,93 @@ void TestFilePreviewService::testIgnoresUnrelatedDownloads()
     QCOMPARE(readySpy.at(0).at(0).toString(), QString("/test/file.txt"));
 }
 
-void TestFilePreviewService::testErrorDuringLoad()
+void TestFilePreviewService::testOwnDownloadFails_ReportsPreviewFailed()
 {
     mockFtp_->mockSetConnected(true);
-
     QSignalSpy failedSpy(service_, &FilePreviewService::previewFailed);
-
     service_->requestPreview("/test/file.txt");
-    QVERIFY(service_->isLoading());
 
-    // Simulate an FTP error
-    emit mockFtp_->error("Connection lost");
+    mockFtp_->mockSetNextOperationFails("550 No such file");
+    mockFtp_->mockProcessNextOperation();
 
     QCOMPARE(failedSpy.count(), 1);
     QCOMPARE(failedSpy.at(0).at(0).toString(), QString("/test/file.txt"));
+    QCOMPARE(failedSpy.at(0).at(1).toString(), QString("550 No such file"));
+    QVERIFY(!service_->isLoading());
+}
+
+void TestFilePreviewService::testAnotherComponentsFailure_KeepsThePreviewLoading()
+{
+    mockFtp_->mockSetConnected(true);
+    QSignalSpy failedSpy(service_, &FilePreviewService::previewFailed);
+    service_->requestPreview("/test/file.txt");
+
+    // e.g. a transfer's RETR on the shared client
+    const QString message = "Download failed for '/other.prg': 550";
+    emit mockFtp_->error(message);
+    emit mockFtp_->operationFailed(IFtpClient::Operation::Download, "/other.prg", "/tmp/other.prg",
+                                   message);
+    emit mockFtp_->operationFailed(IFtpClient::Operation::DownloadToMemory, "/other.sid", QString(),
+                                   message);
+
+    QCOMPARE(failedSpy.count(), 0);
+    QVERIFY(service_->isLoading());
+}
+
+void TestFilePreviewService::testDisconnect_FailsThePendingPreview()
+{
+    mockFtp_->mockSetConnected(true);
+    QSignalSpy failedSpy(service_, &FilePreviewService::previewFailed);
+    service_->requestPreview("/test/file.txt");
+
+    mockFtp_->mockSimulateDisconnect();
+
+    QCOMPARE(failedSpy.count(), 1);
+    QCOMPARE(failedSpy.at(0).at(0).toString(), QString("/test/file.txt"));
+    QVERIFY(!service_->isLoading());
+}
+
+void TestFilePreviewService::testConnectionLevelError_FailsThePendingPreview()
+{
+    mockFtp_->mockSetConnected(true);
+    QSignalSpy failedSpy(service_, &FilePreviewService::previewFailed);
+    service_->requestPreview("/test/file.txt");
+    {
+        // A socket error or timeout ends the connection without disconnected()
+        const QSignalBlocker blocker(mockFtp_);
+        mockFtp_->mockSetConnected(false);
+    }
+
+    emit mockFtp_->error("Connection lost");
+
+    QCOMPARE(failedSpy.count(), 1);
     QCOMPARE(failedSpy.at(0).at(1).toString(), QString("Connection lost"));
     QVERIFY(!service_->isLoading());
+}
+
+void TestFilePreviewService::testCancelRequest_AbortsItsOwnInFlightDownload()
+{
+    mockFtp_->mockSetConnected(true);
+    service_->requestPreview("/test/file.txt");
+
+    service_->cancelRequest();
+
+    QCOMPARE(mockFtp_->mockPendingOperationCount(), 0);
+}
+
+void TestFilePreviewService::testCancelRequest_DoesNotAbortAnotherComponentsTransfer()
+{
+    mockFtp_->mockSetConnected(true);
+    QTemporaryDir dir;
+    QSignalSpy finishedSpy(mockFtp_, &IFtpClient::downloadFinished);
+    mockFtp_->download("/games/big.d64", dir.filePath("big.d64"));  // the transfer queue's
+    service_->requestPreview("/test/file.txt");                     // queued behind it
+
+    service_->cancelRequest();
+    mockFtp_->mockProcessNextOperation();
+
+    QCOMPARE(finishedSpy.count(), 1);
+    QCOMPARE(finishedSpy.at(0).at(0).toString(), QString("/games/big.d64"));
 }
 
 QTEST_MAIN(TestFilePreviewService)

@@ -106,6 +106,12 @@ void C64UFtpClient::abort()
     pendingOps_.clear();
 }
 
+void C64UFtpClient::abortIfInFlight(Operation operation, const QString &remotePath)
+{
+    Q_UNUSED(operation)
+    Q_UNUSED(remotePath)
+}
+
 // === Mock control methods ===
 
 void C64UFtpClient::mockSetConnected(bool connected)

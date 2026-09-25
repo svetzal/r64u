@@ -170,6 +170,7 @@ public:
      * the in-flight command is control-only (CWD, MKD, DELE, ...).
      */
     void abort() override;
+    void abortIfInFlight(Operation operation, const QString &remotePath) override;
 
 private slots:
     void onControlConnected();

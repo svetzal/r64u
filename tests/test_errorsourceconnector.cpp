@@ -46,6 +46,7 @@ public:
     void remove(const QString &) override {}
     void rename(const QString &, const QString &) override {}
     void abort() override {}
+    void abortIfInFlight(Operation /*operation*/, const QString & /*remotePath*/) override {}
 
     void emitError(const QString &msg) { emit error(msg); }
 };

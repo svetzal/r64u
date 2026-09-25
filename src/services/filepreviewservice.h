@@ -57,6 +57,9 @@ public:
 
     /**
      * @brief Cancels any pending preview request.
+     *
+     * Aborts the download only if it is the one in flight on the shared client,
+     * never another component's transfer.
      */
     void cancelRequest();
 
@@ -95,9 +98,15 @@ signals:
 
 private slots:
     void onDownloadToMemoryFinished(const QString &remotePath, const QByteArray &data);
+    void onFtpOperationFailed(IFtpClient::Operation operation, const QString &remotePath,
+                              const QString &localPath, const QString &message);
     void onFtpError(const QString &message);
+    void onFtpDisconnected();
 
 private:
+    /// Ends the pending request, if any, with previewFailed(@p message).
+    void failPendingPreview(const QString &message);
+
     QPointer<IFtpClient> ftpClient_;
     QString pendingPath_;
 };

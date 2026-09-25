@@ -90,6 +90,16 @@ public:
 
     virtual void abort() = 0;
 
+    /**
+     * @brief Aborts the in-flight request only if it is @p operation on @p remotePath.
+     *
+     * The client is shared, so a component cancelling its own request must not
+     * abort whatever another component has in flight. A no-op when a different
+     * request is in flight, or when the given one is still queued or already over
+     * (its result then arrives and should be ignored by the caller).
+     */
+    virtual void abortIfInFlight(Operation operation, const QString &remotePath) = 0;
+
 signals:
     void stateChanged(IFtpClient::State state);
     void connected();

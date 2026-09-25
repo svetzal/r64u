@@ -125,6 +125,15 @@ void MockFtpClient::abort()
     }
 }
 
+void MockFtpClient::abortIfInFlight(Operation operation, const QString &remotePath)
+{
+    // The oldest pending operation stands for the one in flight
+    if (!pendingOps_.isEmpty() && operationFor(pendingOps_.head().type) == operation &&
+        pendingOps_.head().path == remotePath) {
+        abort();
+    }
+}
+
 // === Mock control methods ===
 
 void MockFtpClient::mockSetConnected(bool connected)

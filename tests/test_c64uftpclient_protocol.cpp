@@ -535,6 +535,43 @@ private slots:
         QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
     }
 
+    void testAbortIfInFlight_AnotherRequestInFlight_LeavesItRunning()
+    {
+        FakeFtpServer server;
+        server.setFile("/SD/game.prg", "GAME");
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy finishedSpy(ftp, &C64UFtpClient::downloadFinished);
+
+        ftp->download("/SD/game.prg", dir.filePath("game.prg"));  // e.g. the transfer queue's
+        ftp->abortIfInFlight(IFtpClient::Operation::DownloadToMemory, "/SD/tune.sid");
+
+        QTRY_COMPARE_WITH_TIMEOUT(finishedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(server.commandCount("ABOR"), 0);
+        QCOMPARE(readLocalFile(dir.filePath("game.prg")), QByteArray("GAME"));
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+    }
+
+    void testAbortIfInFlight_ItsOwnRequestInFlight_AbortsIt()
+    {
+        FakeFtpServer server;
+        server.setFile("/SD/tune.sid", "SID");
+        QVERIFY(loginTo(server));
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy memorySpy(ftp, &C64UFtpClient::downloadToMemoryFinished);
+
+        ftp->downloadToMemory("/SD/tune.sid");
+        ftp->abortIfInFlight(IFtpClient::Operation::DownloadToMemory, "/SD/tune.sid");
+
+        QTRY_COMPARE_WITH_TIMEOUT(ftp->state(), IFtpClient::State::Ready, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(memorySpy.count(), 0);
+        QCOMPARE(server.commandCount("RETR"), 0);
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+    }
+
     void testServerDisconnect_AfterLogin_EmitsDisconnectedSignal()
     {
         FakeFtpServer server;

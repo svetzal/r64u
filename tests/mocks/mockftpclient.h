@@ -90,6 +90,7 @@ public:
     void rename(const QString &oldPath, const QString &newPath) override;
 
     void abort() override;
+    void abortIfInFlight(Operation operation, const QString &remotePath) override;
     /// @}
 
     /// @name Mock Control Methods

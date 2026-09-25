@@ -847,6 +847,18 @@ void C64UFtpClient::rename(const QString &oldPath, const QString &newPath)
     queueCommand(Command::RnTo, newPath, QString(), operationId);
 }
 
+void C64UFtpClient::abortIfInFlight(Operation operation, const QString &remotePath)
+{
+    const auto request = requests_.constFind(currentOperationId_);
+    if (currentOperationId_ == 0 || request == requests_.cend() ||
+        request->operation != operation || request->remotePath != remotePath) {
+        qCDebug(LogFtp) << "FTP: abortIfInFlight() ignored —" << operation << remotePath
+                        << "is not in flight";
+        return;
+    }
+    abort();
+}
+
 void C64UFtpClient::abort()
 {
     if (!loggedIn_) {
