@@ -478,6 +478,58 @@ private slots:
         QCOMPARE(ftp->state(), IFtpClient::State::Ready);
     }
 
+    void testAbort_MidDownload_KeepsOtherQueuedOperations()
+    {
+        FakeFtpServer server;
+        server.setFile("/SD/big.d64", QByteArray(200000, 'b'));
+        server.setFile("/SD/tune.sid", "SID");
+        server.setListing(OneFileListing);
+        server.setStallAfterBytes(1000);
+        QVERIFY(loginTo(server));
+        QTemporaryDir dir;
+        QSignalSpy progressSpy(ftp, &C64UFtpClient::downloadProgress);
+        QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
+        QSignalSpy memorySpy(ftp, &C64UFtpClient::downloadToMemoryFinished);
+        QSignalSpy finishedSpy(ftp, &C64UFtpClient::downloadFinished);
+
+        ftp->download("/SD/big.d64", dir.filePath("big.d64"));
+        // Requests from other components queued behind the transfer
+        ftp->list("/SD/browse");
+        ftp->downloadToMemory("/SD/tune.sid");
+        QTRY_VERIFY_WITH_TIMEOUT(!progressSpy.isEmpty(), SignalTimeoutMs);
+        server.setStallAfterBytes(-1);
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+
+        ftp->abort();
+
+        QTRY_COMPARE_WITH_TIMEOUT(memorySpy.count(), 1, SignalTimeoutMs);
+        QCOMPARE(listedSpy.count(), 1);
+        QCOMPARE(listedSpy.first().at(0).toString(), QString("/SD/browse"));
+        QCOMPARE(memorySpy.first().at(1).toByteArray(), QByteArray("SID"));
+        QCOMPARE(finishedSpy.count(), 0);
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+    }
+
+    void testAbort_DuringListPrelude_KeepsLaterOperations()
+    {
+        FakeFtpServer server;
+        server.setListing(OneFileListing);
+        QVERIFY(loginTo(server));
+        QSignalSpy errorSpy(ftp, &C64UFtpClient::error);
+        QSignalSpy listedSpy(ftp, &C64UFtpClient::directoryListed);
+
+        ftp->list("/SD/first");
+        ftp->list("/SD/second");
+        ftp->abort();  // cancels only /SD/first, whose TYPE is in flight
+
+        QTRY_COMPARE_WITH_TIMEOUT(listedSpy.count(), 1, SignalTimeoutMs);
+        letLateSignalsArrive();
+        QCOMPARE(listedSpy.count(), 1);
+        QCOMPARE(listedSpy.first().at(0).toString(), QString("/SD/second"));
+        QCOMPARE(server.commandCount("LIST"), 1);
+        QVERIFY2(errorSpy.isEmpty(), qPrintable(describeErrors(errorSpy)));
+    }
+
     void testServerDisconnect_AfterLogin_EmitsDisconnectedSignal()
     {
         FakeFtpServer server;

@@ -45,6 +45,8 @@ public:
         QString localPath;                    ///< Local filesystem path for transfer commands
         std::shared_ptr<QFile> transferFile;  ///< File handle for RETR/STOR commands
         bool isMemoryDownload = false;        ///< True when RETR result goes to memory, not disk
+        quint64 operationId =
+            0;  ///< Groups the commands of one caller operation (e.g. TYPE+PASV+RETR)
     };
 
     /**
@@ -52,8 +54,10 @@ public:
      * @param cmd The command to queue.
      * @param arg Optional argument string.
      * @param localPath Optional local filesystem path.
+     * @param operationId Operation this command belongs to (see takeOperation()).
      */
-    void enqueue(Command cmd, const QString &arg = {}, const QString &localPath = {});
+    void enqueue(Command cmd, const QString &arg = {}, const QString &localPath = {},
+                 quint64 operationId = 0);
 
     /**
      * @brief Enqueues a RETR command with a pre-opened file handle.
@@ -61,18 +65,20 @@ public:
      * @param localPath Local destination path.
      * @param file Pre-opened QFile for writing (may be nullptr for memory downloads).
      * @param isMemory True when data should be delivered to memory rather than disk.
+     * @param operationId Operation this command belongs to (see takeOperation()).
      */
     void enqueueRetr(const QString &remotePath, const QString &localPath,
-                     std::shared_ptr<QFile> file, bool isMemory);
+                     std::shared_ptr<QFile> file, bool isMemory, quint64 operationId = 0);
 
     /**
      * @brief Enqueues a STOR command with a pre-opened file handle.
      * @param remotePath Remote destination path.
      * @param localPath Local source path.
      * @param file Pre-opened QFile for reading.
+     * @param operationId Operation this command belongs to (see takeOperation()).
      */
     void enqueueStor(const QString &remotePath, const QString &localPath,
-                     std::shared_ptr<QFile> file);
+                     std::shared_ptr<QFile> file, quint64 operationId = 0);
 
     /**
      * @brief Returns true if the queue contains no pending commands.
@@ -93,6 +99,17 @@ public:
      * @return The next PendingCommand.
      */
     PendingCommand dequeueNext();
+
+    /**
+     * @brief Removes every queued command belonging to one operation.
+     *
+     * Used when an operation fails or is aborted part-way, so its remaining
+     * commands are not sent while other operations stay queued in order.
+     *
+     * @param operationId The operation to remove.
+     * @return The removed commands, in queue order (file handles still owned by them).
+     */
+    [[nodiscard]] QList<PendingCommand> takeOperation(quint64 operationId);
 
     /**
      * @brief Closes all file handles and empties the queue.

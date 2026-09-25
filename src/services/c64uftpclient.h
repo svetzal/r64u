@@ -161,7 +161,10 @@ public:
      * transfer command) before the next queued command is dispatched, so
      * replies are never paired with the wrong command. If a transfer prelude
      * (TYPE/PASV) is in flight, its reply is consumed and the transfer is not
-     * started. A no-op when not logged in or when nothing is in flight.
+     * started. Only the in-flight operation is cancelled: commands queued by
+     * other callers stay queued and run afterwards. No signal is emitted for
+     * the cancelled operation. A no-op when not logged in, when idle, or when
+     * the in-flight command is control-only (CWD, MKD, DELE, ...).
      */
     void abort() override;
 
@@ -186,11 +189,15 @@ private:
     void setState(State state);
     void sendCommand(const QString &command);
     void queueCommand(Command cmd, const QString &arg = QString(),
-                      const QString &localPath = QString());
+                      const QString &localPath = QString(), quint64 operationId = 0);
     void queueRetrCommand(const QString &remotePath, const QString &localPath,
-                          std::shared_ptr<QFile> file, bool isMemory);
+                          std::shared_ptr<QFile> file, bool isMemory, quint64 operationId);
     void queueStorCommand(const QString &remotePath, const QString &localPath,
-                          std::shared_ptr<QFile> file);
+                          std::shared_ptr<QFile> file, quint64 operationId);
+    /// Allocates the id that groups the commands of one public operation.
+    [[nodiscard]] quint64 beginOperation() { return nextOperationId_++; }
+    /// Drops the not-yet-sent commands of the operation currently in flight.
+    void dropRestOfCurrentOperation();
     void processNextCommand();
     void drainCommandQueue();
     void resetTransferState();
@@ -234,6 +241,8 @@ private:
     Command currentCommand_ = Command::None;
     QString currentArg_;
     QString currentLocalPath_;
+    quint64 currentOperationId_ = 0;
+    quint64 nextOperationId_ = 1;  ///< 0 is reserved for internal (login) commands
     FtpCommandQueue commandQueue_;
     QString responseBuffer_;
     bool awaitingFinalReply_ = false;  ///< Current command has not had its 2xx-5xx reply yet

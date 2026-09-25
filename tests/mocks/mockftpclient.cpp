@@ -118,7 +118,11 @@ void MockFtpClient::rename(const QString &oldPath, const QString &newPath)
 
 void MockFtpClient::abort()
 {
-    pendingOps_.clear();
+    // Mirrors C64UFtpClient: only the in-flight (oldest) operation is cancelled;
+    // operations queued behind it by other callers still complete.
+    if (!pendingOps_.isEmpty()) {
+        pendingOps_.dequeue();
+    }
 }
 
 // === Mock control methods ===

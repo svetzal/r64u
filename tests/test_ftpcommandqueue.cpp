@@ -151,6 +151,47 @@ private slots:
         QCOMPARE(cmd.arg, QString("/old/path"));
         QCOMPARE(cmd.localPath, QString("/stored/local"));
     }
+
+    // --- Operation grouping ---
+
+    void enqueue_recordsOperationId()
+    {
+        FtpCommandQueue queue;
+        queue.enqueue(FtpCommandQueue::Command::Type, "I", {}, 7);
+        queue.enqueueRetr("/remote", "/local", nullptr, false, 7);
+        queue.enqueueStor("/remote2", "/local2", nullptr, 8);
+
+        QCOMPARE(queue.dequeueNext().operationId, quint64(7));
+        QCOMPARE(queue.dequeueNext().operationId, quint64(7));
+        QCOMPARE(queue.dequeueNext().operationId, quint64(8));
+    }
+
+    void takeOperation_removesOnlyThatOperation_andKeepsOthersInOrder()
+    {
+        FtpCommandQueue queue;
+        queue.enqueue(FtpCommandQueue::Command::Pasv, {}, {}, 1);
+        queue.enqueueRetr("/a", "/local/a", nullptr, false, 1);
+        queue.enqueue(FtpCommandQueue::Command::Type, "A", {}, 2);
+        queue.enqueue(FtpCommandQueue::Command::List, "/b", {}, 2);
+
+        const auto removed = queue.takeOperation(1);
+
+        QCOMPARE(removed.size(), 2);
+        QCOMPARE(removed.at(0).cmd, FtpCommandQueue::Command::Pasv);
+        QCOMPARE(removed.at(1).cmd, FtpCommandQueue::Command::Retr);
+        QCOMPARE(queue.size(), 2);
+        QCOMPARE(queue.dequeueNext().cmd, FtpCommandQueue::Command::Type);
+        QCOMPARE(queue.dequeueNext().arg, QString("/b"));
+    }
+
+    void takeOperation_unknownId_leavesQueueUntouched()
+    {
+        FtpCommandQueue queue;
+        queue.enqueue(FtpCommandQueue::Command::Pwd, {}, {}, 1);
+
+        QVERIFY(queue.takeOperation(99).isEmpty());
+        QCOMPARE(queue.size(), 1);
+    }
 };
 
 QTEST_MAIN(TestFtpCommandQueue)

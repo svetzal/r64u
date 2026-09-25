@@ -120,9 +120,10 @@ void C64UFtpClient::sendCommand(const QString &command)
     controlSocket_->write((command + "\r\n").toUtf8());
 }
 
-void C64UFtpClient::queueCommand(Command cmd, const QString &arg, const QString &localPath)
+void C64UFtpClient::queueCommand(Command cmd, const QString &arg, const QString &localPath,
+                                 quint64 operationId)
 {
-    commandQueue_.enqueue(cmd, arg, localPath);
+    commandQueue_.enqueue(cmd, arg, localPath, operationId);
 
     if (state_ == State::Ready) {
         processNextCommand();
@@ -130,9 +131,10 @@ void C64UFtpClient::queueCommand(Command cmd, const QString &arg, const QString 
 }
 
 void C64UFtpClient::queueRetrCommand(const QString &remotePath, const QString &localPath,
-                                     std::shared_ptr<QFile> file, bool isMemory)
+                                     std::shared_ptr<QFile> file, bool isMemory,
+                                     quint64 operationId)
 {
-    commandQueue_.enqueueRetr(remotePath, localPath, std::move(file), isMemory);
+    commandQueue_.enqueueRetr(remotePath, localPath, std::move(file), isMemory, operationId);
 
     if (state_ == State::Ready) {
         processNextCommand();
@@ -140,9 +142,9 @@ void C64UFtpClient::queueRetrCommand(const QString &remotePath, const QString &l
 }
 
 void C64UFtpClient::queueStorCommand(const QString &remotePath, const QString &localPath,
-                                     std::shared_ptr<QFile> file)
+                                     std::shared_ptr<QFile> file, quint64 operationId)
 {
-    commandQueue_.enqueueStor(remotePath, localPath, std::move(file));
+    commandQueue_.enqueueStor(remotePath, localPath, std::move(file), operationId);
 
     if (state_ == State::Ready) {
         processNextCommand();
@@ -162,6 +164,7 @@ void C64UFtpClient::processNextCommand()
     currentCommand_ = pending.cmd;
     currentArg_ = pending.arg;
     currentLocalPath_ = pending.localPath;
+    currentOperationId_ = pending.operationId;
 
     // RETR and STOR require transfer-state mutation before sending the wire command
     if (currentCommand_ == Command::Retr) {
@@ -506,6 +509,15 @@ void C64UFtpClient::resetCommandTracking()
     currentCommand_ = Command::None;
 }
 
+void C64UFtpClient::dropRestOfCurrentOperation()
+{
+    for (const auto &dropped : commandQueue_.takeOperation(currentOperationId_)) {
+        if (dropped.transferFile) {
+            dropped.transferFile->close();
+        }
+    }
+}
+
 void C64UFtpClient::drainCommandQueue()
 {
     commandQueue_.drain();
@@ -543,8 +555,9 @@ void C64UFtpClient::list(const QString &path)
 {
     if (!ensureLoggedIn(tr("list directory")))
         return;
+    const quint64 operationId = beginOperation();
     for (const auto &spec : ftp::buildListSequence(path)) {
-        queueCommand(spec.cmd, spec.arg);
+        queueCommand(spec.cmd, spec.arg, QString(), operationId);
     }
 }
 
@@ -552,21 +565,21 @@ void C64UFtpClient::changeDirectory(const QString &path)
 {
     if (!ensureLoggedIn(tr("change directory")))
         return;
-    queueCommand(Command::Cwd, path);
+    queueCommand(Command::Cwd, path, QString(), beginOperation());
 }
 
 void C64UFtpClient::makeDirectory(const QString &path)
 {
     if (!ensureLoggedIn(tr("create directory")))
         return;
-    queueCommand(Command::Mkd, path);
+    queueCommand(Command::Mkd, path, QString(), beginOperation());
 }
 
 void C64UFtpClient::removeDirectory(const QString &path)
 {
     if (!ensureLoggedIn(tr("remove directory")))
         return;
-    queueCommand(Command::Rmd, path);
+    queueCommand(Command::Rmd, path, QString(), beginOperation());
 }
 
 void C64UFtpClient::download(const QString &remotePath, const QString &localPath)
@@ -581,10 +594,11 @@ void C64UFtpClient::download(const QString &remotePath, const QString &localPath
     }
 
     transferState_.setTransferSize(0);
+    const quint64 operationId = beginOperation();
     for (const auto &spec : ftp::buildDownloadPrelude()) {
-        queueCommand(spec.cmd, spec.arg);
+        queueCommand(spec.cmd, spec.arg, QString(), operationId);
     }
-    queueRetrCommand(remotePath, localPath, std::move(file), false);
+    queueRetrCommand(remotePath, localPath, std::move(file), false, operationId);
 }
 
 void C64UFtpClient::downloadToMemory(const QString &remotePath)
@@ -594,10 +608,11 @@ void C64UFtpClient::downloadToMemory(const QString &remotePath)
 
     transferState_.clearRetrBuffer();
     transferState_.setTransferSize(0);
+    const quint64 operationId = beginOperation();
     for (const auto &spec : ftp::buildDownloadPrelude()) {
-        queueCommand(spec.cmd, spec.arg);
+        queueCommand(spec.cmd, spec.arg, QString(), operationId);
     }
-    queueRetrCommand(remotePath, QString(), nullptr, true);
+    queueRetrCommand(remotePath, QString(), nullptr, true, operationId);
 }
 
 void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
@@ -612,25 +627,27 @@ void C64UFtpClient::upload(const QString &localPath, const QString &remotePath)
     }
 
     transferState_.setTransferSize(file->size());
+    const quint64 operationId = beginOperation();
     for (const auto &spec : ftp::buildUploadPrelude()) {
-        queueCommand(spec.cmd, spec.arg);
+        queueCommand(spec.cmd, spec.arg, QString(), operationId);
     }
-    queueStorCommand(remotePath, localPath, std::move(file));
+    queueStorCommand(remotePath, localPath, std::move(file), operationId);
 }
 
 void C64UFtpClient::remove(const QString &path)
 {
     if (!ensureLoggedIn(tr("delete file")))
         return;
-    queueCommand(Command::Dele, path);
+    queueCommand(Command::Dele, path, QString(), beginOperation());
 }
 
 void C64UFtpClient::rename(const QString &oldPath, const QString &newPath)
 {
     if (!ensureLoggedIn(tr("rename file")))
         return;
-    queueCommand(Command::RnFr, oldPath, oldPath);  // Store oldPath for signal
-    queueCommand(Command::RnTo, newPath);
+    const quint64 operationId = beginOperation();
+    queueCommand(Command::RnFr, oldPath, oldPath, operationId);  // Store oldPath for signal
+    queueCommand(Command::RnTo, newPath, QString(), operationId);
 }
 
 void C64UFtpClient::abort()
@@ -642,8 +659,6 @@ void C64UFtpClient::abort()
         return;
     }
 
-    drainCommandQueue();
-
     if (state_ != State::Busy || repliesToDiscard_ > 0) {
         qCDebug(LogFtp) << "FTP: abort() ignored — nothing in flight";
         return;
@@ -652,6 +667,7 @@ void C64UFtpClient::abort()
     if (ftp::isTransferPreludeCommand(currentCommand_)) {
         // TYPE/PASV cannot be aborted on the wire. Swallow the reply that is on
         // its way so the transfer it prepares is never started.
+        dropRestOfCurrentOperation();
         if (awaitingFinalReply_) {
             repliesToDiscard_ = 1;
         } else {
@@ -666,6 +682,7 @@ void C64UFtpClient::abort()
         return;
     }
 
+    dropRestOfCurrentOperation();
     discardDataTransfer();
 
     if (!awaitingFinalReply_) {
