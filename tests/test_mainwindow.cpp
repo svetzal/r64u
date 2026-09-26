@@ -88,6 +88,50 @@ class TestMainWindow : public QObject
                 window.findChild<PlaylistService *>()};
     }
 
+    /// The toolbar MainWindow adds to itself (not those inside the panels).
+    static QToolBar *systemToolBar(MainWindow &window)
+    {
+        for (QToolBar *toolBar : window.findChildren<QToolBar *>()) {
+            if (toolBar->parentWidget() == &window) {
+                return toolBar;
+            }
+        }
+        return nullptr;
+    }
+
+    static void showAtKnownSize(MainWindow &window)
+    {
+        window.resize(1200, 800);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QCoreApplication::processEvents();
+    }
+
+    /// Asserts the System toolbar spans the window with nothing overflowing.
+    static void verifySystemToolBarSpansWindow(MainWindow &window)
+    {
+        QToolBar *toolBar = systemToolBar(window);
+        QVERIFY(toolBar != nullptr);
+        QCOMPARE(window.toolBarArea(toolBar), Qt::TopToolBarArea);
+        QCOMPARE(toolBar->x(), 0);
+        QCOMPARE(toolBar->width(), window.width());
+
+        auto *connectionStatus = toolBar->findChild<ConnectionStatusWidget *>();
+        QVERIFY(connectionStatus != nullptr);
+        QVERIFY2(connectionStatus->isVisible(),
+                 "connection status was pushed into the toolbar's extension menu");
+    }
+
+    /// A window/state saved by an earlier r64u (QMainWindow::saveState version
+    /// 0): three unnamed top-area toolbar entries at positions 0, 366 and 1192.
+    static QByteArray staleUnnamedToolBarState()
+    {
+        return QByteArray::fromHex("000000ff00000000fd00000000000006c0000003a5000000040000000400"
+                                   "00000800000008fc000000010000000200000003ffffffff0100000000ff"
+                                   "ffffff0000000000000000ffffffff010000016effffffff000000000000"
+                                   "0000ffffffff01000004a8ffffffff0000000000000000");
+    }
+
 private slots:
     void init()
     {
@@ -173,6 +217,41 @@ private slots:
         QCoreApplication::processEvents();
 
         QVERIFY(!dialogShown);
+    }
+
+    // =========================================================================
+    // Window layout — saved state
+    // =========================================================================
+
+    void testStaleSavedState_systemToolBarStillSpansWindow()
+    {
+        QCOMPARE(staleUnnamedToolBarState().size(), 113);
+        {
+            QSettings settings;
+            settings.setValue("window/state", staleUnnamedToolBarState());
+            settings.sync();
+        }
+
+        MainWindow window;
+        showAtKnownSize(window);
+
+        verifySystemToolBarSpansWindow(window);
+    }
+
+    void testSavedState_roundTripKeepsSystemToolBarSpanningWindow()
+    {
+        {
+            MainWindow first;
+            showAtKnownSize(first);
+        }  // saves window/state on destruction
+
+        MainWindow second;
+        showAtKnownSize(second);
+
+        QToolBar *toolBar = systemToolBar(second);
+        QVERIFY(toolBar != nullptr);
+        QCOMPARE(toolBar->objectName(), QStringLiteral("SystemToolBar"));
+        verifySystemToolBarSpansWindow(second);
     }
 
     // =========================================================================

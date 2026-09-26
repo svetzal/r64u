@@ -34,6 +34,7 @@
 #include "ui/systemtoolbarbuilder.h"
 #include "ui/transferpanel.h"
 #include "ui/viewpanel.h"
+#include "utils/logging.h"
 
 #include <QCloseEvent>
 #include <QFileInfo>
@@ -44,6 +45,16 @@
 #include <QStatusBar>
 #include <QTimer>
 #include <QVBoxLayout>
+
+namespace {
+
+/// Version tag for the saved toolbar/dock layout. Bump it whenever the
+/// toolbars or docks change in a way an older saved layout would misplace.
+/// Version 1: toolbars are named; version 0 layouts held unnamed toolbars,
+/// which Qt 6.11 applies to the wrong toolbar, squeezing it to the right.
+constexpr int kWindowStateVersion = 1;
+
+}  // namespace
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
@@ -148,6 +159,7 @@ void MainWindow::setupMenuBar()
 void MainWindow::setupSystemToolBar()
 {
     systemToolBar_ = addToolBar(tr("System"));
+    systemToolBar_->setObjectName(QStringLiteral("SystemToolBar"));  // keys its saved state
     systemToolBar_->setMovable(false);
     systemToolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
@@ -351,7 +363,10 @@ void MainWindow::loadSettings()
 
     // Restore window geometry (legitimate UI concern)
     restoreGeometry(settings.value("window/geometry").toByteArray());
-    restoreState(settings.value("window/state").toByteArray());
+    const QByteArray windowState = settings.value("window/state").toByteArray();
+    if (!windowState.isEmpty() && !restoreState(windowState, kWindowStateVersion)) {
+        qCDebug(LogUi) << "Ignoring saved window state from an older layout; using defaults";
+    }
 
     // Load panel settings
     explorePanel_->loadSettings();
@@ -363,7 +378,7 @@ void MainWindow::saveSettings()
 {
     QSettings settings;
     settings.setValue("window/geometry", saveGeometry());
-    settings.setValue("window/state", saveState());
+    settings.setValue("window/state", saveState(kWindowStateVersion));
 
     // Save panel settings
     explorePanel_->saveSettings();

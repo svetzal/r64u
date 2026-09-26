@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-09-26
+
+### Fixed
+- The System toolbar was squeezed to the right of the window, with most buttons in its overflow menu, under Qt 6.11 with a previously saved window layout
+
 ## [0.11.0] - 2026-09-25
 
 ### Added
