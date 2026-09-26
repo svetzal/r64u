@@ -42,11 +42,16 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QSettings>
+#include <QShortcut>
 #include <QStatusBar>
+#include <QTabBar>
 #include <QTimer>
 #include <QVBoxLayout>
 
 namespace {
+
+/// Margins around the mode tabs when the window chrome is showing.
+const QMargins kCentralMargins(8, 16, 8, 8);
 
 /// Version tag for the saved toolbar/dock layout. Bump it whenever the
 /// toolbars or docks change in a way an older saved layout would misplace.
@@ -139,7 +144,7 @@ void MainWindow::setupUi()
     // Create container with top margin for spacing below toolbar
     auto *centralContainer = new QWidget(this);
     auto *layout = new QVBoxLayout(centralContainer);
-    layout->setContentsMargins(8, 16, 8, 8);
+    layout->setContentsMargins(kCentralMargins);
     layout->setSpacing(0);
 
     // Create tabbed mode widget
@@ -153,7 +158,25 @@ void MainWindow::setupUi()
 
 void MainWindow::setupMenuBar()
 {
-    refreshAction_ = MenuBarBuilder::build(this, systemCommandController_, modeTabWidget_);
+    fullScreenAction_ = new QAction(tr("Enter Full Screen"), this);
+    fullScreenAction_->setObjectName(QStringLiteral("FullScreenAction"));
+    fullScreenAction_->setToolTip(tr("Watch the C64 on the whole screen"));
+#ifdef Q_OS_MACOS
+    fullScreenAction_->setShortcut(QKeySequence::FullScreen);
+#else
+    fullScreenAction_->setShortcut(QKeySequence(Qt::Key_F11));
+#endif
+    connect(fullScreenAction_, &QAction::triggered, this, &MainWindow::toggleFullScreen);
+
+    // Escape leaves full screen from anywhere in the window; armed only while in it
+    exitFullScreenShortcut_ = new QShortcut(QKeySequence(Qt::Key_Escape), this);
+    exitFullScreenShortcut_->setContext(Qt::ApplicationShortcut);
+    exitFullScreenShortcut_->setEnabled(false);
+    connect(exitFullScreenShortcut_, &QShortcut::activated, this,
+            [this]() { setFullScreen(false); });
+
+    refreshAction_ =
+        MenuBarBuilder::build(this, systemCommandController_, modeTabWidget_, fullScreenAction_);
 }
 
 void MainWindow::setupSystemToolBar()
@@ -224,6 +247,7 @@ void MainWindow::setupPanels(ServiceFactory *services)
     viewPanel_->setStreamingService(streamingService);
     viewPanel_->setRecordingService(recordingService);
     viewPanel_->setScreenshotService(new ScreenshotService(viewPanel_));
+    viewPanel_->setFullScreenAction(fullScreenAction_);
 
     // Streaming error routing is handled via ErrorHandler::connectSources() in setupConnections()
 
@@ -308,6 +332,40 @@ void MainWindow::switchToMode(Mode mode)
     updateWindowTitle();
     if (connectionUiController_) {
         connectionUiController_->updateAll();
+    }
+}
+
+void MainWindow::toggleFullScreen()
+{
+    setFullScreen(!fullScreen_);
+}
+
+void MainWindow::setFullScreen(bool on)
+{
+    if (fullScreen_ == on) {
+        return;
+    }
+    fullScreen_ = on;
+
+    if (on) {
+        stateBeforeFullScreen_ = windowState() & ~Qt::WindowFullScreen;
+        switchToMode(Mode::View);
+        showFullScreen();
+    } else {
+        setWindowState(stateBeforeFullScreen_);
+    }
+
+    // Only the C64's screen stays: no toolbar, tabs, status bar or margins
+    systemToolBar_->setVisible(!on);
+    modeTabWidget_->tabBar()->setVisible(!on);
+    statusBar()->setVisible(!on);
+    centralWidget()->layout()->setContentsMargins(on ? QMargins() : kCentralMargins);
+    viewPanel_->setChromeHidden(on);
+
+    exitFullScreenShortcut_->setEnabled(on);
+    fullScreenAction_->setText(on ? tr("Exit Full Screen") : tr("Enter Full Screen"));
+    if (on) {
+        viewPanel_->focusVideoDisplay();
     }
 }
 

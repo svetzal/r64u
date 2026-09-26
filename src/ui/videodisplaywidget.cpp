@@ -5,11 +5,27 @@
 
 #include "videodisplaywidget.h"
 
+#include "c64screenwidget.h"
+
+#include "core/themecore.h"
 #include "services/vic2frameconverter.h"
 #include "utils/logging.h"
 
+#include <QFontMetrics>
 #include <QKeyEvent>
 #include <QPainter>
+
+namespace {
+
+/// Layout of the keyboard badge in the bottom-right corner.
+constexpr int BadgeInset = 8;
+constexpr int BadgePaddingX = 6;
+constexpr int BadgePaddingY = 4;
+constexpr int BadgeRadius = 4;
+constexpr int BadgeFontPx = 16;
+constexpr int FocusFramePx = 2;
+
+}  // namespace
 
 VideoDisplayWidget::VideoDisplayWidget(QWidget *parent)
     : QWidget(parent), displayTimer_(new QTimer(this))
@@ -141,8 +157,9 @@ void VideoDisplayWidget::paintEvent(QPaintEvent * /*event*/)
     QPainter painter(this);
 
     if (!hasFrame_) {
-        // Just show black background
-        painter.fillRect(rect(), Qt::black);
+        // Stand in for the C64 with a C64 screen until frames arrive
+        c64screen::paint(painter, rect(), placeholderLines_, themecore::effectiveScheme(), 0);
+        paintKeyboardIndicator(painter);
         return;
     }
 
@@ -165,6 +182,59 @@ void VideoDisplayWidget::paintEvent(QPaintEvent * /*event*/)
     }
 
     painter.drawImage(displayRect, displayImage_);
+    paintKeyboardIndicator(painter);
+}
+
+void VideoDisplayWidget::paintKeyboardIndicator(QPainter &painter) const
+{
+    const bool focused = hasFocus();
+    if (!focused && !hasFrame_) {
+        return;
+    }
+
+    const themecore::Tokens tokens = themecore::currentTokens();
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing, true);
+
+    if (focused) {
+        QPen pen(tokens.stateConnected, FocusFramePx);
+        pen.setJoinStyle(Qt::MiterJoin);
+        painter.setPen(pen);
+        painter.setBrush(Qt::NoBrush);
+        const int half = FocusFramePx / 2;
+        painter.drawRect(rect().adjusted(half, half, -half - 1, -half - 1));
+    }
+
+    QFont badgeFont(QStringLiteral("C64 Pro Mono"));
+    badgeFont.setStyleHint(QFont::Monospace);
+    badgeFont.setPixelSize(BadgeFontPx);
+    painter.setFont(badgeFont);
+
+    const QString text = focused ? tr("KEYS TO C64") : tr("CLICK TO TYPE");
+    const QFontMetrics metrics(badgeFont);
+    const QSize textSize(metrics.horizontalAdvance(text), metrics.height());
+    const QRect badge(width() - BadgeInset - textSize.width() - 2 * BadgePaddingX,
+                      height() - BadgeInset - textSize.height() - 2 * BadgePaddingY,
+                      textSize.width() + 2 * BadgePaddingX, textSize.height() + 2 * BadgePaddingY);
+
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(QColor(0, 0, 0, 150));
+    painter.drawRoundedRect(badge, BadgeRadius, BadgeRadius);
+
+    painter.setPen(focused ? QColor(Qt::white) : QColor(255, 255, 255, 140));
+    painter.drawText(badge, Qt::AlignCenter, text);
+    painter.restore();
+}
+
+void VideoDisplayWidget::setPlaceholderLines(const QStringList &lines)
+{
+    if (placeholderLines_ == lines) {
+        return;
+    }
+    placeholderLines_ = lines;
+    if (!hasFrame_) {
+        update();
+    }
 }
 
 void VideoDisplayWidget::convertFrameToRgb(const QByteArray &frameData, int height)
@@ -220,23 +290,30 @@ QRect VideoDisplayWidget::calculateDisplayRect() const
 
 void VideoDisplayWidget::keyPressEvent(QKeyEvent *event)
 {
+    // Escape belongs to the window (it leaves full screen), never to the C64
+    if (event->key() == Qt::Key_Escape) {
+        event->ignore();
+        return;
+    }
+
     // Emit signal for parent to handle
     emit keyPressed(event);
 
-    // Don't call base implementation - we handle all keys
+    // Don't call base implementation - we handle all other keys
     event->accept();
 }
 
 void VideoDisplayWidget::focusInEvent(QFocusEvent *event)
 {
     QWidget::focusInEvent(event);
-    // Could add visual focus indicator here if desired
+    emit keyboardFocusChanged(true);
     update();
 }
 
 void VideoDisplayWidget::focusOutEvent(QFocusEvent *event)
 {
     QWidget::focusOutEvent(event);
+    emit keyboardFocusChanged(false);
     update();
 }
 

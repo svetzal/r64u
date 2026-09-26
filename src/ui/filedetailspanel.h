@@ -5,14 +5,22 @@
 
 #include <QLabel>
 #include <QStackedWidget>
-#include <QStyleHints>
 #include <QTextBrowser>
 #include <QWidget>
 
+class C64ScreenWidget;
 class SonglengthsDatabaseService;
 class HVSCMetadataService;
 class GameBase64Service;
 
+/**
+ * @brief Shows the selected file the way a C64 would: on a C64 screen.
+ *
+ * Every state except HTML pages (which keep a QTextBrowser) is a set of
+ * screen lines on one C64ScreenWidget: the empty prompt, the BASIC-style
+ * info card for programs, text files, disk directories, SID details,
+ * loading notices and errors.
+ */
 class FileDetailsPanel : public QWidget, public IDetailsDisplay
 {
     Q_OBJECT
@@ -52,33 +60,21 @@ public:
 signals:
     void contentRequested(const QString &path);
 
-private slots:
-    void onColorSchemeChanged(Qt::ColorScheme scheme);
-
 private:
     void setupUi();
-    void applyC64TextStyle();
+    void showScreenText(const QString &fileName, const QString &text);
+    void showScreenLines(const QString &fileName, const QStringList &lines);
 
     QStackedWidget *stack_ = nullptr;
-    QWidget *emptyPage_ = nullptr;
-    QWidget *infoPage_ = nullptr;
-    QWidget *textPage_ = nullptr;
+    QWidget *screenPage_ = nullptr;
     QWidget *htmlPage_ = nullptr;
 
-    // Info page widgets
+    // Screen page widgets
     QLabel *fileNameLabel_ = nullptr;
-    QLabel *fileSizeLabel_ = nullptr;
-    QLabel *fileTypeLabel_ = nullptr;
-
-    // Text page widgets
-    QLabel *textFileNameLabel_ = nullptr;
-    QTextBrowser *textBrowser_ = nullptr;
+    C64ScreenWidget *screen_ = nullptr;
 
     // HTML page widgets
     QTextBrowser *htmlBrowser_ = nullptr;
-
-    // Loading/error states
-    QLabel *statusLabel_ = nullptr;
 
     QString currentPath_;
 

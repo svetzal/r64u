@@ -1,6 +1,7 @@
 #include "filedetailspanel.h"
 
-#include "core/c64screenstyle.h"
+#include "c64screenwidget.h"
+
 #include "core/diskimagereader.h"
 #include "core/fileactioncore.h"
 #include "core/filemetadatacore.h"
@@ -10,11 +11,43 @@
 
 #include <QFileInfo>
 #include <QFont>
-#include <QGuiApplication>
-#include <QHBoxLayout>
-#include <QTextBlockFormat>
-#include <QTextCursor>
 #include <QVBoxLayout>
+
+namespace {
+
+/// Characters `LOAD"` and `",8,1` take on the 40-column LOAD line.
+constexpr int LoadLineOverhead = 10;
+
+QString humanSize(qint64 size)
+{
+    if (size < 1024) {
+        return QObject::tr("%1 bytes").arg(size);
+    }
+    if (size < qint64{1024} * 1024) {
+        return QObject::tr("%1 KB").arg(size / 1024.0, 0, 'f', 1);
+    }
+    return QObject::tr("%1 MB").arg(size / (1024.0 * 1024.0), 0, 'f', 2);
+}
+
+/// `LOAD"<name>",8,1`, with the name cut so the line fits the screen width.
+QString loadLine(const QString &fileName, int columns)
+{
+    const QString name = fileName.left(std::max(0, columns - LoadLineOverhead));
+    return QStringLiteral("LOAD\"%1\",8,1").arg(name);
+}
+
+QStringList emptyStateLines()
+{
+    return {QStringLiteral("    **** R64U FILE DETAILS ****"), QString(),
+            QObject::tr("SELECT A FILE TO VIEW ITS DETAILS."), QString(), QStringLiteral("READY.")};
+}
+
+QString errorLine(const QString &message)
+{
+    return QStringLiteral("?%1  ERROR").arg(message);
+}
+
+}  // namespace
 
 FileDetailsPanel::FileDetailsPanel(QWidget *parent) : QWidget(parent)
 {
@@ -43,19 +76,10 @@ void FileDetailsPanel::setupUi()
 
     stack_ = new QStackedWidget();
 
-    // Empty page (page 0) - shown when nothing is selected
-    emptyPage_ = new QWidget();
-    auto *emptyLayout = new QVBoxLayout(emptyPage_);
-    auto *emptyLabel = new QLabel(tr("Select a file to view details"));
-    emptyLabel->setAlignment(Qt::AlignCenter);
-    emptyLabel->setStyleSheet(c64screen::mutedTextStyle());
-    emptyLayout->addWidget(emptyLabel);
-    stack_->addWidget(emptyPage_);
-
-    // Info page (page 1) - shown for non-text files
-    infoPage_ = new QWidget();
-    auto *infoLayout = new QVBoxLayout(infoPage_);
-    infoLayout->setAlignment(Qt::AlignTop);
+    // Screen page (page 0): file name above a C64 screen
+    screenPage_ = new QWidget();
+    auto *screenLayout = new QVBoxLayout(screenPage_);
+    screenLayout->setContentsMargins(0, 0, 0, 0);
 
     fileNameLabel_ = new QLabel();
     fileNameLabel_->setWordWrap(true);
@@ -63,51 +87,15 @@ void FileDetailsPanel::setupUi()
     boldFont.setBold(true);
     boldFont.setPointSize(boldFont.pointSize() + 2);
     fileNameLabel_->setFont(boldFont);
+    fileNameLabel_->setContentsMargins(0, 0, 0, 4);
 
-    fileSizeLabel_ = new QLabel();
-    fileTypeLabel_ = new QLabel();
+    screen_ = new C64ScreenWidget();
 
-    infoLayout->addWidget(fileNameLabel_);
-    infoLayout->addSpacing(8);
-    infoLayout->addWidget(fileSizeLabel_);
-    infoLayout->addWidget(fileTypeLabel_);
-    infoLayout->addStretch();
+    screenLayout->addWidget(fileNameLabel_);
+    screenLayout->addWidget(screen_, 1);
+    stack_->addWidget(screenPage_);
 
-    statusLabel_ = new QLabel();
-    statusLabel_->setAlignment(Qt::AlignCenter);
-    statusLabel_->setStyleSheet(c64screen::mutedTextStyle());
-    statusLabel_->hide();
-    infoLayout->addWidget(statusLabel_);
-
-    stack_->addWidget(infoPage_);
-
-    // Text page (page 2) - shown for text files
-    textPage_ = new QWidget();
-    auto *textLayout = new QVBoxLayout(textPage_);
-    textLayout->setContentsMargins(0, 0, 0, 0);
-
-    textFileNameLabel_ = new QLabel();
-    textFileNameLabel_->setFont(boldFont);
-    textFileNameLabel_->setContentsMargins(0, 0, 0, 4);
-
-    textBrowser_ = new QTextBrowser();
-    textBrowser_->setReadOnly(true);
-    textBrowser_->setOpenExternalLinks(false);
-    textBrowser_->setOpenLinks(false);
-
-    // Apply C64 styling
-    applyC64TextStyle();
-
-    // Connect to system theme changes
-    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this,
-            &FileDetailsPanel::onColorSchemeChanged);
-
-    textLayout->addWidget(textFileNameLabel_);
-    textLayout->addWidget(textBrowser_);
-
-    stack_->addWidget(textPage_);
-
-    // HTML page (page 3) - shown for HTML files (basic HTML rendering)
+    // HTML page (page 1): basic HTML rendering
     htmlPage_ = new QWidget();
     auto *htmlLayout = new QVBoxLayout(htmlPage_);
     htmlLayout->setContentsMargins(0, 0, 0, 0);
@@ -117,61 +105,66 @@ void FileDetailsPanel::setupUi()
     htmlBrowser_->setOpenExternalLinks(true);
 
     htmlLayout->addWidget(htmlBrowser_);
-
     stack_->addWidget(htmlPage_);
 
     mainLayout->addWidget(stack_);
+
+    showScreenLines(QString(), emptyStateLines());
+}
+
+void FileDetailsPanel::showScreenText(const QString &fileName, const QString &text)
+{
+    fileNameLabel_->setText(fileName);
+    screen_->setText(text);
+    stack_->setCurrentWidget(screenPage_);
+}
+
+void FileDetailsPanel::showScreenLines(const QString &fileName, const QStringList &lines)
+{
+    fileNameLabel_->setText(fileName);
+    screen_->setLines(lines);
+    stack_->setCurrentWidget(screenPage_);
 }
 
 void FileDetailsPanel::showFileDetails(const QString &path, qint64 size, const QString &type)
 {
     currentPath_ = path;
-    QFileInfo fi(path);
-    QString fileName = fi.fileName();
+    const QString fileName = QFileInfo(path).fileName();
 
-    fileaction::PreviewContentType previewType = fileaction::detectPreviewType(path);
-
-    if (previewType == fileaction::PreviewContentType::Html) {
-        // Show HTML page with loading state
+    switch (fileaction::detectPreviewType(path)) {
+    case fileaction::PreviewContentType::Html:
         htmlBrowser_->setHtml(tr("<p style='color:gray'>Loading...</p>"));
         stack_->setCurrentWidget(htmlPage_);
         emit contentRequested(path);
-    } else if (previewType == fileaction::PreviewContentType::DiskImage) {
-        // Show text page with loading state for disk directory
-        textFileNameLabel_->setText(fileName);
-        textBrowser_->setPlainText(tr("Loading disk directory..."));
-        stack_->setCurrentWidget(textPage_);
+        return;
+    case fileaction::PreviewContentType::DiskImage:
+        showScreenText(fileName, C64ScreenWidget::petsciiUpper(tr("Loading disk directory...")));
         emit contentRequested(path);
-    } else if (previewType == fileaction::PreviewContentType::SidMusic) {
-        // Show text page with loading state for SID details
-        textFileNameLabel_->setText(fileName);
-        textBrowser_->setPlainText(tr("Loading SID info..."));
-        stack_->setCurrentWidget(textPage_);
+        return;
+    case fileaction::PreviewContentType::SidMusic:
+        showScreenText(fileName, C64ScreenWidget::petsciiUpper(tr("Loading SID info...")));
         emit contentRequested(path);
-    } else if (previewType == fileaction::PreviewContentType::Text) {
-        // Show text page with loading state
-        textFileNameLabel_->setText(fileName);
-        textBrowser_->setPlainText(tr("Loading..."));
-        stack_->setCurrentWidget(textPage_);
+        return;
+    case fileaction::PreviewContentType::Text:
+        showScreenText(fileName, C64ScreenWidget::petsciiUpper(tr("Loading...")));
         emit contentRequested(path);
-    } else {
-        // Show info page — no content fetch needed
-        fileNameLabel_->setText(fileName);
-
-        QString sizeStr;
-        if (size < 1024) {
-            sizeStr = tr("Size: %1 bytes").arg(size);
-        } else if (size < qint64{1024} * 1024) {
-            sizeStr = tr("Size: %1 KB").arg(size / 1024.0, 0, 'f', 1);
-        } else {
-            sizeStr = tr("Size: %1 MB").arg(size / (1024.0 * 1024.0), 0, 'f', 2);
-        }
-        fileSizeLabel_->setText(sizeStr);
-        fileTypeLabel_->setText(tr("Type: %1").arg(type));
-        statusLabel_->hide();
-
-        stack_->setCurrentWidget(infoPage_);
+        return;
+    default:
+        break;
     }
+
+    // Info card — no content fetch needed
+    const QStringList card{loadLine(fileName, screen_->columns()),
+                           QString(),
+                           tr("SIZE: %1").arg(humanSize(size)),
+                           tr("TYPE: %1").arg(type),
+                           QString(),
+                           QStringLiteral("READY.")};
+    QStringList lines;
+    for (const QString &line : card) {
+        lines.append(C64ScreenWidget::petsciiUpper(line));
+    }
+    showScreenLines(fileName, lines);
 }
 
 void FileDetailsPanel::showTextContent(const QString &content)
@@ -179,43 +172,29 @@ void FileDetailsPanel::showTextContent(const QString &content)
     if (isHtmlFile(currentPath_)) {
         htmlBrowser_->setHtml(content);
     } else {
-        textBrowser_->setPlainText(content);
-
-        // Apply line height after content is set (must be done after setPlainText)
-        QTextBlockFormat blockFormat;
-        blockFormat.setLineHeight(150, QTextBlockFormat::ProportionalHeight);
-        QTextCursor cursor = textBrowser_->textCursor();
-        cursor.select(QTextCursor::Document);
-        cursor.mergeBlockFormat(blockFormat);
+        screen_->setText(C64ScreenWidget::petsciiUpper(content));
     }
 }
 
 void FileDetailsPanel::showLoading(const QString &path)
 {
     currentPath_ = path;
-    QFileInfo fi(path);
-    textFileNameLabel_->setText(fi.fileName());
-    textBrowser_->setPlainText(tr("Loading..."));
-    stack_->setCurrentWidget(textPage_);
+    showScreenText(QFileInfo(path).fileName(), C64ScreenWidget::petsciiUpper(tr("Loading...")));
 }
 
 void FileDetailsPanel::showError(const QString &message)
 {
-    if (stack_->currentWidget() == textPage_) {
-        textBrowser_->setPlainText(tr("Error: %1").arg(message));
-    } else if (stack_->currentWidget() == htmlPage_) {
+    if (stack_->currentWidget() == htmlPage_) {
         htmlBrowser_->setHtml(tr("<p style='color:red'>Error: %1</p>").arg(message));
-    } else {
-        statusLabel_->setText(tr("Error: %1").arg(message));
-        statusLabel_->show();
+        return;
     }
+    screen_->setText(C64ScreenWidget::petsciiUpper(errorLine(message)));
 }
 
 void FileDetailsPanel::clear()
 {
     currentPath_.clear();
-    textBrowser_->clear();
-    stack_->setCurrentWidget(emptyPage_);
+    showScreenLines(QString(), emptyStateLines());
 }
 
 bool FileDetailsPanel::isTextFile(const QString &path) const
@@ -257,16 +236,15 @@ void FileDetailsPanel::showDiskDirectory(const QByteArray &diskImageData, const 
         ctx.gameInfo = gameBase64Service_->lookupByFilename(filename);
     }
 
-    QString listing = filemetadata::formatDiskDetails(ctx);
+    // The PETSCII listing is already screen-exact; only the enrichment that
+    // follows it is folded into the C64's uppercase set.
+    QString details = filemetadata::formatDiskDetails(ctx);
+    if (details.startsWith(ctx.directoryListing)) {
+        details = ctx.directoryListing +
+                  C64ScreenWidget::petsciiUpper(details.mid(ctx.directoryListing.size()));
+    }
 
-    QFileInfo fi(filename);
-    textFileNameLabel_->setText(fi.fileName());
-    textBrowser_->setPlainText(listing);
-
-    // Note: No extra line height for disk directories — PETSCII graphics
-    // require characters to touch vertically with no gaps
-
-    stack_->setCurrentWidget(textPage_);
+    showScreenText(QFileInfo(filename).fileName(), details);
 }
 
 void FileDetailsPanel::showSidDetails(const QByteArray &sidData, const QString &filename)
@@ -311,34 +289,6 @@ void FileDetailsPanel::showSidDetails(const QByteArray &sidData, const QString &
         ctx.gameInfo = gameBase64Service_->lookupBySidFilename(filename);
     }
 
-    QString details = filemetadata::formatSidDetails(ctx);
-
-    QFileInfo fi(filename);
-    textFileNameLabel_->setText(fi.fileName());
-    textBrowser_->setPlainText(details);
-
-    // Apply line height for better readability
-    QTextBlockFormat blockFormat;
-    blockFormat.setLineHeight(140, QTextBlockFormat::ProportionalHeight);
-    QTextCursor cursor = textBrowser_->textCursor();
-    cursor.select(QTextCursor::Document);
-    cursor.mergeBlockFormat(blockFormat);
-
-    stack_->setCurrentWidget(textPage_);
-}
-
-void FileDetailsPanel::applyC64TextStyle()
-{
-    // Set C64 Pro Mono font
-    QFont c64Font("C64 Pro Mono");
-    c64Font.setStyleHint(QFont::Monospace);
-    c64Font.setPointSize(12);
-    textBrowser_->setFont(c64Font);
-
-    textBrowser_->setStyleSheet(c64screen::c64TextBrowserStyle(themecore::effectiveScheme()));
-}
-
-void FileDetailsPanel::onColorSchemeChanged(Qt::ColorScheme /*scheme*/)
-{
-    applyC64TextStyle();
+    showScreenText(QFileInfo(filename).fileName(),
+                   C64ScreenWidget::petsciiUpper(filemetadata::formatSidDetails(ctx)));
 }

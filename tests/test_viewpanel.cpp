@@ -12,6 +12,9 @@
  * - scalingMode() switch dispatch
  * - stopStreamingIfActive() stops only when active, no-op otherwise
  * - loadSettings() / saveSettings() round-trip
+ * - the stats HUD overlays the video instead of pushing it down
+ * - view/statsExpanded persists the HUD's expanded state
+ * - setChromeHidden() hides the toolbar; the placeholder screen names the state
  *
  * Tests use a null DeviceConnectionManager-safe path: the ViewPanel constructor asserts
  * that connection is non-null, so we supply a minimal stand-in via a real
@@ -25,10 +28,14 @@
 #include "services/screenshotservice.h"
 #include "services/streamingservice.h"
 #include "services/videorecordingservice.h"
+#include "ui/streamingdiagnosticswidget.h"
+#include "ui/videodisplaywidget.h"
 #include "ui/viewpanel.h"
 
+#include <QAction>
 #include <QSettings>
 #include <QSignalSpy>
+#include <QToolBar>
 #include <QtTest>
 
 #include <functional>
@@ -292,6 +299,148 @@ private slots:
         delete panel;
 
         QCOMPARE(errorHandlerMessages.count(), 0);
+    }
+
+    // =========================================================================
+    // Stats HUD — an overlay on the video, never a row above it
+    // =========================================================================
+
+    void testStatsOverlay_isChildOfVideoDisplayAndHiddenByDefault()
+    {
+        ViewPanel panel(connection_, makeErrorHandler());
+        auto *video = panel.findChild<VideoDisplayWidget *>();
+        auto *stats = panel.findChild<StreamingDiagnosticsWidget *>();
+        QVERIFY(video != nullptr);
+        QVERIFY(stats != nullptr);
+        QCOMPARE(stats->parentWidget(), video);
+        QCOMPARE(stats->objectName(), QStringLiteral("StatsOverlay"));
+        QVERIFY(stats->isHidden());
+    }
+
+    void testStatsToggled_showsOverlayInsetAtTopLeftWithoutResizingVideo()
+    {
+        ViewPanel panel(connection_, makeErrorHandler());
+        panel.resize(900, 700);
+        panel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&panel));
+        QCoreApplication::processEvents();
+
+        auto *video = panel.findChild<VideoDisplayWidget *>();
+        auto *stats = panel.findChild<StreamingDiagnosticsWidget *>();
+        QVERIFY(video != nullptr);
+        QVERIFY(stats != nullptr);
+        const QRect videoBefore = video->geometry();
+
+        QMetaObject::invokeMethod(&panel, "onStatsToggled", Q_ARG(bool, true));
+        QCoreApplication::processEvents();
+
+        QVERIFY(stats->isVisible());
+        QCOMPARE(stats->pos(), QPoint(8, 8));
+        QCOMPARE(video->geometry(), videoBefore);
+
+        stats->setDisplayMode(StreamingDiagnosticsWidget::DisplayMode::Detailed);
+        QCoreApplication::processEvents();
+        QCOMPARE(video->geometry(), videoBefore);
+        QVERIFY(stats->height() > 0);
+        QVERIFY(stats->height() < video->height());
+    }
+
+    void testStatsExpanded_persistsToSettingsAndLoadsBack()
+    {
+        {
+            ViewPanel panel(connection_, makeErrorHandler());
+            auto *stats = panel.findChild<StreamingDiagnosticsWidget *>();
+            QVERIFY(stats != nullptr);
+            stats->setDisplayMode(StreamingDiagnosticsWidget::DisplayMode::Detailed);
+            QSettings settings;
+            QCOMPARE(settings.value("view/statsExpanded").toBool(), true);
+        }
+        {
+            ViewPanel panel(connection_, makeErrorHandler());
+            panel.loadSettings();
+            auto *stats = panel.findChild<StreamingDiagnosticsWidget *>();
+            QVERIFY(stats != nullptr);
+            QCOMPARE(stats->displayMode(), StreamingDiagnosticsWidget::DisplayMode::Detailed);
+        }
+    }
+
+    // =========================================================================
+    // Chrome and placeholder screen
+    // =========================================================================
+
+    void testSetChromeHidden_hidesAndRestoresToolBar()
+    {
+        ViewPanel panel(connection_, makeErrorHandler());
+        auto *toolBar = panel.findChild<QToolBar *>();
+        QVERIFY(toolBar != nullptr);
+
+        panel.setChromeHidden(true);
+        QVERIFY(toolBar->isHidden());
+        panel.setChromeHidden(false);
+        QVERIFY(!toolBar->isHidden());
+    }
+
+    void testSetFullScreenAction_addsActionToToolBar()
+    {
+        ViewPanel panel(connection_, makeErrorHandler());
+        QAction fullScreen(QStringLiteral("Full Screen"));
+        panel.setFullScreenAction(&fullScreen);
+        auto *toolBar = panel.findChild<QToolBar *>();
+        QVERIFY(toolBar != nullptr);
+        QVERIFY(toolBar->actions().contains(&fullScreen));
+    }
+
+    void testPlaceholder_whileDisconnected_saysNoDeviceConnected()
+    {
+        ViewPanel panel(connection_, makeErrorHandler());
+        auto *video = panel.findChild<VideoDisplayWidget *>();
+        QVERIFY(video != nullptr);
+        const QStringList lines = video->placeholderLines();
+        QCOMPARE(lines.first(), QStringLiteral("    **** R64U VIDEO ****"));
+        QVERIFY(lines.contains(QStringLiteral("NO DEVICE CONNECTED.")));
+        QCOMPARE(lines.last(), QStringLiteral("READY."));
+        for (const QString &line : lines) {
+            QVERIFY2(line.size() <= 40, qPrintable(line));
+        }
+    }
+
+    void testPlaceholder_whileStarting_saysStartingStream()
+    {
+        ViewPanel panel(connection_, makeErrorHandler());
+        auto *video = panel.findChild<VideoDisplayWidget *>();
+        QVERIFY(video != nullptr);
+
+        QMetaObject::invokeMethod(&panel, "onStreamingStarted",
+                                  Q_ARG(QString, QStringLiteral("10.0.0.5")));
+        // Still disconnected: the connection state wins over the stream state
+        QVERIFY(video->placeholderLines().contains(QStringLiteral("NO DEVICE CONNECTED.")));
+
+        QMetaObject::invokeMethod(&panel, "onStreamingStopped");
+        QVERIFY(video->placeholderLines().contains(QStringLiteral("NO DEVICE CONNECTED.")));
+    }
+
+    void testKeyboardFocus_appendsKeysToC64ToStreamStatus()
+    {
+        ViewPanel panel(connection_, makeErrorHandler());
+        auto *video = panel.findChild<VideoDisplayWidget *>();
+        auto *toolBar = panel.findChild<QToolBar *>();
+        QVERIFY(video != nullptr);
+        QVERIFY(toolBar != nullptr);
+        QLabel *status = nullptr;
+        for (QLabel *label : toolBar->findChildren<QLabel *>()) {
+            if (label->text().contains(QStringLiteral("Not streaming"))) {
+                status = label;
+            }
+        }
+        QVERIFY(status != nullptr);
+
+        QFocusEvent focusIn(QEvent::FocusIn);
+        QCoreApplication::sendEvent(video, &focusIn);
+        QVERIFY(status->text().endsWith(QStringLiteral("keys to C64")));
+
+        QFocusEvent focusOut(QEvent::FocusOut);
+        QCoreApplication::sendEvent(video, &focusOut);
+        QCOMPARE(status->text(), QStringLiteral("Not streaming"));
     }
 
     // =========================================================================

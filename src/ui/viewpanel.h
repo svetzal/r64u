@@ -9,6 +9,9 @@
 #include <QToolBar>
 #include <QWidget>
 
+class QAction;
+class QEvent;
+
 class DeviceConnectionManager;
 class ErrorHandler;
 class VideoDisplayWidget;
@@ -69,8 +72,28 @@ public:
     void saveSettings();
     [[nodiscard]] int scalingMode() const;
 
+    /**
+     * @brief Hides (or restores) the panel's own chrome so the video can fill a screen.
+     * @param hidden true to hide the toolbar.
+     */
+    void setChromeHidden(bool hidden);
+
+    /**
+     * @brief Adds the window's full-screen action to this panel's toolbar.
+     * @param action Owned by the caller; must outlive this panel.
+     */
+    void setFullScreenAction(QAction *action);
+
+    /**
+     * @brief Gives keyboard focus to the video display so key presses reach the C64.
+     */
+    void focusVideoDisplay();
+
 signals:
     void statusMessage(const QString &message, int timeout = 0);
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private slots:
     void onConnectionStateChanged();
@@ -88,12 +111,22 @@ private slots:
     void onRecordingError(const QString &error);
     void onStatsToggled(bool checked);
     void onDiagnosticsUpdated(const DiagnosticsSnapshot &snapshot);
+    void onStatsExpandedChanged();
+    void onKeyboardFocusChanged(bool focused);
 
 private:
+    /// Whether the device is sending frames, for the placeholder screen.
+    enum class StreamState { Idle, Starting };
+
     void setupUi();
+    void setupStatsOverlay();
     void setupConnections();
     void disconnectFromServices();
     void updateActions();
+    void updatePlaceholder();
+    void setStreamStatusText(const QString &text);
+    void refreshStreamStatusLabel();
+    void positionStatsOverlay();
 
     // Dependencies (not owned)
     DeviceConnectionManager *deviceConnection_ = nullptr;
@@ -118,7 +151,13 @@ private:
     QRadioButton *smoothRadio_ = nullptr;
     QRadioButton *integerRadio_ = nullptr;
     QAction *statsAction_ = nullptr;
+    QAction *statusSeparator_ = nullptr;
     StreamingDiagnosticsWidget *diagnosticsWidget_ = nullptr;
+
+    // Display state
+    QString streamStatusText_;
+    bool keyboardFocused_ = false;
+    StreamState streamState_ = StreamState::Idle;
 };
 
 #endif  // VIEWPANEL_H

@@ -48,6 +48,8 @@ set(SOURCES
     src/ui/transferqueuewidget.cpp
     src/ui/filedetailspanel.cpp
     src/ui/videodisplaywidget.cpp
+    src/ui/c64screenwidget.cpp
+    src/core/c64screencore.cpp
     src/ui/filebrowserwidget.cpp
     src/ui/localfilebrowserwidget.cpp
     src/ui/remotefilebrowserwidget.cpp
@@ -225,6 +227,8 @@ set(HEADERS
     src/ui/theme.h
     src/core/themecore.h
     src/core/c64screenstyle.h
+    src/core/c64screencore.h
+    src/ui/c64screenwidget.h
     src/ui/filepreview/ifilepreview.h
     src/ui/filepreview/c64previewbase.h
     src/ui/filepreview/textfilepreview.h

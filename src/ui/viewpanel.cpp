@@ -3,6 +3,7 @@
 #include "streamingdiagnosticswidget.h"
 #include "videodisplaywidget.h"
 
+#include "core/c64screencore.h"
 #include "services/deviceconnectionmanager.h"
 #include "services/errorhandler.h"
 #include "services/keyboardinputservice.h"
@@ -13,10 +14,18 @@
 #include "services/videostreamreceiverservice.h"
 #include "utils/logging.h"
 
+#include <QEvent>
 #include <QFileInfo>
 #include <QKeyEvent>
 #include <QSettings>
 #include <QVBoxLayout>
+
+namespace {
+
+constexpr int StatsOverlayInset = 8;
+constexpr int PlaceholderColumns = 40;
+
+}  // namespace
 
 ViewPanel::ViewPanel(DeviceConnectionManager *connection, ErrorHandler *errorHandler,
                      QWidget *parent)
@@ -92,10 +101,11 @@ void ViewPanel::setupUi()
     statsAction_->setEnabled(false);
     connect(statsAction_, &QAction::toggled, this, &ViewPanel::onStatsToggled);
 
-    toolBar_->addSeparator();
+    statusSeparator_ = toolBar_->addSeparator();
 
-    streamStatusLabel_ = new QLabel(tr("Not streaming"));
+    streamStatusLabel_ = new QLabel();
     toolBar_->addWidget(streamStatusLabel_);
+    setStreamStatusText(tr("Not streaming"));
 
     // Add spacer to push scaling mode to the right
     auto *spacer = new QWidget();
@@ -134,21 +144,134 @@ void ViewPanel::setupUi()
 
     layout->addWidget(toolBar_);
 
-    // Create diagnostics widget (hidden by default)
-    diagnosticsWidget_ = new StreamingDiagnosticsWidget();
-    diagnosticsWidget_->setVisible(false);
-    layout->addWidget(diagnosticsWidget_);
-
     // Create video display widget
     videoDisplayWidget_ = new VideoDisplayWidget();
     videoDisplayWidget_->setMinimumSize(384, 272);
     layout->addWidget(videoDisplayWidget_, 1);
+    connect(videoDisplayWidget_, &VideoDisplayWidget::keyboardFocusChanged, this,
+            &ViewPanel::onKeyboardFocusChanged);
+
+    setupStatsOverlay();
 
     // Wire device connection state changes (independent of streaming services)
     if (deviceConnection_) {
         connect(deviceConnection_, &DeviceConnectionManager::stateChanged, this,
                 &ViewPanel::onConnectionStateChanged);
     }
+
+    updatePlaceholder();
+}
+
+void ViewPanel::setupStatsOverlay()
+{
+    // The stats HUD floats over the video's top-left corner so toggling it
+    // never resizes the picture. It sizes itself to its contents and grows
+    // downward when expanded.
+    diagnosticsWidget_ = new StreamingDiagnosticsWidget(videoDisplayWidget_);
+    diagnosticsWidget_->setObjectName(QStringLiteral("StatsOverlay"));
+    diagnosticsWidget_->setAttribute(Qt::WA_StyledBackground, true);
+    diagnosticsWidget_->setAutoFillBackground(true);
+    QPalette overlayPalette = diagnosticsWidget_->palette();
+    overlayPalette.setColor(QPalette::Window, QColor(0, 0, 0, 150));
+    overlayPalette.setColor(QPalette::WindowText, Qt::white);
+    diagnosticsWidget_->setPalette(overlayPalette);
+    diagnosticsWidget_->setStyleSheet(
+        QStringLiteral("#StatsOverlay { background-color: rgba(0, 0, 0, 150); "
+                       "border-radius: 6px; }"
+                       "#StatsOverlay QLabel { color: white; }"));
+    if (QLayout *overlayLayout = diagnosticsWidget_->layout()) {
+        overlayLayout->setSizeConstraint(QLayout::SetFixedSize);
+    }
+    diagnosticsWidget_->setVisible(false);
+    connect(diagnosticsWidget_, &StreamingDiagnosticsWidget::displayModeChanged, this,
+            &ViewPanel::onStatsExpandedChanged);
+
+    videoDisplayWidget_->installEventFilter(this);
+    positionStatsOverlay();
+}
+
+void ViewPanel::positionStatsOverlay()
+{
+    if (!diagnosticsWidget_) {
+        return;
+    }
+    diagnosticsWidget_->move(StatsOverlayInset, StatsOverlayInset);
+    diagnosticsWidget_->raise();
+}
+
+bool ViewPanel::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == videoDisplayWidget_ && event->type() == QEvent::Resize) {
+        positionStatsOverlay();
+    }
+    return QWidget::eventFilter(watched, event);
+}
+
+void ViewPanel::setChromeHidden(bool hidden)
+{
+    if (toolBar_) {
+        toolBar_->setVisible(!hidden);
+    }
+}
+
+void ViewPanel::setFullScreenAction(QAction *action)
+{
+    if (!action || !toolBar_) {
+        return;
+    }
+    toolBar_->insertAction(statusSeparator_, action);
+}
+
+void ViewPanel::focusVideoDisplay()
+{
+    if (videoDisplayWidget_) {
+        videoDisplayWidget_->setFocus(Qt::OtherFocusReason);
+    }
+}
+
+void ViewPanel::updatePlaceholder()
+{
+    if (!videoDisplayWidget_) {
+        return;
+    }
+
+    const bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
+    QStringList lines{QStringLiteral("    **** R64U VIDEO ****"), QString()};
+    if (!canOperate) {
+        lines << tr("NO DEVICE CONNECTED.") << tr("CONNECT TO THE ULTIMATE TO VIEW ITS SCREEN.");
+    } else if (streamState_ == StreamState::Starting) {
+        lines << tr("STARTING STREAM...");
+    } else {
+        lines << tr("NOT STREAMING.") << tr("PRESS START STREAM TO WATCH THE C64.");
+    }
+    lines << QString() << QStringLiteral("READY.");
+
+    videoDisplayWidget_->setPlaceholderLines(
+        c64screencore::wrapToColumns(lines.join(QLatin1Char('\n')), PlaceholderColumns));
+}
+
+void ViewPanel::setStreamStatusText(const QString &text)
+{
+    streamStatusText_ = text;
+    refreshStreamStatusLabel();
+}
+
+void ViewPanel::refreshStreamStatusLabel()
+{
+    if (!streamStatusLabel_) {
+        return;
+    }
+    QString text = streamStatusText_;
+    if (keyboardFocused_) {
+        text += tr(" \u00b7 keys to C64");
+    }
+    streamStatusLabel_->setText(text);
+}
+
+void ViewPanel::onKeyboardFocusChanged(bool focused)
+{
+    keyboardFocused_ = focused;
+    refreshStreamStatusLabel();
 }
 
 void ViewPanel::setStreamingService(StreamingService *manager)
@@ -234,6 +357,7 @@ void ViewPanel::updateActions()
 void ViewPanel::onConnectionStateChanged()
 {
     updateActions();
+    updatePlaceholder();
 
     bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
     if (!canOperate && streamingService_ && streamingService_->isStreaming()) {
@@ -251,6 +375,13 @@ void ViewPanel::stopStreamingIfActive()
 void ViewPanel::loadSettings()
 {
     QSettings settings;
+    if (diagnosticsWidget_) {
+        const bool expanded = settings.value("view/statsExpanded", false).toBool();
+        diagnosticsWidget_->setDisplayMode(expanded
+                                               ? StreamingDiagnosticsWidget::DisplayMode::Detailed
+                                               : StreamingDiagnosticsWidget::DisplayMode::Compact);
+    }
+
     int scalingMode =
         settings
             .value("view/scalingMode", static_cast<int>(VideoDisplayWidget::ScalingMode::Integer))
@@ -276,6 +407,11 @@ void ViewPanel::saveSettings()
 {
     QSettings settings;
     settings.setValue("view/scalingMode", static_cast<int>(videoDisplayWidget_->scalingMode()));
+    if (diagnosticsWidget_) {
+        settings.setValue("view/statsExpanded",
+                          diagnosticsWidget_->displayMode() ==
+                              StreamingDiagnosticsWidget::DisplayMode::Detailed);
+    }
 }
 
 int ViewPanel::scalingMode() const
@@ -313,7 +449,9 @@ void ViewPanel::onStreamingStarted(const QString &targetHost)
     if (statsAction_) {
         statsAction_->setEnabled(true);
     }
-    streamStatusLabel_->setText(tr("Starting stream to %1...").arg(targetHost));
+    setStreamStatusText(tr("Starting stream to %1...").arg(targetHost));
+    streamState_ = StreamState::Starting;
+    updatePlaceholder();
 }
 
 void ViewPanel::onStreamingStopped()
@@ -352,9 +490,9 @@ void ViewPanel::onStreamingStopped()
         diagnosticsWidget_->setVisible(false);
         diagnosticsWidget_->clear();
     }
-    if (streamStatusLabel_) {
-        streamStatusLabel_->setText(tr("Not streaming"));
-    }
+    setStreamStatusText(tr("Not streaming"));
+    streamState_ = StreamState::Idle;
+    updatePlaceholder();
 }
 
 void ViewPanel::onVideoFormatDetected(int format)
@@ -373,7 +511,7 @@ void ViewPanel::onVideoFormatDetected(int format)
         break;
     }
 
-    streamStatusLabel_->setText(tr("Streaming (%1)").arg(formatName));
+    setStreamStatusText(tr("Streaming (%1)").arg(formatName));
 }
 
 void ViewPanel::onScalingModeChanged(int id)
@@ -474,7 +612,16 @@ void ViewPanel::onStatsToggled(bool checked)
 {
     if (diagnosticsWidget_) {
         diagnosticsWidget_->setVisible(checked);
+        positionStatsOverlay();
     }
+}
+
+void ViewPanel::onStatsExpandedChanged()
+{
+    QSettings settings;
+    settings.setValue("view/statsExpanded", diagnosticsWidget_->displayMode() ==
+                                                StreamingDiagnosticsWidget::DisplayMode::Detailed);
+    positionStatsOverlay();
 }
 
 void ViewPanel::onDiagnosticsUpdated(const DiagnosticsSnapshot &snapshot)

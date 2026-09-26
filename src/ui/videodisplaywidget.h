@@ -7,8 +7,11 @@
 #include <QImage>
 #include <QQueue>
 #include <QRgb>
+#include <QStringList>
 #include <QTimer>
 #include <QWidget>
+
+class QPainter;
 
 #include <functional>
 
@@ -142,6 +145,17 @@ public:
     void setDiagnosticsCallback(const DiagnosticsCallback &callback);
 
     /**
+     * @brief Sets the lines shown on the C64 screen painted while no frame is available.
+     * @param lines Screen lines, one per row, in the C64's uppercase set.
+     */
+    void setPlaceholderLines(const QStringList &lines);
+
+    /**
+     * @brief Returns the lines shown while no frame is available.
+     */
+    [[nodiscard]] const QStringList &placeholderLines() const { return placeholderLines_; }
+
+    /**
      * @brief Returns the recommended size for the widget.
      * @return The size hint based on current video format.
      */
@@ -187,6 +201,12 @@ signals:
      */
     void scalingModeChanged(ScalingMode mode);
 
+    /**
+     * @brief Emitted when the widget gains or loses keyboard focus.
+     * @param focused true while key presses go to the C64.
+     */
+    void keyboardFocusChanged(bool focused);
+
 protected:
     void paintEvent(QPaintEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
@@ -207,6 +227,7 @@ private:
 
     void convertFrameToRgb(const QByteArray &frameData, int height);
     [[nodiscard]] QRect calculateDisplayRect() const;
+    void paintKeyboardIndicator(QPainter &painter) const;
     void displayBufferedFrame(const BufferedFrame &frame);
     void startDisplayTimer();
     void stopDisplayTimer();
@@ -217,6 +238,7 @@ private:
         VideoStreamReceiverService::VideoFormat::Unknown;
     ScalingMode scalingMode_ = ScalingMode::Integer;
     bool hasFrame_ = false;
+    QStringList placeholderLines_;
 
     // Frame pacing
     bool framePacingEnabled_ = true;

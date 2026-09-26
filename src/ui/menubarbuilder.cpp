@@ -10,7 +10,7 @@
 #include <QTabWidget>
 
 QAction *menubar::Builder::build(QMainWindow *window, SystemCommandController *sysCtrl,
-                                 QTabWidget *modeTabWidget)
+                                 QTabWidget *modeTabWidget, QAction *fullScreenAction)
 {
     // File menu
     auto *fileMenu = window->menuBar()->addMenu(QObject::tr("&File"));
@@ -58,6 +58,11 @@ QAction *menubar::Builder::build(QMainWindow *window, SystemCommandController *s
     configModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_4));
     QObject::connect(configModeAction, &QAction::triggered, modeTabWidget,
                      [modeTabWidget]() { modeTabWidget->setCurrentIndex(3); });
+
+    if (fullScreenAction) {
+        viewMenu->addSeparator();
+        viewMenu->addAction(fullScreenAction);
+    }
 
     viewMenu->addSeparator();
 

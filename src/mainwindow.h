@@ -29,6 +29,7 @@ class PanelCoordinator;
 class ConnectionUIController;
 
 class ServiceFactory;
+class QShortcut;
 
 class MainWindow : public QMainWindow
 {
@@ -67,6 +68,9 @@ private slots:
     // Refresh slot (shared by panels)
     void onRefresh();
 
+    /// Enters full screen (View mode, all chrome hidden) or leaves it.
+    void toggleFullScreen();
+
 private:
     void setupUi();
     void setupMenuBar();
@@ -75,12 +79,15 @@ private:
     void setupPanels(ServiceFactory *services);
     void setupConnections();
     void switchToMode(Mode mode);
+    void setFullScreen(bool on);
     void updateWindowTitle();
     void loadSettings();
     void saveSettings();
     void destroyServiceUsersThenServices();
 
     Mode currentMode_ = Mode::ExploreRun;
+    bool fullScreen_ = false;
+    Qt::WindowStates stateBeforeFullScreen_ = Qt::WindowNoState;
 
     // Services (owned by services_, shared with panels)
     ServiceFactory *services_ = nullptr;
@@ -119,6 +126,8 @@ private:
     QAction *menuAction_ = nullptr;
     QAction *powerOffAction_ = nullptr;
     QAction *refreshAction_ = nullptr;
+    QAction *fullScreenAction_ = nullptr;
+    QShortcut *exitFullScreenShortcut_ = nullptr;
 
     // Status bar
     ConnectionStatusWidget *connectionStatus_ = nullptr;

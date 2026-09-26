@@ -13,8 +13,9 @@ class Builder
 {
 public:
     /// Build all menus on @a window and return the refresh QAction.
+    /// @param fullScreenAction Optional window-owned action added to the View menu.
     static QAction *build(QMainWindow *window, SystemCommandController *sysCtrl,
-                          QTabWidget *modeTabWidget);
+                          QTabWidget *modeTabWidget, QAction *fullScreenAction = nullptr);
 };
 
 }  // namespace menubar

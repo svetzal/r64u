@@ -10,6 +10,9 @@
  * - clear() resets hasFrame state (currentFrame() returns null)
  * - sizeHint() returns PAL dimensions by default
  * - videoFormat() defaults to Unknown after construction
+ * - placeholder lines are stored and the placeholder screen renders
+ * - keyboardFocusChanged follows focus in/out
+ * - Escape is left for the window; other keys are consumed
  */
 
 #include "ui/videodisplaywidget.h"
@@ -108,6 +111,77 @@ private slots:
     {
         VideoDisplayWidget widget;
         QCOMPARE(widget.videoFormat(), VideoStreamReceiverService::VideoFormat::Unknown);
+    }
+
+    // =========================================================================
+    // Placeholder C64 screen
+    // =========================================================================
+
+    void testPlaceholderLines_defaultEmpty()
+    {
+        VideoDisplayWidget widget;
+        QVERIFY(widget.placeholderLines().isEmpty());
+    }
+
+    void testSetPlaceholderLines_storesLines()
+    {
+        VideoDisplayWidget widget;
+        const QStringList lines{"    **** R64U VIDEO ****", "", "READY."};
+        widget.setPlaceholderLines(lines);
+        QCOMPARE(widget.placeholderLines(), lines);
+    }
+
+    void testGrab_withoutFrame_rendersPlaceholder()
+    {
+        VideoDisplayWidget widget;
+        widget.resize(768, 544);
+        widget.setPlaceholderLines({"NO DEVICE CONNECTED.", "", "READY."});
+        const QPixmap pixmap = widget.grab();
+        QVERIFY(!pixmap.isNull());
+        QCOMPARE(pixmap.size(), QSize(768, 544));
+    }
+
+    // =========================================================================
+    // Keyboard focus
+    // =========================================================================
+
+    void testFocusInAndOut_emitKeyboardFocusChanged()
+    {
+        VideoDisplayWidget widget;
+        QSignalSpy spy(&widget, &VideoDisplayWidget::keyboardFocusChanged);
+
+        QFocusEvent focusIn(QEvent::FocusIn);
+        QCoreApplication::sendEvent(&widget, &focusIn);
+        QFocusEvent focusOut(QEvent::FocusOut);
+        QCoreApplication::sendEvent(&widget, &focusOut);
+
+        QCOMPARE(spy.count(), 2);
+        QCOMPARE(spy.at(0).at(0).toBool(), true);
+        QCOMPARE(spy.at(1).at(0).toBool(), false);
+    }
+
+    void testKeyPress_escapeIsNotAcceptedAndNotForwarded()
+    {
+        VideoDisplayWidget widget;
+        QSignalSpy spy(&widget, &VideoDisplayWidget::keyPressed);
+
+        QKeyEvent escape(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
+        QCoreApplication::sendEvent(&widget, &escape);
+
+        QVERIFY(!escape.isAccepted());
+        QCOMPARE(spy.count(), 0);
+    }
+
+    void testKeyPress_otherKeysAreAcceptedAndForwarded()
+    {
+        VideoDisplayWidget widget;
+        QSignalSpy spy(&widget, &VideoDisplayWidget::keyPressed);
+
+        QKeyEvent key(QEvent::KeyPress, Qt::Key_A, Qt::NoModifier, QStringLiteral("a"));
+        QCoreApplication::sendEvent(&widget, &key);
+
+        QVERIFY(key.isAccepted());
+        QCOMPARE(spy.count(), 1);
     }
 };
 

@@ -20,9 +20,13 @@
 
 #include <QApplication>
 #include <QHeaderView>
+#include <QLayout>
+#include <QMenu>
 #include <QMenuBar>
 #include <QSettings>
 #include <QSplitter>
+#include <QStatusBar>
+#include <QTabBar>
 #include <QTabWidget>
 #include <QTimer>
 #include <QToolBar>
@@ -265,6 +269,92 @@ private slots:
         QCoreApplication::processEvents();
 
         QVERIFY(!dialogShown);
+    }
+
+    // =========================================================================
+    // Full screen — View mode with every piece of chrome hidden
+    // =========================================================================
+
+    void testFullScreen_hidesChromeAndSwitchesToViewMode()
+    {
+        MainWindow window;
+        showAtKnownSize(window);
+        auto *fullScreen = window.findChild<QAction *>(QStringLiteral("FullScreenAction"));
+        QTabWidget *tabs = window.findChild<QTabWidget *>();
+        QToolBar *toolBar = systemToolBar(window);
+        QVERIFY(fullScreen != nullptr);
+        QVERIFY(tabs != nullptr);
+        QVERIFY(toolBar != nullptr);
+        QCOMPARE(fullScreen->text(), QStringLiteral("Enter Full Screen"));
+
+        fullScreen->trigger();
+        QCoreApplication::processEvents();
+
+        QCOMPARE(tabs->currentIndex(), 2);
+        QVERIFY(tabs->tabBar()->isHidden());
+        QVERIFY(toolBar->isHidden());
+        QVERIFY(window.statusBar()->isHidden());
+        QCOMPARE(window.centralWidget()->layout()->contentsMargins(), QMargins());
+        QCOMPARE(fullScreen->text(), QStringLiteral("Exit Full Screen"));
+        QVERIFY(window.windowTitle().contains(QStringLiteral("View")));
+
+        // The offscreen platform may not honour showFullScreen; leave via the
+        // window state the action restores rather than a real fullscreen exit.
+        window.showNormal();
+        fullScreen->trigger();
+        QCoreApplication::processEvents();
+
+        QVERIFY(!tabs->tabBar()->isHidden());
+        QVERIFY(!toolBar->isHidden());
+        QVERIFY(!window.statusBar()->isHidden());
+        QCOMPARE(window.centralWidget()->layout()->contentsMargins(), QMargins(8, 16, 8, 8));
+        QCOMPARE(fullScreen->text(), QStringLiteral("Enter Full Screen"));
+    }
+
+    void testFullScreen_escapeRestoresChrome()
+    {
+        MainWindow window;
+        showAtKnownSize(window);
+        auto *fullScreen = window.findChild<QAction *>(QStringLiteral("FullScreenAction"));
+        QToolBar *toolBar = systemToolBar(window);
+        QVERIFY(fullScreen != nullptr);
+        QVERIFY(toolBar != nullptr);
+
+        // Escape does nothing outside full screen
+        QTest::keyClick(&window, Qt::Key_Escape);
+        QVERIFY(!toolBar->isHidden());
+
+        fullScreen->trigger();
+        QCoreApplication::processEvents();
+        QVERIFY(toolBar->isHidden());
+
+        window.activateWindow();
+        QTest::keyClick(&window, Qt::Key_Escape);
+        QCoreApplication::processEvents();
+
+        QVERIFY(!toolBar->isHidden());
+        QCOMPARE(fullScreen->text(), QStringLiteral("Enter Full Screen"));
+    }
+
+    void testFullScreen_menuAndViewToolBarShareOneAction()
+    {
+        MainWindow window;
+        auto *fullScreen = window.findChild<QAction *>(QStringLiteral("FullScreenAction"));
+        auto *viewPanel = window.findChild<ViewPanel *>();
+        QVERIFY(fullScreen != nullptr);
+        QVERIFY(viewPanel != nullptr);
+
+        bool inMenu = false;
+        for (QAction *menuAction : window.menuBar()->actions()) {
+            if (menuAction->menu() && menuAction->menu()->actions().contains(fullScreen)) {
+                inMenu = true;
+            }
+        }
+        QVERIFY(inMenu);
+
+        auto *viewToolBar = viewPanel->findChild<QToolBar *>();
+        QVERIFY(viewToolBar != nullptr);
+        QVERIFY(viewToolBar->actions().contains(fullScreen));
     }
 
     // =========================================================================

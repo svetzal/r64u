@@ -186,9 +186,13 @@ void StreamingDiagnosticsWidget::setupUi()
 
 void StreamingDiagnosticsWidget::setDisplayMode(DisplayMode mode)
 {
+    const bool changed = (displayMode_ != mode);
     displayMode_ = mode;
     compactFrame_->setVisible(mode == DisplayMode::Compact);
     detailedFrame_->setVisible(mode == DisplayMode::Detailed);
+    if (changed) {
+        emit displayModeChanged(mode);
+    }
 }
 
 void StreamingDiagnosticsWidget::toggleDisplayMode()

@@ -70,6 +70,13 @@ public slots:
      */
     void clear();
 
+signals:
+    /**
+     * @brief Emitted when the display switches between compact and detailed.
+     * @param mode The mode now shown.
+     */
+    void displayModeChanged(DisplayMode mode);
+
 private:
     void setupUi();
     void updateCompactDisplay(const DiagnosticsSnapshot &snapshot);

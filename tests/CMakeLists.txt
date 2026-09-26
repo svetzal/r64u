@@ -1438,6 +1438,8 @@ add_executable(test_streamingmanager
     ${CMAKE_SOURCE_DIR}/src/core/avicore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/viewpanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/videodisplaywidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/c64screenwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/c64screencore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/streamingdiagnosticswidget.cpp
 )
 
@@ -3023,6 +3025,8 @@ add_executable(test_viewpanel
     ${CMAKE_SOURCE_DIR}/src/services/keyboardinputservice.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/viewpanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/videodisplaywidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/c64screenwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/c64screencore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/streamingdiagnosticswidget.cpp
     # Headers for AUTOMOC (stubs provide bodies for these Q_OBJECT classes)
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
@@ -3227,6 +3231,8 @@ add_executable(test_filedetailspanel
     ${CMAKE_SOURCE_DIR}/src/core/sidfileparser.cpp
     ${CMAKE_SOURCE_DIR}/src/core/petsciiconverter.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filedetailspanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/c64screenwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/c64screencore.cpp
 )
 
 target_include_directories(test_filedetailspanel PRIVATE
@@ -3510,6 +3516,8 @@ add_executable(test_videodisplaywidget
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/videodisplaywidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/c64screenwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/c64screencore.cpp
     # Headers for AUTOMOC (stubs provide bodies for these Q_OBJECT classes)
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.h
@@ -3732,6 +3740,8 @@ add_executable(test_preferencesdialog
     ${CMAKE_SOURCE_DIR}/src/services/ifiledownloaderservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ivideostreamreceiverservice.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/videodisplaywidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/c64screenwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/c64screencore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/preferencesdialog.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/connectiontesthandler.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/databasedownloadcontroller.cpp
@@ -3879,6 +3889,8 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/transferqueuewidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filedetailspanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/c64screenwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/c64screencore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/videodisplaywidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/localfilebrowserwidget.cpp
@@ -4146,6 +4158,58 @@ add_test(NAME ThemeTest COMMAND test_theme)
 if(BUILD_COVERAGE)
     add_coverage_target(theme test_theme)
     add_dependencies(coverage coverage_theme)
+endif()
+
+# ============================================================================
+# C64 screen core (pure wrapping and layout)
+# ============================================================================
+add_executable(test_c64screencore
+    test_c64screencore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/c64screencore.cpp
+)
+
+target_include_directories(test_c64screencore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_c64screencore PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+)
+
+add_test(NAME C64ScreenCoreTest COMMAND test_c64screencore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(c64screencore test_c64screencore)
+    add_dependencies(coverage coverage_c64screencore)
+endif()
+
+# ============================================================================
+# C64 screen widget (wrapping, scrolling, scale, rendering)
+# ============================================================================
+add_executable(test_c64screenwidget
+    test_c64screenwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/c64screencore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/c64screenwidget.cpp
+)
+
+target_include_directories(test_c64screenwidget PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_c64screenwidget PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+add_test(NAME C64ScreenWidgetTest COMMAND test_c64screenwidget)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(c64screenwidget test_c64screenwidget)
+    add_dependencies(coverage coverage_c64screenwidget)
 endif()
 
 # All tests run with the offscreen Qt platform so they work without a display (CI/coverage)
