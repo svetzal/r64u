@@ -169,10 +169,10 @@ void ExplorePanel::setupUi()
 
     remoteLayout->addWidget(treeView_);
 
-    drive8Status_ = new DriveStatusWidget(tr("Drive 8:"));
+    drive8Status_ = new DriveStatusWidget(tr("Drive A (8)"));
     remoteLayout->addWidget(drive8Status_);
 
-    drive9Status_ = new DriveStatusWidget(tr("Drive 9:"));
+    drive9Status_ = new DriveStatusWidget(tr("Drive B (9)"));
     remoteLayout->addWidget(drive9Status_);
 
     splitter_->addWidget(remoteWidget);
@@ -304,12 +304,28 @@ void ExplorePanel::loadSettings()
     QSettings settings;
     QString savedDir = settings.value("directories/exploreRemote", "/").toString();
     navController_->setCurrentDirectory(savedDir);
+
+    const QByteArray splitterState = settings.value("layout/exploreSplitter").toByteArray();
+    if (!splitterState.isEmpty()) {
+        splitter_->restoreState(splitterState);
+    }
+    const QByteArray rightState = settings.value("layout/exploreRightSplitter").toByteArray();
+    if (!rightState.isEmpty()) {
+        rightSplitter_->restoreState(rightState);
+    }
+    const QByteArray headerState = settings.value("layout/exploreHeader").toByteArray();
+    if (!headerState.isEmpty()) {
+        treeView_->header()->restoreState(headerState);
+    }
 }
 
 void ExplorePanel::saveSettings()
 {
     QSettings settings;
     settings.setValue("directories/exploreRemote", navController_->currentDirectory());
+    settings.setValue("layout/exploreSplitter", splitter_->saveState());
+    settings.setValue("layout/exploreRightSplitter", rightSplitter_->saveState());
+    settings.setValue("layout/exploreHeader", treeView_->header()->saveState());
 }
 
 void ExplorePanel::setMetadataServices(const MetadataServiceBundle &bundle)

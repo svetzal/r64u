@@ -136,6 +136,18 @@ void FileBrowserWidget::setMessagePresenter(IMessagePresenter *presenter)
     presenter_ = presenter ? presenter : &defaultPresenter_;
 }
 
+QByteArray FileBrowserWidget::headerState() const
+{
+    return treeView_ ? treeView_->header()->saveState() : QByteArray();
+}
+
+void FileBrowserWidget::restoreHeaderState(const QByteArray &state)
+{
+    if (treeView_ && !state.isEmpty()) {
+        treeView_->header()->restoreState(state);
+    }
+}
+
 bool FileBrowserWidget::confirmDestructiveAction(const QString &title, const QString &message,
                                                  const QString &acceptText,
                                                  IMessagePresenter::MessageIcon icon)
@@ -144,7 +156,9 @@ bool FileBrowserWidget::confirmDestructiveAction(const QString &title, const QSt
         {acceptText, IMessagePresenter::ButtonRole::Destructive},
         {tr("Cancel"), IMessagePresenter::ButtonRole::Reject},
     };
-    const int result = presenter_->confirm(this, title, message, buttons, icon, 0);
+    // Enter must never trigger the destructive action: Cancel is the default.
+    constexpr int kCancelIndex = 1;
+    const int result = presenter_->confirm(this, title, message, buttons, icon, kCancelIndex);
     return result == 0;
 }
 

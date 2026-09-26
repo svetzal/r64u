@@ -2979,6 +2979,7 @@ add_executable(test_playlistwidget
 )
 
 target_include_directories(test_playlistwidget PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
 )
 
@@ -3799,6 +3800,7 @@ add_executable(test_menubarbuilder
 target_include_directories(test_menubarbuilder PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}/generated
 )
 
 target_link_libraries(test_menubarbuilder PRIVATE
@@ -4014,6 +4016,7 @@ endif()
 target_include_directories(test_mainwindow PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_BINARY_DIR}/generated
 )
 
 target_link_libraries(test_mainwindow PRIVATE
@@ -4093,6 +4096,56 @@ add_test(NAME RefreshPolicyManagerTest COMMAND test_refreshpolicymanager)
 if(BUILD_COVERAGE)
     add_coverage_target(refreshpolicymanager test_refreshpolicymanager)
     add_dependencies(coverage coverage_refreshpolicymanager)
+endif()
+
+# ============================================================================
+# Theme tokens (header-only pure functions)
+# ============================================================================
+add_executable(test_themecore
+    test_themecore.cpp
+)
+
+target_include_directories(test_themecore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_themecore PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+)
+
+add_test(NAME ThemeCoreTest COMMAND test_themecore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(themecore test_themecore)
+    add_dependencies(coverage coverage_themecore)
+endif()
+
+# ============================================================================
+# Theme application (palette + stylesheet)
+# ============================================================================
+add_executable(test_theme
+    test_theme.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/theme.cpp
+)
+
+target_include_directories(test_theme PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_theme PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    Qt6::Test
+)
+
+add_test(NAME ThemeTest COMMAND test_theme)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(theme test_theme)
+    add_dependencies(coverage coverage_theme)
 endif()
 
 # All tests run with the offscreen Qt platform so they work without a display (CI/coverage)

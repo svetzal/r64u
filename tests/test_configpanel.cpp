@@ -7,7 +7,10 @@
 #include "services/errorhandler.h"
 #include "ui/configpanel.h"
 
+#include <QListWidget>
+#include <QSettings>
 #include <QSignalSpy>
+#include <QSplitter>
 #include <QtTest>
 
 /**
@@ -334,6 +337,92 @@ private slots:
         QMetaObject::invokeMethod(&panel, "onResetToDefaults", Qt::DirectConnection);
 
         QCOMPARE(restClient->resetConfigToDefaultsCalls, 0);
+    }
+
+    void testOnResetToDefaults_DefaultButtonIsCancel()
+    {
+        TrackingRestClient *restClient = nullptr;
+        auto *service = makeConnectedService(&restClient);
+        ConfigPanel panel(service, makeErrorHandler());
+
+        MockMessagePresenter mock;
+        mock.nextConfirmResult = -1;
+        panel.setMessagePresenter(&mock);
+
+        QMetaObject::invokeMethod(&panel, "onResetToDefaults", Qt::DirectConnection);
+
+        QCOMPARE(mock.confirmCalls.size(), 1);
+        const ConfirmCall &call = mock.confirmCalls[0];
+        QVERIFY(call.defaultIndex >= 0 && call.defaultIndex < call.buttons.size());
+        QCOMPARE(call.buttons[call.defaultIndex].role, IMessagePresenter::ButtonRole::Reject);
+    }
+
+    // ==========================================================================
+    // Layout persistence
+    // ==========================================================================
+
+    void testLoadSettings_RestoresSplitterState()
+    {
+        QCoreApplication::setOrganizationName("r64utest");
+        QCoreApplication::setApplicationName("test_configpanel");
+        QSettings().remove("layout");
+
+        TrackingRestClient *restClient = nullptr;
+        QList<int> savedSizes;
+        {
+            ConfigPanel saved(makeConnectedService(&restClient), makeErrorHandler());
+            saved.resize(1000, 600);
+            saved.show();
+            QVERIFY(QTest::qWaitForWindowExposed(&saved));
+            auto *splitter = saved.findChild<QSplitter *>();
+            QVERIFY(splitter != nullptr);
+            splitter->setSizes({150, 850});
+            QCoreApplication::processEvents();
+            savedSizes = splitter->sizes();
+            saved.saveSettings();
+        }
+        QVERIFY(!QSettings().value("layout/configSplitter").toByteArray().isEmpty());
+
+        ConfigPanel restored(makeConnectedService(&restClient), makeErrorHandler());
+        restored.resize(1000, 600);
+        restored.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&restored));
+        auto *freshSplitter = restored.findChild<QSplitter *>();
+        QVERIFY(freshSplitter != nullptr);
+        QVERIFY2(freshSplitter->sizes() != savedSizes,
+                 "default layout must differ from the saved one");
+
+        restored.loadSettings();
+        QCoreApplication::processEvents();
+
+        QCOMPARE(freshSplitter->sizes(), savedSizes);
+        QSettings().remove("layout");
+    }
+
+    void testLoadSettings_EmptySavedState_KeepsDefaults()
+    {
+        QCoreApplication::setOrganizationName("r64utest");
+        QCoreApplication::setApplicationName("test_configpanel");
+        QSettings().remove("layout");
+
+        TrackingRestClient *restClient = nullptr;
+        ConfigPanel panel(makeConnectedService(&restClient), makeErrorHandler());
+        auto *splitter = panel.findChild<QSplitter *>();
+        QVERIFY(splitter != nullptr);
+        const QList<int> defaults = splitter->sizes();
+
+        panel.loadSettings();
+
+        QCOMPARE(splitter->sizes(), defaults);
+    }
+
+    void testCategoryList_CanGrowTo320()
+    {
+        TrackingRestClient *restClient = nullptr;
+        ConfigPanel panel(makeConnectedService(&restClient), makeErrorHandler());
+        auto *list = panel.findChild<QListWidget *>();
+        QVERIFY(list != nullptr);
+        QCOMPARE(list->maximumWidth(), 320);
     }
 
     void testOnResetToDefaults_WhenDisconnected_DoesNotShowDialog()

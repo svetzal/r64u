@@ -24,9 +24,12 @@
 #include "ui/refreshpolicymanager.h"
 #include "ui/transferpanel.h"
 
+#include <QHeaderView>
 #include <QSettings>
 #include <QSignalSpy>
+#include <QSplitter>
 #include <QStandardPaths>
+#include <QTreeView>
 #include <QtTest>
 
 #include <memory>
@@ -82,12 +85,39 @@ private slots:
         QCoreApplication::setApplicationName("test_transferpanel");
         QSettings settings;
         settings.remove("directories");
+        settings.remove("layout");
     }
 
     void cleanup()
     {
         QSettings settings;
         settings.remove("directories");
+        settings.remove("layout");
+    }
+
+    static void showAtKnownSize(QWidget &panel)
+    {
+        panel.resize(1000, 600);
+        panel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&panel));
+        QCoreApplication::processEvents();
+    }
+
+    /// The panel's own splitter (the one directly beneath the panel, not a nested one).
+    static QSplitter *panelSplitter(QWidget &panel)
+    {
+        for (QSplitter *splitter : panel.findChildren<QSplitter *>()) {
+            if (splitter->parentWidget() == &panel) {
+                return splitter;
+            }
+        }
+        return nullptr;
+    }
+
+    /// Tree views in creation order: remote browser first, then local browser.
+    static QList<QTreeView *> browserTreeViews(QWidget &panel)
+    {
+        return panel.findChildren<QTreeView *>();
     }
 
     // =========================================================================
@@ -133,6 +163,77 @@ private slots:
     // =========================================================================
     // selectedLocalPath / selectedRemotePath — empty when nothing selected
     // =========================================================================
+
+    // =========================================================================
+    // Layout persistence — splitter and header state survive a restart
+    // =========================================================================
+
+    void testLoadSettings_RestoresSplitterState()
+    {
+        QList<int> savedSizes;
+        {
+            std::unique_ptr<TransferPanel> saved(makePanel());
+            showAtKnownSize(*saved);
+            QSplitter *splitter = panelSplitter(*saved);
+            QVERIFY(splitter != nullptr);
+            splitter->setSizes({200, 800});
+            QCoreApplication::processEvents();
+            savedSizes = splitter->sizes();
+            saved->saveSettings();
+        }
+
+        std::unique_ptr<TransferPanel> restored(makePanel());
+        showAtKnownSize(*restored);
+        QSplitter *splitter = panelSplitter(*restored);
+        QVERIFY(splitter != nullptr);
+        QVERIFY2(splitter->sizes() != savedSizes, "default layout must differ from the saved one");
+
+        restored->loadSettings();
+        QCoreApplication::processEvents();
+
+        QCOMPARE(splitter->sizes(), savedSizes);
+    }
+
+    void testLoadSettings_RestoresRemoteAndLocalHeaderState()
+    {
+        {
+            std::unique_ptr<TransferPanel> saved(makePanel());
+            showAtKnownSize(*saved);
+            const auto views = browserTreeViews(*saved);
+            QCOMPARE(views.size(), 2);
+            views[0]->header()->setSortIndicator(1, Qt::DescendingOrder);
+            views[1]->header()->setSortIndicator(2, Qt::DescendingOrder);
+            saved->saveSettings();
+        }
+        QVERIFY(!QSettings().value("layout/transferRemoteHeader").toByteArray().isEmpty());
+        QVERIFY(!QSettings().value("layout/transferLocalHeader").toByteArray().isEmpty());
+
+        std::unique_ptr<TransferPanel> restored(makePanel());
+        showAtKnownSize(*restored);
+        restored->loadSettings();
+        QCoreApplication::processEvents();
+
+        const auto views = browserTreeViews(*restored);
+        QCOMPARE(views.size(), 2);
+        QCOMPARE(views[0]->header()->sortIndicatorSection(), 1);
+        QCOMPARE(views[0]->header()->sortIndicatorOrder(), Qt::DescendingOrder);
+        QCOMPARE(views[1]->header()->sortIndicatorSection(), 2);
+        QCOMPARE(views[1]->header()->sortIndicatorOrder(), Qt::DescendingOrder);
+    }
+
+    void testLoadSettings_EmptySavedLayout_KeepsDefaults()
+    {
+        std::unique_ptr<TransferPanel> panel(makePanel());
+        showAtKnownSize(*panel);
+        QSplitter *splitter = panelSplitter(*panel);
+        QVERIFY(splitter != nullptr);
+        const QList<int> defaults = splitter->sizes();
+
+        panel->loadSettings();
+        QCoreApplication::processEvents();
+
+        QCOMPARE(splitter->sizes(), defaults);
+    }
 
     void testSelectedLocalPath_NothingSelected_ReturnsEmpty()
     {

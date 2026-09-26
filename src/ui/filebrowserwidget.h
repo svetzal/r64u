@@ -61,6 +61,16 @@ public:
     void setMessagePresenter(IMessagePresenter *presenter);
 
     /**
+     * @brief Returns the tree view header layout (column widths, order, sort) for persisting.
+     */
+    [[nodiscard]] QByteArray headerState() const;
+
+    /**
+     * @brief Restores a header layout saved by headerState(). Empty input is ignored.
+     */
+    void restoreHeaderState(const QByteArray &state);
+
+    /**
      * @brief Returns the path of the selected item.
      * @return The selected path, or empty string if no selection.
      */

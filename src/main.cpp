@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "version.h"
 
+#include "ui/theme.h"
 #include "utils/logging.h"
 
 #include <QApplication>
@@ -45,6 +46,9 @@ int main(int argc, char *argv[])
             qCDebug(LogConfig) << "Loaded C64 font:" << families.first();
         }
     }
+
+    theme::apply(app);
+    theme::installColorSchemeWatcher(app);
 
     MainWindow window;
     window.show();

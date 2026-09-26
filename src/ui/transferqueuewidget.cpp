@@ -1,6 +1,7 @@
 #include "transferqueuewidget.h"
 
 #include "../models/transferqueue.h"
+#include "core/themecore.h"
 
 #include <QApplication>
 #include <QHBoxLayout>
@@ -45,29 +46,30 @@ public:
             break;
         }
 
+        const themecore::Tokens tokens = themecore::currentTokens();
         int status = index.data(TransferQueue::StatusRole).toInt();
         QString statusText;
         QColor statusColor;
         switch (static_cast<TransferItem::Status>(status)) {
         case TransferItem::Status::Pending:
             statusText = "Pending";
-            statusColor = Qt::gray;
+            statusColor = tokens.textMuted;
             break;
         case TransferItem::Status::InProgress:
             statusText = "Transferring";
-            statusColor = Qt::blue;
+            statusColor = tokens.stateInfo;
             break;
         case TransferItem::Status::Completed:
             statusText = "Done";
-            statusColor = Qt::darkGreen;
+            statusColor = tokens.stateConnected;
             break;
         case TransferItem::Status::Failed:
             statusText = "Failed";
-            statusColor = Qt::red;
+            statusColor = tokens.stateError;
             break;
         case TransferItem::Status::Skipped:
             statusText = "Skipped";
-            statusColor = Qt::darkYellow;
+            statusColor = tokens.accentOrange;
             break;
         }
 

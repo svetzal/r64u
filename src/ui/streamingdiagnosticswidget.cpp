@@ -5,6 +5,8 @@
 
 #include "streamingdiagnosticswidget.h"
 
+#include "core/themecore.h"
+
 #include <QFrame>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -34,7 +36,8 @@ void StreamingDiagnosticsWidget::setupUi()
     // Quality indicator dot
     qualityDot_ = new QWidget();
     qualityDot_->setFixedSize(10, 10);
-    qualityDot_->setStyleSheet("background-color: #808080; border-radius: 5px;");
+    qualityDot_->setStyleSheet(QStringLiteral("background-color: %1; border-radius: 5px;")
+                                   .arg(themecore::currentTokens().borderStrong.name()));
     compactLayout->addWidget(qualityDot_);
 
     // Summary label
@@ -293,30 +296,35 @@ void StreamingDiagnosticsWidget::updateDetailedDisplay(const DiagnosticsSnapshot
     audioDroppedLabel_->setText(formatBytes(snapshot.audioSamplesDropped));
 
     // Color code values based on thresholds
-    auto colorForLoss = [](double loss) -> QString {
-        if (loss < 0.1) {
-            return "color: green;";
-        }
-        if (loss < 1.0) {
-            return "color: #9BC800;";
-        }
-        if (loss < 5.0) {
-            return "color: orange;";
-        }
-        return "color: red;";
+    const themecore::Tokens tokens = themecore::currentTokens();
+    auto colorRule = [](const QColor &color) {
+        return QStringLiteral("color: %1;").arg(color.name());
     };
 
-    auto colorForCompletion = [](double completion) -> QString {
+    auto colorForLoss = [&](double loss) -> QString {
+        if (loss < 0.1) {
+            return colorRule(tokens.stateConnected);
+        }
+        if (loss < 1.0) {
+            return colorRule(tokens.accentGreen);
+        }
+        if (loss < 5.0) {
+            return colorRule(tokens.stateWarning);
+        }
+        return colorRule(tokens.stateError);
+    };
+
+    auto colorForCompletion = [&](double completion) -> QString {
         if (completion > 99.9) {
-            return "color: green;";
+            return colorRule(tokens.stateConnected);
         }
         if (completion > 99.0) {
-            return "color: #9BC800;";
+            return colorRule(tokens.accentGreen);
         }
         if (completion > 95.0) {
-            return "color: orange;";
+            return colorRule(tokens.stateWarning);
         }
-        return "color: red;";
+        return colorRule(tokens.stateError);
     };
 
     videoLossLabel_->setStyleSheet(
@@ -330,9 +338,26 @@ void StreamingDiagnosticsWidget::updateDetailedDisplay(const DiagnosticsSnapshot
 
 void StreamingDiagnosticsWidget::updateQualityIndicator(QualityLevel level)
 {
-    QColor color = StreamingDiagnosticsService::qualityLevelColor(level);
+    const themecore::Tokens tokens = themecore::currentTokens();
+    QColor color = tokens.borderStrong;
+    switch (level) {
+    case QualityLevel::Excellent:
+        color = tokens.stateConnected;
+        break;
+    case QualityLevel::Good:
+        color = tokens.accentGreen;
+        break;
+    case QualityLevel::Fair:
+        color = tokens.stateWarning;
+        break;
+    case QualityLevel::Poor:
+        color = tokens.stateError;
+        break;
+    case QualityLevel::Unknown:
+        break;
+    }
     qualityDot_->setStyleSheet(
-        QString("background-color: %1; border-radius: 5px;").arg(color.name()));
+        QStringLiteral("background-color: %1; border-radius: 5px;").arg(color.name()));
 }
 
 QString StreamingDiagnosticsWidget::formatBytes(quint64 bytes)

@@ -16,15 +16,22 @@ public:
     QString path() const;
     void setUpEnabled(bool enabled);
 
+    /// Shows the path as a blue badge (remote locations).
     void setStyleBlue();
+    /// Shows the path as a green badge (local locations).
     void setStyleGreen();
 
 signals:
     void upClicked();
 
 private:
+    enum class Accent { Blue, Green };
+
+    void applyAccent();
+
     QString prefix_;
     QString currentPath_;
+    Accent accent_ = Accent::Blue;
     QPushButton *upButton_ = nullptr;
     QLabel *pathLabel_ = nullptr;
 };

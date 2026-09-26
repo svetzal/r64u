@@ -166,6 +166,13 @@ void TransferPanel::loadSettings()
         setCurrentLocalDir(savedLocalDir);
     }
     setCurrentRemoteDir(savedRemoteDir);
+
+    const QByteArray splitterState = settings.value("layout/transferSplitter").toByteArray();
+    if (!splitterState.isEmpty()) {
+        splitter_->restoreState(splitterState);
+    }
+    remoteBrowser_->restoreHeaderState(settings.value("layout/transferRemoteHeader").toByteArray());
+    localBrowser_->restoreHeaderState(settings.value("layout/transferLocalHeader").toByteArray());
 }
 
 void TransferPanel::saveSettings() const
@@ -173,6 +180,9 @@ void TransferPanel::saveSettings() const
     QSettings settings;
     settings.setValue("directories/local", currentLocalDir());
     settings.setValue("directories/remote", currentRemoteDir());
+    settings.setValue("layout/transferSplitter", splitter_->saveState());
+    settings.setValue("layout/transferRemoteHeader", remoteBrowser_->headerState());
+    settings.setValue("layout/transferLocalHeader", localBrowser_->headerState());
 }
 
 void TransferPanel::onConnectionStateChanged()

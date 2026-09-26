@@ -77,6 +77,7 @@ set(SOURCES
     src/ui/viewpanel.cpp
     src/ui/configpanel.cpp
     src/ui/playlistwidget.cpp
+    src/ui/theme.cpp
     src/ui/filepreview/c64previewbase.cpp
     src/ui/filepreview/textfilepreview.cpp
     src/ui/filepreview/diskimagepreview.cpp
@@ -221,6 +222,9 @@ set(HEADERS
     src/ui/viewpanel.h
     src/ui/configpanel.h
     src/ui/playlistwidget.h
+    src/ui/theme.h
+    src/core/themecore.h
+    src/core/c64screenstyle.h
     src/ui/filepreview/ifilepreview.h
     src/ui/filepreview/c64previewbase.h
     src/ui/filepreview/textfilepreview.h

@@ -1,5 +1,6 @@
 #include "configitemspanel.h"
 
+#include "core/themecore.h"
 #include "models/configurationmodel.h"
 
 #include <QCheckBox>
@@ -47,7 +48,8 @@ void ConfigItemsPanel::setupUi()
     // Empty state label
     emptyLabel_ = new QLabel(tr("Select a category to view configuration items."));
     emptyLabel_->setAlignment(Qt::AlignCenter);
-    emptyLabel_->setStyleSheet("QLabel { color: gray; }");
+    emptyLabel_->setStyleSheet(
+        QStringLiteral("QLabel { color: %1; }").arg(themecore::currentTokens().textMuted.name()));
     mainLayout->addWidget(emptyLabel_);
 
     // Initially show empty label

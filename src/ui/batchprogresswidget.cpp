@@ -1,5 +1,7 @@
 #include "batchprogresswidget.h"
 
+#include "core/themecore.h"
+
 #include <QHBoxLayout>
 #include <QLocale>
 
@@ -172,7 +174,8 @@ void BatchProgressWidget::updateStateAppearance()
         progressBar_->setVisible(false);
         setEnabled(true);
         // Slightly dimmed appearance for queued items
-        setStyleSheet("QLabel { color: gray; }");
+        setStyleSheet(QStringLiteral("QLabel { color: %1; }")
+                          .arg(themecore::currentTokens().textMuted.name()));
         break;
 
     case State::Scanning:
@@ -200,7 +203,8 @@ void BatchProgressWidget::updateStateAppearance()
         progressBar_->setVisible(true);
         progressBar_->setValue(100);
         setEnabled(false);
-        setStyleSheet("QLabel { color: green; }");
+        setStyleSheet(QStringLiteral("QLabel { color: %1; }")
+                          .arg(themecore::currentTokens().stateConnected.name()));
         break;
     }
 }

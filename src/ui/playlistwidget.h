@@ -1,6 +1,9 @@
 #ifndef PLAYLISTWIDGET_H
 #define PLAYLISTWIDGET_H
 
+#include "ui/imessagepresenter.h"
+#include "ui/qmessageboxpresenter.h"
+
 #include <QLabel>
 #include <QMenu>
 #include <QPushButton>
@@ -30,6 +33,17 @@ class PlaylistWidget : public QWidget
 public:
     explicit PlaylistWidget(PlaylistService *manager, QWidget *parent = nullptr);
     ~PlaylistWidget() override = default;
+
+    /**
+     * @brief Replaces the message presenter used for the Clear confirmation.
+     *
+     * The default presenter shows real QMessageBox dialogs. Inject a test
+     * double to verify confirmation behaviour without blocking the UI.
+     *
+     * @param presenter Non-owning pointer; must outlive this widget. Pass nullptr to
+     *                  restore the default QMessageBoxPresenter.
+     */
+    void setMessagePresenter(IMessagePresenter *presenter);
 
 signals:
     /**
@@ -82,6 +96,10 @@ private:
     void updateElapsedTimeDisplay();
 
     PlaylistService *manager_ = nullptr;
+
+    // Message presenter — owned default, swappable for tests (non-owning pointer).
+    QMessageBoxPresenter defaultPresenter_;
+    IMessagePresenter *presenter_ = &defaultPresenter_;
 
     // UI Components
     QLabel *headerLabel_ = nullptr;

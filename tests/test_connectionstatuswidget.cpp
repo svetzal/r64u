@@ -9,16 +9,30 @@
  * - setConnected(false) hides hostname and firmware labels
  * - setHostname() shows label only when connected and non-empty
  * - setFirmwareVersion() formats text and shows only when connected
+ * - setConnecting(true) shows "Connecting…" and hides hostname/firmware
+ * - The LED sits to the left of the status text
  */
 
+#include "core/themecore.h"
 #include "ui/connectionstatuswidget.h"
 
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QtTest>
 
 class TestConnectionStatusWidget : public QObject
 {
     Q_OBJECT
+
+    static QLabel *labelWithText(const QWidget &widget, const QString &text)
+    {
+        for (QLabel *label : widget.findChildren<QLabel *>()) {
+            if (label->text() == text) {
+                return label;
+            }
+        }
+        return nullptr;
+    }
 
 private slots:
 
@@ -31,9 +45,74 @@ private slots:
     void testConstruct_initiallyDisconnected()
     {
         ConnectionStatusWidget widget;
-        auto *status = widget.findChild<QLabel *>();
+        QVERIFY(labelWithText(widget, "Disconnected") != nullptr);
+    }
+
+    void testLayout_ledIsLeftOfStatusText()
+    {
+        ConnectionStatusWidget widget;
+        auto *layout = widget.layout();
+        QVERIFY(layout != nullptr);
+        QVERIFY(layout->count() >= 2);
+
+        auto *led = qobject_cast<QLabel *>(layout->itemAt(0)->widget());
+        auto *status = qobject_cast<QLabel *>(layout->itemAt(1)->widget());
+        QVERIFY(led != nullptr);
         QVERIFY(status != nullptr);
+        QVERIFY(led->text().isEmpty());
+        QCOMPARE(led->width(), 10);
         QCOMPARE(status->text(), QString("Disconnected"));
+    }
+
+    void testLed_usesStateTokens()
+    {
+        ConnectionStatusWidget widget;
+        auto *led = qobject_cast<QLabel *>(widget.layout()->itemAt(0)->widget());
+        QVERIFY(led != nullptr);
+        const auto tokens = themecore::currentTokens();
+
+        QVERIFY(led->styleSheet().contains(tokens.ledOff.name()));
+        widget.setConnected(true);
+        QVERIFY(led->styleSheet().contains(tokens.stateConnected.name()));
+        widget.setConnecting(true);
+        QVERIFY(led->styleSheet().contains(tokens.stateWarning.name()));
+    }
+
+    void testSetConnecting_true_showsConnectingText()
+    {
+        ConnectionStatusWidget widget;
+        widget.setConnecting(true);
+        QVERIFY(labelWithText(widget, QString::fromUtf8("Connecting\u2026")) != nullptr);
+    }
+
+    void testSetConnecting_true_hidesHostnameAndFirmware()
+    {
+        ConnectionStatusWidget widget;
+        widget.setConnected(true);
+        widget.setHostname("mydevice");
+        widget.setFirmwareVersion("3.10");
+
+        widget.setConnecting(true);
+
+        QVERIFY(labelWithText(widget, "mydevice") == nullptr);
+        QVERIFY(labelWithText(widget, "(3.10)") == nullptr);
+    }
+
+    void testSetConnecting_false_returnsToDisconnected()
+    {
+        ConnectionStatusWidget widget;
+        widget.setConnecting(true);
+        widget.setConnecting(false);
+        QVERIFY(labelWithText(widget, "Disconnected") != nullptr);
+    }
+
+    void testSetConnected_afterConnecting_showsConnected()
+    {
+        ConnectionStatusWidget widget;
+        widget.setConnecting(true);
+        widget.setConnected(true);
+        QVERIFY(labelWithText(widget, "Connected") != nullptr);
+        QVERIFY(labelWithText(widget, QString::fromUtf8("Connecting\u2026")) == nullptr);
     }
 
     void testSetConnected_true_updatesStatusLabel()

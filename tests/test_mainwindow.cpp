@@ -19,11 +19,14 @@
 #include "ui/viewpanel.h"
 
 #include <QApplication>
+#include <QHeaderView>
 #include <QMenuBar>
 #include <QSettings>
+#include <QSplitter>
 #include <QTabWidget>
 #include <QTimer>
 #include <QToolBar>
+#include <QTreeView>
 #include <QtTest>
 
 #include <algorithm>
@@ -120,6 +123,36 @@ class TestMainWindow : public QObject
         QVERIFY(connectionStatus != nullptr);
         QVERIFY2(connectionStatus->isVisible(),
                  "connection status was pushed into the toolbar's extension menu");
+    }
+
+    /// The Explore panel's splitter of the given orientation.
+    static QSplitter *exploreSplitter(MainWindow &window, Qt::Orientation orientation)
+    {
+        auto *explore = window.findChild<ExplorePanel *>();
+        if (!explore) {
+            return nullptr;
+        }
+        for (QSplitter *splitter : explore->findChildren<QSplitter *>()) {
+            if (splitter->orientation() == orientation) {
+                return splitter;
+            }
+        }
+        return nullptr;
+    }
+
+    /// The Explore panel's remote file tree (not the playlist's QTreeWidget).
+    static QTreeView *exploreTreeView(MainWindow &window)
+    {
+        auto *explore = window.findChild<ExplorePanel *>();
+        if (!explore) {
+            return nullptr;
+        }
+        for (QTreeView *view : explore->findChildren<QTreeView *>()) {
+            if (qobject_cast<RemoteFileModel *>(view->model())) {
+                return view;
+            }
+        }
+        return nullptr;
     }
 
     /// A window/state saved by an earlier r64u (QMainWindow::saveState version
@@ -267,6 +300,43 @@ private slots:
         QVERIFY(toolBar != nullptr);
         QCOMPARE(toolBar->objectName(), QStringLiteral("SystemToolBar"));
         verifySystemToolBarSpansWindow(second);
+    }
+
+    void testSavedLayout_exploreSplittersAndHeaderSurviveRestart()
+    {
+        QList<int> savedHorizontal;
+        QList<int> savedVertical;
+        {
+            MainWindow first;
+            showAtKnownSize(first);
+            QSplitter *horizontal = exploreSplitter(first, Qt::Horizontal);
+            QSplitter *vertical = exploreSplitter(first, Qt::Vertical);
+            QTreeView *tree = exploreTreeView(first);
+            QVERIFY(horizontal != nullptr);
+            QVERIFY(vertical != nullptr);
+            QVERIFY(tree != nullptr);
+
+            horizontal->setSizes({300, 900});
+            vertical->setSizes({500, 100});
+            tree->header()->setSortIndicator(1, Qt::DescendingOrder);
+            QCoreApplication::processEvents();
+            savedHorizontal = horizontal->sizes();
+            savedVertical = vertical->sizes();
+        }  // saves layout on destruction
+
+        MainWindow second;
+        showAtKnownSize(second);
+
+        QSplitter *horizontal = exploreSplitter(second, Qt::Horizontal);
+        QSplitter *vertical = exploreSplitter(second, Qt::Vertical);
+        QTreeView *tree = exploreTreeView(second);
+        QVERIFY(horizontal != nullptr);
+        QVERIFY(vertical != nullptr);
+        QVERIFY(tree != nullptr);
+        QCOMPARE(horizontal->sizes(), savedHorizontal);
+        QCOMPARE(vertical->sizes(), savedVertical);
+        QCOMPARE(tree->header()->sortIndicatorSection(), 1);
+        QCOMPARE(tree->header()->sortIndicatorOrder(), Qt::DescendingOrder);
     }
 
     // =========================================================================

@@ -8,8 +8,10 @@
  * - setPath() updates path() and label text
  * - setUpEnabled() controls the up button enabled state
  * - upClicked() signal emitted when up button clicked
+ * - setStyleBlue()/setStyleGreen() colour the path badge from the theme tokens
  */
 
+#include "core/themecore.h"
 #include "ui/pathnavigationwidget.h"
 
 #include <QLabel>
@@ -84,6 +86,31 @@ private slots:
         auto *button = widget.findChild<QPushButton *>();
         QVERIFY(button != nullptr);
         QVERIFY(button->isEnabled());
+    }
+
+    void testSetStyleGreen_usesAccentGreenOnInset()
+    {
+        PathNavigationWidget widget("Local:");
+        widget.setStyleGreen();
+
+        auto *label = widget.findChild<QLabel *>();
+        QVERIFY(label != nullptr);
+        const auto tokens = themecore::currentTokens();
+        QVERIFY(label->styleSheet().contains(tokens.accentGreen.name()));
+        QVERIFY(label->styleSheet().contains(tokens.bgInset.name()));
+    }
+
+    void testSetStyleBlue_usesAccentBlueOnInset()
+    {
+        PathNavigationWidget widget("Remote:");
+        widget.setStyleGreen();
+        widget.setStyleBlue();
+
+        auto *label = widget.findChild<QLabel *>();
+        QVERIFY(label != nullptr);
+        const auto tokens = themecore::currentTokens();
+        QVERIFY(label->styleSheet().contains(tokens.accentBlue.name()));
+        QVERIFY(!label->styleSheet().contains(tokens.accentGreen.name()));
     }
 
     void testUpClicked_emitsSignal()

@@ -5,6 +5,7 @@
 
 #include "c64previewbase.h"
 
+#include "core/c64screenstyle.h"
 #include "utils/logging.h"
 
 #include <QFont>
@@ -76,36 +77,7 @@ void C64PreviewBase::applyC64TextStyle()
     c64Font.setPointSize(12);
     textBrowser_->setFont(c64Font);
 
-    // Determine color scheme based on system theme
-    Qt::ColorScheme scheme = QGuiApplication::styleHints()->colorScheme();
-    bool isDarkMode = (scheme == Qt::ColorScheme::Dark);
-
-    // C64 color constants
-    const QString c64Blue = "#4040E8";
-    const QString c64LightBlue = "#887ECB";
-
-    QString stylesheet;
-    if (isDarkMode) {
-        // Dark mode: blue text on black background
-        stylesheet = QString("QTextBrowser {"
-                             "  background-color: #000000;"
-                             "  color: %1;"
-                             "  border: 1px solid %1;"
-                             "  padding: 8px;"
-                             "}")
-                         .arg(c64LightBlue);
-    } else {
-        // Light mode: white text on blue background (classic C64 look)
-        stylesheet = QString("QTextBrowser {"
-                             "  background-color: %1;"
-                             "  color: #FFFFFF;"
-                             "  border: 1px solid #2020A8;"
-                             "  padding: 8px;"
-                             "}")
-                         .arg(c64Blue);
-    }
-
-    textBrowser_->setStyleSheet(stylesheet);
+    textBrowser_->setStyleSheet(c64screen::c64TextBrowserStyle(themecore::effectiveScheme()));
 }
 
 void C64PreviewBase::applyLineHeight(int percentage)

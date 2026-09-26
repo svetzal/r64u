@@ -30,6 +30,10 @@ public:
     // Public API for MainWindow coordination
     void refreshIfEmpty() override;
 
+    // Settings
+    void loadSettings();
+    void saveSettings() const;
+
     /**
      * @brief Replaces the message presenter used for confirmation dialogs.
      *

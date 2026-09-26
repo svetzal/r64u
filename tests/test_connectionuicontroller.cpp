@@ -63,6 +63,36 @@ private slots:
     }
 
     // =========================================================================
+    // Connecting state — view shows the in-progress state
+    // =========================================================================
+
+    void testConnectToDevice_ShowsConnectingOnView()
+    {
+        dc_->setHost("test-device");
+        mockView_.reset();
+
+        dc_->connectToDevice();
+
+        QCOMPARE(dc_->state(), DeviceConnectionManager::ConnectionState::Connecting);
+        QVERIFY(!mockView_.connectingHistory.isEmpty());
+        QVERIFY(mockView_.connectingHistory.last());
+        QVERIFY2(mockView_.connectedHistory.isEmpty(),
+                 "a connection attempt is neither connected nor disconnected");
+    }
+
+    void testUpdateAll_WhileConnecting_CallsSetConnecting()
+    {
+        dc_->setHost("test-device");
+        dc_->connectToDevice();
+        mockView_.reset();
+
+        ctrl_->updateAll();
+
+        QCOMPARE(mockView_.connectingHistory, QList<bool>{true});
+        QVERIFY(mockView_.connectedHistory.isEmpty());
+    }
+
+    // =========================================================================
     // updateAll — connect action text
     // =========================================================================
 

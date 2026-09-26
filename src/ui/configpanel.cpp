@@ -2,11 +2,13 @@
 
 #include "configitemspanel.h"
 
+#include "core/themecore.h"
 #include "models/configurationmodel.h"
 #include "services/configurationservice.h"
 #include "services/errorhandler.h"
 #include "utils/logging.h"
 
+#include <QSettings>
 #include <QVBoxLayout>
 
 ConfigPanel::ConfigPanel(ConfigurationService *configService, ErrorHandler *errorHandler,
@@ -54,7 +56,6 @@ void ConfigPanel::setupUi()
 
     // Unsaved changes indicator
     unsavedIndicator_ = new QLabel();
-    unsavedIndicator_->setStyleSheet("QLabel { color: orange; font-weight: bold; }");
     unsavedIndicator_->setVisible(false);
     toolBar_->addWidget(unsavedIndicator_);
 
@@ -66,7 +67,7 @@ void ConfigPanel::setupUi()
     // Category list
     categoryList_ = new QListWidget();
     categoryList_->setMinimumWidth(150);
-    categoryList_->setMaximumWidth(250);
+    categoryList_->setMaximumWidth(320);
     categoryList_->setAlternatingRowColors(true);
     categoryList_->setSpacing(2);
     // Match the styling of tree views with slightly more padding
@@ -80,8 +81,7 @@ void ConfigPanel::setupUi()
     connect(itemsPanel_, &ConfigItemsPanel::itemChanged, this, &ConfigPanel::onItemEdited);
     splitter_->addWidget(itemsPanel_);
 
-    // Set splitter sizes (category list gets ~25%, items panel gets ~75%)
-    splitter_->setSizes({200, 600});
+    splitter_->setSizes({260, 900});
 
     layout->addWidget(splitter_, 1);
 }
@@ -142,6 +142,21 @@ void ConfigPanel::updateActions()
     }
 }
 
+void ConfigPanel::loadSettings()
+{
+    QSettings settings;
+    const QByteArray splitterState = settings.value("layout/configSplitter").toByteArray();
+    if (!splitterState.isEmpty()) {
+        splitter_->restoreState(splitterState);
+    }
+}
+
+void ConfigPanel::saveSettings() const
+{
+    QSettings settings;
+    settings.setValue("layout/configSplitter", splitter_->saveState());
+}
+
 void ConfigPanel::refreshIfEmpty()
 {
     if (configService_ && configService_->canPerformOperations() && categoryList_ &&
@@ -191,12 +206,13 @@ void ConfigPanel::onResetToDefaults()
         {tr("Reset to Defaults"), IMessagePresenter::ButtonRole::Destructive},
         {tr("Cancel"), IMessagePresenter::ButtonRole::Reject},
     };
+    constexpr int kCancelIndex = 1;  // Enter must never reset the device
 
     const int result =
         presenter_->confirm(this, tr("Reset to Defaults"),
                             tr("This will reset all configuration settings to factory defaults.\n\n"
                                "Are you sure you want to continue?"),
-                            buttons, IMessagePresenter::MessageIcon::Warning, 0);
+                            buttons, IMessagePresenter::MessageIcon::Warning, kCancelIndex);
 
     if (result == 0) {
         errorHandler_->info(ErrorCategory::FileOperation,
@@ -287,6 +303,8 @@ void ConfigPanel::onDirtyStateChanged(bool isDirty)
 {
     if (isDirty) {
         unsavedIndicator_->setText(tr("Unsaved changes"));
+        unsavedIndicator_->setStyleSheet(QStringLiteral("QLabel { color: %1; font-weight: bold; }")
+                                             .arg(themecore::currentTokens().stateWarning.name()));
         unsavedIndicator_->setVisible(true);
     } else {
         unsavedIndicator_->setVisible(false);

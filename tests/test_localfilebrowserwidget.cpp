@@ -185,6 +185,23 @@ private slots:
         QVERIFY(!result);
     }
 
+    void testConfirmDestructiveAction_DefaultButtonIsCancel()
+    {
+        ExposedLocalFileBrowserWidget widget(makeErrorHandler());
+        MockMessagePresenter mock;
+        widget.setMessagePresenter(&mock);
+
+        widget.callConfirmDestructiveAction("Delete", "Are you sure?", "Delete",
+                                            IMessagePresenter::MessageIcon::Warning);
+
+        QCOMPARE(mock.confirmCalls.size(), 1);
+        const ConfirmCall &call = mock.confirmCalls[0];
+        QVERIFY(call.defaultIndex >= 0 && call.defaultIndex < call.buttons.size());
+        QCOMPARE(call.buttons[call.defaultIndex].role, IMessagePresenter::ButtonRole::Reject);
+        QVERIFY2(call.buttons[call.defaultIndex].role != IMessagePresenter::ButtonRole::Destructive,
+                 "Enter must never trigger the destructive action");
+    }
+
     void testConfirmDestructiveAction_PassesTitleAndMessage()
     {
         ExposedLocalFileBrowserWidget widget(makeErrorHandler());

@@ -1,5 +1,6 @@
 #include "filedetailspanel.h"
 
+#include "core/c64screenstyle.h"
 #include "core/diskimagereader.h"
 #include "core/fileactioncore.h"
 #include "core/filemetadatacore.h"
@@ -47,7 +48,7 @@ void FileDetailsPanel::setupUi()
     auto *emptyLayout = new QVBoxLayout(emptyPage_);
     auto *emptyLabel = new QLabel(tr("Select a file to view details"));
     emptyLabel->setAlignment(Qt::AlignCenter);
-    emptyLabel->setStyleSheet("color: gray;");
+    emptyLabel->setStyleSheet(c64screen::mutedTextStyle());
     emptyLayout->addWidget(emptyLabel);
     stack_->addWidget(emptyPage_);
 
@@ -74,7 +75,7 @@ void FileDetailsPanel::setupUi()
 
     statusLabel_ = new QLabel();
     statusLabel_->setAlignment(Qt::AlignCenter);
-    statusLabel_->setStyleSheet("color: gray;");
+    statusLabel_->setStyleSheet(c64screen::mutedTextStyle());
     statusLabel_->hide();
     infoLayout->addWidget(statusLabel_);
 
@@ -334,36 +335,7 @@ void FileDetailsPanel::applyC64TextStyle()
     c64Font.setPointSize(12);
     textBrowser_->setFont(c64Font);
 
-    // Determine color scheme based on system theme
-    Qt::ColorScheme scheme = QGuiApplication::styleHints()->colorScheme();
-    bool isDarkMode = (scheme == Qt::ColorScheme::Dark);
-
-    // C64 color constants
-    const QString c64Blue = "#4040E8";
-    const QString c64LightBlue = "#887ECB";
-
-    QString stylesheet;
-    if (isDarkMode) {
-        // Dark mode: blue text on black background
-        stylesheet = QString("QTextBrowser {"
-                             "  background-color: #000000;"
-                             "  color: %1;"
-                             "  border: 1px solid %1;"
-                             "  padding: 8px;"
-                             "}")
-                         .arg(c64LightBlue);
-    } else {
-        // Light mode: white text on blue background (classic C64 look)
-        stylesheet = QString("QTextBrowser {"
-                             "  background-color: %1;"
-                             "  color: #FFFFFF;"
-                             "  border: 1px solid #2020A8;"
-                             "  padding: 8px;"
-                             "}")
-                         .arg(c64Blue);
-    }
-
-    textBrowser_->setStyleSheet(stylesheet);
+    textBrowser_->setStyleSheet(c64screen::c64TextBrowserStyle(themecore::effectiveScheme()));
 }
 
 void FileDetailsPanel::onColorSchemeChanged(Qt::ColorScheme /*scheme*/)

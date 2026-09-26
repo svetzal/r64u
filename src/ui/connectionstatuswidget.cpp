@@ -1,12 +1,22 @@
 #include "connectionstatuswidget.h"
 
+#include "core/themecore.h"
+
 #include <QHBoxLayout>
+
+namespace {
+constexpr int kLedSize = 10;  // visual.md 6.6
+}
 
 ConnectionStatusWidget::ConnectionStatusWidget(QWidget *parent) : QWidget(parent)
 {
     auto *layout = new QHBoxLayout(this);
     layout->setContentsMargins(4, 0, 4, 0);
     layout->setSpacing(8);
+
+    indicator_ = new QLabel();
+    indicator_->setFixedSize(kLedSize, kLedSize);
+    layout->addWidget(indicator_);
 
     statusLabel_ = new QLabel(tr("Disconnected"));
     layout->addWidget(statusLabel_);
@@ -16,13 +26,11 @@ ConnectionStatusWidget::ConnectionStatusWidget(QWidget *parent) : QWidget(parent
     layout->addWidget(hostnameLabel_);
 
     firmwareLabel_ = new QLabel();
-    firmwareLabel_->setStyleSheet("color: #666;");
     firmwareLabel_->setVisible(false);
     layout->addWidget(firmwareLabel_);
 
-    indicator_ = new QLabel();
-    indicator_->setFixedSize(12, 12);
-    layout->addWidget(indicator_);
+    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this,
+            [this](Qt::ColorScheme) { updateDisplay(); });
 
     updateDisplay();
 }
@@ -30,7 +38,21 @@ ConnectionStatusWidget::ConnectionStatusWidget(QWidget *parent) : QWidget(parent
 void ConnectionStatusWidget::setConnected(bool connected)
 {
     connected_ = connected;
+    connecting_ = false;
     if (!connected_) {
+        hostnameLabel_->clear();
+        hostnameLabel_->setVisible(false);
+        firmwareLabel_->clear();
+        firmwareLabel_->setVisible(false);
+    }
+    updateDisplay();
+}
+
+void ConnectionStatusWidget::setConnecting(bool connecting)
+{
+    connecting_ = connecting;
+    if (connecting_) {
+        connected_ = false;
         hostnameLabel_->clear();
         hostnameLabel_->setVisible(false);
         firmwareLabel_->clear();
@@ -53,8 +75,21 @@ void ConnectionStatusWidget::setFirmwareVersion(const QString &version)
 
 void ConnectionStatusWidget::updateDisplay()
 {
-    statusLabel_->setText(connected_ ? tr("Connected") : tr("Disconnected"));
+    const themecore::Tokens tokens = themecore::currentTokens();
 
-    QString color = connected_ ? "#22c55e" : "#ef4444";  // green-500 / red-500
-    indicator_->setStyleSheet(QString("background-color: %1; border-radius: 6px;").arg(color));
+    QColor led = tokens.ledOff;
+    QString status = tr("Disconnected");
+    if (connecting_) {
+        led = tokens.stateWarning;
+        status = tr("Connecting…");
+    } else if (connected_) {
+        led = tokens.stateConnected;
+        status = tr("Connected");
+    }
+
+    statusLabel_->setText(status);
+    indicator_->setStyleSheet(QStringLiteral("background-color: %1; border-radius: %2px;")
+                                  .arg(led.name())
+                                  .arg(kLedSize / 2));
+    firmwareLabel_->setStyleSheet(QStringLiteral("color: %1;").arg(tokens.textMuted.name()));
 }

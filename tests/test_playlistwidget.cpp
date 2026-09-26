@@ -18,6 +18,7 @@
  * hardware calls from being made during the tests.
  */
 
+#include "mocks/mockmessagepresenter.h"
 #include "services/playlistservice.h"
 #include "ui/playlistwidget.h"
 
@@ -265,14 +266,68 @@ private slots:
     // Clear playlist
     // -----------------------------------------------------------------------
 
-    void testOnClear_delegatesClearToManager()
+    void testOnClear_whenConfirmed_clearsManager()
     {
         addTestItem(manager);
         QCOMPARE(manager->count(), 1);
+        MockMessagePresenter mock;
+        mock.nextConfirmResult = 0;  // index 0 = "Clear"
+        widget->setMessagePresenter(&mock);
 
         QMetaObject::invokeMethod(widget, "onClear");
 
+        QCOMPARE(mock.confirmCalls.size(), 1);
         QCOMPARE(manager->count(), 0);
+    }
+
+    void testOnClear_whenCancelled_keepsPlaylist()
+    {
+        addTestItem(manager);
+        MockMessagePresenter mock;
+        mock.nextConfirmResult = 1;  // index 1 = "Cancel"
+        widget->setMessagePresenter(&mock);
+
+        QMetaObject::invokeMethod(widget, "onClear");
+
+        QCOMPARE(mock.confirmCalls.size(), 1);
+        QCOMPARE(manager->count(), 1);
+    }
+
+    void testOnClear_whenDismissed_keepsPlaylist()
+    {
+        addTestItem(manager);
+        MockMessagePresenter mock;
+        mock.nextConfirmResult = -1;
+        widget->setMessagePresenter(&mock);
+
+        QMetaObject::invokeMethod(widget, "onClear");
+
+        QCOMPARE(manager->count(), 1);
+    }
+
+    void testOnClear_defaultButtonIsCancel()
+    {
+        addTestItem(manager);
+        MockMessagePresenter mock;
+        mock.nextConfirmResult = -1;
+        widget->setMessagePresenter(&mock);
+
+        QMetaObject::invokeMethod(widget, "onClear");
+
+        QCOMPARE(mock.confirmCalls.size(), 1);
+        const ConfirmCall &call = mock.confirmCalls[0];
+        QVERIFY(call.defaultIndex >= 0 && call.defaultIndex < call.buttons.size());
+        QCOMPARE(call.buttons[call.defaultIndex].role, IMessagePresenter::ButtonRole::Reject);
+    }
+
+    void testOnClear_whenEmpty_doesNotPrompt()
+    {
+        MockMessagePresenter mock;
+        widget->setMessagePresenter(&mock);
+
+        QMetaObject::invokeMethod(widget, "onClear");
+
+        QCOMPARE(mock.confirmCalls.size(), 0);
     }
 };
 

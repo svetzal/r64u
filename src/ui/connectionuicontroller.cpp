@@ -58,14 +58,22 @@ void ConnectionUIController::updateStatusBar()
         return;
     }
 
-    if (deviceConnection_->isConnected()) {
+    switch (deviceConnection_->state()) {
+    case DeviceConnectionManager::ConnectionState::Connected: {
         DeviceInfo info = deviceConnection_->deviceInfo();
         statusWidget_->setConnected(true);
         statusWidget_->setHostname(info.hostname.isEmpty() ? deviceConnection_->host()
                                                            : info.hostname);
         statusWidget_->setFirmwareVersion(info.firmwareVersion);
-    } else {
+        break;
+    }
+    case DeviceConnectionManager::ConnectionState::Connecting:
+    case DeviceConnectionManager::ConnectionState::Reconnecting:
+        statusWidget_->setConnecting(true);
+        break;
+    case DeviceConnectionManager::ConnectionState::Disconnected:
         statusWidget_->setConnected(false);
+        break;
     }
 }
 

@@ -1,5 +1,7 @@
 #include "pathnavigationwidget.h"
 
+#include "core/themecore.h"
+
 #include <QHBoxLayout>
 
 #include <utility>
@@ -11,7 +13,7 @@ PathNavigationWidget::PathNavigationWidget(QString prefix, QWidget *parent)
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(8);
 
-    upButton_ = new QPushButton(tr("\u2191 Up"));
+    upButton_ = new QPushButton(tr("↑ Up"));
     upButton_->setToolTip(tr("Go to parent folder"));
     connect(upButton_, &QPushButton::clicked, this, &PathNavigationWidget::upClicked);
     layout->addWidget(upButton_);
@@ -19,6 +21,9 @@ PathNavigationWidget::PathNavigationWidget(QString prefix, QWidget *parent)
     pathLabel_ = new QLabel();
     pathLabel_->setWordWrap(true);
     layout->addWidget(pathLabel_, 1);
+
+    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this,
+            [this](Qt::ColorScheme) { applyAccent(); });
 
     setStyleBlue();
     setPath("/");
@@ -42,12 +47,21 @@ void PathNavigationWidget::setUpEnabled(bool enabled)
 
 void PathNavigationWidget::setStyleBlue()
 {
-    pathLabel_->setStyleSheet(
-        "color: #0066cc; padding: 2px; background-color: #f0f8ff; border-radius: 3px;");
+    accent_ = Accent::Blue;
+    applyAccent();
 }
 
 void PathNavigationWidget::setStyleGreen()
 {
+    accent_ = Accent::Green;
+    applyAccent();
+}
+
+void PathNavigationWidget::applyAccent()
+{
+    const themecore::Tokens tokens = themecore::currentTokens();
+    const QColor text = accent_ == Accent::Blue ? tokens.accentBlue : tokens.accentGreen;
     pathLabel_->setStyleSheet(
-        "color: #006600; padding: 2px; background-color: #f0fff0; border-radius: 3px;");
+        QStringLiteral("color: %1; background-color: %2; border-radius: 4px; padding: 2px 6px;")
+            .arg(text.name(), tokens.bgInset.name()));
 }

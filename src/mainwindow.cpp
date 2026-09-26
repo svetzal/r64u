@@ -372,6 +372,7 @@ void MainWindow::loadSettings()
     explorePanel_->loadSettings();
     transferPanel_->loadSettings();
     viewPanel_->loadSettings();
+    configPanel_->loadSettings();
 }
 
 void MainWindow::saveSettings()
@@ -384,6 +385,7 @@ void MainWindow::saveSettings()
     explorePanel_->saveSettings();
     transferPanel_->saveSettings();
     viewPanel_->saveSettings();
+    configPanel_->saveSettings();
 }
 
 // Slots

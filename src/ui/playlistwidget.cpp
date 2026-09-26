@@ -249,9 +249,30 @@ void PlaylistWidget::onRepeatCycle()
     }
 }
 
+void PlaylistWidget::setMessagePresenter(IMessagePresenter *presenter)
+{
+    presenter_ = presenter ? presenter : &defaultPresenter_;
+}
+
 void PlaylistWidget::onClear()
 {
-    manager_->clear();
+    if (manager_->count() == 0) {
+        return;
+    }
+
+    const QList<IMessagePresenter::DialogButton> buttons = {
+        {tr("Clear"), IMessagePresenter::ButtonRole::Destructive},
+        {tr("Cancel"), IMessagePresenter::ButtonRole::Reject},
+    };
+    constexpr int kCancelIndex = 1;  // Enter must never wipe the playlist
+    const int result = presenter_->confirm(
+        this, tr("Clear Playlist"),
+        tr("Remove all %n track(s) from the playlist?", nullptr, manager_->count()), buttons,
+        IMessagePresenter::MessageIcon::Warning, kCancelIndex);
+
+    if (result == 0) {
+        manager_->clear();
+    }
 }
 
 void PlaylistWidget::onDurationChanged(int value)

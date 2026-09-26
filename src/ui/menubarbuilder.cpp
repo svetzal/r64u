@@ -1,6 +1,7 @@
 #include "menubarbuilder.h"
 
 #include "systemcommandcontroller.h"
+#include "version.h"
 
 #include <QKeySequence>
 #include <QMainWindow>
@@ -89,9 +90,10 @@ QAction *menubar::Builder::build(QMainWindow *window, SystemCommandController *s
     QObject::connect(aboutAction, &QAction::triggered, window, [window]() {
         QMessageBox::about(window, QObject::tr("About r64u"),
                            QObject::tr("<h3>r64u</h3>"
-                                       "<p>Version 0.1.0</p>"
+                                       "<p>Version %1</p>"
                                        "<p>Remote access tool for Commodore 64 Ultimate "
-                                       "devices.</p>"));
+                                       "devices.</p>")
+                               .arg(QStringLiteral(R64U_VERSION)));
     });
 
     return refreshAction;

@@ -1,5 +1,7 @@
 #include "defaultfilepreview.h"
 
+#include "core/c64screenstyle.h"
+
 #include <QFileInfo>
 #include <QFont>
 
@@ -32,7 +34,7 @@ QWidget *DefaultFilePreview::createPreviewWidget(QWidget *parent)
     // Status label (for loading/errors)
     statusLabel_ = new QLabel(previewWidget_);
     statusLabel_->setAlignment(Qt::AlignCenter);
-    statusLabel_->setStyleSheet("color: gray;");
+    statusLabel_->setStyleSheet(c64screen::mutedTextStyle());
     statusLabel_->hide();
 
     layout->addWidget(fileNameLabel_);
