@@ -245,11 +245,12 @@ void ViewPanel::updatePlaceholder()
     const bool canOperate = deviceConnection_ && deviceConnection_->canPerformOperations();
     QStringList lines{QStringLiteral("    **** R64U VIDEO ****"), QString()};
     if (!canOperate) {
-        lines << tr("NO DEVICE CONNECTED.") << tr("CONNECT TO THE ULTIMATE TO VIEW ITS SCREEN.");
+        lines << tr("NO DEVICE CONNECTED.") << QString()
+              << tr("CONNECT TO THE ULTIMATE TO VIEW ITS SCREEN.");
     } else if (streamState_ == StreamState::Starting) {
         lines << tr("STARTING STREAM...");
     } else {
-        lines << tr("NOT STREAMING.") << tr("PRESS START STREAM TO WATCH THE C64.");
+        lines << tr("NOT STREAMING.") << QString() << tr("PRESS START STREAM TO WATCH THE C64.");
     }
     lines << QString() << QStringLiteral("READY.");
 
