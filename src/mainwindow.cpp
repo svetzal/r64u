@@ -84,6 +84,23 @@ MainWindow::~MainWindow()
     saveSettings();
 }
 
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    // Closing the main window quits the app. Errors from here on (say, an
+    // unreachable device refusing the stop commands) are logged and shown in
+    // the status bar, but a modal dialog would stall the quit.
+    errorHandler_->setPresenter(nullptr);
+
+    // The device streams until told to stop, and it can only be told while the
+    // event loop runs; once it has exited, the stop commands never leave.
+    constexpr std::chrono::milliseconds deviceStopTimeout{1500};
+    if (StreamingService *streaming = viewPanel_->streamingService()) {
+        streaming->stopStreamingBeforeExit(deviceStopTimeout);
+    }
+
+    QMainWindow::closeEvent(event);
+}
+
 void MainWindow::setupUi()
 {
     // Create container with top margin for spacing below toolbar

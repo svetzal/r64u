@@ -73,6 +73,12 @@ public:
      */
     [[nodiscard]] QString host() const override { return host_; }
 
+    /**
+     * @brief Overrides the TCP port commands are sent to (default: ControlPort).
+     * @param port Port the device listens on for stream control.
+     */
+    void setControlPort(quint16 port) { controlPort_ = port; }
+
     /// @name Stream Control
     /// @{
 
@@ -122,6 +128,11 @@ public:
      * @brief Clears any pending commands without sending them.
      */
     void clearPendingCommands() override;
+
+    /**
+     * @brief Returns true when no command is queued and the control connection is closed.
+     */
+    [[nodiscard]] bool isIdle() const override;
     /// @}
 
 private slots:
@@ -143,12 +154,14 @@ private:
 
     void sendCommand(const PendingCommand &command);
     void connectAndSend();
+    void emitIdleIfSettled();
 
     // Network
     QTcpSocket *socket_ = nullptr;
 
     // Configuration
     QString host_;
+    quint16 controlPort_ = ControlPort;
 
     // Command queue
     QList<PendingCommand> pendingCommands_;

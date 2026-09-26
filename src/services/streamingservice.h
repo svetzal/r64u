@@ -5,6 +5,8 @@
 
 #include <QString>
 
+#include <chrono>
+
 class DeviceConnectionManager;
 class IStreamControlService;
 class IVideoStreamReceiverService;
@@ -113,6 +115,20 @@ public:
      * Sends stop commands, closes receivers, and stops audio playback.
      */
     void stopStreaming();
+
+    /**
+     * @brief Stops streaming as the application exits, giving the device time to hear it.
+     *
+     * The device keeps streaming until told to stop, and the stop commands only
+     * travel while the event loop runs. If streaming, this stops as stopStreaming()
+     * does; then, whether or not it was streaming, it runs a local event loop
+     * (ignoring user input) until every stream control command has settled or
+     * @p timeout elapses, so an unreachable device cannot hold up the exit.
+     *
+     * @param timeout Longest time to wait for the commands to settle.
+     * @return true if every command settled (delivered or failed) in time.
+     */
+    bool stopStreamingBeforeExit(std::chrono::milliseconds timeout);
 
     /**
      * @brief Returns the stream control client.

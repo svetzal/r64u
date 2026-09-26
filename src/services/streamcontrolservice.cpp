@@ -90,6 +90,11 @@ void StreamControlService::clearPendingCommands()
     pendingCommands_.clear();
 }
 
+bool StreamControlService::isIdle() const
+{
+    return pendingCommands_.isEmpty() && socket_->state() == QAbstractSocket::UnconnectedState;
+}
+
 void StreamControlService::sendCommand(const PendingCommand &command)
 {
     if (host_.isEmpty()) {
@@ -111,9 +116,9 @@ void StreamControlService::connectAndSend()
         return;
     }
 
-    LOG_VERBOSE() << "StreamControlService: Connecting to" << host_ << "port" << ControlPort;
+    LOG_VERBOSE() << "StreamControlService: Connecting to" << host_ << "port" << controlPort_;
     connecting_ = true;
-    socket_->connectToHost(host_, ControlPort);
+    socket_->connectToHost(host_, controlPort_);
 }
 
 void StreamControlService::onSocketConnected()
@@ -162,13 +167,22 @@ void StreamControlService::onSocketDisconnected()
     // If there are more pending commands, reconnect
     if (!pendingCommands_.isEmpty()) {
         connectAndSend();
+        return;
+    }
+    emitIdleIfSettled();
+}
+
+void StreamControlService::emitIdleIfSettled()
+{
+    if (isIdle()) {
+        emit idle();
     }
 }
 
 void StreamControlService::onSocketError(QAbstractSocket::SocketError error)
 {
     LOG_VERBOSE() << "StreamControlService: Socket error connecting to" << host_ << "port"
-                  << ControlPort << "- error code:" << error << socket_->errorString();
+                  << controlPort_ << "- error code:" << error << socket_->errorString();
     connecting_ = false;
 
     QString errorMsg;
@@ -200,4 +214,6 @@ void StreamControlService::onSocketError(QAbstractSocket::SocketError error)
         emit errorReported(ErrorCategory::FileOperation, ErrorSeverity::Warning, cmd.description,
                            errorMsg);
     }
+
+    emitIdleIfSettled();
 }

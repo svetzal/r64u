@@ -14,6 +14,8 @@
  * For tests that require actual byte delivery, a local QTcpServer is used.
  */
 
+#include "core/streamprotocolcore.h"
+#include "fakes/fakestreamcontrolport.h"
 #include "services/ierroremitter.h"
 #include "services/streamcontrolservice.h"
 
@@ -196,6 +198,73 @@ private slots:
 
         QString desc = failedSpy.first().first().toString();
         QVERIFY(desc.contains("audio", Qt::CaseInsensitive));
+    }
+
+    // =========================================================
+    // Delivery to a listening device, and when the queue is idle
+    // =========================================================
+
+    void testIsIdle_nothingQueued_isTrue() { QVERIFY(client_->isIdle()); }
+
+    void testIsIdle_whileStopCommandsAwaitDelivery_isFalse()
+    {
+        FakeStreamControlPort device;
+        QVERIFY(device.isListening());
+        client_->setHost("127.0.0.1");
+        client_->setControlPort(device.port());
+
+        client_->stopAllStreams();
+
+        QVERIFY(!client_->isIdle());
+    }
+
+    void testStopAllStreams_listeningDevice_receivesBothStopCommands()
+    {
+        FakeStreamControlPort device;
+        QVERIFY(device.isListening());
+        client_->setHost("127.0.0.1");
+        client_->setControlPort(device.port());
+
+        client_->stopAllStreams();
+
+        const QByteArray expected =
+            streamprotocol::buildStopCommand(streamprotocol::CommandType::StopVideo) +
+            streamprotocol::buildStopCommand(streamprotocol::CommandType::StopAudio);
+        QTRY_COMPARE_WITH_TIMEOUT(device.received(), expected, 3000);
+    }
+
+    void testStopAllStreams_listeningDevice_becomesIdleOnceDelivered()
+    {
+        FakeStreamControlPort device;
+        QVERIFY(device.isListening());
+        client_->setHost("127.0.0.1");
+        client_->setControlPort(device.port());
+        QSignalSpy idleSpy(client_, &IStreamControlService::idle);
+
+        client_->stopAllStreams();
+
+        QTRY_VERIFY_WITH_TIMEOUT(idleSpy.count() >= 1, 3000);
+        QVERIFY(client_->isIdle());
+    }
+
+    void testStopAllStreams_refusedConnection_becomesIdleAfterFailingCommands()
+    {
+        quint16 closedPort = 0;
+        {
+            QTcpServer probe;
+            QVERIFY(probe.listen(QHostAddress::LocalHost, 0));
+            closedPort = probe.serverPort();
+        }
+        client_->setHost("127.0.0.1");
+        client_->setControlPort(closedPort);
+        QSignalSpy idleSpy(client_, &IStreamControlService::idle);
+        QSignalSpy failedSpy(client_, &StreamControlService::commandFailed);
+
+        client_->stopAllStreams();
+
+        QTRY_VERIFY_WITH_TIMEOUT(idleSpy.count() >= 1, 3000);
+        QCOMPARE(failedSpy.count(), 2);
+        QVERIFY(client_->isIdle());
     }
 
 private:

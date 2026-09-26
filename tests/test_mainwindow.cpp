@@ -1,8 +1,13 @@
 #include "mainwindow.h"
 
+#include "services/errorhandler.h"
+#include "services/errortypes.h"
+
+#include <QApplication>
 #include <QMenuBar>
 #include <QSettings>
 #include <QTabWidget>
+#include <QTimer>
 #include <QToolBar>
 #include <QtTest>
 
@@ -70,6 +75,31 @@ private slots:
         QCOMPARE(tabs->tabText(1), QString("Transfer"));
         QCOMPARE(tabs->tabText(2), QString("View"));
         QCOMPARE(tabs->tabText(3), QString("Config"));
+    }
+
+    void testClose_errorsDuringQuitShowNoDialog()
+    {
+        MainWindow window;
+        auto *errorHandler = window.findChild<ErrorHandler *>();
+        QVERIFY(errorHandler != nullptr);
+
+        window.close();
+
+        // Quitting stops streaming and waits for the device, so connection
+        // errors can arrive now; nobody is left to dismiss a dialog.
+        bool dialogShown = false;
+        QTimer::singleShot(0, &window, [&dialogShown]() {
+            if (QWidget *modal = QApplication::activeModalWidget()) {
+                dialogShown = true;
+                modal->close();
+            }
+        });
+        errorHandler->handleError(ErrorCategory::Connection, ErrorSeverity::Critical,
+                                  QStringLiteral("Connection Error"),
+                                  QStringLiteral("Connection refused"));
+        QCoreApplication::processEvents();
+
+        QVERIFY(!dialogShown);
     }
 };
 

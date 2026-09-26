@@ -7,6 +7,8 @@
  * All streaming sub-services are injected as mocks.
  */
 
+#include "core/streamprotocolcore.h"
+#include "fakes/fakestreamcontrolport.h"
 #include "mocks/mockaudioplaybackservice.h"
 #include "mocks/mockaudiostreamreceiverservice.h"
 #include "mocks/mockftpclient.h"
@@ -21,16 +23,23 @@
 #include "services/ierroremitter.h"
 #include "services/keyboardinputservice.h"
 #include "services/screenshotservice.h"
+#include "services/streamcontrolservice.h"
 #include "services/streamingservice.h"
 #include "services/videorecordingservice.h"
 #include "ui/viewpanel.h"
 
+#include <QElapsedTimer>
 #include <QHostAddress>
 #include <QNetworkAddressEntry>
 #include <QNetworkInterface>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QtTest>
+
+#include <chrono>
+#include <initializer_list>
+
+using namespace std::chrono_literals;
 
 class TestStreamingService : public QObject
 {
@@ -60,15 +69,26 @@ private:
 
     /// Helper: configure mock network so findLocalHostForDevice() finds a match
     void setupMatchingNetwork(const QString &deviceIp, const QString &localIp,
-                              const QString &netmask)
-    {
+                              const QString &netmask){
         // We can't easily construct a QNetworkInterface with specific addresses
         // in tests (it's a Qt internal class). We'll rely on testing other
         // preconditions and accept that the network lookup is a gateway.
         // This helper is left here for documentation purposes.
-        Q_UNUSED(deviceIp)
-        Q_UNUSED(localIp)
-        Q_UNUSED(netmask)
+        Q_UNUSED(deviceIp) Q_UNUSED(localIp) Q_UNUSED(netmask)}
+
+    /// Helper: a service around the given (real) stream control client, owning it and mocks
+    /// for everything else.
+    StreamingService *makeServiceOwning(IStreamControlService *control)
+    {
+        auto *video = new MockVideoStreamReceiverService();
+        auto *audio = new MockAudioStreamReceiverService();
+        auto *playback = new MockAudioPlaybackService();
+        auto *service = new StreamingService(conn_, control, video, audio, playback, nullptr,
+                                             new MockNetworkInterfaceProvider());
+        for (QObject *owned : std::initializer_list<QObject *>{control, video, audio, playback}) {
+            owned->setParent(service);
+        }
+        return service;
     }
 
 private slots:
@@ -446,6 +466,91 @@ private slots:
 
         QCOMPARE(errorHandlerMessages.count(), 0);
         delete errorHandler;
+    }
+
+    // =========================================================================
+    // stopStreamingBeforeExit — telling the device while the event loop still runs
+    // =========================================================================
+
+    void testStopStreamingBeforeExit_whileStreaming_deviceReceivesStopCommandsBeforeTeardown()
+    {
+        // A local server stands in for the device's stream control port.
+        FakeStreamControlPort device;
+        QVERIFY(device.isListening());
+        auto *control = new StreamControlService();
+        control->setHost(QStringLiteral("127.0.0.1"));
+        control->setControlPort(device.port());
+        auto *service = makeServiceOwning(control);
+        service->isStreaming_ = true;
+
+        QVERIFY(service->stopStreamingBeforeExit(2s));
+        // The app tears everything down right after the window closes.
+        delete service;
+
+        const QByteArray expected =
+            streamprotocol::buildStopCommand(streamprotocol::CommandType::StopVideo) +
+            streamprotocol::buildStopCommand(streamprotocol::CommandType::StopAudio);
+        QTRY_COMPARE_WITH_TIMEOUT(device.received(), expected, 3000);
+    }
+
+    void testStopStreamingBeforeExit_whileStreaming_stopsAndNotifies()
+    {
+        manager_->isStreaming_ = true;
+        QSignalSpy stoppedSpy(manager_, &StreamingService::streamingStopped);
+
+        QVERIFY(manager_->stopStreamingBeforeExit(1s));
+
+        QVERIFY(!manager_->isStreaming());
+        QCOMPARE(mockControl_->mockStopAllStreamsCallCount(), 1);
+        QCOMPARE(stoppedSpy.count(), 1);
+    }
+
+    void testStopStreamingBeforeExit_notStreaming_sendsNothing()
+    {
+        QVERIFY(manager_->stopStreamingBeforeExit(1s));
+
+        QCOMPARE(mockControl_->mockStopAllStreamsCallCount(), 0);
+    }
+
+    void testStopStreamingBeforeExit_returnsAsSoonAsCommandsSettle()
+    {
+        manager_->isStreaming_ = true;
+        mockControl_->mockHoldCommandsOnStop();
+        QTimer::singleShot(50ms, mockControl_, [this]() { mockControl_->mockSettleCommands(); });
+        QElapsedTimer elapsed;
+        elapsed.start();
+
+        QVERIFY(manager_->stopStreamingBeforeExit(5s));
+
+        QVERIFY(elapsed.elapsed() < 2000);
+    }
+
+    void testStopStreamingBeforeExit_unresponsiveDevice_givesUpAtTimeout()
+    {
+        manager_->isStreaming_ = true;
+        mockControl_->mockHoldCommandsOnStop();
+        QElapsedTimer elapsed;
+        elapsed.start();
+
+        QVERIFY(!manager_->stopStreamingBeforeExit(200ms));
+
+        QVERIFY(elapsed.elapsed() >= 150);
+        QVERIFY(elapsed.elapsed() < 2000);
+    }
+
+    void testStopStreamingBeforeExit_unreachableDevice_returnsWithinTimeout()
+    {
+        auto *control = new StreamControlService();
+        control->setHost(QStringLiteral("192.0.2.1"));  // TEST-NET-1: never answers
+        auto *service = makeServiceOwning(control);
+        service->isStreaming_ = true;
+        QElapsedTimer elapsed;
+        elapsed.start();
+
+        service->stopStreamingBeforeExit(300ms);
+
+        QVERIFY(elapsed.elapsed() < 2000);
+        delete service;
     }
 };
 

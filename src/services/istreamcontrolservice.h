@@ -49,6 +49,14 @@ public:
      */
     virtual void clearPendingCommands() = 0;
 
+    /**
+     * @brief Returns whether every command issued so far has settled.
+     *
+     * A command settles once it has been delivered to the device or has failed.
+     * @return true when nothing is queued or in flight.
+     */
+    [[nodiscard]] virtual bool isIdle() const = 0;
+
 signals:
     /**
      * @brief Emitted when a command succeeds.
@@ -62,6 +70,11 @@ signals:
      * @param error Error description.
      */
     void commandFailed(const QString &command, const QString &error);
+
+    /**
+     * @brief Emitted when the last outstanding command settles and isIdle() becomes true.
+     */
+    void idle();
 };
 
 #endif  // ISTREAMCONTROLSERVICE_H

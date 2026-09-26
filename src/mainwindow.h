@@ -40,6 +40,13 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
 
+protected:
+    /**
+     * @brief Quits quietly: suppresses error dialogs, then stops any stream and
+     * waits (bounded) for the device to be told, while the event loop still runs.
+     */
+    void closeEvent(QCloseEvent *event) override;
+
 private slots:
     void onPreferences();
     void onConnect();

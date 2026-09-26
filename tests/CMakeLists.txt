@@ -2035,6 +2035,7 @@ add_executable(test_streamcontrolservice
 )
 
 target_include_directories(test_streamcontrolservice PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}  # tests/ dir - for fakes/
     ${CMAKE_SOURCE_DIR}/src
 )
 

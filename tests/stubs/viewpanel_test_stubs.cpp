@@ -40,6 +40,11 @@ bool StreamingService::startStreaming()
 
 void StreamingService::stopStreaming() {}
 
+bool StreamingService::stopStreamingBeforeExit(std::chrono::milliseconds /*timeout*/)
+{
+    return true;
+}
+
 void StreamingService::onVideoFormatDetected(int /*format*/) {}
 
 void StreamingService::onStreamCommandSucceeded(const QString & /*command*/) {}

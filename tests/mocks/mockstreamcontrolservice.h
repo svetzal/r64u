@@ -35,9 +35,17 @@ public:
         lastAudioPort_ = audioPort;
     }
 
-    void stopAllStreams() override { stopAllStreamsCalled_++; }
+    void stopAllStreams() override
+    {
+        stopAllStreamsCalled_++;
+        if (holdCommandsOnStop_) {
+            idle_ = false;
+        }
+    }
 
     void clearPendingCommands() override { clearPendingCommandsCalled_++; }
+
+    [[nodiscard]] bool isIdle() const override { return idle_; }
 
     /// @name Mock control methods
     /// @{
@@ -46,6 +54,16 @@ public:
     void mockEmitCommandFailed(const QString &command, const QString &error)
     {
         emit commandFailed(command, error);
+    }
+
+    /// Makes stop commands stay undelivered (not idle) until mockSettleCommands().
+    void mockHoldCommandsOnStop() { holdCommandsOnStop_ = true; }
+
+    /// Settles every held command and reports idle.
+    void mockSettleCommands()
+    {
+        idle_ = true;
+        emit idle();
     }
 
     [[nodiscard]] int mockStartAllStreamsCallCount() const { return startAllStreamsCalled_; }
@@ -67,6 +85,8 @@ private:
     int startAllStreamsCalled_ = 0;
     int stopAllStreamsCalled_ = 0;
     int clearPendingCommandsCalled_ = 0;
+    bool holdCommandsOnStop_ = false;
+    bool idle_ = true;
 };
 
 #endif  // MOCKSTREAMCONTROLSERVICE_H

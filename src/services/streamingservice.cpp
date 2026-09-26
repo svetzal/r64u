@@ -22,7 +22,9 @@
 
 #include "utils/logging.h"
 
+#include <QEventLoop>
 #include <QHostAddress>
+#include <QTimer>
 #include <QUrl>
 
 StreamingService::StreamingService(DeviceConnectionManager *connection,
@@ -223,6 +225,28 @@ void StreamingService::stopStreaming()
 
     releaseStreamingResources();
     emit streamingStopped();
+}
+
+bool StreamingService::stopStreamingBeforeExit(std::chrono::milliseconds timeout)
+{
+    if (isStreaming_) {
+        stopStreaming();
+    }
+    if (!streamControl_ || streamControl_->isIdle()) {
+        return true;
+    }
+
+    QEventLoop untilSettled;
+    connect(streamControl_, &IStreamControlService::idle, &untilSettled, &QEventLoop::quit);
+    QTimer::singleShot(timeout, &untilSettled, &QEventLoop::quit);
+    untilSettled.exec(QEventLoop::ExcludeUserInputEvents);
+
+    const bool settled = streamControl_->isIdle();
+    if (!settled) {
+        qCWarning(LogStreaming) << "Stream control commands still undelivered after"
+                                << timeout.count() << "ms; exiting anyway";
+    }
+    return settled;
 }
 
 void StreamingService::releaseStreamingResources()
