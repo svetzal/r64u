@@ -31,6 +31,14 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation,
                         int role = Qt::DisplayRole) const override;
     bool hasChildren(const QModelIndex &parent = QModelIndex()) const override;
+    /**
+     * @brief Whether the view may list @p parent now.
+     *
+     * False while the FTP client is not logged in, and for a directory whose
+     * last listing failed until it is refreshed, the root path changes or the
+     * client reconnects. Views call this on every layout pass, so returning
+     * true for something bound to fail would retry (and report) it endlessly.
+     */
     bool canFetchMore(const QModelIndex &parent) const override;
     void fetchMore(const QModelIndex &parent) override;
     Qt::ItemFlags flags(const QModelIndex &index) const override;
@@ -119,6 +127,9 @@ private:
         QList<TreeNode *> children;
         bool fetched = false;
         bool fetching = false;
+        /// The last listing failed: the view must not retry it on every layout
+        /// pass, only an explicit fetch (refresh) or a new connection does.
+        bool fetchFailed = false;
         QDateTime fetchedAt;  ///< When this directory was last fetched
 
         ~TreeNode() { qDeleteAll(children); }
@@ -128,6 +139,7 @@ private:
     QModelIndex indexFromNode(TreeNode *node) const;
     TreeNode *findNodeByPath(const QString &path) const;
     void populateNode(TreeNode *node, const QList<FtpEntry> &entries);
+    void clearFetchFailures();
 
     RemoteListingCoordinator *coordinator_;
     TreeNode *rootNode_ = nullptr;

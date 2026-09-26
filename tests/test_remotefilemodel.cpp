@@ -1,8 +1,37 @@
 #include "mocks/mockftpclient.h"
 #include "models/remotefilemodel.h"
 
+#include <QSet>
 #include <QSignalSpy>
+#include <QTreeView>
 #include <QtTest>
+
+/// A client whose listings of the chosen paths fail at once, as C64UFtpClient's
+/// do when it is not logged in or the device refuses the directory.
+class ListingFailingFtpClient : public MockFtpClient
+{
+public:
+    using MockFtpClient::MockFtpClient;
+
+    void failListingsOf(const QString &path) { failingPaths_.insert(path); }
+
+    [[nodiscard]] qsizetype listRequestCount(const QString &path) const
+    {
+        return mockGetListRequests().count(path);
+    }
+
+    void list(const QString &path) override
+    {
+        MockFtpClient::list(path);
+        if (failingPaths_.contains(path)) {
+            emit operationFailed(Operation::List, path, QString(),
+                                 QStringLiteral("550 Permission denied"));
+        }
+    }
+
+private:
+    QSet<QString> failingPaths_;
+};
 
 class TestRemoteFileModel : public QObject
 {
@@ -634,7 +663,7 @@ private slots:
 
     // === Error Handling Tests ===
 
-    void testOwnListingFailure_ReportsAndAllowsFetchingAgain()
+    void testOwnListingFailure_ReportsAndIsNotFetchedAgainOnItsOwn()
     {
         QSignalSpy errorSpy(model, &RemoteFileModel::errorOccurred);
         model->fetchMore(QModelIndex());
@@ -644,6 +673,112 @@ private slots:
 
         QCOMPARE(errorSpy.count(), 1);
         QCOMPARE(errorSpy.first().first().toString(), QString("550 No such directory"));
+        QVERIFY(!model->canFetchMore(QModelIndex()));
+    }
+
+    void testFailingListing_WithAViewAttached_IsRequestedAndReportedOnce()
+    {
+        ListingFailingFtpClient client;
+        client.mockSetConnected(true);
+        client.failListingsOf("/");
+        RemoteFileModel failingModel;
+        failingModel.setFtpClient(&client);
+        QSignalSpy errorSpy(&failingModel, &RemoteFileModel::errorOccurred);
+
+        QTreeView view;
+        view.setModel(&failingModel);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        QTest::qWait(200);
+
+        QCOMPARE(client.listRequestCount("/"), 1);
+        QCOMPARE(errorSpy.count(), 1);
+    }
+
+    void testDisconnectedClient_WithAViewAttached_IsNotAskedForListings()
+    {
+        ListingFailingFtpClient client;  // Not connected: every listing would fail
+        client.failListingsOf("/");
+        RemoteFileModel disconnectedModel;
+        disconnectedModel.setFtpClient(&client);
+        QSignalSpy errorSpy(&disconnectedModel, &RemoteFileModel::errorOccurred);
+
+        QTreeView view;
+        view.setModel(&disconnectedModel);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        QTest::qWait(200);
+
+        QCOMPARE(client.listRequestCount("/"), 0);
+        QCOMPARE(errorSpy.count(), 0);
+        QVERIFY(!disconnectedModel.canFetchMore(QModelIndex()));
+    }
+
+    void testFailingFolder_ExpandedInAView_IsRequestedOnceAndAgainOnRefresh()
+    {
+        ListingFailingFtpClient client;
+        client.mockSetConnected(true);
+        client.failListingsOf("/Locked");
+        FtpEntry folder;
+        folder.name = "Locked";
+        folder.isDirectory = true;
+        client.mockSetDirectoryListing("/", {folder});
+        RemoteFileModel folderModel;
+        folderModel.setFtpClient(&client);
+        folderModel.fetchMore(QModelIndex());
+        client.mockProcessAllOperations();
+        const QModelIndex lockedIndex = folderModel.index(0, 0);
+        QSignalSpy errorSpy(&folderModel, &RemoteFileModel::errorOccurred);
+
+        QTreeView view;
+        view.setModel(&folderModel);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        view.expand(lockedIndex);
+        QTest::qWait(200);
+
+        QCOMPARE(client.listRequestCount("/Locked"), 1);
+        QCOMPARE(errorSpy.count(), 1);
+
+        folderModel.refresh(lockedIndex);
+        QTest::qWait(200);
+
+        QCOMPARE(client.listRequestCount("/Locked"), 2);
+        QCOMPARE(errorSpy.count(), 2);
+    }
+
+    void testFailedListing_IsFetchableAgainAfterReconnecting()
+    {
+        model->fetchMore(QModelIndex());
+        mockFtp->mockSetNextOperationFails("550 Permission denied");
+        mockFtp->mockProcessNextOperation();
+        QVERIFY(!model->canFetchMore(QModelIndex()));
+
+        mockFtp->mockSimulateDisconnect();
+        mockFtp->mockSimulateConnect();
+
+        QVERIFY(model->canFetchMore(QModelIndex()));
+    }
+
+    void testFailedListing_IsFetchableAgainAfterTheRootPathChanges()
+    {
+        model->fetchMore(QModelIndex());
+        mockFtp->mockSetNextOperationFails("550 Permission denied");
+        mockFtp->mockProcessNextOperation();
+
+        model->setRootPath("/Usb0");
+
+        QVERIFY(model->canFetchMore(QModelIndex()));
+    }
+
+    void testFailedListing_IsFetchableAgainAfterClear()
+    {
+        model->fetchMore(QModelIndex());
+        mockFtp->mockSetNextOperationFails("550 Permission denied");
+        mockFtp->mockProcessNextOperation();
+
+        model->clear();
+
         QVERIFY(model->canFetchMore(QModelIndex()));
     }
 
@@ -688,6 +823,7 @@ private slots:
         unconnectedModel->fetchMore(QModelIndex());
 
         QCOMPARE(errorSpy.count(), 1);
+        QVERIFY(!unconnectedModel->canFetchMore(QModelIndex()));
         QVERIFY(!errorSpy.first().first().toString().isEmpty());
         // loadingFinished must NOT be emitted (loadingStarted was never emitted)
         QCOMPARE(loadingFinishedSpy.count(), 0);

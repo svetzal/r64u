@@ -188,6 +188,31 @@ private slots:
 
     void testHasFtpClientReturnsTrueWhenSet() { QVERIFY(coordinator->hasFtpClient()); }
 
+    void testIsClientLoggedIn_FollowsTheClientsConnection()
+    {
+        QVERIFY(coordinator->isClientLoggedIn());
+
+        mockFtp->mockSimulateDisconnect();
+
+        QVERIFY(!coordinator->isClientLoggedIn());
+    }
+
+    void testIsClientLoggedIn_FalseWithNoClient()
+    {
+        RemoteListingCoordinator noClientCoordinator;
+        QVERIFY(!noClientCoordinator.isClientLoggedIn());
+    }
+
+    void testReconnect_EmitsConnectionEstablished()
+    {
+        QSignalSpy establishedSpy(coordinator, &RemoteListingCoordinator::connectionEstablished);
+        mockFtp->mockSimulateDisconnect();
+
+        mockFtp->mockSimulateConnect();
+
+        QCOMPARE(establishedSpy.count(), 1);
+    }
+
     void testRequestListingReturnsFalseWithNoClient()
     {
         RemoteListingCoordinator noClientCoordinator;

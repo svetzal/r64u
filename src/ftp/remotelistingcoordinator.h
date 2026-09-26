@@ -38,6 +38,15 @@ public:
     [[nodiscard]] bool hasFtpClient() const { return ftpClient_ != nullptr; }
 
     /**
+     * @brief Returns true if the FTP client is set and logged in, so a listing
+     *        requested now can succeed.
+     */
+    [[nodiscard]] bool isClientLoggedIn() const
+    {
+        return ftpClient_ != nullptr && ftpClient_->isLoggedIn();
+    }
+
+    /**
      * @brief Request a directory listing for @p path.
      *
      * If a listing for @p path is already in-flight this call is a
@@ -87,6 +96,12 @@ signals:
      * owner that none of the pending listings will arrive.
      */
     void listingsAborted();
+
+    /**
+     * @brief Emitted when the client (re)connects: listings that failed before
+     *        are worth requesting again.
+     */
+    void connectionEstablished();
 
 private slots:
     void onDirectoryListed(const QString &path, const QList<FtpEntry> &entries);

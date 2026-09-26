@@ -24,6 +24,8 @@ void RemoteListingCoordinator::setFtpClient(IFtpClient *client)
         connect(ftpClient_, &IFtpClient::error, this, &RemoteListingCoordinator::onFtpError);
         connect(ftpClient_, &IFtpClient::disconnected, this,
                 &RemoteListingCoordinator::onFtpDisconnected);
+        connect(ftpClient_, &IFtpClient::connected, this,
+                &RemoteListingCoordinator::connectionEstablished);
     }
 }
 

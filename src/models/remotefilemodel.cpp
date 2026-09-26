@@ -25,6 +25,8 @@ RemoteFileModel::RemoteFileModel(QObject *parent)
             &RemoteFileModel::onListingFailed);
     connect(coordinator_, &RemoteListingCoordinator::listingsAborted, this,
             &RemoteFileModel::onListingsAborted);
+    connect(coordinator_, &RemoteListingCoordinator::connectionEstablished, this,
+            &RemoteFileModel::clearFetchFailures);
 }
 
 RemoteFileModel::~RemoteFileModel()
@@ -39,6 +41,7 @@ RemoteFileModel::~RemoteFileModel()
 void RemoteFileModel::setFtpClient(IFtpClient *client)
 {
     coordinator_->setFtpClient(client);
+    clearFetchFailures();
 }
 
 void RemoteFileModel::setRootPath(const QString &path)
@@ -207,7 +210,10 @@ bool RemoteFileModel::canFetchMore(const QModelIndex &parent) const
         return false;
     }
 
-    if (!node->isDirectory || node->fetching) {
+    if (!node->isDirectory || node->fetching || node->fetchFailed) {
+        return false;
+    }
+    if (!coordinator_->isClientLoggedIn()) {
         return false;
     }
 
@@ -230,6 +236,7 @@ void RemoteFileModel::fetchMore(const QModelIndex &parent)
     }
     if (!coordinator_->hasFtpClient()) {
         qCWarning(LogFileOps) << "fetchMore: no FTP client, cannot fetch" << node->fullPath;
+        node->fetchFailed = true;
         emit errorOccurred(tr("Cannot list %1: not connected to device").arg(node->fullPath));
         return;
     }
@@ -244,6 +251,7 @@ void RemoteFileModel::fetchMore(const QModelIndex &parent)
 
     node->fetched = false;
     node->fetching = true;
+    node->fetchFailed = false;
     pendingFetches_[node->fullPath] = node;
 
     emit loadingStarted(node->fullPath);
@@ -343,6 +351,7 @@ void RemoteFileModel::clear()
         rootNode_->children.clear();
         remotefiletree::markStale(rootNode_->fetched, rootNode_->fetchedAt);
         rootNode_->fetching = false;
+        rootNode_->fetchFailed = false;
     }
 
     endResetModel();
@@ -449,9 +458,11 @@ void RemoteFileModel::onListingReady(const QString &path, const QList<FtpEntry> 
 
 void RemoteFileModel::onListingFailed(const QString &path, const QString &message)
 {
-    // The node can be fetched again
+    // Not fetched again until refreshed or reconnected: the view would retry it
+    // on every layout pass, reporting the same failure each time
     if (TreeNode *node = pendingFetches_.take(path)) {
         node->fetching = false;
+        node->fetchFailed = true;
     }
     emit errorOccurred(message);
 }
@@ -463,6 +474,17 @@ void RemoteFileModel::onListingsAborted()
         node->fetching = false;
     }
     pendingFetches_.clear();
+}
+
+void RemoteFileModel::clearFetchFailures()
+{
+    std::function<void(TreeNode *)> clearNode = [&clearNode](TreeNode *node) {
+        node->fetchFailed = false;
+        for (TreeNode *child : std::as_const(node->children)) {
+            clearNode(child);
+        }
+    };
+    clearNode(rootNode_);
 }
 
 RemoteFileModel::TreeNode *RemoteFileModel::nodeFromIndex(const QModelIndex &index) const

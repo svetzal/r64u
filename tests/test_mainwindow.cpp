@@ -194,6 +194,21 @@ private slots:
         QCOMPARE(tabs->tabText(3), QString("Config"));
     }
 
+    void testWithNoDevice_remoteBrowserDoesNotKeepRetryingTheListing()
+    {
+        MainWindow window;
+        auto *remoteFileModel = window.findChild<RemoteFileModel *>();
+        QVERIFY(remoteFileModel != nullptr);
+        QSignalSpy listingErrorSpy(remoteFileModel, &RemoteFileModel::errorOccurred);
+
+        showAtKnownSize(window);
+        QTest::qWait(200);
+
+        QVERIFY2(listingErrorSpy.count() <= 1,
+                 qPrintable(QStringLiteral("listing of / failed %1 times while disconnected")
+                                .arg(listingErrorSpy.count())));
+    }
+
     void testClose_errorsDuringQuitShowNoDialog()
     {
         MainWindow window;

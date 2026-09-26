@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - The System toolbar was squeezed to the right of the window, with most buttons in its overflow menu, under Qt 6.11 with a previously saved window layout
+- With no device connected (or a folder the device refuses), the remote file browser retried the failed listing on every layout pass, repeating the error in the status bar; it now tries once and retries only on refresh or reconnect
 
 ## [0.11.0] - 2026-09-25
 
