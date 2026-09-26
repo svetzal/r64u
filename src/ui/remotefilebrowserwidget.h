@@ -66,6 +66,9 @@ protected:
     [[nodiscard]] qint64 fileSize(const QModelIndex &index) const override;
     void navigateToDirectory(const QString &path) override;
     void requestTransferOfSelection() override { onDownload(); }
+    [[nodiscard]] dropcore::Pane pane() const override { return dropcore::Pane::Remote; }
+    /// Emits uploadRequested() for each dropped local file or folder.
+    void executeDropPlan(const dropcore::DropPlan &plan) override;
 
 protected:
     bool canModify(const QString &actionLabel) override;
@@ -79,6 +82,15 @@ protected slots:
 signals:
     /// @p size is the file's listed size in bytes (0 for a directory or if unknown).
     void downloadRequested(const QString &remotePath, bool isDirectory, qint64 size);
+    /**
+     * @brief Emitted when a local file or folder is dropped on this pane.
+     * @param localPath The file or folder to upload (folders are uploaded recursively).
+     * @param isDirectory Whether @p localPath is a folder.
+     * @param remoteDirectory Where to put it: the directory row it was dropped
+     *        on, or this pane's current directory.
+     */
+    void uploadRequested(const QString &localPath, bool isDirectory,
+                         const QString &remoteDirectory);
     void deleteRequested(const QString &remotePath, bool isDirectory);
     void createFolderRequested(const QString &path);
     void renameRequested(const QString &oldPath, const QString &newPath);

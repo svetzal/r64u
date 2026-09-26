@@ -12,6 +12,15 @@ class TestPlaylistService : public QObject
 private:
     PlaylistService *manager = nullptr;
 
+    QStringList itemPaths() const
+    {
+        QStringList paths;
+        for (const auto &item : manager->items()) {
+            paths.append(item.path);
+        }
+        return paths;
+    }
+
     static void addTestItem(PlaylistService *m, const QString &path)
     {
         playlist::PlaylistItem item;
@@ -96,6 +105,45 @@ private slots:
         QSignalSpy spy(manager, &PlaylistService::playlistChanged);
         manager->moveItem(0, 1);
         QCOMPARE(spy.count(), 1);
+    }
+
+    void testMoveItem_MovesATrackAcrossSeveralRows_EitherWay()
+    {
+        addTestItem(manager, "/SD/a.sid");
+        addTestItem(manager, "/SD/b.sid");
+        addTestItem(manager, "/SD/c.sid");
+        addTestItem(manager, "/SD/d.sid");
+
+        manager->moveItem(0, 2);
+        QCOMPARE(itemPaths(), QStringList({"/SD/b.sid", "/SD/c.sid", "/SD/a.sid", "/SD/d.sid"}));
+
+        manager->moveItem(3, 0);
+        QCOMPARE(itemPaths(), QStringList({"/SD/d.sid", "/SD/b.sid", "/SD/c.sid", "/SD/a.sid"}));
+    }
+
+    void testMoveItem_KeepsTheCurrentTrackCurrentAsItMoves()
+    {
+        addTestItem(manager, "/SD/a.sid");
+        addTestItem(manager, "/SD/b.sid");
+        addTestItem(manager, "/SD/c.sid");
+        manager->play(0);
+
+        manager->moveItem(0, 2);
+
+        QCOMPARE(manager->currentIndex(), 2);
+        QCOMPARE(manager->itemAt(manager->currentIndex()).path, QString("/SD/a.sid"));
+    }
+
+    void testMoveItem_OutOfRangeOrSamePlace_DoesNothing()
+    {
+        addTestItem(manager, "/SD/a.sid");
+        addTestItem(manager, "/SD/b.sid");
+
+        manager->moveItem(0, 5);
+        manager->moveItem(-1, 0);
+        manager->moveItem(1, 1);
+
+        QCOMPARE(itemPaths(), QStringList({"/SD/a.sid", "/SD/b.sid"}));
     }
 
     void testClear_EmitsPlaylistChanged()

@@ -66,6 +66,8 @@ void TransferPanel::setupConnections()
     if (localBrowser_) {
         connect(localBrowser_, &LocalFileBrowserWidget::uploadRequested, this,
                 &TransferPanel::onUploadRequested);
+        connect(localBrowser_, &LocalFileBrowserWidget::downloadRequested, this,
+                &TransferPanel::onDownloadIntoRequested);
         connect(localBrowser_, &LocalFileBrowserWidget::selectionChanged, this,
                 &TransferPanel::selectionChanged);
         connect(localBrowser_, &LocalFileBrowserWidget::selectionChanged, this, [this]() {
@@ -78,6 +80,8 @@ void TransferPanel::setupConnections()
     if (remoteBrowser_) {
         connect(remoteBrowser_, &RemoteFileBrowserWidget::downloadRequested, this,
                 &TransferPanel::onDownloadRequested);
+        connect(remoteBrowser_, &RemoteFileBrowserWidget::uploadRequested, this,
+                &TransferPanel::onUploadIntoRequested);
         connect(remoteBrowser_, &RemoteFileBrowserWidget::deleteRequested, this,
                 &TransferPanel::onDeleteRequested);
         connect(remoteBrowser_, &RemoteFileBrowserWidget::selectionChanged, this,
@@ -213,24 +217,28 @@ bool TransferPanel::isSelectedRemoteDirectory() const
 
 void TransferPanel::onUploadRequested(const QString &localPath, bool isDirectory)
 {
+    const QString remoteDir = remoteBrowser_ ? remoteBrowser_->currentDirectory() : QString("/");
+    onUploadIntoRequested(localPath, isDirectory, remoteDir);
+}
+
+void TransferPanel::onUploadIntoRequested(const QString &localPath, bool isDirectory,
+                                          const QString &remoteDir)
+{
     if (!transferService_) {
-        qCDebug(LogUi) << "onUploadRequested: transferService_ is null, skipping upload of"
+        qCDebug(LogUi) << "onUploadIntoRequested: transferService_ is null, skipping upload of"
                        << localPath;
         return;
     }
 
-    QString remoteDir = remoteBrowser_ ? remoteBrowser_->currentDirectory() : QString("/");
-    if (remoteDir.isEmpty()) {
-        remoteDir = "/";
-    }
+    const QString destination = remoteDir.isEmpty() ? QStringLiteral("/") : remoteDir;
 
     if (isDirectory) {
-        if (!transferService_->uploadDirectory(localPath, remoteDir))
+        if (!transferService_->uploadDirectory(localPath, destination))
             errorHandler_->handleError(
                 ErrorCategory::Connection, ErrorSeverity::Warning, tr("Upload not started"),
                 tr("Cannot upload %1: not connected to device").arg(localPath));
     } else {
-        if (!transferService_->uploadFile(localPath, remoteDir))
+        if (!transferService_->uploadFile(localPath, destination))
             errorHandler_->handleError(
                 ErrorCategory::Connection, ErrorSeverity::Warning, tr("Upload not started"),
                 tr("Cannot upload %1: not connected to device").arg(localPath));
@@ -239,14 +247,23 @@ void TransferPanel::onUploadRequested(const QString &localPath, bool isDirectory
 
 void TransferPanel::onDownloadRequested(const QString &remotePath, bool isDirectory, qint64 size)
 {
-    if (!transferService_ || !localBrowser_) {
-        qCDebug(LogUi) << "onDownloadRequested: transferService_ or localBrowser_ is null, "
+    if (!localBrowser_) {
+        qCDebug(LogUi) << "onDownloadRequested: localBrowser_ is null, skipping download of"
+                       << remotePath;
+        return;
+    }
+    onDownloadIntoRequested(remotePath, isDirectory, size, localBrowser_->currentDirectory());
+}
+
+void TransferPanel::onDownloadIntoRequested(const QString &remotePath, bool isDirectory,
+                                            qint64 size, const QString &downloadDir)
+{
+    if (!transferService_) {
+        qCDebug(LogUi) << "onDownloadIntoRequested: transferService_ is null, "
                           "skipping download of"
                        << remotePath;
         return;
     }
-
-    QString downloadDir = localBrowser_->currentDirectory();
 
     if (isDirectory) {
         if (!transferService_->downloadDirectory(remotePath, downloadDir))

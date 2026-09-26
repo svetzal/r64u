@@ -7,6 +7,9 @@
 #include "utils/logging.h"
 
 #include <QAbstractItemModel>
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
 #include <QFileInfo>
 #include <QHeaderView>
 #include <QInputDialog>
@@ -14,10 +17,36 @@
 #include <QLabel>
 #include <QMenu>
 #include <QMessageBox>
+#include <QMimeData>
 #include <QSet>
+#include <QStyle>
 #include <QToolBar>
 #include <QTreeView>
 #include <QVBoxLayout>
+
+namespace {
+
+/// The entries a drop carries: remote paths as encoded by RemoteFileModel, or local file URLs.
+QList<dropcore::DropEntry> entriesFrom(const QMimeData &mime)
+{
+    const QString remoteType = QString::fromLatin1(dropcore::kRemotePathsMimeType);
+    if (mime.hasFormat(remoteType)) {
+        return dropcore::decodeRemoteEntries(mime.data(remoteType));
+    }
+
+    QList<dropcore::DropEntry> entries;
+    const QList<QUrl> urls = mime.urls();
+    for (const QUrl &url : urls) {
+        if (!url.isLocalFile()) {
+            continue;
+        }
+        const QFileInfo info(url.toLocalFile());
+        entries.append({info.filePath(), info.isDir(), info.isDir() ? 0 : info.size()});
+    }
+    return entries;
+}
+
+}  // namespace
 
 FileBrowserWidget::FileBrowserWidget(ErrorHandler *errorHandler, QWidget *parent)
     : QWidget(parent), errorHandler_(errorHandler)
@@ -67,6 +96,16 @@ void FileBrowserWidget::setupUi()
     treeView_->setSortingEnabled(true);
     treeView_->sortByColumn(0, Qt::AscendingOrder);  // Sort by name, folders first via proxy
     // Note: setSectionResizeMode is called by subclasses after they set the model
+
+    // Rows can be dragged to the other pane (or the Finder) and the other pane's
+    // rows dropped here. Every transfer is a copy: a drag must never end as a
+    // move, which would have the view remove the dragged rows from its model.
+    treeView_->setDragEnabled(true);
+    treeView_->setAcceptDrops(true);
+    treeView_->setDropIndicatorShown(true);
+    treeView_->setDragDropMode(QAbstractItemView::DragDrop);
+    treeView_->setDefaultDropAction(Qt::CopyAction);
+    treeView_->viewport()->installEventFilter(this);
     layout->addWidget(treeView_);
 
     // Initialize nav widget with current directory
@@ -103,6 +142,96 @@ void FileBrowserWidget::setupConnections()
     } else {
         qCDebug(LogUi) << "setupConnections: treeView_ is null, skipping connection setup";
     }
+}
+
+bool FileBrowserWidget::eventFilter(QObject *watched, QEvent *event)
+{
+    if (!treeView_ || watched != treeView_->viewport()) {
+        return QWidget::eventFilter(watched, event);
+    }
+
+    switch (event->type()) {
+    case QEvent::DragEnter:
+    case QEvent::DragMove: {
+        auto *dragEvent = static_cast<QDragMoveEvent *>(event);
+        const bool fromThisPane = dragEvent->source() == treeView_;
+        if (canAcceptDrag(dragEvent->mimeData(), fromThisPane)) {
+            dragEvent->setDropAction(Qt::CopyAction);
+            dragEvent->accept();
+            setDropActive(true);
+        } else {
+            dragEvent->ignore();
+        }
+        return true;
+    }
+    case QEvent::DragLeave:
+        setDropActive(false);
+        return true;
+    case QEvent::Drop: {
+        auto *dropEvent = static_cast<QDropEvent *>(event);
+        setDropActive(false);
+        const bool fromThisPane = dropEvent->source() == treeView_;
+        if (handleDrop(dropEvent->mimeData(), dropEvent->position().toPoint(), fromThisPane)) {
+            dropEvent->setDropAction(Qt::CopyAction);
+            dropEvent->accept();
+        } else {
+            dropEvent->ignore();
+        }
+        return true;
+    }
+    default:
+        return QWidget::eventFilter(watched, event);
+    }
+}
+
+std::optional<dropcore::Source> FileBrowserWidget::dragSource(const QMimeData *mime,
+                                                              bool fromThisPane) const
+{
+    if (!mime) {
+        return std::nullopt;
+    }
+    return dropcore::classifySource(
+        fromThisPane, pane(), mime->hasFormat(QString::fromLatin1(dropcore::kRemotePathsMimeType)),
+        mime->hasUrls());
+}
+
+bool FileBrowserWidget::canAcceptDrag(const QMimeData *mime, bool fromThisPane) const
+{
+    const auto source = dragSource(mime, fromThisPane);
+    return source.has_value() && dropcore::canAccept(*source, pane());
+}
+
+bool FileBrowserWidget::handleDrop(const QMimeData *mime, const QPoint &viewportPos,
+                                   bool fromThisPane)
+{
+    const auto source = dragSource(mime, fromThisPane);
+    if (!source || !treeView_) {
+        return false;
+    }
+
+    const QModelIndex rowUnderCursor = treeView_->indexAt(viewportPos);
+    dropcore::DropTarget target;
+    target.pane = pane();
+    target.currentDirectory = currentDirectory_;
+    target.onDirectoryRow = rowUnderCursor.isValid() && isDirectory(rowUnderCursor);
+    target.rowPath = target.onDirectoryRow ? filePath(rowUnderCursor) : QString();
+
+    const auto plan = dropcore::planDrop(*source, entriesFrom(*mime), target);
+    if (!plan) {
+        return false;
+    }
+    executeDropPlan(*plan);
+    return true;
+}
+
+void FileBrowserWidget::setDropActive(bool active)
+{
+    if (!treeView_ || treeView_->property("dropActive").toBool() == active) {
+        return;
+    }
+    treeView_->setProperty("dropActive", active);
+    treeView_->style()->unpolish(treeView_);
+    treeView_->style()->polish(treeView_);
 }
 
 QList<FileBrowserWidget::SelectedEntry> FileBrowserWidget::selectedEntries() const

@@ -1,12 +1,16 @@
+#include "core/dropcore.h"
 #include "core/filesizecore.h"
 #include "mocks/mockftpclient.h"
 #include "models/remotefilemodel.h"
 #include "ui/pixelicons.h"
 
+#include <QMimeData>
 #include <QSet>
 #include <QSignalSpy>
 #include <QTreeView>
 #include <QtTest>
+
+#include <memory>
 
 /// A client whose listings of the chosen paths fail at once, as C64UFtpClient's
 /// do when it is not logged in or the device refuses the directory.
@@ -950,6 +954,74 @@ private slots:
 
         QCOMPARE(aIndex.row(), 1);
         QCOMPARE(aIndex.data().toString(), QString("a.prg"));
+    }
+
+    // === Drag source ===
+
+    void testFlags_rowsCanBeDragged()
+    {
+        mockFtp->mockSetDirectoryListing("/", {fileEntry("a.prg", 1), dirEntry("games")});
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+
+        QVERIFY(model->flags(model->index(0, 0)).testFlag(Qt::ItemIsDragEnabled));
+        QVERIFY(model->flags(model->index(1, 0)).testFlag(Qt::ItemIsDragEnabled));
+    }
+
+    void testMimeTypes_isTheRemotePathsType()
+    {
+        QCOMPARE(model->mimeTypes(), QStringList{"application/x-r64u-remote-paths"});
+    }
+
+    void testMimeData_carriesEachSelectedRowsFullPathOnce_directoriesIncluded()
+    {
+        mockFtp->mockSetDirectoryListing("/SD",
+                                         {dirEntry("Games"), fileEntry("big.reu", 16777216)});
+        model->setRootPath("/SD");
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+
+        // Every column of both rows, as a view's selection hands them over
+        QModelIndexList selected;
+        for (int row = 0; row < 2; ++row) {
+            for (int column = 0; column < model->columnCount(); ++column) {
+                selected << model->index(row, column);
+            }
+        }
+        std::unique_ptr<QMimeData> mime(model->mimeData(selected));
+
+        QVERIFY(mime != nullptr);
+        QVERIFY(mime->hasFormat("application/x-r64u-remote-paths"));
+        const QList<dropcore::DropEntry> entries =
+            dropcore::decodeRemoteEntries(mime->data("application/x-r64u-remote-paths"));
+        QCOMPARE(entries.size(), 2);
+        QCOMPARE(entries.at(0).path, QString("/SD/Games"));
+        QCOMPARE(entries.at(0).isDirectory, true);
+        QCOMPARE(entries.at(1).path, QString("/SD/big.reu"));
+        QCOMPARE(entries.at(1).isDirectory, false);
+        QCOMPARE(entries.at(1).size, qint64(16777216));
+    }
+
+    void testMimeData_payloadIsNewlineSeparated()
+    {
+        mockFtp->mockSetDirectoryListing("/", {fileEntry("a.prg", 1), fileEntry("b.prg", 2)});
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+
+        std::unique_ptr<QMimeData> mime(model->mimeData({model->index(0, 0), model->index(1, 0)}));
+
+        QVERIFY(mime != nullptr);
+        const QList<QByteArray> lines = mime->data("application/x-r64u-remote-paths").split('\n');
+        QCOMPARE(lines.size(), 2);
+        QVERIFY(lines.at(0).endsWith("/a.prg"));
+        QVERIFY(lines.at(1).endsWith("/b.prg"));
+    }
+
+    void testMimeData_noRows_isNull() { QVERIFY(model->mimeData({}) == nullptr); }
+
+    void testSupportedDragActions_isCopyOnly()
+    {
+        QCOMPARE(model->supportedDragActions(), Qt::DropActions(Qt::CopyAction));
     }
 
     // === Directory Size Display Test ===

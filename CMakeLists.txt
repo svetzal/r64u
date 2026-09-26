@@ -116,6 +116,7 @@ set(SOURCES
     src/core/favoritescore.cpp
     src/core/favoritesuicore.cpp
     src/core/filebrowsercore.cpp
+    src/core/dropcore.cpp
     src/core/fileactioncore.cpp
     src/core/filetypecore.cpp
     src/core/diskbootsequencecore.cpp

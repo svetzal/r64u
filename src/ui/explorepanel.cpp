@@ -165,6 +165,10 @@ void ExplorePanel::setupUi()
     treeView_->setContextMenuPolicy(Qt::CustomContextMenu);
     treeView_->setSortingEnabled(true);
     treeView_->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+    // Rows can be dragged onto the playlist (or the Transfer panes)
+    treeView_->setDragEnabled(true);
+    treeView_->setDragDropMode(QAbstractItemView::DragOnly);
+    treeView_->setDefaultDropAction(Qt::CopyAction);
 
     if (auto *selModel = treeView_->selectionModel()) {
         connect(selModel, &QItemSelectionModel::selectionChanged, this,

@@ -1,6 +1,7 @@
 #ifndef FILEBROWSERWIDGET_H
 #define FILEBROWSERWIDGET_H
 
+#include "core/dropcore.h"
 #include "ui/imessagepresenter.h"
 #include "ui/qmessageboxpresenter.h"
 
@@ -8,6 +9,7 @@
 #include <QString>
 #include <QWidget>
 
+class QMimeData;
 class QTreeView;
 class QToolBar;
 class QMenu;
@@ -27,6 +29,7 @@ class ErrorHandler;
  * - Path navigation widget
  * - Context menu
  * - Common signals and slots
+ * - Drag and drop between the panes and from the Finder (see handleDrop())
  *
  * Subclasses must implement model-specific operations and customize
  * the toolbar with their specific actions (upload/download).
@@ -164,6 +167,47 @@ protected slots:
     virtual void onDelete();
 
 protected:
+    /**
+     * @brief Watches the tree view's viewport for drag and drop.
+     *
+     * Drag enter, move and drop are answered here rather than by the view so
+     * that the models never see a drop: QFileSystemModel would act on one by
+     * moving files. See canAcceptDrag() and handleDrop().
+     */
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
+    /**
+     * @brief Whether a drag carrying @p mime may be dropped on this pane.
+     * @param fromThisPane The drag started in this pane's own view.
+     */
+    [[nodiscard]] bool canAcceptDrag(const QMimeData *mime, bool fromThisPane) const;
+
+    /**
+     * @brief Plans the transfer a drop asks for and hands it to executeDropPlan().
+     *
+     * The destination is the directory row under @p viewportPos when there is
+     * one, otherwise the pane's current directory (dropcore::planDrop).
+     *
+     * @param mime The dropped payload: remote paths from a device listing, or file URLs.
+     * @param viewportPos Where in the tree view's viewport the drop landed.
+     * @param fromThisPane The drag started in this pane's own view.
+     * @return true when a transfer was planned and executed.
+     */
+    bool handleDrop(const QMimeData *mime, const QPoint &viewportPos, bool fromThisPane);
+
+    /**
+     * @brief Which pane this browser is, for the drop rules.
+     */
+    [[nodiscard]] virtual dropcore::Pane pane() const = 0;
+
+    /**
+     * @brief Starts the transfers a drop planned.
+     *
+     * The remote pane receives Upload plans and the local pane Download plans;
+     * each emits the request signals the transfer panel already serves.
+     */
+    virtual void executeDropPlan(const dropcore::DropPlan &plan) = 0;
+
     /**
      * @brief Sets up the UI components.
      *
@@ -353,6 +397,13 @@ protected:
     QAction *renameAction_ = nullptr;
     QAction *deleteAction_ = nullptr;
     QAction *setDestAction_ = nullptr;
+
+private:
+    /// Where a drag carrying @p mime came from, or nullopt when it is not one this app reads.
+    [[nodiscard]] std::optional<dropcore::Source> dragSource(const QMimeData *mime,
+                                                             bool fromThisPane) const;
+    /// Marks the tree view as a live drop target (the theme draws the border).
+    void setDropActive(bool active);
 };
 
 #endif  // FILEBROWSERWIDGET_H

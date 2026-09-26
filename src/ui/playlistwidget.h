@@ -15,6 +15,7 @@
 #include <QWidget>
 
 class PlaylistService;
+class QMimeData;
 
 /**
  * @brief Widget for displaying and controlling a SID music playlist.
@@ -26,7 +27,8 @@ class PlaylistService;
  * - Duration spinner for auto-advance timing
  * - Context menu for item management
  * - A disclosure header that folds the list away to a single row
- * - Drag-and-drop reordering (future)
+ * - Drag-and-drop: SID files dropped from a device listing are added, and a
+ *   track dragged within the list is moved (see handleDrop())
  */
 class PlaylistWidget : public QWidget
 {
@@ -56,6 +58,26 @@ public:
      *                  restore the default QMessageBoxPresenter.
      */
     void setMessagePresenter(IMessagePresenter *presenter);
+
+    /**
+     * @brief Whether a drag carrying @p mime may be dropped on the track list.
+     *
+     * A track from the list itself always may; remote paths may when at
+     * least one of them is a SID file.
+     * @param fromThisList The drag started in the track list.
+     */
+    [[nodiscard]] bool canAcceptDrag(const QMimeData *mime, bool fromThisList) const;
+
+    /**
+     * @brief Handles a drop on the track list.
+     *
+     * Remote paths (dropcore::kRemotePathsMimeType) add their SID files to the
+     * playlist the way "Add to Playlist" does; anything else in them is
+     * ignored. A track dragged from the list itself (@p fromThisList) is moved
+     * to the gap at @p viewportPos, above or below the row there.
+     * @return true when the drop changed the playlist.
+     */
+    bool handleDrop(const QMimeData *mime, const QPoint &viewportPos, bool fromThisList);
 
 signals:
     /**
@@ -100,9 +122,26 @@ private slots:
     // Timer
     void onElapsedTimerTick();
 
+protected:
+    /**
+     * @brief Watches the track list's viewport for drag and drop.
+     *
+     * The list is rebuilt on every playlist change, so the view must not move
+     * its own items: the drop goes to PlaylistService and the rebuild repaints.
+     */
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 private:
     void setupUi();
     void setupConnections();
+    /// The SID files among the remote paths @p mime carries.
+    static QStringList sidPathsIn(const QMimeData &mime);
+    /// The gap a drop at @p viewportPos points at: before the row there, or after it (lower half).
+    [[nodiscard]] int insertionRowAt(const QPoint &viewportPos) const;
+    bool addDroppedTracks(const QMimeData &mime);
+    bool moveDraggedTrack(const QPoint &viewportPos);
+    /// Marks the list as a live drop target (the theme draws the border).
+    void setDropActive(bool active);
     void updatePlaylistDisplay();
     void updateControlsState();
     void updateHeaderText();

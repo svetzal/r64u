@@ -13,18 +13,78 @@
  * - refreshIfStale() when suppressAutoRefresh is active — no-op
  * - selectedPath() when no selection — returns empty string
  * - isSelectedDirectory() when no selection — returns false
+ * - Drops: local and Finder files upload into the pane (or the folder row
+ *   under the cursor); device paths, from this pane or Explore, are refused
  */
 
+#include "core/dropcore.h"
 #include "mocks/mockftpclient.h"
 #include "mocks/mockrestclient.h"
 #include "models/remotefilemodel.h"
 #include "services/errorhandler.h"
 #include "ui/remotefilebrowserwidget.h"
 
+#include <QDropEvent>
 #include <QMenu>
+#include <QMimeData>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QTreeView>
 #include <QtTest>
+
+#include <memory>
+
+/**
+ * @brief Thin test subclass that exposes the protected drop handlers.
+ */
+class ExposedRemoteFileBrowserWidget : public RemoteFileBrowserWidget
+{
+public:
+    using RemoteFileBrowserWidget::RemoteFileBrowserWidget;
+
+    bool callHandleDrop(const QMimeData *mime, const QPoint &pos, bool fromThisPane)
+    {
+        return handleDrop(mime, pos, fromThisPane);
+    }
+
+    bool callCanAcceptDrag(const QMimeData *mime, bool fromThisPane) const
+    {
+        return canAcceptDrag(mime, fromThisPane);
+    }
+};
+
+/// A payload as the Finder (or the local pane) writes it for local files.
+static QMimeData *localFilesMime(const QStringList &paths)
+{
+    auto *mime = new QMimeData();
+    QList<QUrl> urls;
+    for (const QString &path : paths) {
+        urls.append(QUrl::fromLocalFile(path));
+    }
+    mime->setUrls(urls);
+    return mime;
+}
+
+/// A payload as RemoteFileModel writes it for the given device entries.
+static QMimeData *remotePathsMime(const QList<dropcore::DropEntry> &entries)
+{
+    auto *mime = new QMimeData();
+    mime->setData(QString::fromLatin1(dropcore::kRemotePathsMimeType),
+                  dropcore::encodeRemoteEntries(entries));
+    return mime;
+}
+
+/// Delivers a drag of @p mime entering the tree view's viewport and dropping at @p pos, as Qt
+/// would.
+static void dropOnto(QWidget &widget, QMimeData *mime, const QPoint &pos = QPoint(5, 5))
+{
+    auto *tree = widget.findChild<QTreeView *>();
+    QVERIFY(tree != nullptr);
+    QDragEnterEvent enter(pos, Qt::CopyAction, mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(tree->viewport(), &enter);
+    QDropEvent drop(pos, Qt::CopyAction, mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(tree->viewport(), &drop);
+}
 
 class TestRemoteFileBrowserWidget : public QObject
 {
@@ -36,6 +96,25 @@ private:
     MockRestClient *mockRest_ = nullptr;
 
     ErrorHandler *makeErrorHandler() { return new ErrorHandler(nullptr, this); }
+
+    /// Lists @p directory on the mock device and makes the model show it.
+    void listDirectory(const QString &directory, const QList<FtpEntry> &entries)
+    {
+        mockFtp_->mockSetConnected(true);
+        mockFtp_->mockSetDirectoryListing(directory, entries);
+        model_->setFtpClient(mockFtp_);
+        model_->setRootPath(directory);
+        model_->fetchMore(QModelIndex());
+        mockFtp_->mockProcessAllOperations();
+    }
+
+    static FtpEntry dirEntry(const QString &name)
+    {
+        FtpEntry entry;
+        entry.name = name;
+        entry.isDirectory = true;
+        return entry;
+    }
 
 private slots:
     void init()
@@ -376,6 +455,116 @@ private slots:
 
         QCOMPARE(spy.count(), 1);
         QVERIFY(spy.at(0).at(0).toString().contains("Not connected"));
+    }
+
+    // =========================================================================
+    // Drops: local files upload into this pane
+    // =========================================================================
+
+    void testDrop_localFile_requestsUploadIntoTheCurrentDirectory()
+    {
+        QTemporaryDir dir;
+        QFile file(dir.filePath("game.prg"));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("x");
+        file.close();
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
+        widget.setCurrentDirectory("/SD/Games");
+        QSignalSpy spy(&widget, &RemoteFileBrowserWidget::uploadRequested);
+        QMimeData *mime = localFilesMime({dir.filePath("game.prg")});
+
+        dropOnto(widget, mime);
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), dir.filePath("game.prg"));
+        QCOMPARE(spy.at(0).at(1).toBool(), false);
+        QCOMPARE(spy.at(0).at(2).toString(), QString("/SD/Games"));
+        delete mime;
+    }
+
+    void testDrop_finderFolder_requestsARecursiveUpload()
+    {
+        QTemporaryDir dir;
+        QVERIFY(QDir(dir.path()).mkdir("demos"));
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
+        widget.setCurrentDirectory("/SD");
+        QSignalSpy spy(&widget, &RemoteFileBrowserWidget::uploadRequested);
+        QMimeData *mime = localFilesMime({dir.filePath("demos")});
+
+        dropOnto(widget, mime);
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), dir.filePath("demos"));
+        QCOMPARE(spy.at(0).at(1).toBool(), true);
+        QCOMPARE(spy.at(0).at(2).toString(), QString("/SD"));
+        delete mime;
+    }
+
+    void testDrop_localFileOntoAFolderRow_uploadsIntoThatFolder()
+    {
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
+        widget.resize(400, 300);
+        widget.show();
+        widget.setCurrentDirectory("/SD");  // resets the listing, so list afterwards
+        listDirectory("/SD", {dirEntry("Games")});
+        auto *tree = widget.findChild<QTreeView *>();
+        QVERIFY(tree != nullptr);
+        const QModelIndex folderIndex = model_->index(0, 0);
+        QVERIFY(folderIndex.isValid());
+        const QPoint onFolder = tree->visualRect(folderIndex).center();
+        QVERIFY(tree->indexAt(onFolder) == folderIndex);
+        QSignalSpy spy(&widget, &RemoteFileBrowserWidget::uploadRequested);
+        QMimeData *mime = localFilesMime({"/Users/someone/Desktop/game.prg"});
+
+        dropOnto(widget, mime, onFolder);
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QString("/Users/someone/Desktop/game.prg"));
+        QCOMPARE(spy.at(0).at(2).toString(), QString("/SD/Games"));
+        delete mime;
+    }
+
+    void testDrop_ownFiles_isRefused()
+    {
+        ExposedRemoteFileBrowserWidget widget(model_, makeErrorHandler());
+        QSignalSpy spy(&widget, &RemoteFileBrowserWidget::uploadRequested);
+        std::unique_ptr<QMimeData> mime(remotePathsMime({{"/SD/a.prg", false, 1}}));
+
+        QVERIFY(!widget.callCanAcceptDrag(mime.get(), true));
+        QVERIFY(!widget.callHandleDrop(mime.get(), QPoint(5, 5), true));
+        QCOMPARE(spy.count(), 0);
+    }
+
+    void testDrop_devicePathsFromAnotherListing_isRefused()
+    {
+        ExposedRemoteFileBrowserWidget widget(model_, makeErrorHandler());
+        QSignalSpy spy(&widget, &RemoteFileBrowserWidget::uploadRequested);
+        QMimeData *mime = remotePathsMime({{"/SD/a.prg", false, 1}});
+
+        QVERIFY(!widget.callCanAcceptDrag(mime, false));
+        dropOnto(widget, mime);
+
+        QCOMPARE(spy.count(), 0);
+        delete mime;
+    }
+
+    void testDrag_localFilesAreAccepted_andMarkThePaneAsADropTarget()
+    {
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
+        auto *tree = widget.findChild<QTreeView *>();
+        QVERIFY(tree != nullptr);
+        std::unique_ptr<QMimeData> mime(localFilesMime({"/Users/someone/game.prg"}));
+
+        QDragEnterEvent enter(QPoint(5, 5), Qt::CopyAction, mime.get(), Qt::LeftButton,
+                              Qt::NoModifier);
+        QApplication::sendEvent(tree->viewport(), &enter);
+        QVERIFY(enter.isAccepted());
+        QCOMPARE(enter.dropAction(), Qt::CopyAction);
+        QCOMPARE(tree->property("dropActive").toBool(), true);
+
+        QDragLeaveEvent leave;
+        QApplication::sendEvent(tree->viewport(), &leave);
+        QCOMPARE(tree->property("dropActive").toBool(), false);
     }
 };
 

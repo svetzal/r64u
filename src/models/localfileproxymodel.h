@@ -23,6 +23,14 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QVariant headerData(int section, Qt::Orientation orientation,
                         int role = Qt::DisplayRole) const override;
+    /**
+     * @brief Dragging a local file is never a move.
+     *
+     * A view removes the dragged rows from its model when a drag ends as a
+     * move, and QFileSystemModel removes rows by deleting the files. Only a
+     * copy is offered, so a drag can never delete the user's own files.
+     */
+    Qt::DropActions supportedDragActions() const override;
 
 protected:
     bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;

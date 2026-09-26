@@ -55,6 +55,11 @@ QVariant LocalFileProxyModel::headerData(int section, Qt::Orientation orientatio
     return QSortFilterProxyModel::headerData(section, orientation, role);
 }
 
+Qt::DropActions LocalFileProxyModel::supportedDragActions() const
+{
+    return Qt::CopyAction;
+}
+
 bool LocalFileProxyModel::lessThan(const QModelIndex &left, const QModelIndex &right) const
 {
     QFileSystemModel *fsModel = sourceFileModel();

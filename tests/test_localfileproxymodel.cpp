@@ -6,9 +6,12 @@
 #include <QDir>
 #include <QFile>
 #include <QFileSystemModel>
+#include <QMimeData>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QtTest>
+
+#include <memory>
 
 class TestLocalFileProxyModel : public QObject
 {
@@ -96,6 +99,33 @@ private slots:
         const QIcon dirIcon = proxyModel_->data(dirIdx, Qt::DecorationRole).value<QIcon>();
         QCOMPARE(dirIcon.cacheKey(),
                  pixelicons::fileTypeIcon(filetype::FileType::Directory).cacheKey());
+    }
+
+    // ========== Drag source: the file system model's URLs pass through ==========
+
+    void testMimeData_onAProxyRow_isTheFilesUrl()
+    {
+        QFile file(tempDir_->filePath("tune.sid"));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("x");
+        file.close();
+        QModelIndex rootIdx = fsModel_->index(tempDir_->path());
+        const int row = waitForEntry(rootIdx, "tune.sid");
+        QVERIFY(row >= 0);
+        const QModelIndex proxyIdx = proxyModel_->mapFromSource(fsModel_->index(row, 0, rootIdx));
+
+        QVERIFY(proxyModel_->flags(proxyIdx).testFlag(Qt::ItemIsDragEnabled));
+        QVERIFY(proxyModel_->mimeTypes().contains("text/uri-list"));
+        std::unique_ptr<QMimeData> mime(proxyModel_->mimeData({proxyIdx}));
+        QVERIFY(mime != nullptr);
+        QVERIFY(mime->hasUrls());
+        QCOMPARE(mime->urls().size(), 1);
+        QCOMPARE(mime->urls().first().toLocalFile(), tempDir_->filePath("tune.sid"));
+    }
+
+    void testSupportedDragActions_isCopyOnly_soADragCanNeverDeleteAFile()
+    {
+        QCOMPARE(proxyModel_->supportedDragActions(), Qt::DropActions(Qt::CopyAction));
     }
 
     // ========== data() for file size column ==========

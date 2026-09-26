@@ -51,8 +51,16 @@ signals:
 
 private slots:
     void onConnectionStateChanged();
+    /// Toolbar upload: into the remote pane's current directory.
     void onUploadRequested(const QString &localPath, bool isDirectory);
+    /// Drop on the remote pane: into the directory it landed on.
+    void onUploadIntoRequested(const QString &localPath, bool isDirectory,
+                               const QString &remoteDir);
+    /// Toolbar download: into the local pane's current directory.
     void onDownloadRequested(const QString &remotePath, bool isDirectory, qint64 size = 0);
+    /// Drop on the local pane: into the directory it landed on.
+    void onDownloadIntoRequested(const QString &remotePath, bool isDirectory, qint64 size,
+                                 const QString &localDir);
     void onDeleteRequested(const QString &remotePath, bool isDirectory);
     /// Ends the auto-refresh suppression held while the queue worked, and refreshes once.
     void resumeRemoteRefresh();

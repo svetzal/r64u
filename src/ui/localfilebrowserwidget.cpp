@@ -6,6 +6,7 @@
 #include "models/localfileproxymodel.h"
 #include "services/errorhandler.h"
 #include "services/localfileoperationsservice.h"
+#include "utils/logging.h"
 
 #include <QDir>
 #include <QHeaderView>
@@ -215,6 +216,18 @@ void LocalFileBrowserWidget::onUpload()
 
     for (const auto &e : entries) {
         emit uploadRequested(e.path, e.isDirectory);
+    }
+}
+
+void LocalFileBrowserWidget::executeDropPlan(const dropcore::DropPlan &plan)
+{
+    if (plan.kind != dropcore::DropPlan::Kind::Download) {
+        qCWarning(LogUi) << "LocalFileBrowserWidget: ignoring a drop plan that is not a download";
+        return;
+    }
+    for (const auto &entry : plan.entries) {
+        emit downloadRequested(entry.path, entry.isDirectory, entry.size,
+                               plan.destinationDirectory);
     }
 }
 

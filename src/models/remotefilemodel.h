@@ -42,7 +42,20 @@ public:
      */
     bool canFetchMore(const QModelIndex &parent) const override;
     void fetchMore(const QModelIndex &parent) override;
+    /// Rows are selectable and can be dragged (see mimeData()).
     Qt::ItemFlags flags(const QModelIndex &index) const override;
+    /// Only dropcore::kRemotePathsMimeType: this model's rows are device paths, not files.
+    QStringList mimeTypes() const override;
+    /**
+     * @brief Encodes the dragged rows for a drop elsewhere in the app.
+     *
+     * The payload (dropcore::encodeRemoteEntries) carries each row's full
+     * remote path, whether it is a directory and its listed size, so the
+     * receiving pane can queue the right transfer.
+     */
+    QMimeData *mimeData(const QModelIndexList &indexes) const override;
+    /// Dragging a device path is never a move: nothing is removed from the listing.
+    Qt::DropActions supportedDragActions() const override;
     /**
      * @brief Orders every listed directory by @p column (Name, Size or Type).
      *

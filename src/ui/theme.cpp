@@ -119,6 +119,10 @@ QTreeView, QListView, QTableView {
     selection-background-color: %accentBlue%;
     selection-color: %textInverted%;
 }
+/* A list that will take the drag hovering over it */
+QTreeView[dropActive="true"] {
+    border: 2px solid %accentBlue%;
+}
 
 /* Tab bar: rounded keycaps, the selected one carries the rainbow stripe */
 QTabBar::tab {

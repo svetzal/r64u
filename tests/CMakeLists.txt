@@ -456,6 +456,7 @@ add_executable(test_remotefilemodel
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/dropcore.cpp
 )
 
 target_include_directories(test_remotefilemodel PRIVATE
@@ -873,6 +874,7 @@ add_executable(test_errorsourceconnector
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/dropcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/cacheddownloadservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.cpp
     ${CMAKE_SOURCE_DIR}/src/core/songlengthsparser.cpp
@@ -1020,6 +1022,7 @@ add_executable(test_ftperrorreporting
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/dropcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/ilocalfilesystemservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/localfilesystemservice.cpp
     ${TRANSFER_CORE_SOURCES}
@@ -1209,6 +1212,7 @@ add_executable(test_filebrowsersync
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/dropcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
 )
 
@@ -2173,6 +2177,19 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_filebrowsercore)
 endif()
 
+# DropCore tests - drag-and-drop planning and the remote-paths payload, no I/O
+add_executable(test_dropcore
+    test_dropcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/dropcore.cpp
+)
+target_include_directories(test_dropcore PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_dropcore PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME DropCoreTest COMMAND test_dropcore)
+if(BUILD_COVERAGE)
+    add_coverage_target(dropcore test_dropcore)
+    add_dependencies(coverage coverage_dropcore)
+endif()
+
 # FileSizeCore tests - the one human-readable size format, header-only
 add_executable(test_filesizecore
     test_filesizecore.cpp
@@ -2426,6 +2443,7 @@ add_executable(test_fileactioncontroller
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/dropcore.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.h
@@ -2500,6 +2518,7 @@ add_executable(test_previewcoordinator
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/dropcore.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.h
@@ -2649,6 +2668,7 @@ add_executable(test_panelcoordinator
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/dropcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/panelcoordinator.cpp
     # Header listed so AUTOMOC generates moc file for TransferService (Q_OBJECT vtable)
     ${CMAKE_SOURCE_DIR}/src/services/transferservice.h
@@ -2916,6 +2936,7 @@ add_executable(test_servicefactory
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/dropcore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferwiring.cpp
@@ -2991,6 +3012,9 @@ add_executable(test_playlistwidget
     ${CMAKE_SOURCE_DIR}/src/services/playlistservice.cpp
     ${CMAKE_SOURCE_DIR}/src/core/playlistcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/playlistwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/dropcore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filebrowsercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     # Headers listed so AUTOMOC generates moc files for stubs
     ${CMAKE_SOURCE_DIR}/src/services/streamingservice.h
     ${CMAKE_SOURCE_DIR}/src/services/songlengthsdatabaseservice.h
@@ -3101,6 +3125,7 @@ add_executable(test_transferpanel
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/dropcore.cpp
     ${CMAKE_SOURCE_DIR}/src/models/transferqueue.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transfermanager.cpp
     ${CMAKE_SOURCE_DIR}/src/services/transferwiring.cpp
@@ -3167,6 +3192,7 @@ add_executable(test_remotefilebrowserwidget
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/dropcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowsercontroller.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/refreshpolicymanager.cpp
@@ -3207,6 +3233,7 @@ add_executable(test_localfilebrowserwidget
     ${CMAKE_SOURCE_DIR}/src/models/localfileproxymodel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/localfilebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filebrowserwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/dropcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/pathnavigationwidget.cpp
 )
 
@@ -3909,6 +3936,7 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/core/c64screencore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/videodisplaywidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/filebrowserwidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/dropcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/localfilebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowserwidget.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/remotefilebrowsercontroller.cpp
@@ -4101,6 +4129,7 @@ add_executable(test_refreshpolicymanager
     ${IERROREMITTER_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/ui/refreshpolicymanager.cpp
     ${CMAKE_SOURCE_DIR}/src/models/remotefilemodel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/dropcore.cpp
     ${CMAKE_SOURCE_DIR}/src/ftp/remotelistingcoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/core/filetypecore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/remotefiletreecore.cpp

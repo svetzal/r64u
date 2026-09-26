@@ -12,16 +12,21 @@
  * - statusMessage signal forwarded from PlaylistService to the widget
  * - Playback-control slots delegate to PlaylistService
  * - Elapsed-timer starts on playbackStarted, stops on playbackStopped
+ * - Drops: SID files from a device listing are added, other files ignored,
+ *   and a track dragged within the list is moved
  *
  * PlaylistService is constructed with a null DeviceConnectionManager.  All guard
  * clauses for null connections are in PlaylistService and prevent any real
  * hardware calls from being made during the tests.
  */
 
+#include "core/dropcore.h"
 #include "mocks/mockmessagepresenter.h"
 #include "services/playlistservice.h"
 #include "ui/playlistwidget.h"
 
+#include <QDropEvent>
+#include <QMimeData>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QSpinBox>
@@ -30,6 +35,8 @@
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QtTest>
+
+#include <memory>
 
 class TestPlaylistWidget : public QObject
 {
@@ -48,6 +55,58 @@ private:
         item.subsong = 1;
         item.durationSecs = durationSecs;
         m->addItem(item);
+    }
+
+    QStringList itemPaths() const
+    {
+        QStringList paths;
+        for (const auto &item : manager->items()) {
+            paths.append(item.path);
+        }
+        return paths;
+    }
+
+    /// A payload as RemoteFileModel writes it for the given device paths (files).
+    static QMimeData *remotePathsMime(const QStringList &paths)
+    {
+        QList<dropcore::DropEntry> entries;
+        for (const QString &path : paths) {
+            entries.append({path, false, 0});
+        }
+        auto *mime = new QMimeData();
+        mime->setData(QString::fromLatin1(dropcore::kRemotePathsMimeType),
+                      dropcore::encodeRemoteEntries(entries));
+        return mime;
+    }
+
+    /// Delivers a drag of @p mime entering the track list and dropping on it, as Qt would.
+    void dropOntoList(QMimeData *mime)
+    {
+        auto *tree = widget->findChild<QTreeWidget *>();
+        QVERIFY(tree != nullptr);
+        QDragEnterEvent enter(QPoint(5, 5), Qt::CopyAction, mime, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(tree->viewport(), &enter);
+        QDropEvent drop(QPoint(5, 5), Qt::CopyAction, mime, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(tree->viewport(), &drop);
+    }
+
+    /// Shows the list with three tracks a, b, c and returns it.
+    QTreeWidget *showListOfThree()
+    {
+        addTestItem(manager, "/SD/a.sid");
+        addTestItem(manager, "/SD/b.sid");
+        addTestItem(manager, "/SD/c.sid");
+        widget->resize(400, 300);
+        widget->show();
+        auto *tree = widget->findChild<QTreeWidget *>();
+        return tree;
+    }
+
+    /// A point just inside the top or bottom edge of @p row in the list.
+    static QPoint edgeOfRow(QTreeWidget *tree, int row, bool bottom)
+    {
+        const QRect rect = tree->visualItemRect(tree->topLevelItem(row));
+        return QPoint(rect.center().x(), bottom ? rect.bottom() - 1 : rect.top() + 1);
     }
 
 private slots:
@@ -405,6 +464,130 @@ private slots:
         QMetaObject::invokeMethod(widget, "onClear");
 
         QCOMPARE(mock.confirmCalls.size(), 0);
+    }
+
+    // -----------------------------------------------------------------------
+    // Drops from a device listing
+    // -----------------------------------------------------------------------
+
+    void testDrop_remoteSidPath_addsATrack()
+    {
+        QMimeData *mime = remotePathsMime({"/SD/Music/tune.sid"});
+
+        dropOntoList(mime);
+
+        QCOMPARE(manager->count(), 1);
+        QCOMPARE(manager->itemAt(0).path, QString("/SD/Music/tune.sid"));
+        delete mime;
+    }
+
+    void testDrop_remotePrgPath_addsNothing()
+    {
+        QMimeData *mime = remotePathsMime({"/SD/Games/game.prg"});
+
+        dropOntoList(mime);
+
+        QCOMPARE(manager->count(), 0);
+        delete mime;
+    }
+
+    void testHandleDrop_withoutASidFile_refusesAndSaysSo()
+    {
+        QSignalSpy status(widget, &PlaylistWidget::statusMessage);
+        std::unique_ptr<QMimeData> mime(remotePathsMime({"/SD/Games/game.prg"}));
+
+        QVERIFY(!widget->handleDrop(mime.get(), QPoint(5, 5), false));
+
+        QCOMPARE(manager->count(), 0);
+        QCOMPARE(status.count(), 1);
+        QVERIFY(status.at(0).at(0).toString().contains("No SID"));
+    }
+
+    void testDrop_mixedPaths_addsOnlyTheSidFiles()
+    {
+        QMimeData *mime =
+            remotePathsMime({"/SD/a.prg", "/SD/one.sid", "/SD/disk.d64", "/SD/two.SID"});
+
+        dropOntoList(mime);
+
+        QCOMPARE(itemPaths(), QStringList({"/SD/one.sid", "/SD/two.SID"}));
+        delete mime;
+    }
+
+    void testDrag_isAcceptedOnlyWhenItCarriesASidFile()
+    {
+        std::unique_ptr<QMimeData> sid(remotePathsMime({"/SD/one.sid"}));
+        std::unique_ptr<QMimeData> prg(remotePathsMime({"/SD/game.prg"}));
+        QMimeData files;
+        files.setUrls({QUrl::fromLocalFile("/Users/someone/one.sid")});
+
+        QVERIFY(widget->canAcceptDrag(sid.get(), false));
+        QVERIFY(!widget->canAcceptDrag(prg.get(), false));
+        QVERIFY(!widget->canAcceptDrag(&files, false));
+        QVERIFY(!widget->canAcceptDrag(nullptr, false));
+    }
+
+    // -----------------------------------------------------------------------
+    // Reordering by dragging within the list
+    // -----------------------------------------------------------------------
+
+    void testInternalDrop_belowALaterRow_movesTheTrackThere()
+    {
+        QTreeWidget *tree = showListOfThree();
+        QVERIFY(tree != nullptr);
+        tree->setCurrentItem(tree->topLevelItem(0));
+
+        QVERIFY(widget->handleDrop(nullptr, edgeOfRow(tree, 2, true), true));
+
+        QCOMPARE(itemPaths(), QStringList({"/SD/b.sid", "/SD/c.sid", "/SD/a.sid"}));
+        QCOMPARE(tree->indexOfTopLevelItem(tree->currentItem()), 2);
+    }
+
+    void testInternalDrop_aboveAnEarlierRow_movesTheTrackThere()
+    {
+        QTreeWidget *tree = showListOfThree();
+        QVERIFY(tree != nullptr);
+        tree->setCurrentItem(tree->topLevelItem(2));
+
+        QVERIFY(widget->handleDrop(nullptr, edgeOfRow(tree, 0, false), true));
+
+        QCOMPARE(itemPaths(), QStringList({"/SD/c.sid", "/SD/a.sid", "/SD/b.sid"}));
+        QCOMPARE(tree->indexOfTopLevelItem(tree->currentItem()), 0);
+    }
+
+    void testInternalDrop_belowTheLastRow_movesTheTrackToTheEnd()
+    {
+        QTreeWidget *tree = showListOfThree();
+        QVERIFY(tree != nullptr);
+        tree->setCurrentItem(tree->topLevelItem(0));
+        const QPoint belowAll(10, tree->visualItemRect(tree->topLevelItem(2)).bottom() + 20);
+
+        QVERIFY(widget->handleDrop(nullptr, belowAll, true));
+
+        QCOMPARE(itemPaths(), QStringList({"/SD/b.sid", "/SD/c.sid", "/SD/a.sid"}));
+    }
+
+    void testInternalDrop_ontoItsOwnPlace_changesNothing()
+    {
+        QTreeWidget *tree = showListOfThree();
+        QVERIFY(tree != nullptr);
+        tree->setCurrentItem(tree->topLevelItem(1));
+        QSignalSpy changed(manager, &PlaylistService::playlistChanged);
+
+        QVERIFY(!widget->handleDrop(nullptr, edgeOfRow(tree, 1, true), true));
+
+        QCOMPARE(changed.count(), 0);
+        QCOMPARE(itemPaths(), QStringList({"/SD/a.sid", "/SD/b.sid", "/SD/c.sid"}));
+    }
+
+    void testInternalDrop_withNothingCurrent_isRefused()
+    {
+        QTreeWidget *tree = showListOfThree();
+        QVERIFY(tree != nullptr);
+        tree->setCurrentItem(nullptr);
+
+        QVERIFY(!widget->canAcceptDrag(nullptr, true));
+        QVERIFY(!widget->handleDrop(nullptr, QPoint(5, 5), true));
     }
 };
 

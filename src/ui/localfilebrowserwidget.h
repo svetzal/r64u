@@ -24,6 +24,16 @@ public slots:
 
 signals:
     void uploadRequested(const QString &localPath, bool isDirectory);
+    /**
+     * @brief Emitted when a remote entry is dropped on this pane.
+     * @param remotePath The device path to download.
+     * @param isDirectory Whether it is a directory (downloaded recursively).
+     * @param size The file's listed size in bytes (0 for a directory or if unknown).
+     * @param localDirectory Where to put it: the directory row it was dropped
+     *        on, or this pane's current directory.
+     */
+    void downloadRequested(const QString &remotePath, bool isDirectory, qint64 size,
+                           const QString &localDirectory);
 
 private slots:
     void onUpload();
@@ -41,6 +51,9 @@ protected:
     [[nodiscard]] bool isDirectory(const QModelIndex &index) const override;
     void navigateToDirectory(const QString &path) override;
     void requestTransferOfSelection() override { onUpload(); }
+    [[nodiscard]] dropcore::Pane pane() const override { return dropcore::Pane::Local; }
+    /// Emits downloadRequested() for each dropped remote entry.
+    void executeDropPlan(const dropcore::DropPlan &plan) override;
 
     void performNewFolder(const QString &folderName) override;
     void performRename(const QString &path, const QString &newName) override;

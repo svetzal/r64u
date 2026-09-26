@@ -309,6 +309,17 @@ void RemoteFileBrowserWidget::onDownload()
     }
 }
 
+void RemoteFileBrowserWidget::executeDropPlan(const dropcore::DropPlan &plan)
+{
+    if (plan.kind != dropcore::DropPlan::Kind::Upload) {
+        qCWarning(LogUi) << "RemoteFileBrowserWidget: ignoring a drop plan that is not an upload";
+        return;
+    }
+    for (const auto &entry : plan.entries) {
+        emit uploadRequested(entry.path, entry.isDirectory, plan.destinationDirectory);
+    }
+}
+
 bool RemoteFileBrowserWidget::canModify(const QString &actionLabel)
 {
     return requireConnected(tr("Cannot %1").arg(actionLabel));

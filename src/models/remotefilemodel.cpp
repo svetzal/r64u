@@ -1,10 +1,14 @@
 #include "remotefilemodel.h"
 
+#include "core/dropcore.h"
 #include "core/filesizecore.h"
 #include "core/filetypecore.h"
 #include "core/remotefiletreecore.h"
 #include "ui/pixelicons.h"
 #include "utils/logging.h"
+
+#include <QMimeData>
+#include <QSet>
 
 #include <algorithm>
 #include <functional>
@@ -266,7 +270,38 @@ Qt::ItemFlags RemoteFileModel::flags(const QModelIndex &index) const
         return Qt::NoItemFlags;
     }
 
-    return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+    return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsDragEnabled;
+}
+
+QStringList RemoteFileModel::mimeTypes() const
+{
+    return {QString::fromLatin1(dropcore::kRemotePathsMimeType)};
+}
+
+QMimeData *RemoteFileModel::mimeData(const QModelIndexList &indexes) const
+{
+    QList<dropcore::DropEntry> entries;
+    QSet<QString> seenPaths;
+    for (const QModelIndex &index : indexes) {
+        const TreeNode *node = nodeFromIndex(index);
+        if (!node || node == rootNode_ || seenPaths.contains(node->fullPath)) {
+            continue;
+        }
+        seenPaths.insert(node->fullPath);
+        entries.append({node->fullPath, node->isDirectory, node->size});
+    }
+    if (entries.isEmpty()) {
+        return nullptr;
+    }
+    auto *mime = new QMimeData();
+    mime->setData(QString::fromLatin1(dropcore::kRemotePathsMimeType),
+                  dropcore::encodeRemoteEntries(entries));
+    return mime;
+}
+
+Qt::DropActions RemoteFileModel::supportedDragActions() const
+{
+    return Qt::CopyAction;
 }
 
 QString RemoteFileModel::filePath(const QModelIndex &index) const

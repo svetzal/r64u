@@ -7,14 +7,21 @@
 
 #include "pixelicons.h"
 
+#include "core/dropcore.h"
+#include "core/filebrowsercore.h"
+#include "core/filetypecore.h"
 #include "core/playlistcore.h"
 #include "services/playlistservice.h"
 
+#include <QDragMoveEvent>
+#include <QDropEvent>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QMimeData>
 #include <QStandardPaths>
+#include <QStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -145,6 +152,17 @@ void PlaylistWidget::setupUi()
     treeWidget_->header()->setStretchLastSection(false);
     treeWidget_->header()->setSectionResizeMode(2, QHeaderView::Stretch);  // Title stretches
 
+    // Tracks can be dragged to reorder, and SID files dropped in from a device listing.
+    // Every drop is answered as a copy: a drag that ends as a move has the view remove
+    // the dragged row from its own items, but the service already moved the track and
+    // the rebuilt list shows it in its new place.
+    treeWidget_->setDragEnabled(true);
+    treeWidget_->setAcceptDrops(true);
+    treeWidget_->setDropIndicatorShown(true);
+    treeWidget_->setDragDropMode(QAbstractItemView::DragDrop);
+    treeWidget_->setDefaultDropAction(Qt::CopyAction);
+    treeWidget_->viewport()->installEventFilter(this);
+
     connect(treeWidget_, &QTreeWidget::itemDoubleClicked, this,
             &PlaylistWidget::onItemDoubleClicked);
     connect(treeWidget_, &QTreeWidget::customContextMenuRequested, this,
@@ -176,6 +194,135 @@ void PlaylistWidget::setupConnections()
     // Duration spinner
     connect(durationSpinBox_, QOverload<int>::of(&QSpinBox::valueChanged), this,
             &PlaylistWidget::onDurationChanged);
+}
+
+bool PlaylistWidget::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched != treeWidget_->viewport()) {
+        return QWidget::eventFilter(watched, event);
+    }
+
+    switch (event->type()) {
+    case QEvent::DragEnter:
+    case QEvent::DragMove: {
+        auto *dragEvent = static_cast<QDragMoveEvent *>(event);
+        if (canAcceptDrag(dragEvent->mimeData(), dragEvent->source() == treeWidget_)) {
+            dragEvent->setDropAction(Qt::CopyAction);
+            dragEvent->accept();
+            setDropActive(true);
+        } else {
+            dragEvent->ignore();
+        }
+        return true;
+    }
+    case QEvent::DragLeave:
+        setDropActive(false);
+        return true;
+    case QEvent::Drop: {
+        auto *dropEvent = static_cast<QDropEvent *>(event);
+        setDropActive(false);
+        if (handleDrop(dropEvent->mimeData(), dropEvent->position().toPoint(),
+                       dropEvent->source() == treeWidget_)) {
+            dropEvent->setDropAction(Qt::CopyAction);
+            dropEvent->accept();
+        } else {
+            dropEvent->ignore();
+        }
+        return true;
+    }
+    default:
+        return QWidget::eventFilter(watched, event);
+    }
+}
+
+bool PlaylistWidget::canAcceptDrag(const QMimeData *mime, bool fromThisList) const
+{
+    if (fromThisList) {
+        return treeWidget_->currentItem() != nullptr;
+    }
+    return mime && !sidPathsIn(*mime).isEmpty();
+}
+
+bool PlaylistWidget::handleDrop(const QMimeData *mime, const QPoint &viewportPos, bool fromThisList)
+{
+    if (fromThisList) {
+        return moveDraggedTrack(viewportPos);
+    }
+    return mime && addDroppedTracks(*mime);
+}
+
+QStringList PlaylistWidget::sidPathsIn(const QMimeData &mime)
+{
+    const QString remoteType = QString::fromLatin1(dropcore::kRemotePathsMimeType);
+    if (!mime.hasFormat(remoteType)) {
+        return {};
+    }
+
+    QList<QPair<QString, filetype::FileType>> items;
+    const QList<dropcore::DropEntry> entries = dropcore::decodeRemoteEntries(mime.data(remoteType));
+    for (const dropcore::DropEntry &entry : entries) {
+        items.append({entry.path, entry.isDirectory ? filetype::FileType::Directory
+                                                    : filetype::detectFromFilename(
+                                                          QFileInfo(entry.path).fileName())});
+    }
+
+    QStringList paths;
+    const auto candidates = filebrowser::filterPlaylistCandidates(items);
+    for (const auto &candidate : candidates) {
+        paths.append(candidate.path);
+    }
+    return paths;
+}
+
+int PlaylistWidget::insertionRowAt(const QPoint &viewportPos) const
+{
+    QTreeWidgetItem *item = treeWidget_->itemAt(viewportPos);
+    if (!item) {
+        return treeWidget_->topLevelItemCount();
+    }
+    const int row = treeWidget_->indexOfTopLevelItem(item);
+    const QRect rect = treeWidget_->visualItemRect(item);
+    return viewportPos.y() >= rect.center().y() ? row + 1 : row;
+}
+
+bool PlaylistWidget::addDroppedTracks(const QMimeData &mime)
+{
+    const QStringList paths = sidPathsIn(mime);
+    if (paths.isEmpty()) {
+        emit statusMessage(tr("No SID music files in the drop"));
+        return false;
+    }
+    for (const QString &path : paths) {
+        manager_->addItem(path);
+    }
+    emit statusMessage(tr("Added %n track(s) to playlist", nullptr, paths.size()));
+    return true;
+}
+
+bool PlaylistWidget::moveDraggedTrack(const QPoint &viewportPos)
+{
+    QTreeWidgetItem *dragged = treeWidget_->currentItem();
+    if (!dragged) {
+        return false;
+    }
+    const int from = treeWidget_->indexOfTopLevelItem(dragged);
+    const int to = dropcore::reorderDestination(from, insertionRowAt(viewportPos));
+    if (to == from) {
+        return false;
+    }
+    manager_->moveItem(from, to);  // rebuilds the list through playlistChanged
+    treeWidget_->setCurrentItem(treeWidget_->topLevelItem(to));
+    return true;
+}
+
+void PlaylistWidget::setDropActive(bool active)
+{
+    if (treeWidget_->property("dropActive").toBool() == active) {
+        return;
+    }
+    treeWidget_->setProperty("dropActive", active);
+    treeWidget_->style()->unpolish(treeWidget_);
+    treeWidget_->style()->polish(treeWidget_);
 }
 
 void PlaylistWidget::onPlaylistChanged()
