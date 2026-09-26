@@ -57,7 +57,7 @@ void TestTransferQueue::testConnectionLostMidTransfer()
 
 ## Build Environment
 
-Qt 6.10.1 is installed via the native Qt installer at `~/Qt/`. (Qt 6.11.0 has only the WebEngine add-on installed locally; the CI downloads a full Qt 6.11.2.)
+Qt 6.11.2 is installed at `~/Qt/6.11.2/macos`, matching the version CI builds releases with (installed with aqtinstall: `aqt install-qt mac desktop 6.11.2 clang_64 -m qtmultimedia -O ~/Qt`). Keep the local Qt version in step with `QT_VERSION` in `.github/workflows/build.yml`; layout and behaviour can differ between Qt patch releases. Older versions under `~/Qt/` (6.10.1 and earlier) are only for comparison.
 
 ```bash
 # Build and run all tests (preferred method)
@@ -74,11 +74,13 @@ The `build_test.sh` script handles configure, build, and test execution with for
 
 ## Quality Gates
 
+Always cap build parallelism (`-j 4`). The generator is Unix Makefiles, where a bare `--parallel` or `make -j` runs unlimited jobs and exhausts memory on a full rebuild.
+
 Quality gates use CMake targets. All targets must be run from the project root directory.
 
 ```bash
 # Run all tests
-cmake --build build --target all && cd build && ctest --output-on-failure
+cmake --build build --target all -j 4 && cd build && ctest --output-on-failure
 
 # Static analysis with cppcheck (Qt-aware suppressions configured in cmake/)
 cmake --build build --target cppcheck
@@ -93,18 +95,18 @@ cmake --build build --target format
 cmake --build build --target quality
 
 # Code coverage (Apple LLVM profdata/llvm-cov, not lcov)
-cmake -B build -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.10.1/macos -DCMAKE_BUILD_TYPE=Debug -DBUILD_COVERAGE=ON
-cmake --build build
-cmake --build build --target coverage
+cmake -B build -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.11.2/macos -DCMAKE_BUILD_TYPE=Debug -DBUILD_COVERAGE=ON
+cmake --build build -j 4
+cmake --build build --target coverage -j 4
 
 # AddressSanitizer + UBSan
-cmake -B build_asan -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.10.1/macos -DSANITIZER="address;undefined"
-cmake --build build_asan
+cmake -B build_asan -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.11.2/macos -DSANITIZER="address;undefined"
+cmake --build build_asan -j 4
 cd build_asan && ctest --output-on-failure
 
 # ThreadSanitizer (optional)
-cmake -B build_tsan -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.10.1/macos -DSANITIZER=thread
-cmake --build build_tsan
+cmake -B build_tsan -S . -DCMAKE_PREFIX_PATH=$HOME/Qt/6.11.2/macos -DSANITIZER=thread
+cmake --build build_tsan -j 4
 cd build_tsan && ctest --output-on-failure
 ```
 
