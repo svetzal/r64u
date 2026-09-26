@@ -11,6 +11,8 @@
 #include "services/ierroremitter.h"
 #include "ui/explorefavoritescontroller.h"
 
+#include <QMimeData>
+
 // ---------------------------------------------------------------------------
 // RemoteFileModel stubs
 // ---------------------------------------------------------------------------
@@ -104,6 +106,18 @@ Qt::ItemFlags RemoteFileModel::flags(const QModelIndex & /*index*/) const
     return Qt::NoItemFlags;
 }
 void RemoteFileModel::sort(int /*column*/, Qt::SortOrder /*order*/) {}
+QStringList RemoteFileModel::mimeTypes() const
+{
+    return {};
+}
+QMimeData *RemoteFileModel::mimeData(const QModelIndexList & /*indexes*/) const
+{
+    return nullptr;
+}
+Qt::DropActions RemoteFileModel::supportedDragActions() const
+{
+    return Qt::CopyAction;
+}
 
 // MOC-required private slots
 void RemoteFileModel::onListingReady(const QString & /*path*/, const QList<FtpEntry> & /*entries*/)
