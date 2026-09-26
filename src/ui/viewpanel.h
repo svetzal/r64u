@@ -40,7 +40,8 @@ public:
 
     /**
      * @brief Injects the streaming service. Wires all streaming-related connections.
-     * @param manager Owned by the caller; must outlive this ViewPanel.
+     * @param manager Must be alive when this ViewPanel's destructor starts; it may be a
+     *        child of this panel (the panel stops listening to it before children die).
      */
     void setStreamingService(StreamingService *manager);
 
@@ -52,7 +53,8 @@ public:
 
     /**
      * @brief Injects the video recording service. Wires recording-related connections.
-     * @param service Owned by the caller; must outlive this ViewPanel.
+     * @param service Must be alive when this ViewPanel's destructor starts; it may be a
+     *        child of this panel (the panel stops listening to it before children die).
      */
     void setRecordingService(VideoRecordingService *service);
 
@@ -90,6 +92,7 @@ private slots:
 private:
     void setupUi();
     void setupConnections();
+    void disconnectFromServices();
     void updateActions();
 
     // Dependencies (not owned)

@@ -101,8 +101,11 @@ StreamingService *StreamingService::createDefault(DeviceConnectionManager *conne
 
 StreamingService::~StreamingService()
 {
+    // Tell the device to stop and release local resources, but notify no one:
+    // observers such as the owning ViewPanel may be part-way through their own
+    // destruction when this runs.
     if (isStreaming_) {
-        stopStreaming();
+        releaseStreamingResources();
     }
     delete networkProvider_;
 }
@@ -218,6 +221,12 @@ void StreamingService::stopStreaming()
         return;
     }
 
+    releaseStreamingResources();
+    emit streamingStopped();
+}
+
+void StreamingService::releaseStreamingResources()
+{
     // Disable diagnostics collection
     if (diagnostics_) {
         diagnostics_->setEnabled(false);
@@ -233,7 +242,6 @@ void StreamingService::stopStreaming()
 
     isStreaming_ = false;
     currentTargetHost_.clear();
-    emit streamingStopped();
 }
 
 void StreamingService::onVideoFormatDetected(int format)

@@ -16,15 +16,20 @@
 #include "mocks/mockvideostreamreceiverservice.h"
 #include "services/deviceconnectionmanager.h"
 #include "services/devicetypes.h"
+#include "services/errorhandler.h"
 #include "services/errortypes.h"
 #include "services/ierroremitter.h"
 #include "services/keyboardinputservice.h"
+#include "services/screenshotservice.h"
 #include "services/streamingservice.h"
+#include "services/videorecordingservice.h"
+#include "ui/viewpanel.h"
 
 #include <QHostAddress>
 #include <QNetworkAddressEntry>
 #include <QNetworkInterface>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QtTest>
 
 class TestStreamingService : public QObject
@@ -372,6 +377,75 @@ private slots:
 
         // If we get here without crash, the destructor handled it correctly
         QVERIFY(true);
+    }
+
+    void testDestructor_whileStreaming_stopsDeviceStreamsWithoutNotifying()
+    {
+        // Collaborators are parented to the test so their call counts outlive the service
+        auto *control = new MockStreamControlService(this);
+        auto *video = new MockVideoStreamReceiverService(this);
+        auto *audio = new MockAudioStreamReceiverService(this);
+        auto *playback = new MockAudioPlaybackService(this);
+        auto *service = new StreamingService(conn_, control, video, audio, playback, nullptr,
+                                             new MockNetworkInterfaceProvider());
+        service->isStreaming_ = true;
+        int stoppedNotifications = 0;
+        connect(service, &StreamingService::streamingStopped, this,
+                [&stoppedNotifications]() { ++stoppedNotifications; });
+
+        delete service;
+
+        // Observers may be mid-destruction themselves (the owning ViewPanel is),
+        // so a destructor must release resources without notifying anyone.
+        QCOMPARE(stoppedNotifications, 0);
+        QCOMPARE(control->mockStopAllStreamsCallCount(), 1);
+        QCOMPARE(playback->mockStopCallCount(), 1);
+        QCOMPARE(video->mockCloseCallCount(), 1);
+        QCOMPARE(audio->mockCloseCallCount(), 1);
+
+        delete control;
+        delete video;
+        delete audio;
+        delete playback;
+    }
+
+    void testOwningViewPanelDestroyedWhileStreamingAndRecording_notifiesNothing()
+    {
+        // Wired as MainWindow::setupPanels does: the panel owns its streaming,
+        // recording and screenshot services, so they die during ~QWidget.
+        auto *errorHandler = new ErrorHandler(nullptr, this);
+        QSignalSpy errorHandlerMessages(errorHandler, &ErrorHandler::statusMessage);
+        auto *panel = new ViewPanel(conn_, errorHandler);
+
+        auto *control = new MockStreamControlService();
+        auto *video = new MockVideoStreamReceiverService();
+        auto *audio = new MockAudioStreamReceiverService();
+        auto *playback = new MockAudioPlaybackService();
+        auto *service = new StreamingService(conn_, control, video, audio, playback, nullptr,
+                                             new MockNetworkInterfaceProvider(), panel);
+        control->setParent(service);
+        video->setParent(service);
+        audio->setParent(service);
+        playback->setParent(service);
+
+        auto *recording = new VideoRecordingService(panel);
+        recording->connectToStreaming(service);
+        panel->setStreamingService(service);
+        panel->setRecordingService(recording);
+        panel->setScreenshotService(new ScreenshotService(panel));
+
+        service->isStreaming_ = true;
+        emit service->streamingStarted(QStringLiteral("192.168.1.10"));
+        QTemporaryDir dir;
+        QVERIFY(recording->startRecording(dir.filePath(QStringLiteral("quit.avi"))));
+        errorHandlerMessages.clear();
+
+        // Quitting while streaming and recording must neither crash nor run
+        // panel slots against the panel's already-deleted child widgets.
+        delete panel;
+
+        QCOMPARE(errorHandlerMessages.count(), 0);
+        delete errorHandler;
     }
 };
 

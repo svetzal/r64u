@@ -27,7 +27,27 @@ ViewPanel::ViewPanel(DeviceConnectionManager *connection, ErrorHandler *errorHan
     setupUi();
 }
 
-ViewPanel::~ViewPanel() = default;
+ViewPanel::~ViewPanel()
+{
+    // MainWindow parents the streaming and recording services to this panel, so
+    // ~QWidget destroys them after the panel's child widgets. Stop listening
+    // before that starts: a slot run from their teardown would act on a
+    // half-destroyed panel.
+    disconnectFromServices();
+}
+
+void ViewPanel::disconnectFromServices()
+{
+    if (streamingService_) {
+        disconnect(streamingService_, nullptr, this, nullptr);
+        if (streamingService_->diagnostics()) {
+            disconnect(streamingService_->diagnostics(), nullptr, this, nullptr);
+        }
+    }
+    if (recordingService_) {
+        disconnect(recordingService_, nullptr, this, nullptr);
+    }
+}
 
 void ViewPanel::setupUi()
 {

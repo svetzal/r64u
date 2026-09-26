@@ -1430,6 +1430,15 @@ add_executable(test_streamingmanager
     ${CMAKE_SOURCE_DIR}/src/core/audiostreamcore.cpp
     ${CMAKE_SOURCE_DIR}/src/services/audioplaybackservice.cpp
     ${CMAKE_SOURCE_DIR}/src/services/streamingdiagnosticsservice.cpp
+    # Owning ViewPanel and its sibling services, for teardown tests
+    ${CMAKE_SOURCE_DIR}/src/services/errorhandler.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/screenshotservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/videorecordingservice.cpp
+    ${CMAKE_SOURCE_DIR}/src/services/vic2frameconverter.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/avicore.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/viewpanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/videodisplaywidget.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/streamingdiagnosticswidget.cpp
 )
 
 target_include_directories(test_streamingmanager PRIVATE
@@ -1440,6 +1449,7 @@ target_include_directories(test_streamingmanager PRIVATE
 target_link_libraries(test_streamingmanager PRIVATE
     Qt6::Core
     Qt6::Gui
+    Qt6::Widgets
     Qt6::Test
     Qt6::Network
     Qt6::Multimedia

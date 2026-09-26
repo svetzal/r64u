@@ -31,6 +31,29 @@
 #include <QSignalSpy>
 #include <QtTest>
 
+#include <functional>
+#include <utility>
+
+/// Runs a notification when destroyed, standing in for a panel-owned service
+/// whose teardown notifies observers.
+class NotifyOnDestruction : public QObject
+{
+public:
+    NotifyOnDestruction(std::function<void()> notify, QObject *parent)
+        : QObject(parent), notify_(std::move(notify))
+    {
+    }
+    ~NotifyOnDestruction() override { notify_(); }
+
+    NotifyOnDestruction(const NotifyOnDestruction &) = delete;
+    NotifyOnDestruction &operator=(const NotifyOnDestruction &) = delete;
+    NotifyOnDestruction(NotifyOnDestruction &&) = delete;
+    NotifyOnDestruction &operator=(NotifyOnDestruction &&) = delete;
+
+private:
+    std::function<void()> notify_;
+};
+
 class TestViewPanel : public QObject
 {
     Q_OBJECT
@@ -244,6 +267,31 @@ private slots:
         ViewPanel panel(connection_, makeErrorHandler());
         QMetaObject::invokeMethod(&panel, "onStopRecording");
         QVERIFY(true);
+    }
+
+    // =========================================================================
+    // Teardown — services owned by the panel die inside ~QWidget
+    // =========================================================================
+
+    void testDestruction_ignoresSignalsFromServicesTornDownWithIt()
+    {
+        auto *errorHandler = makeErrorHandler();
+        QSignalSpy errorHandlerMessages(errorHandler, &ErrorHandler::statusMessage);
+        auto *panel = new ViewPanel(connection_, errorHandler);
+
+        // Children die in creation order after the panel's widgets, so this
+        // stand-in for "a service that notifies on its way out" fires while
+        // the streaming service (created next) is still alive.
+        StreamingService *service = nullptr;
+        new NotifyOnDestruction(
+            [&service]() { emit service->statusMessage(QStringLiteral("late"), 0); }, panel);
+        service = new StreamingService(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                                       nullptr, panel);
+        panel->setStreamingService(service);
+
+        delete panel;
+
+        QCOMPARE(errorHandlerMessages.count(), 0);
     }
 
     // =========================================================================

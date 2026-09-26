@@ -86,7 +86,8 @@ public:
                                            QObject *parent = nullptr);
 
     /**
-     * @brief Destructor. Stops streaming and cleans up resources.
+     * @brief Destructor. If streaming, tells the device to stop and releases
+     * receivers and playback, without emitting any signal.
      */
     ~StreamingService() override;
 
@@ -189,6 +190,9 @@ private:
     friend class TestStreamingService;
 
     [[nodiscard]] QString findLocalHostForDevice() const;
+
+    /// Sends the device stop commands and closes receivers and playback. Emits nothing.
+    void releaseStreamingResources();
 
     // Non-owned dependency
     DeviceConnectionManager *deviceConnection_ = nullptr;
