@@ -100,18 +100,15 @@ void LocalFileBrowserWidget::setupContextMenu()
         }
     });
 
-    // Add local-specific menu items
+    // Add local-specific menu items: the toolbar's own actions, so enablement is shared
     using pixeliconcore::Icon;
     contextMenu_->addSeparator();
     contextMenu_->addAction(pixelicons::icon(Icon::Upload), tr("Upload to C64U"), this,
                             &LocalFileBrowserWidget::onUpload);
     contextMenu_->addSeparator();
-    contextMenu_->addAction(pixelicons::icon(Icon::NewFolder), tr("New Folder"), this,
-                            &LocalFileBrowserWidget::onNewFolder);
-    contextMenu_->addAction(pixelicons::icon(Icon::Rename), tr("Rename"), this,
-                            &LocalFileBrowserWidget::onRename);
-    contextMenu_->addAction(pixelicons::icon(Icon::Delete), tr("Delete"), this,
-                            &LocalFileBrowserWidget::onDelete);
+    contextMenu_->addAction(newFolderAction_);
+    contextMenu_->addAction(renameAction_);
+    contextMenu_->addAction(deleteAction_);
 }
 
 void LocalFileBrowserWidget::setupConnections()
@@ -200,8 +197,6 @@ void LocalFileBrowserWidget::setCurrentDirectory(const QString &path)
 
     navWidget_->setPath(displayPath);
     emit currentDirectoryChanged(path);
-    errorHandler_->info(ErrorCategory::FileOperation,
-                        tr("Download destination: %1").arg(displayPath));
 
     // Enable/disable up button based on whether we can go up
     QDir dir(path);

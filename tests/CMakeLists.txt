@@ -2173,6 +2173,22 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_filebrowsercore)
 endif()
 
+# FileSizeCore tests - the one human-readable size format, header-only
+add_executable(test_filesizecore
+    test_filesizecore.cpp
+)
+target_include_directories(test_filesizecore PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_filesizecore PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME FileSizeCoreTest COMMAND test_filesizecore)
+
+# FileSortCore tests - the listing order shared by both file browsers, header-only
+add_executable(test_filesortcore
+    test_filesortcore.cpp
+)
+target_include_directories(test_filesortcore PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_filesortcore PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME FileSortCoreTest COMMAND test_filesortcore)
+
 # FavoritesUICore tests - pure favorites display logic, no I/O dependencies
 add_executable(test_favoritesuicore
     test_favoritesuicore.cpp

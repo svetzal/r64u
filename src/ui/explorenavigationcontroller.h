@@ -30,6 +30,8 @@ public:
 
 signals:
     void statusMessage(const QString &message, int timeout = 0);
+    /// The listing now shows @p path; whatever was selected in the old one is gone.
+    void directoryChanged(const QString &path);
 
 private:
     DeviceConnectionManager *deviceConnection_ = nullptr;

@@ -36,6 +36,8 @@ public:
 
 public slots:
     void onFileContentRequested(const QString &path);
+    /// The browser moved to @p path: the details shown belong to a file no longer listed.
+    void onDirectoryChanged(const QString &path);
     void onConfigLoadFinished(const QString &path);
     void onConfigLoadFailed(const QString &path, const QString &error);
 

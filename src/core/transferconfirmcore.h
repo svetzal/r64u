@@ -46,6 +46,10 @@ struct FolderConfirmResult
 /// Returns unchanged state if precondition not met.
 [[nodiscard]] OverwriteResult respondToOverwrite(const State &state, OverwriteResponse response);
 
+/// @brief Returns true if @p item's existing destination is to be left alone without asking:
+///        the user chose "Skip All" in its batch.
+[[nodiscard]] bool skipsExistingWithoutAsking(const State &state, const TransferItem &item);
+
 /// @brief Process a folder-exists confirmation response.
 ///
 /// Merge and Replace apply to every existing folder the dialog listed. Cancel drops only those

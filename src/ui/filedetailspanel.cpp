@@ -5,6 +5,7 @@
 #include "core/diskimagereader.h"
 #include "core/fileactioncore.h"
 #include "core/filemetadatacore.h"
+#include "core/filesizecore.h"
 #include "services/gamebase64service.h"
 #include "services/hvscmetadataservice.h"
 #include "services/songlengthsdatabaseservice.h"
@@ -17,17 +18,6 @@ namespace {
 
 /// Characters `LOAD"` and `",8,1` take on the 40-column LOAD line.
 constexpr int LoadLineOverhead = 10;
-
-QString humanSize(qint64 size)
-{
-    if (size < 1024) {
-        return QObject::tr("%1 bytes").arg(size);
-    }
-    if (size < qint64{1024} * 1024) {
-        return QObject::tr("%1 KB").arg(size / 1024.0, 0, 'f', 1);
-    }
-    return QObject::tr("%1 MB").arg(size / (1024.0 * 1024.0), 0, 'f', 2);
-}
 
 /// `LOAD"<name>",8,1`, with the name cut so the line fits the screen width.
 QString loadLine(const QString &fileName, int columns)
@@ -156,7 +146,7 @@ void FileDetailsPanel::showFileDetails(const QString &path, qint64 size, const Q
     // Info card — no content fetch needed
     const QStringList card{loadLine(fileName, screen_->columns()),
                            QString(),
-                           tr("SIZE: %1").arg(humanSize(size)),
+                           tr("SIZE: %1").arg(filesize::humanSize(size)),
                            tr("TYPE: %1").arg(type),
                            QString(),
                            QStringLiteral("READY.")};

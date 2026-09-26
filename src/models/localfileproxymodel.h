@@ -1,6 +1,7 @@
 #ifndef LOCALFILEPROXYMODEL_H
 #define LOCALFILEPROXYMODEL_H
 
+#include "core/filesortcore.h"
 #include "core/filetypecore.h"
 
 #include <QFileSystemModel>
@@ -8,9 +9,9 @@
 
 /**
  * Proxy model that customizes QFileSystemModel display:
- * - Shows file sizes in bytes instead of human-readable format
+ * - Shows file sizes in the app's one human-readable format (filesize::humanSize)
  * - Shows C64-specific file types (SID Music, Program, Disk Image, etc.)
- * - Sorts directories before files
+ * - Sorts directories before files, then by the clicked column (Size by raw bytes)
  */
 class LocalFileProxyModel : public QSortFilterProxyModel
 {
@@ -28,6 +29,10 @@ protected:
 
 private:
     QFileSystemModel *sourceFileModel() const;
+    /// The attributes of the entry at @p nameIndex (a column-0 source index) the filesort rule
+    /// uses.
+    static filesort::Entry sortableEntry(const QFileSystemModel &fsModel,
+                                         const QModelIndex &nameIndex);
     static filetype::FileType detectFileType(const QString &filename);
     static QString fileTypeString(filetype::FileType type);
 };

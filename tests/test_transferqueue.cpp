@@ -1507,6 +1507,77 @@ private slots:
         QCOMPARE(checkFile2.readAll(), QByteArray("new2"));
     }
 
+    // "Skip All" answers for the rest of the batch: existing files are left alone, unasked
+    void testSkipAllLeavesTheRestOfTheBatchAlone()
+    {
+        queue->setAutoOverwrite(false);
+
+        QString remotePath1 = "/test/keep1.txt";
+        QString remotePath2 = "/test/keep2.txt";
+        QString localPath1 = tempDir.path() + "/keep1.txt";
+        QString localPath2 = tempDir.path() + "/keep2.txt";
+        for (const QString &path : {localPath1, localPath2}) {
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write("original");
+            file.close();
+        }
+        mockFtp->mockSetDownloadData(remotePath1, "new1");
+        mockFtp->mockSetDownloadData(remotePath2, "new2");
+        QSignalSpy overwriteSpy(queue, &TransferQueue::overwriteConfirmationNeeded);
+        QSignalSpy allCompletedSpy(queue, &TransferQueue::allOperationsCompleted);
+
+        queue->enqueueDownload(remotePath1, localPath1);
+        queue->enqueueDownload(remotePath2, localPath2);
+        queue->flushEventQueue();
+        QCOMPARE(overwriteSpy.count(), 1);
+
+        queue->respondToOverwrite(OverwriteResponse::SkipAll);
+        flushAndProcess();
+
+        QCOMPARE(overwriteSpy.count(), 1);  // the second file was not asked about
+        QCOMPARE(mockFtp->mockGetDownloadRequests().size(), 0);
+        QCOMPARE(allCompletedSpy.count(), 1);
+        for (const QString &path : {localPath1, localPath2}) {
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::ReadOnly));
+            QCOMPARE(file.readAll(), QByteArray("original"));
+        }
+    }
+
+    void testUploadSkipAllLeavesExistingRemoteFilesAlone()
+    {
+        queue->setAutoOverwrite(false);
+
+        QString localPath1 = tempDir.path() + "/up1.txt";
+        QString localPath2 = tempDir.path() + "/up2.txt";
+        for (const QString &path : {localPath1, localPath2}) {
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write("content");
+            file.close();
+        }
+        FtpEntry entry1;
+        entry1.name = "up1.txt";
+        FtpEntry entry2;
+        entry2.name = "up2.txt";
+        mockFtp->mockSetDirectoryListing("/remote", {entry1, entry2});
+        QSignalSpy overwriteSpy(queue, &TransferQueue::overwriteConfirmationNeeded);
+        QSignalSpy allCompletedSpy(queue, &TransferQueue::allOperationsCompleted);
+
+        queue->enqueueUpload(localPath1, "/remote/up1.txt");
+        queue->enqueueUpload(localPath2, "/remote/up2.txt");
+        flushAndProcessNext();
+        QCOMPARE(overwriteSpy.count(), 1);
+
+        queue->respondToOverwrite(OverwriteResponse::SkipAll);
+        flushAndProcess();
+
+        QCOMPARE(overwriteSpy.count(), 1);
+        QCOMPARE(mockFtp->mockGetUploadRequests().size(), 0);
+        QCOMPARE(allCompletedSpy.count(), 1);
+    }
+
     // Test that Skip works correctly
     void testOverwriteSkipMovesToNextFile()
     {

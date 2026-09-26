@@ -46,8 +46,12 @@ PanelCoordinator::PanelCoordinator(IPanel *explore, IPanel *transfer, IPanel *vi
     connect(remoteFileModel_, &RemoteFileModel::loadingStarted, this, [this](const QString &path) {
         statusMessageService_->showInfo(tr("Loading %1...").arg(path));
     });
-    connect(remoteFileModel_, &RemoteFileModel::loadingFinished, this, [](const QString &) {
-        // Loading finished - no need to show a message, just let it clear naturally
+    connect(remoteFileModel_, &RemoteFileModel::loadingFinished, this, [this](const QString &path) {
+        // Replaces "Loading ..." so the bar never says loading once the list is on screen
+        const int count = remoteFileModel_->entryCount(path);
+        statusMessageService_->showInfo(count == 1 ? tr("%1: 1 item").arg(path)
+                                                   : tr("%1: %2 items").arg(path).arg(count),
+                                        5000);
     });
 
     // Tab widget mode switching

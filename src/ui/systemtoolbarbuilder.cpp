@@ -6,11 +6,39 @@
 #include "systemcommandcontroller.h"
 
 #include <QAction>
+#include <QHBoxLayout>
 #include <QMainWindow>
 #include <QSize>
 #include <QSizePolicy>
 #include <QToolBar>
+#include <QToolButton>
 #include <QWidget>
+
+namespace {
+
+/// A tool button for @p action that looks like the ones the toolbar makes itself.
+QToolButton *toolButtonFor(QAction *action, const QToolBar *toolBar)
+{
+    auto *button = new QToolButton();
+    button->setDefaultAction(action);
+    button->setAutoRaise(true);
+    button->setIconSize(toolBar->iconSize());
+    button->setToolButtonStyle(toolBar->toolButtonStyle());
+    QObject::connect(toolBar, &QToolBar::iconSizeChanged, button, &QToolButton::setIconSize);
+    QObject::connect(toolBar, &QToolBar::toolButtonStyleChanged, button,
+                     &QToolButton::setToolButtonStyle);
+    return button;
+}
+
+/// Marks a toolbar action's button as guarded so the theme rings it in red.
+void markAsDangerAction(QToolBar *toolBar, QAction *action)
+{
+    if (QWidget *button = toolBar->widgetForAction(action)) {
+        button->setObjectName(QStringLiteral("DangerAction"));
+    }
+}
+
+}  // namespace
 
 SystemToolBarResult SystemToolBarBuilder::build(QMainWindow *window, QToolBar *toolBar,
                                                 DeviceConnectionManager *deviceConnection,
@@ -28,45 +56,64 @@ SystemToolBarResult SystemToolBarBuilder::build(QMainWindow *window, QToolBar *t
 
     toolBar->addSeparator();
 
-    // Machine control actions
+    // The C64 itself: Reset · Pause · Resume · Menu, set tight like keys on a front panel
     result.resetAction =
-        toolBar->addAction(pixelicons::icon(Icon::Reset), QMainWindow::tr("Reset"));
+        new QAction(pixelicons::icon(Icon::Reset), QMainWindow::tr("Reset"), window);
     result.resetAction->setToolTip(QMainWindow::tr("Reset the C64"));
     QObject::connect(result.resetAction, &QAction::triggered, sysCtrl,
                      &SystemCommandController::onReset);
 
-    result.rebootAction =
-        toolBar->addAction(pixelicons::icon(Icon::Reboot), QMainWindow::tr("Reboot"));
-    result.rebootAction->setToolTip(QMainWindow::tr("Reboot the Ultimate device"));
-    QObject::connect(result.rebootAction, &QAction::triggered, sysCtrl,
-                     &SystemCommandController::onReboot);
-
     result.pauseAction =
-        toolBar->addAction(pixelicons::icon(Icon::Pause), QMainWindow::tr("Pause"));
+        new QAction(pixelicons::icon(Icon::Pause), QMainWindow::tr("Pause"), window);
     result.pauseAction->setToolTip(QMainWindow::tr("Pause C64 execution"));
     QObject::connect(result.pauseAction, &QAction::triggered, sysCtrl,
                      &SystemCommandController::onPause);
 
     result.resumeAction =
-        toolBar->addAction(pixelicons::icon(Icon::Resume), QMainWindow::tr("Resume"));
+        new QAction(pixelicons::icon(Icon::Resume), QMainWindow::tr("Resume"), window);
     result.resumeAction->setToolTip(QMainWindow::tr("Resume C64 execution"));
     QObject::connect(result.resumeAction, &QAction::triggered, sysCtrl,
                      &SystemCommandController::onResume);
 
-    result.menuAction = toolBar->addAction(pixelicons::icon(Icon::Menu), QMainWindow::tr("Menu"));
+    result.menuAction = new QAction(pixelicons::icon(Icon::Menu), QMainWindow::tr("Menu"), window);
     result.menuAction->setToolTip(QMainWindow::tr("Press Ultimate menu button"));
     QObject::connect(result.menuAction, &QAction::triggered, sysCtrl,
                      &SystemCommandController::onMenuButton);
 
-    result.powerOffAction =
-        toolBar->addAction(pixelicons::icon(Icon::PowerOff), QMainWindow::tr("Power Off"));
-    result.powerOffAction->setToolTip(QMainWindow::tr("Power off the Ultimate device"));
+    auto *machineGroup = new QWidget();
+    machineGroup->setObjectName(QStringLiteral("MachineControls"));
+    auto *machineLayout = new QHBoxLayout(machineGroup);
+    machineLayout->setContentsMargins(0, 0, 0, 0);
+    machineLayout->setSpacing(0);
+    for (QAction *action :
+         {result.resetAction, result.pauseAction, result.resumeAction, result.menuAction}) {
+        machineLayout->addWidget(toolButtonFor(action, toolBar));
+    }
+    toolBar->addWidget(machineGroup);
 
     toolBar->addSeparator();
 
+    // The Ultimate device itself: guarded, since both interrupt whatever is running
+    result.rebootAction =
+        toolBar->addAction(pixelicons::icon(Icon::Reboot), QMainWindow::tr("Reboot"));
+    result.rebootAction->setToolTip(QMainWindow::tr("Reboot the Ultimate device"));
+    QObject::connect(result.rebootAction, &QAction::triggered, sysCtrl,
+                     &SystemCommandController::onReboot);
+    markAsDangerAction(toolBar, result.rebootAction);
+
+    result.powerOffAction =
+        toolBar->addAction(pixelicons::icon(Icon::PowerOff), QMainWindow::tr("Power Off"));
+    result.powerOffAction->setToolTip(QMainWindow::tr("Power off the Ultimate device"));
+    markAsDangerAction(toolBar, result.powerOffAction);
+
+    // Preferences: the caller wires it, and on macOS the app menu already carries it
     result.prefsAction =
-        toolBar->addAction(pixelicons::icon(Icon::Preferences), QMainWindow::tr("Preferences"));
+        new QAction(pixelicons::icon(Icon::Preferences), QMainWindow::tr("Preferences"), window);
     result.prefsAction->setToolTip(QMainWindow::tr("Open preferences dialog"));
+#ifndef Q_OS_MACOS
+    toolBar->addSeparator();
+    toolBar->addAction(result.prefsAction);
+#endif
 
     // Spacer to push connection status to the right
     auto *spacer = new QWidget();

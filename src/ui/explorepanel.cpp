@@ -34,6 +34,8 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include <algorithm>
+
 ExplorePanel::ExplorePanel(DeviceConnectionManager *connection, RemoteFileModel *model,
                            const ExplorePanelServices &services, ErrorHandler *errorHandler,
                            QWidget *parent)
@@ -189,12 +191,19 @@ void ExplorePanel::setupUi()
 
     playlistWidget_ = new PlaylistWidget(playlistService_);
     connect(playlistWidget_, &PlaylistWidget::statusMessage, this, &ExplorePanel::statusMessage);
+    connect(playlistWidget_, &PlaylistWidget::collapsedChanged, this,
+            &ExplorePanel::onPlaylistCollapsedChanged);
     rightSplitter_->addWidget(playlistWidget_);
 
+    // The details screen takes whatever the playlist gives up
+    rightSplitter_->setStretchFactor(0, 1);
+    rightSplitter_->setStretchFactor(1, 0);
+    rightSplitter_->setCollapsible(1, false);
     rightSplitter_->setSizes({350, 150});
 
     splitter_->addWidget(rightSplitter_);
-    splitter_->setSizes({400, 600});
+    // The file list is what the user works in, so it gets the width by default
+    splitter_->setSizes({560, 440});
 
     layout->addWidget(splitter_);
 
@@ -226,6 +235,8 @@ void ExplorePanel::setupConnections()
 
     connect(navController_, &ExploreNavigationController::statusMessage, this,
             &ExplorePanel::statusMessage);
+    connect(navController_, &ExploreNavigationController::directoryChanged, previewCoordinator_,
+            &PreviewCoordinator::onDirectoryChanged);
 
     connect(contextMenu_, &ExploreContextMenuController::playRequested, actionController_,
             &FileActionController::playSelection);
@@ -317,6 +328,7 @@ void ExplorePanel::loadSettings()
     if (!rightState.isEmpty()) {
         rightSplitter_->restoreState(rightState);
     }
+    playlistWidget_->setCollapsed(settings.value("layout/playlistCollapsed", false).toBool());
     const QByteArray headerState = settings.value("layout/exploreHeader").toByteArray();
     if (!headerState.isEmpty()) {
         treeView_->header()->restoreState(headerState);
@@ -328,8 +340,29 @@ void ExplorePanel::saveSettings()
     QSettings settings;
     settings.setValue("directories/exploreRemote", navController_->currentDirectory());
     settings.setValue("layout/exploreSplitter", splitter_->saveState());
-    settings.setValue("layout/exploreRightSplitter", rightSplitter_->saveState());
+    // A collapsed playlist is a header row high: keep the last open layout for when it reopens
+    if (!playlistWidget_->isCollapsed()) {
+        settings.setValue("layout/exploreRightSplitter", rightSplitter_->saveState());
+    }
+    settings.setValue("layout/playlistCollapsed", playlistWidget_->isCollapsed());
     settings.setValue("layout/exploreHeader", treeView_->header()->saveState());
+}
+
+void ExplorePanel::onPlaylistCollapsedChanged(bool collapsed)
+{
+    const QList<int> sizes = rightSplitter_->sizes();
+    if (sizes.size() != 2) {
+        return;
+    }
+    const int total = sizes[0] + sizes[1];
+    if (collapsed) {
+        expandedPlaylistHeight_ = sizes[1];
+        const int header = playlistWidget_->maximumHeight();
+        rightSplitter_->setSizes({total - header, header});
+    } else {
+        const int playlist = std::clamp(expandedPlaylistHeight_, 0, total);
+        rightSplitter_->setSizes({total - playlist, playlist});
+    }
 }
 
 void ExplorePanel::setMetadataServices(const MetadataServiceBundle &bundle)

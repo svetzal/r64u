@@ -369,38 +369,19 @@ void MainWindow::setFullScreen(bool on)
     }
 }
 
+QString MainWindow::titleFor(const QString &connectedHostname)
+{
+    if (connectedHostname.isEmpty()) {
+        return QStringLiteral("r64u");
+    }
+    return QStringLiteral("r64u \u2014 ") + connectedHostname;
+}
+
 void MainWindow::updateWindowTitle()
 {
-    QString title = "r64u";
-
-    if (deviceConnection_->isConnected()) {
-        DeviceInfo info = deviceConnection_->deviceInfo();
-        if (!info.hostname.isEmpty()) {
-            title += QString(" - %1").arg(info.hostname);
-        }
-        if (!info.firmwareVersion.isEmpty()) {
-            title += QString(" (%1)").arg(info.firmwareVersion);
-        }
-    }
-
-    QString modeName;
-    switch (currentMode_) {
-    case Mode::ExploreRun:
-        modeName = tr("Explore/Run");
-        break;
-    case Mode::Transfer:
-        modeName = tr("Transfer");
-        break;
-    case Mode::View:
-        modeName = tr("View");
-        break;
-    case Mode::Config:
-        modeName = tr("Config");
-        break;
-    }
-    title += QString(" - %1").arg(modeName);
-
-    setWindowTitle(title);
+    const QString hostname =
+        deviceConnection_->isConnected() ? deviceConnection_->deviceInfo().hostname : QString();
+    setWindowTitle(titleFor(hostname));
 }
 
 void MainWindow::loadSettings()

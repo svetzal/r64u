@@ -21,6 +21,7 @@
 #include "services/errorhandler.h"
 #include "ui/remotefilebrowserwidget.h"
 
+#include <QMenu>
 #include <QSignalSpy>
 #include <QTreeView>
 #include <QtTest>
@@ -243,6 +244,67 @@ private slots:
         QCOMPARE(spy.count(), 1);
         QCOMPARE(spy.first().at(0).toString(), QString("/SD/big.reu"));
         QCOMPARE(spy.first().at(2).toLongLong(), qint64(16777216));
+    }
+
+    void testDoubleClick_onAFile_requestsItsDownload()
+    {
+        FtpEntry prg;
+        prg.name = "game.prg";
+        prg.size = 2048;
+        mockFtp_->mockSetConnected(true);
+        mockFtp_->mockSetDirectoryListing("/SD", {prg});
+        model_->setFtpClient(mockFtp_);
+        model_->setRootPath("/SD");
+        model_->fetchMore(QModelIndex());
+        mockFtp_->mockProcessAllOperations();
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
+        const QModelIndex fileIndex = model_->index(0, 0);
+        widget.findChild<QTreeView *>()->setCurrentIndex(fileIndex);
+        QSignalSpy spy(&widget, &RemoteFileBrowserWidget::downloadRequested);
+
+        QMetaObject::invokeMethod(&widget, "onDoubleClicked", Q_ARG(QModelIndex, fileIndex));
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.first().at(0).toString(), QString("/SD/game.prg"));
+        QCOMPARE(spy.first().at(2).toLongLong(), qint64(2048));
+    }
+
+    void testSetCurrentDirectory_DoesNotNarrateTheDestination()
+    {
+        ErrorHandler *handler = makeErrorHandler();
+        RemoteFileBrowserWidget widget(model_, handler);
+        QSignalSpy spy(handler, &ErrorHandler::statusMessage);
+
+        widget.setCurrentDirectory("/SD/games");
+
+        QCOMPARE(spy.count(), 0);  // the path badge already shows it
+    }
+
+    void testContextMenu_itemMenu_matchesTheLocalOrderAndOffersRename()
+    {
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
+        auto *menu = widget.findChild<QMenu *>(QStringLiteral("ItemMenu"));
+        QVERIFY(menu != nullptr);
+
+        QStringList texts;
+        for (QAction *action : menu->actions()) {
+            texts << (action->isSeparator() ? QStringLiteral("|") : action->text());
+        }
+        QCOMPARE(texts, (QStringList{"Set as Destination", "|", "Download to Local Directory", "|",
+                                     "New Folder", "Rename", "Delete", "|", "Refresh"}));
+    }
+
+    void testContextMenu_emptySpaceMenu_offersNewFolderAndRefresh()
+    {
+        RemoteFileBrowserWidget widget(model_, makeErrorHandler());
+        auto *menu = widget.findChild<QMenu *>(QStringLiteral("EmptySpaceMenu"));
+        QVERIFY(menu != nullptr);
+
+        QStringList texts;
+        for (QAction *action : menu->actions()) {
+            texts << (action->isSeparator() ? QStringLiteral("|") : action->text());
+        }
+        QCOMPARE(texts, (QStringList{"New Folder", "|", "Refresh"}));
     }
 
     // =========================================================================

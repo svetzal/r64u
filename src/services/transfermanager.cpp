@@ -325,10 +325,23 @@ void TransferManager::processNext()
 // Confirmation handling
 // ============================================================================
 
+void TransferManager::onOverwriteConfirmationNeeded(const QString &fileName, OperationType type)
+{
+    const int itemIdx = state_.pendingConfirmation.itemIndex;
+    if (itemIdx >= 0 && itemIdx < state_.items.size() &&
+        transfer::skipsExistingWithoutAsking(state_, state_.items[itemIdx])) {
+        respondToOverwrite(OverwriteResponse::Skip);  // "Skip All" already answered for this batch
+        return;
+    }
+    emit overwriteConfirmationNeeded(fileName, type);
+}
+
 void TransferManager::respondToOverwrite(OverwriteResponse response)
 {
+    const bool skipsTheItem =
+        response == OverwriteResponse::Skip || response == OverwriteResponse::SkipAll;
     int affectedBatchId = -1;
-    if (response == OverwriteResponse::Skip) {
+    if (skipsTheItem) {
         int itemIdx = state_.pendingConfirmation.itemIndex;
         if (itemIdx >= 0 && itemIdx < state_.items.size()) {
             affectedBatchId = state_.items[itemIdx].batchId;
@@ -349,7 +362,7 @@ void TransferManager::respondToOverwrite(OverwriteResponse response)
         }
     }
 
-    if (response == OverwriteResponse::Skip && affectedBatchId >= 0) {
+    if (skipsTheItem && affectedBatchId >= 0) {
         if (batchManager_->handleSkipBatchCompletion(affectedBatchId)) {
             return;
         }

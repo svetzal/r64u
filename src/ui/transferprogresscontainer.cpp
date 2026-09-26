@@ -136,10 +136,12 @@ void TransferProgressContainer::processQueueChanged()
         }
     }
 
-    // Remove widgets for batches that no longer exist
+    // Remove widgets for batches that no longer exist; a finished row stays up to be
+    // read and is removed by its own timer (see onBatchCompleted)
     QList<int> widgetIds = widgets_.keys();
     for (int batchId : widgetIds) {
-        if (!allBatchIds.contains(batchId)) {
+        if (!allBatchIds.contains(batchId) &&
+            widgets_[batchId]->state() != BatchProgressWidget::State::Completed) {
             onRemoveBatchWidget(batchId);
         }
     }
@@ -183,8 +185,8 @@ void TransferProgressContainer::onBatchCompleted(int batchId)
         BatchProgressWidget *widget = widgets_[batchId];
         widget->setState(BatchProgressWidget::State::Completed);
 
-        // Remove widget after brief delay for visual feedback
-        QTimer::singleShot(500, this, [this, batchId]() {
+        // Leave the "Done" row up long enough to be read, then remove it
+        QTimer::singleShot(kQueueCompletedLingerMs, this, [this, batchId]() {
             qCDebug(LogUi) << "TransferProgressContainer: Timer fired, removing widget for batch"
                            << batchId;
             onRemoveBatchWidget(batchId);

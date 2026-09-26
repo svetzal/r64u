@@ -1,10 +1,12 @@
 #include "remotefilemodel.h"
 
+#include "core/filesizecore.h"
 #include "core/filetypecore.h"
 #include "core/remotefiletreecore.h"
 #include "ui/pixelicons.h"
 #include "utils/logging.h"
 
+#include <algorithm>
 #include <functional>
 #include <utility>
 
@@ -127,7 +129,7 @@ QVariant RemoteFileModel::data(const QModelIndex &index, int role) const
         case 0:
             return node->name;
         case 1:
-            return node->isDirectory ? QVariant() : QString::number(node->size);
+            return node->isDirectory ? QVariant() : filesize::humanSize(node->size);
         case 2:
             return fileTypeString(node->fileType);
         default:
@@ -403,6 +405,47 @@ void RemoteFileModel::refreshIfStale()
     }
 }
 
+int RemoteFileModel::entryCount(const QString &directoryPath) const
+{
+    const TreeNode *node = findNodeByPath(directoryPath);
+    return node ? static_cast<int>(node->children.count()) : 0;
+}
+
+void RemoteFileModel::sort(int column, Qt::SortOrder order)
+{
+    sortSpec_ = {filesort::keyForColumn(column), order};
+
+    emit layoutAboutToBeChanged();
+    const QModelIndexList before = persistentIndexList();
+    sortChildren(rootNode_);
+
+    // Every node keeps its identity; only its row among its siblings moves
+    QModelIndexList after;
+    after.reserve(before.size());
+    for (const QModelIndex &index : before) {
+        auto *node = static_cast<TreeNode *>(index.internalPointer());
+        const int row = node->parent ? node->parent->children.indexOf(node) : index.row();
+        after.append(createIndex(row, index.column(), node));
+    }
+    changePersistentIndexList(before, after);
+    emit layoutChanged();
+}
+
+filesort::Entry RemoteFileModel::sortableNode(const TreeNode &node)
+{
+    return {node.name, node.isDirectory, node.size, fileTypeString(node.fileType)};
+}
+
+void RemoteFileModel::sortChildren(TreeNode *node)
+{
+    std::sort(node->children.begin(), node->children.end(), [this](TreeNode *a, TreeNode *b) {
+        return filesort::lessThan(sortableNode(*a), sortableNode(*b), sortSpec_);
+    });
+    for (TreeNode *child : node->children) {
+        sortChildren(child);
+    }
+}
+
 filetype::FileType RemoteFileModel::detectFileType(const QString &filename)
 {
     return filetype::detectFromFilename(filename);
@@ -553,8 +596,8 @@ void RemoteFileModel::populateNode(TreeNode *node, const QList<FtpEntry> &entrie
     }
 
     if (!entries.isEmpty()) {
-        // Sort entries: directories first, then alphabetically by name (case-insensitive)
-        QList<FtpEntry> sortedEntries = remotefiletree::sortEntries(entries);
+        // Directories first, then in the order the view last asked for
+        QList<FtpEntry> sortedEntries = remotefiletree::sortEntries(entries, sortSpec_);
 
         qCDebug(LogFileOps) << "Model: beginInsertRows parentIndex:" << parentIndex << "rows 0 to"
                             << sortedEntries.count() - 1;

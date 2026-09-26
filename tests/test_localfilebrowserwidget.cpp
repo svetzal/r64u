@@ -17,7 +17,11 @@
 #include "services/errorhandler.h"
 #include "ui/localfilebrowserwidget.h"
 
+#include <QMenu>
+#include <QSignalSpy>
 #include <QStandardPaths>
+#include <QTemporaryDir>
+#include <QTreeView>
 #include <QtTest>
 
 /**
@@ -115,6 +119,68 @@ private slots:
     // =========================================================================
     // setUploadEnabled() — does not crash
     // =========================================================================
+
+    void testSetCurrentDirectory_DoesNotNarrateTheDestination()
+    {
+        ErrorHandler *handler = makeErrorHandler();
+        LocalFileBrowserWidget widget(handler);
+        QSignalSpy spy(handler, &ErrorHandler::statusMessage);
+
+        widget.setCurrentDirectory(QStandardPaths::writableLocation(QStandardPaths::TempLocation));
+
+        QCOMPARE(spy.count(), 0);  // the path badge already shows it
+    }
+
+    void testContextMenu_itemMenuOrder_setDestinationUploadThenFileActions()
+    {
+        LocalFileBrowserWidget widget(makeErrorHandler());
+        auto *menu = widget.findChild<QMenu *>(QStringLiteral("ItemMenu"));
+        QVERIFY(menu != nullptr);
+
+        QStringList texts;
+        for (QAction *action : menu->actions()) {
+            texts << (action->isSeparator() ? QStringLiteral("|") : action->text());
+        }
+        QCOMPARE(texts, (QStringList{"Set as Destination", "|", "Upload to C64U", "|", "New Folder",
+                                     "Rename", "Delete"}));
+    }
+
+    void testContextMenu_emptySpaceMenu_offersNewFolderOnly()
+    {
+        LocalFileBrowserWidget widget(makeErrorHandler());
+        auto *menu = widget.findChild<QMenu *>(QStringLiteral("EmptySpaceMenu"));
+        QVERIFY(menu != nullptr);
+
+        QStringList texts;
+        for (QAction *action : menu->actions()) {
+            texts << action->text();
+        }
+        QCOMPARE(texts, QStringList{"New Folder"});
+    }
+
+    void testDoubleClick_onAFile_requestsItsUpload()
+    {
+        QTemporaryDir dir;
+        QFile file(dir.filePath("tune.sid"));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("x");
+        file.close();
+        LocalFileBrowserWidget widget(makeErrorHandler());
+        widget.setCurrentDirectory(dir.path());
+        auto *tree = widget.findChild<QTreeView *>();
+        QVERIFY(tree != nullptr);
+        QModelIndex fileIndex;
+        QTRY_VERIFY_WITH_TIMEOUT((tree->model()->rowCount(tree->rootIndex()) > 0), 5000);
+        fileIndex = tree->model()->index(0, 0, tree->rootIndex());
+        tree->setCurrentIndex(fileIndex);
+        QSignalSpy spy(&widget, &LocalFileBrowserWidget::uploadRequested);
+
+        QMetaObject::invokeMethod(&widget, "onDoubleClicked", Q_ARG(QModelIndex, fileIndex));
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.first().at(0).toString(), dir.filePath("tune.sid"));
+        QCOMPARE(spy.first().at(1).toBool(), false);
+    }
 
     void testSetUploadEnabled_True_DoesNotCrash()
     {

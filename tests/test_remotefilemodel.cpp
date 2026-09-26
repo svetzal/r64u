@@ -1,3 +1,4 @@
+#include "core/filesizecore.h"
 #include "mocks/mockftpclient.h"
 #include "models/remotefilemodel.h"
 #include "ui/pixelicons.h"
@@ -247,9 +248,9 @@ private slots:
         QModelIndex idx = model->index(0, 0);
         QCOMPARE(model->data(idx, Qt::DisplayRole).toString(), QString("music.sid"));
 
-        // Column 1 is size (non-dir only)
+        // Column 1 is size (non-dir only), in the one human-readable format
         QModelIndex sizeIdx = model->index(0, 1);
-        QCOMPARE(model->data(sizeIdx, Qt::DisplayRole).toString(), QString("2048"));
+        QCOMPARE(model->data(sizeIdx, Qt::DisplayRole).toString(), filesize::humanSize(2048));
 
         // Column 2 is type
         QModelIndex typeIdx = model->index(0, 2);
@@ -859,6 +860,96 @@ private slots:
 
         QVERIFY(flags.testFlag(Qt::ItemIsEnabled));
         QVERIFY(flags.testFlag(Qt::ItemIsSelectable));
+    }
+
+    // === Entry count by path ===
+
+    void testEntryCount_countsAListedDirectory_andZeroForAnUnknownOne()
+    {
+        mockFtp->mockSetDirectoryListing("/", {fileEntry("a.prg", 1), dirEntry("games")});
+        mockFtp->mockSetDirectoryListing(
+            "/games", {fileEntry("x.prg", 1), fileEntry("y.prg", 1), fileEntry("z.prg", 1)});
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+        QCOMPARE(model->entryCount("/"), 2);
+        QCOMPARE(model->entryCount("/games"), 0);  // not listed yet
+
+        model->fetchMore(model->index(0, 0));
+        mockFtp->mockProcessAllOperations();
+
+        QCOMPARE(model->entryCount("/games"), 3);
+        QCOMPARE(model->entryCount("/nowhere"), 0);
+    }
+
+    // === Sorting ===
+
+    static FtpEntry fileEntry(const QString &name, qint64 size)
+    {
+        FtpEntry entry;
+        entry.name = name;
+        entry.isDirectory = false;
+        entry.size = size;
+        return entry;
+    }
+
+    static FtpEntry dirEntry(const QString &name)
+    {
+        FtpEntry entry;
+        entry.name = name;
+        entry.isDirectory = true;
+        return entry;
+    }
+
+    QStringList listedNames()
+    {
+        QStringList names;
+        for (int row = 0; row < model->rowCount(); ++row) {
+            names.append(model->data(model->index(row, 0), Qt::DisplayRole).toString());
+        }
+        return names;
+    }
+
+    void testSortBySize_ordersRawBytes_notTheDisplayedText()
+    {
+        // Shown as "170.8 KB", "26.9 KB", "916 bytes": text order would put the largest first
+        mockFtp->mockSetDirectoryListing(
+            "/", {fileEntry("a.prg", 174848), fileEntry("b.prg", 27536), fileEntry("c.prg", 916)});
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+
+        model->sort(1, Qt::AscendingOrder);
+
+        QCOMPARE(listedNames(), (QStringList{"c.prg", "b.prg", "a.prg"}));
+
+        model->sort(1, Qt::DescendingOrder);
+
+        QCOMPARE(listedNames(), (QStringList{"a.prg", "b.prg", "c.prg"}));
+    }
+
+    void testSort_keepsDirectoriesFirst_andAppliesToLaterListings()
+    {
+        mockFtp->mockSetDirectoryListing(
+            "/", {fileEntry("small.prg", 10), dirEntry("zzz"), fileEntry("big.prg", 5000)});
+        model->sort(1, Qt::DescendingOrder);
+
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+
+        QCOMPARE(listedNames(), (QStringList{"zzz", "big.prg", "small.prg"}));
+    }
+
+    void testSort_movesPersistentIndexesWithTheirRows()
+    {
+        mockFtp->mockSetDirectoryListing("/", {fileEntry("a.prg", 3), fileEntry("b.prg", 1)});
+        model->fetchMore(QModelIndex());
+        mockFtp->mockProcessAllOperations();
+        QPersistentModelIndex aIndex = model->index(0, 0);
+        QCOMPARE(aIndex.data().toString(), QString("a.prg"));
+
+        model->sort(1, Qt::AscendingOrder);
+
+        QCOMPARE(aIndex.row(), 1);
+        QCOMPARE(aIndex.data().toString(), QString("a.prg"));
     }
 
     // === Directory Size Display Test ===

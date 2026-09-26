@@ -76,7 +76,14 @@ void FileBrowserWidget::setupUi()
 void FileBrowserWidget::setupContextMenu()
 {
     contextMenu_ = new QMenu(this);
+    contextMenu_->setObjectName(QStringLiteral("ItemMenu"));
     setDestAction_ = contextMenu_->addAction(tr("Set as Destination"));
+
+    emptySpaceMenu_ = new QMenu(this);
+    emptySpaceMenu_->setObjectName(QStringLiteral("EmptySpaceMenu"));
+    if (newFolderAction_) {
+        emptySpaceMenu_->addAction(newFolderAction_);
+    }
 }
 
 void FileBrowserWidget::setupConnections()
@@ -201,22 +208,23 @@ void FileBrowserWidget::onDoubleClicked(const QModelIndex &index)
     }
 
     if (isDirectory(index)) {
-        QString path = filePath(index);
-        navigateToDirectory(path);
+        navigateToDirectory(filePath(index));
+    } else {
+        requestTransferOfSelection();
     }
 }
 
 void FileBrowserWidget::onContextMenu(const QPoint &pos)
 {
-    QModelIndex index = treeView_->indexAt(pos);
-    if (!index.isValid()) {
-        qCDebug(LogUi) << "onContextMenu: no item at position, skipping context menu";
+    const QModelIndex index = treeView_->indexAt(pos);
+    QMenu *menu = index.isValid() ? contextMenu_ : emptySpaceMenu_;
+    if (!menu) {
         return;
     }
-
-    if (contextMenu_) {
-        contextMenu_->exec(treeView_->viewport()->mapToGlobal(pos));
+    if (index.isValid() && setDestAction_) {
+        setDestAction_->setEnabled(isDirectory(index));
     }
+    menu->exec(treeView_->viewport()->mapToGlobal(pos));
 }
 
 void FileBrowserWidget::onParentFolder()

@@ -100,18 +100,20 @@ void RemoteFileBrowserWidget::setupContextMenu()
         }
     });
 
-    // Add remote-specific menu items
+    // Same order as the local browser's menu, using the toolbar's own actions
     using pixeliconcore::Icon;
     contextMenu_->addSeparator();
     contextMenu_->addAction(pixelicons::icon(Icon::Download), tr("Download to Local Directory"),
                             this, &RemoteFileBrowserWidget::onDownload);
-    contextMenu_->addAction(pixelicons::icon(Icon::Delete), tr("Delete"), this,
-                            &RemoteFileBrowserWidget::onDelete);
     contextMenu_->addSeparator();
-    contextMenu_->addAction(pixelicons::icon(Icon::NewFolder), tr("New Folder"), this,
-                            &RemoteFileBrowserWidget::onNewFolder);
-    contextMenu_->addAction(pixelicons::icon(Icon::Refresh), tr("Refresh"), this,
-                            &RemoteFileBrowserWidget::onRefresh);
+    contextMenu_->addAction(newFolderAction_);
+    contextMenu_->addAction(renameAction_);
+    contextMenu_->addAction(deleteAction_);
+    contextMenu_->addSeparator();
+    contextMenu_->addAction(refreshAction_);
+
+    emptySpaceMenu_->addSeparator();
+    emptySpaceMenu_->addAction(refreshAction_);
 }
 
 void RemoteFileBrowserWidget::setupConnections()
@@ -164,7 +166,6 @@ void RemoteFileBrowserWidget::setCurrentDirectory(const QString &path)
         navWidget_->setPath(path);
     }
     emit currentDirectoryChanged(path);
-    errorHandler_->info(ErrorCategory::FileOperation, tr("Upload destination: %1").arg(path));
 
     // Enable/disable up button based on whether we can go up
     bool canGoUp = (path != "/" && !path.isEmpty());
@@ -282,25 +283,6 @@ void RemoteFileBrowserWidget::onParentFolder()
     }
 
     setCurrentDirectory(parentPath);
-}
-
-void RemoteFileBrowserWidget::onContextMenu(const QPoint &pos)
-{
-    if (!treeView_ || !remoteFileModel_) {
-        qCDebug(LogUi) << "onContextMenu: treeView or remoteFileModel is null";
-        return;
-    }
-
-    QModelIndex index = treeView_->indexAt(pos);
-    if (index.isValid()) {
-        bool isDir = remoteFileModel_->isDirectory(index);
-        if (setDestAction_) {
-            setDestAction_->setEnabled(isDir);
-        }
-        if (contextMenu_) {
-            contextMenu_->exec(treeView_->viewport()->mapToGlobal(pos));
-        }
-    }
 }
 
 bool RemoteFileBrowserWidget::requireConnected(const QString &cannotMessage)

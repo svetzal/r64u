@@ -173,10 +173,11 @@ protected:
     virtual void setupUi();
 
     /**
-     * @brief Sets up the context menu.
+     * @brief Sets up the context menus.
      *
-     * Creates the context menu with "Set as Destination" action.
-     * Subclasses should override this to add custom menu items.
+     * Creates the item menu ("ItemMenu") with "Set as Destination", and the menu for a
+     * right-click on empty space ("EmptySpaceMenu") with "New Folder". Subclasses
+     * override this to add their own items to either.
      */
     virtual void setupContextMenu();
 
@@ -276,6 +277,13 @@ protected:
     virtual void navigateToDirectory(const QString &path) = 0;
 
     /**
+     * @brief Starts the pane's transfer (download or upload) for the selected entries.
+     *
+     * Double-clicking a file takes the same path as the pane's transfer toolbar button.
+     */
+    virtual void requestTransferOfSelection() = 0;
+
+    /**
      * @brief Called by onNewFolder() after dialog interaction to perform the actual creation.
      * @param folderName The validated folder name entered by the user.
      */
@@ -337,7 +345,8 @@ protected:
     QTreeView *treeView_ = nullptr;
     QToolBar *toolBar_ = nullptr;
     PathNavigationWidget *navWidget_ = nullptr;
-    QMenu *contextMenu_ = nullptr;
+    QMenu *contextMenu_ = nullptr;     ///< Right-click on an entry
+    QMenu *emptySpaceMenu_ = nullptr;  ///< Right-click on nothing
 
     // Common actions
     QAction *newFolderAction_ = nullptr;

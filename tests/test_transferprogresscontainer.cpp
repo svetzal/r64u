@@ -93,6 +93,34 @@ private slots:
         QCOMPARE(bar->value(), 25);
     }
 
+    void testCompletedBatch_LingersLongEnoughToBeRead()
+    {
+        makeService();
+        queue_->setFtpClient(mockFtp_);
+        mockFtp_->mockSetConnected(true);
+        TransferProgressContainer container;
+        container.setTransferService(service_);
+        QTemporaryDir dir;
+        const QString localPath = dir.filePath("small.prg");
+        QFile file(localPath);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        QVERIFY(file.resize(400));
+        file.close();
+        queue_->setAutoOverwrite(true);
+        QSignalSpy completedSpy(service_, &TransferService::batchCompleted);
+
+        queue_->enqueueUpload(localPath, "/SD/small.prg");
+        QTRY_COMPARE(mockFtp_->mockGetUploadRequests(), QStringList{localPath});
+        mockFtp_->mockProcessAllOperations();
+        QTRY_COMPARE(completedSpy.count(), 1);
+
+        // Half a second was too quick to read; the row stays for a few seconds
+        QTest::qWait(1500);
+        auto *row = container.findChild<BatchProgressWidget *>();
+        QVERIFY2(row != nullptr, "completed row was removed within 1.5 s");
+        QVERIFY(container.isVisibleTo(nullptr) || !container.isHidden());
+    }
+
     void testOnOperationCompleted_EmitsStatusMessage()
     {
         TransferProgressContainer container;

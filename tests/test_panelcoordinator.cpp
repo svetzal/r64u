@@ -72,6 +72,7 @@ private slots:
     void testOnModeChanged_EmitsWindowTitleUpdateNeeded();
     void testOnModeChanged_EmitsActionsUpdateNeeded();
     void testOnOperationSucceeded_NonMount_ShowsSuccessMessage();
+    void testListingArrives_StatusReplacesLoadingWithTheItemCount();
     void testOnOperationSucceeded_Mount_DoesNotCrash();
 
 private:
@@ -113,6 +114,26 @@ void TestPanelCoordinator::cleanup()
     coord_ = nullptr;
     delete tabWidget_;
     tabWidget_ = nullptr;
+}
+
+void TestPanelCoordinator::testListingArrives_StatusReplacesLoadingWithTheItemCount()
+{
+    FtpEntry a;
+    a.name = "a.prg";
+    FtpEntry b;
+    b.name = "b.prg";
+    mockFtp_->mockSetConnected(true);
+    mockFtp_->mockSetDirectoryListing("/SD", {a, b});
+    remoteFileModel_->setFtpClient(mockFtp_);
+    remoteFileModel_->setRootPath("/SD");
+    QSignalSpy spy(statusService_, &StatusMessageService::displayMessage);
+
+    remoteFileModel_->fetchMore(QModelIndex());
+    mockFtp_->mockProcessAllOperations();
+    QCoreApplication::processEvents();
+
+    // The count follows "Loading ..." as soon as the service lets a message through
+    QTRY_COMPARE(spy.last().at(0).toString(), QString("/SD: 2 items"));
 }
 
 void TestPanelCoordinator::testStatusMessageFromExplorePanel_ForwardedToService()

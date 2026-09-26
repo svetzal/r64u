@@ -26,6 +26,9 @@
 #include <QSignalSpy>
 #include <QSpinBox>
 #include <QTimer>
+#include <QToolBar>
+#include <QToolButton>
+#include <QTreeWidget>
 #include <QtTest>
 
 class TestPlaylistWidget : public QObject
@@ -260,6 +263,80 @@ private slots:
         bool stillActive =
             std::any_of(timers.begin(), timers.end(), [](QTimer *t) { return t->isActive(); });
         QVERIFY(!stillActive);
+    }
+
+    // -----------------------------------------------------------------------
+    // Collapsing — the header row stays, everything under it folds away
+    // -----------------------------------------------------------------------
+
+    void testCollapse_hidesControlsAndListAndShrinksToTheHeader()
+    {
+        widget->show();
+        QVERIFY(QTest::qWaitForWindowExposed(widget));
+        auto *header = widget->findChild<QToolButton *>(QStringLiteral("PlaylistHeader"));
+        auto *tree = widget->findChild<QTreeWidget *>();
+        auto *bar = widget->findChild<QToolBar *>();
+        QVERIFY(header && tree && bar);
+        QVERIFY(!widget->isCollapsed());
+        QCOMPARE(header->arrowType(), Qt::DownArrow);
+        QSignalSpy spy(widget, &PlaylistWidget::collapsedChanged);
+
+        widget->setCollapsed(true);
+
+        QVERIFY(widget->isCollapsed());
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toBool(), true);
+        QCOMPARE(header->arrowType(), Qt::RightArrow);
+        QVERIFY(tree->isHidden());
+        QVERIFY(bar->isHidden());
+        QVERIFY(!header->isHidden());
+        QCOMPARE(widget->maximumHeight(), header->sizeHint().height());
+        QVERIFY(widget->sizeHint().height() <= header->sizeHint().height());
+    }
+
+    void testCollapse_headerClickToggles_andExpandRestoresTheList()
+    {
+        auto *header = widget->findChild<QToolButton *>(QStringLiteral("PlaylistHeader"));
+        auto *tree = widget->findChild<QTreeWidget *>();
+        QVERIFY(header && tree);
+        widget->show();
+
+        header->click();
+        QVERIFY(widget->isCollapsed());
+
+        header->click();
+        QVERIFY(!widget->isCollapsed());
+        QVERIFY(!tree->isHidden());
+        QCOMPARE(widget->maximumHeight(), QWIDGETSIZE_MAX);
+    }
+
+    void testCollapse_sameStateTwice_emitsNothing()
+    {
+        QSignalSpy spy(widget, &PlaylistWidget::collapsedChanged);
+        widget->setCollapsed(false);
+        QCOMPARE(spy.count(), 0);
+    }
+
+    void testCollapse_headerKeepsTheTrackCount()
+    {
+        addTestItem(manager);
+        addTestItem(manager, "/SD/other.sid");
+        auto *header = widget->findChild<QToolButton *>(QStringLiteral("PlaylistHeader"));
+        QVERIFY(header != nullptr);
+
+        widget->setCollapsed(true);
+
+        QCOMPARE(header->text(), QStringLiteral("Playlist (2 tracks)"));
+    }
+
+    void testPlaybackStarted_expandsACollapsedPlaylist()
+    {
+        addTestItem(manager);
+        widget->setCollapsed(true);
+
+        manager->play(0);
+
+        QVERIFY(!widget->isCollapsed());
     }
 
     // -----------------------------------------------------------------------

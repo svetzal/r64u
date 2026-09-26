@@ -1,6 +1,7 @@
 #ifndef REMOTEFILEMODEL_H
 #define REMOTEFILEMODEL_H
 
+#include "core/filesortcore.h"
 #include "core/filetypecore.h"
 #include "ftp/remotelistingcoordinator.h"
 #include "services/iftpclient.h"
@@ -42,6 +43,13 @@ public:
     bool canFetchMore(const QModelIndex &parent) const override;
     void fetchMore(const QModelIndex &parent) override;
     Qt::ItemFlags flags(const QModelIndex &index) const override;
+    /**
+     * @brief Orders every listed directory by @p column (Name, Size or Type).
+     *
+     * Directories stay ahead of files; the Size column orders by the raw byte
+     * count, not the text shown. Listings fetched later follow the same order.
+     */
+    void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
 
     // Custom methods
     void setRootPath(const QString &path);
@@ -51,6 +59,8 @@ public:
     bool isDirectory(const QModelIndex &index) const;
     filetype::FileType fileType(const QModelIndex &index) const;
     qint64 fileSize(const QModelIndex &index) const;
+    /// Number of entries listed under @p directoryPath; 0 when it has not been listed.
+    [[nodiscard]] int entryCount(const QString &directoryPath) const;
 
     void refresh();
     void refresh(const QModelIndex &index);
@@ -136,6 +146,10 @@ private:
     };
 
     TreeNode *nodeFromIndex(const QModelIndex &index) const;
+    /// The attributes of @p node the shared filesort rule orders by.
+    static filesort::Entry sortableNode(const TreeNode &node);
+    /// Reorders @p node's children and, recursively, their children by sortSpec_.
+    void sortChildren(TreeNode *node);
     QModelIndex indexFromNode(TreeNode *node) const;
     TreeNode *findNodeByPath(const QString &path) const;
     void populateNode(TreeNode *node, const QList<FtpEntry> &entries);
@@ -150,6 +164,9 @@ private:
 
     // Cache TTL in seconds (0 = infinite, no automatic expiry)
     int cacheTtlSeconds_ = 30;
+
+    /// The order the views last asked for; applied to every listing as it arrives
+    filesort::Spec sortSpec_;
 };
 
 #endif  // REMOTEFILEMODEL_H

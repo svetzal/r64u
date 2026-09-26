@@ -51,6 +51,9 @@ public:
      */
     [[nodiscard]] int batchId() const { return batchId_; }
 
+    /// The visual state the row is in.
+    [[nodiscard]] State state() const { return state_; }
+
     /**
      * @brief Sets the operation description.
      * @param description Text like "Downloading folder1" or "Upload 5 files"
@@ -78,6 +81,8 @@ signals:
 private:
     void setupUi();
     void updateStateAppearance();
+    /// "Done: N items, <size>", or without the size while the bytes are unknown.
+    [[nodiscard]] QString completedText() const;
     void showOperationIcon(OperationType type);
     static pixeliconcore::Icon operationIcon(OperationType type);
 
@@ -86,6 +91,8 @@ private:
     OperationType operationType_ = OperationType::Download;
     bool isActive_ = false;
     int shownPermille_ = 0;  ///< Highest share of the transfers shown done so far
+    int totalItems_ = 0;     ///< Items in the batch, for the "Done" row
+    qint64 bytesTotal_ = 0;  ///< Bytes in the batch (0 while unknown), for the "Done" row
 
     QLabel *iconLabel_ = nullptr;
     QLabel *statusLabel_ = nullptr;

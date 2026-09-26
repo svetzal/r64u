@@ -46,10 +46,18 @@ private slots:
                  transfer::OverwriteResponse::Skip);
     }
 
-    void testAskOverwrite_index3_returnsCancel()
+    void testAskOverwrite_index3_returnsSkipAll()
     {
         MockMessagePresenter mock;
         mock.nextConfirmResult = 3;
+        QCOMPARE(TransferConfirmationDialogs::askOverwrite(mock, nullptr, "file.prg"),
+                 transfer::OverwriteResponse::SkipAll);
+    }
+
+    void testAskOverwrite_index4_returnsCancel()
+    {
+        MockMessagePresenter mock;
+        mock.nextConfirmResult = 4;
         QCOMPARE(TransferConfirmationDialogs::askOverwrite(mock, nullptr, "file.prg"),
                  transfer::OverwriteResponse::Cancel);
     }
@@ -72,7 +80,7 @@ private slots:
         QVERIFY(mock.confirmCalls[0].message.contains("mygame.prg"));
     }
 
-    void testAskOverwrite_hasThreeNamedButtons()
+    void testAskOverwrite_offersSkipAllBesideOverwriteAll()
     {
         MockMessagePresenter mock;
         mock.nextConfirmResult = 0;
@@ -80,11 +88,12 @@ private slots:
 
         QCOMPARE(mock.confirmCalls.size(), 1);
         const auto &buttons = mock.confirmCalls[0].buttons;
-        QCOMPARE(buttons.size(), 4);
+        QCOMPARE(buttons.size(), 5);
         QCOMPARE(buttons[0].text, QString("Overwrite"));
         QCOMPARE(buttons[1].text, QString("Overwrite All"));
         QCOMPARE(buttons[2].text, QString("Skip"));
-        QCOMPARE(buttons[3].text, QString("Cancel"));
+        QCOMPARE(buttons[3].text, QString("Skip All"));
+        QCOMPARE(buttons[4].text, QString("Cancel"));
     }
 
     void testAskOverwrite_defaultIndexIsSkip()

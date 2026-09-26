@@ -1,5 +1,6 @@
 #include "localfileproxymodel.h"
 
+#include "core/filesizecore.h"
 #include "core/filetypecore.h"
 #include "ui/pixelicons.h"
 
@@ -23,14 +24,13 @@ QVariant LocalFileProxyModel::data(const QModelIndex &index, int role) const
         return pixelicons::fileTypeIcon(detectFileType(fsModel->fileName(nameIdx)));
     }
 
-    // Column 1: Size - show bytes instead of human-readable format
+    // Column 1: Size - the same format as the remote list and the details screen
     if (index.column() == 1 && role == Qt::DisplayRole) {
         // Don't show size for directories
         if (fsModel->isDir(nameIdx)) {
             return QVariant();
         }
-        qint64 size = fsModel->size(nameIdx);
-        return QString::number(size);
+        return filesize::humanSize(fsModel->size(nameIdx));
     }
 
     // Column 2: Type - show C64-specific file types
@@ -62,30 +62,33 @@ bool LocalFileProxyModel::lessThan(const QModelIndex &left, const QModelIndex &r
         return QSortFilterProxyModel::lessThan(left, right);
     }
 
-    // Get column 0 indices for directory check
-    QModelIndex leftName = left.sibling(left.row(), 0);
-    QModelIndex rightName = right.sibling(right.row(), 0);
+    const filesort::Entry leftEntry = sortableEntry(*fsModel, left.sibling(left.row(), 0));
+    const filesort::Entry rightEntry = sortableEntry(*fsModel, right.sibling(right.row(), 0));
 
-    bool leftIsDir = fsModel->isDir(leftName);
-    bool rightIsDir = fsModel->isDir(rightName);
-
-    // Directories come before files
-    if (leftIsDir && !rightIsDir) {
-        return sortOrder() == Qt::AscendingOrder;
-    }
-    if (!leftIsDir && rightIsDir) {
-        return sortOrder() != Qt::AscendingOrder;
+    // The proxy reverses this comparison for a descending sort, which would put
+    // files first; answer so that directories stay ahead either way.
+    if (leftEntry.isDirectory != rightEntry.isDirectory) {
+        return leftEntry.isDirectory == (sortOrder() == Qt::AscendingOrder);
     }
 
-    // Both are directories or both are files - use case-insensitive sorting
-    QString leftFileName = fsModel->fileName(leftName);
-    QString rightFileName = fsModel->fileName(rightName);
-    return leftFileName.compare(rightFileName, Qt::CaseInsensitive) < 0;
+    // Both are directories or both are files: the shared rule, on the clicked column
+    return filesort::lessThan(leftEntry, rightEntry,
+                              {filesort::keyForColumn(sortColumn()), Qt::AscendingOrder});
 }
 
 QFileSystemModel *LocalFileProxyModel::sourceFileModel() const
 {
     return qobject_cast<QFileSystemModel *>(sourceModel());
+}
+
+filesort::Entry LocalFileProxyModel::sortableEntry(const QFileSystemModel &fsModel,
+                                                   const QModelIndex &nameIndex)
+{
+    const QString name = fsModel.fileName(nameIndex);
+    if (fsModel.isDir(nameIndex)) {
+        return {name, true, 0, tr("Folder")};
+    }
+    return {name, false, fsModel.size(nameIndex), fileTypeString(detectFileType(name))};
 }
 
 filetype::FileType LocalFileProxyModel::detectFileType(const QString &filename)

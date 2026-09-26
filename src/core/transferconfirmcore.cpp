@@ -42,6 +42,7 @@ OverwriteResult respondToOverwrite(const State &state, OverwriteResponse respons
         break;
 
     case OverwriteResponse::Skip:
+    case OverwriteResponse::SkipAll:
         if (itemIdx >= 0 && itemIdx < result.newState.items.size()) {
             result.newState.items[itemIdx].status = TransferItem::Status::Skipped;
             result.newState.items[itemIdx].errorMessage = QStringLiteral("Skipped");
@@ -50,6 +51,10 @@ OverwriteResult respondToOverwrite(const State &state, OverwriteResponse respons
             int batchIdx = findBatchIndex(result.newState, batchId);
             if (batchIdx >= 0) {
                 result.newState.batches[batchIdx].completedCount++;
+            }
+            if (response == OverwriteResponse::SkipAll) {
+                // Covers the rest of this batch only, never transfers started later
+                result.newState.skipAllBatchId = batchId;
             }
         }
         result.newState.currentIndex = -1;
@@ -62,6 +67,11 @@ OverwriteResult respondToOverwrite(const State &state, OverwriteResponse respons
     }
 
     return result;
+}
+
+bool skipsExistingWithoutAsking(const State &state, const TransferItem &item)
+{
+    return state.skipAllBatchId >= 0 && item.batchId == state.skipAllBatchId;
 }
 
 bool needsFolderCheck(const State &state, const PendingFolderOp &op)

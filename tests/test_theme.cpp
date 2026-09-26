@@ -87,6 +87,26 @@ private slots:
         QVERIFY(css.contains(tokens.accentGreen.name()));
     }
 
+    void testStyleSheet_guardsDangerActionsWithARedRing()
+    {
+        const auto tokens = themecore::tokensFor(Qt::ColorScheme::Light);
+        const QString css = theme::styleSheet(tokens);
+
+        const qsizetype ruleAt = css.indexOf("QToolButton#DangerAction {");
+        const qsizetype hoverAt = css.indexOf("QToolButton#DangerAction:hover");
+        const qsizetype pressedAt = css.indexOf("QToolButton#DangerAction:pressed");
+        QVERIFY(ruleAt >= 0 && hoverAt > ruleAt && pressedAt > hoverAt);
+
+        // Resting: the accent at half strength; hover and pressed: the accent itself
+        const QString faint = QStringLiteral("rgba(%1, %2, %3, 128)")
+                                  .arg(tokens.accentRed.red())
+                                  .arg(tokens.accentRed.green())
+                                  .arg(tokens.accentRed.blue());
+        QVERIFY(css.mid(ruleAt, hoverAt - ruleAt).contains(faint));
+        QVERIFY(css.mid(hoverAt, pressedAt - hoverAt).contains(tokens.accentRed.name()));
+        QVERIFY(css.mid(pressedAt).contains(tokens.accentRed.name()));
+    }
+
     void testStyleSheet_usesSchemeColours()
     {
         const auto light = themecore::tokensFor(Qt::ColorScheme::Light);

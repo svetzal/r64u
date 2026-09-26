@@ -46,6 +46,14 @@ public:
      */
     ~MainWindow() override;
 
+    /**
+     * @brief The window title for a device named @p connectedHostname.
+     *
+     * "r64u" alone when nothing is connected (empty name); "r64u — <hostname>"
+     * otherwise. The toolbar already shows the firmware and the mode.
+     */
+    [[nodiscard]] static QString titleFor(const QString &connectedHostname);
+
 protected:
     /**
      * @brief Quits quietly: suppresses error dialogs, then stops any stream and

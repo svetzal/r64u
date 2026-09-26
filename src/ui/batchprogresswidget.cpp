@@ -2,21 +2,12 @@
 
 #include "pixelicons.h"
 
+#include "core/filesizecore.h"
 #include "core/themecore.h"
 
 #include <QHBoxLayout>
-#include <QLocale>
 
 #include <algorithm>
-
-namespace {
-
-QString formatBytes(const QLocale &locale, qint64 bytes)
-{
-    return locale.formattedDataSize(bytes, 1, QLocale::DataSizeTraditionalFormat);
-}
-
-}  // namespace
 
 BatchProgressWidget::BatchProgressWidget(int batchId, QWidget *parent)
     : QWidget(parent), batchId_(batchId)
@@ -65,6 +56,8 @@ void BatchProgressWidget::setupUi()
 void BatchProgressWidget::updateProgress(const BatchProgress &progress)
 {
     operationType_ = progress.operationType;
+    totalItems_ = progress.totalItems;
+    bytesTotal_ = progress.bytesTotal;
 
     // Determine state from progress
     if (progress.isScanning) {
@@ -131,10 +124,9 @@ void BatchProgressWidget::updateProgress(const BatchProgress &progress)
                        .arg(progress.totalItems);
         }
         if (progress.bytesTotal > 0) {
-            const QLocale locale;
             text += tr(" (%1 of %2)")
-                        .arg(formatBytes(locale, progress.bytesDone),
-                             formatBytes(locale, progress.bytesTotal));
+                        .arg(filesize::humanSize(progress.bytesDone),
+                             filesize::humanSize(progress.bytesTotal));
         }
         statusLabel_->setText(text);
     }
@@ -212,11 +204,22 @@ void BatchProgressWidget::updateStateAppearance()
     case State::Completed:
         progressBar_->setVisible(true);
         progressBar_->setValue(100);
+        statusLabel_->setText(completedText());
         setEnabled(false);
         setStyleSheet(QStringLiteral("QLabel { color: %1; }")
                           .arg(themecore::currentTokens().stateConnected.name()));
         break;
     }
+}
+
+QString BatchProgressWidget::completedText() const
+{
+    const QString items =
+        totalItems_ == 1 ? tr("Done: 1 item") : tr("Done: %1 items").arg(totalItems_);
+    if (bytesTotal_ <= 0) {
+        return items;
+    }
+    return QStringLiteral("%1, %2").arg(items, filesize::humanSize(bytesTotal_));
 }
 
 pixeliconcore::Icon BatchProgressWidget::operationIcon(OperationType type)

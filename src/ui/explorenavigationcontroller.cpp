@@ -27,6 +27,7 @@ void ExploreNavigationController::setCurrentDirectory(const QString &path)
         view_->setPath(path);
     }
 
+    emit directoryChanged(path);
     emit statusMessage(tr("Navigated to: %1").arg(path), 2000);
 
     bool canGoUp = (path != "/" && !path.isEmpty());

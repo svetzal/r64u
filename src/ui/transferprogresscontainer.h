@@ -94,6 +94,8 @@ private:
     // Debounce timer for queueChanged signals to prevent UI flood
     QTimer *queueChangedDebounceTimer_ = nullptr;
     static constexpr int kQueueChangedDebounceMs = 50;  // 50ms debounce
+    /// How long a finished batch row stays on screen to be read before it is removed
+    static constexpr int kQueueCompletedLingerMs = 4000;
 
     // Message presenter — owned default, swappable for tests (non-owning pointer).
     QMessageBoxPresenter defaultPresenter_;

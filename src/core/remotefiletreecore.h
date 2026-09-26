@@ -1,6 +1,7 @@
 #ifndef REMOTEFILETREECORE_H
 #define REMOTEFILETREECORE_H
 
+#include "core/filesortcore.h"
 #include "core/filetypecore.h"
 #include "ftp/ftpentry.h"
 
@@ -71,15 +72,24 @@ void markStale(bool &fetched, QDateTime &fetchedAt);
 // ---------------------------------------------------------------------------
 
 /**
- * @brief Returns a sorted copy of @p entries using the standard tree ordering.
+ * @brief Returns a sorted copy of @p entries in the order @p spec asks for.
  *
- * Directories are placed before files.  Entries of the same kind are sorted
- * alphabetically by name (case-insensitive).
+ * Directories are placed before files whatever the key or direction; within
+ * each group the filesort rule applies (name, raw size or type, with a
+ * case-insensitive name tie-break). The default spec is name, ascending.
  *
  * @param entries Unsorted list of FTP entries.
+ * @param spec    Which column orders the listing, and in which direction.
  * @return Sorted copy of the entries.
  */
-[[nodiscard]] QList<FtpEntry> sortEntries(QList<FtpEntry> entries);
+[[nodiscard]] QList<FtpEntry> sortEntries(QList<FtpEntry> entries, const filesort::Spec &spec = {});
+
+/**
+ * @brief The attributes of @p entry the filesort rule looks at.
+ *
+ * The type name is what the Type column shows for the entry's file type.
+ */
+[[nodiscard]] filesort::Entry sortableEntry(const FtpEntry &entry);
 
 // ---------------------------------------------------------------------------
 // Path construction

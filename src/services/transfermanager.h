@@ -77,6 +77,11 @@ public:
     void cancelBatch(int batchId);
 
     void respondToOverwrite(OverwriteResponse response);
+    /**
+     * @brief A transfer found its destination in the way: asks the user, unless "Skip All"
+     *        already answered for that batch, in which case the file is skipped unasked.
+     */
+    void onOverwriteConfirmationNeeded(const QString &fileName, OperationType type);
     void setAutoOverwrite(bool autoOverwrite) { state_.autoOverwrite = autoOverwrite; }
     void respondToFolderExists(FolderExistsResponse response);
     void setAutoMerge(bool autoMerge) { state_.autoMerge = autoMerge; }

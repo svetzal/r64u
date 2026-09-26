@@ -100,7 +100,7 @@ void connectAll(TransferManager &mgr)
         [&mgr](const QString & /*path*/) { mgr.folderCoordinator_->resumeAfterFolderCheck(); });
     QObject::connect(mgr.scanCoordinator_, &RecursiveScanCoordinator::uploadCheckFileExists, &mgr,
                      [&mgr](const QString &fileName) {
-                         emit mgr.overwriteConfirmationNeeded(fileName, OperationType::Upload);
+                         mgr.onOverwriteConfirmationNeeded(fileName, OperationType::Upload);
                      });
     QObject::connect(mgr.scanCoordinator_, &RecursiveScanCoordinator::uploadCheckNoConflict, &mgr,
                      [&mgr]() { mgr.scheduleProcessNext(); });
@@ -177,7 +177,7 @@ void connectAll(TransferManager &mgr)
     QObject::connect(mgr.dispatchHandler_, &TransferDispatchHandler::operationFailed, &mgr,
                      &TransferManager::operationFailed);
     QObject::connect(mgr.dispatchHandler_, &TransferDispatchHandler::overwriteConfirmationNeeded,
-                     &mgr, &TransferManager::overwriteConfirmationNeeded);
+                     &mgr, &TransferManager::onOverwriteConfirmationNeeded);
     QObject::connect(mgr.dispatchHandler_, &TransferDispatchHandler::allOperationsCompleted, &mgr,
                      &TransferManager::allOperationsCompleted);
     QObject::connect(mgr.dispatchHandler_, &TransferDispatchHandler::startTimeoutRequested, &mgr,

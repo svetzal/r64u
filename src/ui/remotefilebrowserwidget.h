@@ -65,6 +65,7 @@ protected:
     [[nodiscard]] bool isDirectory(const QModelIndex &index) const override;
     [[nodiscard]] qint64 fileSize(const QModelIndex &index) const override;
     void navigateToDirectory(const QString &path) override;
+    void requestTransferOfSelection() override { onDownload(); }
 
 protected:
     bool canModify(const QString &actionLabel) override;
@@ -74,7 +75,6 @@ protected:
 
 protected slots:
     void onParentFolder() override;
-    void onContextMenu(const QPoint &pos) override;
 
 signals:
     /// @p size is the file's listed size in bytes (0 for a directory or if unknown).

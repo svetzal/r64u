@@ -61,6 +61,14 @@ void PreviewCoordinator::onFileContentRequested(const QString &path)
     }
 }
 
+void PreviewCoordinator::onDirectoryChanged(const QString &path)
+{
+    Q_UNUSED(path)
+    if (detailsPanel_) {
+        detailsPanel_->clear();
+    }
+}
+
 void PreviewCoordinator::onPreviewReady(const QString &remotePath, const QByteArray &data)
 {
     if (!detailsPanel_) {

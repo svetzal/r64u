@@ -161,6 +161,17 @@ bool isFinished(TransferItem::Status status)
            status == TransferItem::Status::Skipped;
 }
 
+/// "Overwrite All" and "Skip All" cover one batch: once it is gone, so are the answers.
+void forgetBatchAnswers(State &state, int batchId)
+{
+    if (state.overwriteAllBatchId == batchId) {
+        state.overwriteAllBatchId = -1;
+    }
+    if (state.skipAllBatchId == batchId) {
+        state.skipAllBatchId = -1;
+    }
+}
+
 void fillBatchCounts(BatchProgress &progress, const State &state, int batchIndex)
 {
     const TransferBatch &batch = state.batches[batchIndex];
@@ -461,9 +472,7 @@ CompleteBatchResult completeBatch(const State &state, int batchId)
     result.newState.currentIndex = -1;
     result.newState.queueState = QueueState::Idle;
 
-    if (result.newState.overwriteAllBatchId == batchId) {
-        result.newState.overwriteAllBatchId = -1;
-    }
+    forgetBatchAnswers(result.newState, batchId);
 
     // Detect if this is a folder operation batch
     result.isFolderOperation = (result.newState.currentFolderOp.batchId == batchId);
@@ -610,6 +619,7 @@ State cancelAllItems(const State &state)
     result.pendingFolderOps.clear();
     result.replaceExisting = false;
     result.overwriteAllBatchId = -1;
+    result.skipAllBatchId = -1;
 
     result.queueState = QueueState::Idle;
 
@@ -656,9 +666,7 @@ CancelBatchResult cancelBatch(const State &state, int batchId)
     }
 
     next = purgeBatch(next, batchId);
-    if (next.overwriteAllBatchId == batchId) {
-        next.overwriteAllBatchId = -1;
-    }
+    forgetBatchAnswers(next, batchId);
 
     if (result.wasActiveBatch) {
         next = activateNextBatch(next);

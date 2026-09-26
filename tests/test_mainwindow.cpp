@@ -14,7 +14,9 @@
 #include "ui/connectionstatuswidget.h"
 #include "ui/connectionuicontroller.h"
 #include "ui/explorepanel.h"
+#include "ui/filedetailspanel.h"
 #include "ui/panelcoordinator.h"
+#include "ui/playlistwidget.h"
 #include "ui/transferpanel.h"
 #include "ui/viewpanel.h"
 
@@ -214,10 +216,18 @@ private slots:
         QVERIFY(!toolbars.isEmpty());
     }
 
-    void testWindowTitle_containsModeName()
+    void testWindowTitle_isJustTheAppNameWhileDisconnected()
     {
         MainWindow window;
-        QVERIFY(window.windowTitle().contains("Explore/Run"));
+        QCOMPARE(window.windowTitle(), QStringLiteral("r64u"));
+    }
+
+    void testWindowTitle_namesTheDeviceOnceConnected()
+    {
+        // Firmware and mode are the toolbar's business; the title carries the device name only
+        QCOMPARE(MainWindow::titleFor(QString()), QStringLiteral("r64u"));
+        QCOMPARE(MainWindow::titleFor(QStringLiteral("c64u-lounge")),
+                 QStringLiteral("r64u \u2014 c64u-lounge"));
     }
 
     void testTabWidget_firstTabLabelIsExploreRun()
@@ -296,7 +306,6 @@ private slots:
         QVERIFY(window.statusBar()->isHidden());
         QCOMPARE(window.centralWidget()->layout()->contentsMargins(), QMargins());
         QCOMPARE(fullScreen->text(), QStringLiteral("Exit Full Screen"));
-        QVERIFY(window.windowTitle().contains(QStringLiteral("View")));
 
         // The offscreen platform may not honour showFullScreen; leave via the
         // window state the action restores rather than a real fullscreen exit.
@@ -390,6 +399,51 @@ private slots:
         QVERIFY(toolBar != nullptr);
         QCOMPARE(toolBar->objectName(), QStringLiteral("SystemToolBar"));
         verifySystemToolBarSpansWindow(second);
+    }
+
+    void testExploreLayout_fileListGetsTheWidthByDefault()
+    {
+        MainWindow window;
+        showAtKnownSize(window);
+        QSplitter *horizontal = exploreSplitter(window, Qt::Horizontal);
+        QVERIFY(horizontal != nullptr);
+
+        const QList<int> sizes = horizontal->sizes();
+        QCOMPARE(sizes.size(), 2);
+        QVERIFY2(
+            sizes[0] > sizes[1],
+            qPrintable(QStringLiteral("file list %1 < details %2").arg(sizes[0]).arg(sizes[1])));
+    }
+
+    void testPlaylistCollapsed_freesTheSpaceForTheDetailsScreen_andPersists()
+    {
+        {
+            MainWindow window;
+            showAtKnownSize(window);
+            auto *playlist = window.findChild<PlaylistWidget *>();
+            auto *details = window.findChild<FileDetailsPanel *>();
+            QVERIFY(playlist != nullptr);
+            QVERIFY(details != nullptr);
+            QVERIFY(!playlist->isCollapsed());
+            const int detailsBefore = details->height();
+            const int playlistBefore = playlist->height();
+
+            playlist->setCollapsed(true);
+            QCoreApplication::processEvents();
+
+            QVERIFY2(
+                details->height() > detailsBefore,
+                qPrintable(
+                    QStringLiteral("details %1 -> %2").arg(detailsBefore).arg(details->height())));
+            QVERIFY(playlist->height() < playlistBefore);
+            QCOMPARE(playlist->height(), playlist->maximumHeight());
+        }  // saves layout on destruction
+
+        MainWindow second;
+        showAtKnownSize(second);
+        auto *playlist = second.findChild<PlaylistWidget *>();
+        QVERIFY(playlist != nullptr);
+        QVERIFY(playlist->isCollapsed());
     }
 
     void testSavedLayout_exploreSplittersAndHeaderSurviveRestart()

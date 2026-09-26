@@ -56,6 +56,16 @@ private slots:
         QVERIFY(spy.at(0).at(0).toString().contains("/SD/games"));
     }
 
+    void testSetCurrentDirectory_AnnouncesTheNewDirectory()
+    {
+        QSignalSpy spy(ctrl_, &ExploreNavigationController::directoryChanged);
+
+        ctrl_->setCurrentDirectory("/SD/games");
+
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toString(), QString("/SD/games"));
+    }
+
     void testSetCurrentDirectory_EnablesUpForSubPath()
     {
         ctrl_->setCurrentDirectory("/SD/games");

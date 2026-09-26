@@ -14,6 +14,7 @@
  * - cancelRequested signal emitted when cancel button clicked
  */
 
+#include "core/filesizecore.h"
 #include "models/transferqueue.h"
 #include "ui/batchprogresswidget.h"
 
@@ -216,6 +217,41 @@ private slots:
         auto *bar = widget.findChild<QProgressBar *>();
         QVERIFY(bar != nullptr);
         QCOMPARE(bar->value(), 100);
+    }
+
+    // =========================================================================
+    // Completed — the row reports what was done, in the shared size format
+    // =========================================================================
+
+    void testSetState_Completed_ReadsDoneWithItemsAndSize()
+    {
+        BatchProgressWidget widget(1);
+        widget.updateProgress(activeTransfer(3, 3, 1000, 6000, 6000));
+
+        widget.setState(BatchProgressWidget::State::Completed);
+
+        QCOMPARE(labelText(widget),
+                 QStringLiteral("Done: 3 items, %1").arg(filesize::humanSize(6000)));
+    }
+
+    void testSetState_Completed_singleItem_readsInTheSingular()
+    {
+        BatchProgressWidget widget(1);
+        widget.updateProgress(activeTransfer(1, 1, 1000, 0, 0));
+
+        widget.setState(BatchProgressWidget::State::Completed);
+
+        QCOMPARE(labelText(widget), QStringLiteral("Done: 1 item"));
+    }
+
+    void testSetState_Completed_WithUnknownBytes_ReadsDoneWithItemsOnly()
+    {
+        BatchProgressWidget widget(1);
+        widget.updateProgress(activeTransfer(2, 2, 1000, 0, 0));
+
+        widget.setState(BatchProgressWidget::State::Completed);
+
+        QCOMPARE(labelText(widget), QStringLiteral("Done: 2 items"));
     }
 
     // =========================================================================

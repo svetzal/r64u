@@ -39,13 +39,17 @@ void markStale(bool &fetched, QDateTime &fetchedAt)
     fetchedAt = QDateTime();
 }
 
-QList<FtpEntry> sortEntries(QList<FtpEntry> entries)
+filesort::Entry sortableEntry(const FtpEntry &entry)
 {
-    std::sort(entries.begin(), entries.end(), [](const FtpEntry &a, const FtpEntry &b) {
-        if (a.isDirectory != b.isDirectory) {
-            return a.isDirectory;  // directories before files
-        }
-        return a.name.compare(b.name, Qt::CaseInsensitive) < 0;
+    const filetype::FileType type = entry.isDirectory ? filetype::FileType::Directory
+                                                      : filetype::detectFromFilename(entry.name);
+    return {entry.name, entry.isDirectory, entry.size, filetype::displayName(type)};
+}
+
+QList<FtpEntry> sortEntries(QList<FtpEntry> entries, const filesort::Spec &spec)
+{
+    std::sort(entries.begin(), entries.end(), [&spec](const FtpEntry &a, const FtpEntry &b) {
+        return filesort::lessThan(sortableEntry(a), sortableEntry(b), spec);
     });
     return entries;
 }

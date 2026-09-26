@@ -1,3 +1,4 @@
+#include "core/filesizecore.h"
 #include "models/localfileproxymodel.h"
 #include "ui/pixelicons.h"
 
@@ -128,9 +129,9 @@ private slots:
                 QModelIndex proxyNameIdx = proxyModel_->mapFromSource(nameIdx);
                 QModelIndex proxySizeIdx = proxyNameIdx.sibling(proxyNameIdx.row(), 1);
 
-                // Check that data returns the byte count as string
+                // The one human-readable format shared with the remote list
                 QVariant data = proxyModel_->data(proxySizeIdx, Qt::DisplayRole);
-                QCOMPARE(data.toString(), QString("1234"));
+                QCOMPARE(data.toString(), filesize::humanSize(1234));
                 return;
             }
         }
@@ -229,7 +230,7 @@ private slots:
         QModelIndex proxySizeIdx = proxyNameIdx.sibling(proxyNameIdx.row(), 1);
 
         QVariant data = proxyModel_->data(proxySizeIdx, Qt::DisplayRole);
-        QCOMPARE(data.toString(), QString("0"));
+        QCOMPARE(data.toString(), filesize::humanSize(0));
     }
 
     void testDataLargeFile()
@@ -262,7 +263,7 @@ private slots:
         QModelIndex proxySizeIdx = proxyNameIdx.sibling(proxyNameIdx.row(), 1);
 
         QVariant data = proxyModel_->data(proxySizeIdx, Qt::DisplayRole);
-        QCOMPARE(data.toString(), QString("102400"));
+        QCOMPARE(data.toString(), filesize::humanSize(102400));
     }
 
     // ========== Sorting ==========
@@ -341,6 +342,48 @@ private slots:
             QVERIFY2(bDirPos < dFilePos, "b_dir should come before d_file.txt");
             QVERIFY2(cDirPos < dFilePos, "c_dir should come before d_file.txt");
         }
+    }
+
+    void testSortingBySize_ordersRawBytes_notTheDisplayedText()
+    {
+        // Shown as "170.8 KB", "26.9 KB" and "916 bytes": as text the largest sorts first
+        const QList<QPair<QString, int>> files = {
+            {"a.prg", 174848}, {"b.prg", 27536}, {"c.prg", 916}};
+        for (const auto &[name, size] : files) {
+            QFile file(tempDir_->filePath(name));
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write(QByteArray(size, 'X'));
+            file.close();
+        }
+        QModelIndex rootIdx = fsModel_->index(tempDir_->path());
+        for (const auto &[name, size] : files) {
+            const int row = waitForEntry(rootIdx, name);
+            QVERIFY2(row >= 0, qPrintable(name));
+            for (int elapsed = 0;
+                 elapsed < 5000 && fsModel_->size(fsModel_->index(row, 0, rootIdx)) <= 0;
+                 elapsed += 50) {
+                QTest::qWait(50);
+            }
+        }
+
+        proxyModel_->sort(1, Qt::AscendingOrder);
+
+        QModelIndex proxyRoot = proxyModel_->mapFromSource(rootIdx);
+        QStringList names;
+        for (int i = 0; i < proxyModel_->rowCount(proxyRoot); i++) {
+            names << proxyModel_->data(proxyModel_->index(i, 0, proxyRoot), Qt::DisplayRole)
+                         .toString();
+        }
+        QCOMPARE(names, (QStringList{"c.prg", "b.prg", "a.prg"}));
+
+        proxyModel_->sort(1, Qt::DescendingOrder);
+
+        names.clear();
+        for (int i = 0; i < proxyModel_->rowCount(proxyRoot); i++) {
+            names << proxyModel_->data(proxyModel_->index(i, 0, proxyRoot), Qt::DisplayRole)
+                         .toString();
+        }
+        QCOMPARE(names, (QStringList{"a.prg", "b.prg", "c.prg"}));
     }
 
     void testSortingCaseInsensitive()

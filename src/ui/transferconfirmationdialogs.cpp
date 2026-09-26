@@ -8,6 +8,7 @@ transfer::OverwriteResponse TransferConfirmationDialogs::askOverwrite(IMessagePr
         {QObject::tr("Overwrite"), IMessagePresenter::ButtonRole::Accept},
         {QObject::tr("Overwrite All"), IMessagePresenter::ButtonRole::Accept},
         {QObject::tr("Skip"), IMessagePresenter::ButtonRole::Reject},
+        {QObject::tr("Skip All"), IMessagePresenter::ButtonRole::Reject},
         {QObject::tr("Cancel"), IMessagePresenter::ButtonRole::Reject},
     };
 
@@ -27,6 +28,8 @@ transfer::OverwriteResponse TransferConfirmationDialogs::askOverwrite(IMessagePr
         return transfer::OverwriteResponse::OverwriteAll;
     case 2:
         return transfer::OverwriteResponse::Skip;
+    case 3:
+        return transfer::OverwriteResponse::SkipAll;
     default:
         return transfer::OverwriteResponse::Cancel;
     }

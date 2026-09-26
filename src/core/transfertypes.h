@@ -33,7 +33,7 @@ namespace transfer {
 enum class OperationType { Upload, Download, Delete };
 
 /// @brief User's response to a file-overwrite confirmation dialog.
-enum class OverwriteResponse { Overwrite, OverwriteAll, Skip, Cancel };
+enum class OverwriteResponse { Overwrite, OverwriteAll, Skip, SkipAll, Cancel };
 
 /// @brief User's response to a folder-exists confirmation dialog.
 enum class FolderExistsResponse { Merge, Replace, Cancel };
@@ -281,6 +281,9 @@ struct State
     /// Batch in which the user answered "Overwrite All" (-1 if none). The answer covers
     /// that batch only, never transfers the user starts later.
     int overwriteAllBatchId = -1;
+    /// Batch in which the user answered "Skip All" (-1 if none): its remaining files whose
+    /// destination exists are skipped without asking. Covers that batch only, like the above.
+    int skipAllBatchId = -1;
     bool replaceExisting = false;
 
     // Folder operations

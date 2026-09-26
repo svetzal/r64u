@@ -38,24 +38,33 @@ void PlaylistWidget::setupUi()
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(4);
 
-    // Header with duration spinner
+    // Header: a disclosure button that folds the list away, and the duration spinner
     auto *headerLayout = new QHBoxLayout();
 
-    headerLabel_ = new QLabel(tr("Playlist"));
-    headerLabel_->setStyleSheet("font-weight: bold;");
-    headerLayout->addWidget(headerLabel_);
+    headerButton_ = new QToolButton();
+    headerButton_->setObjectName(QStringLiteral("PlaylistHeader"));
+    headerButton_->setAutoRaise(true);
+    headerButton_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    headerButton_->setArrowType(Qt::DownArrow);
+    headerButton_->setStyleSheet("font-weight: bold;");
+    headerButton_->setToolTip(tr("Show or hide the playlist"));
+    connect(headerButton_, &QToolButton::clicked, this, [this]() { setCollapsed(!collapsed_); });
+    headerLayout->addWidget(headerButton_);
 
     headerLayout->addStretch();
 
-    auto *durationLabel = new QLabel(tr("Duration:"));
-    headerLayout->addWidget(durationLabel);
+    durationRow_ = new QWidget();
+    auto *durationLayout = new QHBoxLayout(durationRow_);
+    durationLayout->setContentsMargins(0, 0, 0, 0);
+    durationLayout->addWidget(new QLabel(tr("Duration:")));
 
     durationSpinBox_ = new QSpinBox();
     durationSpinBox_->setRange(1, 60);  // 1-60 minutes
     durationSpinBox_->setSuffix(tr(" min"));
     durationSpinBox_->setValue(manager_->defaultDuration() / 60);
     durationSpinBox_->setToolTip(tr("Duration before auto-advancing to next track"));
-    headerLayout->addWidget(durationSpinBox_);
+    durationLayout->addWidget(durationSpinBox_);
+    headerLayout->addWidget(durationRow_);
 
     layout->addLayout(headerLayout);
 
@@ -184,6 +193,7 @@ void PlaylistWidget::onCurrentIndexChanged(int index)
 void PlaylistWidget::onPlaybackStarted(int index)
 {
     Q_UNUSED(index)
+    setCollapsed(false);  // the playing track should be in view
     highlightCurrentItem();
     updateControlsState();
 
@@ -413,14 +423,32 @@ void PlaylistWidget::updatePlaylistDisplay()
     }
 
     highlightCurrentItem();
+    updateHeaderText();
+}
 
-    // Update header
-    int count = manager_->count();
-    if (count == 0) {
-        headerLabel_->setText(tr("Playlist"));
-    } else {
-        headerLabel_->setText(tr("Playlist (%1 tracks)").arg(count));
+void PlaylistWidget::updateHeaderText()
+{
+    const int count = manager_->count();
+    headerButton_->setText(count == 0 ? tr("Playlist") : tr("Playlist (%1 tracks)").arg(count));
+}
+
+void PlaylistWidget::setCollapsed(bool collapsed)
+{
+    if (collapsed_ == collapsed) {
+        return;
     }
+    collapsed_ = collapsed;
+
+    headerButton_->setArrowType(collapsed ? Qt::RightArrow : Qt::DownArrow);
+    durationRow_->setVisible(!collapsed);
+    controlBar_->setVisible(!collapsed);
+    treeWidget_->setVisible(!collapsed);
+
+    // Collapsed, the widget is exactly its header row: a splitter cannot stretch it
+    setMaximumHeight(collapsed ? headerButton_->sizeHint().height() : QWIDGETSIZE_MAX);
+    updateGeometry();
+
+    emit collapsedChanged(collapsed);
 }
 
 void PlaylistWidget::updateControlsState()

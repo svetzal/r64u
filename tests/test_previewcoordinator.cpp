@@ -77,6 +77,24 @@ private slots:
     }
 
     // =========================================================
+    // onDirectoryChanged — details of the old folder's file are stale
+    // =========================================================
+
+    void testOnDirectoryChanged_ClearsTheDetailsPanel()
+    {
+        coord_->onDirectoryChanged(QStringLiteral("/SD/other"));
+
+        QCOMPARE(mockDisplay_.clearCount, 1);
+    }
+
+    void testOnDirectoryChanged_NullDisplay_NoCrash()
+    {
+        PreviewCoordinator noDisplay(previewService_, nullptr, nullptr);
+        noDisplay.onDirectoryChanged(QStringLiteral("/SD"));
+        QVERIFY(true);
+    }
+
+    // =========================================================
     // onPreviewReady — routing by file extension
     // =========================================================
 

@@ -102,6 +102,47 @@ private slots:
         QCOMPARE(sorted[2].name, QString("Zebra"));
     }
 
+    void sortEntries_BySize_OrdersRawBytesWithDirectoriesFirst()
+    {
+        QList<FtpEntry> entries;
+        entries << FtpEntry{"a.prg", false, 174848, "", {}};
+        entries << FtpEntry{"folder", true, 0, "", {}};
+        entries << FtpEntry{"b.prg", false, 27536, "", {}};
+        entries << FtpEntry{"c.prg", false, 916, "", {}};
+
+        QList<FtpEntry> sorted =
+            remotefiletree::sortEntries(entries, {filesort::Key::Size, Qt::AscendingOrder});
+
+        QCOMPARE(sorted[0].name, QString("folder"));
+        QCOMPARE(sorted[1].name, QString("c.prg"));
+        QCOMPARE(sorted[2].name, QString("b.prg"));
+        QCOMPARE(sorted[3].name, QString("a.prg"));
+    }
+
+    void sortEntries_ByTypeDescending_UsesTheTypeColumnText()
+    {
+        QList<FtpEntry> entries;
+        entries << FtpEntry{"game.d64", false, 0, "", {}};
+        entries << FtpEntry{"tune.sid", false, 0, "", {}};
+
+        QList<FtpEntry> sorted =
+            remotefiletree::sortEntries(entries, {filesort::Key::Type, Qt::DescendingOrder});
+
+        QCOMPARE(sorted[0].name, QString("tune.sid"));  // "SID Music" after "Disk Image"
+        QCOMPARE(sorted[1].name, QString("game.d64"));
+    }
+
+    void sortableEntry_CarriesNameKindSizeAndTypeText()
+    {
+        const filesort::Entry entry =
+            remotefiletree::sortableEntry(FtpEntry{"tune.sid", false, 4096, "", {}});
+
+        QCOMPARE(entry.name, QString("tune.sid"));
+        QVERIFY(!entry.isDirectory);
+        QCOMPARE(entry.size, 4096LL);
+        QCOMPARE(entry.typeName, filetype::displayName(filetype::FileType::SidMusic));
+    }
+
     void sortEntries_SortsFilesAlphabeticallyCaseInsensitive()
     {
         QList<FtpEntry> entries;

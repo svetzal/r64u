@@ -40,6 +40,7 @@ protected:
     [[nodiscard]] QString filePath(const QModelIndex &index) const override;
     [[nodiscard]] bool isDirectory(const QModelIndex &index) const override;
     void navigateToDirectory(const QString &path) override;
+    void requestTransferOfSelection() override { onUpload(); }
 
     void performNewFolder(const QString &folderName) override;
     void performRename(const QString &path, const QString &newName) override;

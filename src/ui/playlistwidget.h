@@ -10,6 +10,7 @@
 #include <QSpinBox>
 #include <QTimer>
 #include <QToolBar>
+#include <QToolButton>
 #include <QTreeWidget>
 #include <QWidget>
 
@@ -24,6 +25,7 @@ class PlaylistService;
  * - Shuffle and repeat mode toggles
  * - Duration spinner for auto-advance timing
  * - Context menu for item management
+ * - A disclosure header that folds the list away to a single row
  * - Drag-and-drop reordering (future)
  */
 class PlaylistWidget : public QWidget
@@ -33,6 +35,16 @@ class PlaylistWidget : public QWidget
 public:
     explicit PlaylistWidget(PlaylistService *manager, QWidget *parent = nullptr);
     ~PlaylistWidget() override = default;
+
+    /**
+     * @brief Folds the controls and the track list away, leaving only the header row.
+     *
+     * Collapsed, the widget's size hint (and maximum height) is the header row,
+     * so a splitter hands the freed space to its neighbour. Playback expands
+     * the list again so the playing track is visible.
+     */
+    void setCollapsed(bool collapsed);
+    [[nodiscard]] bool isCollapsed() const { return collapsed_; }
 
     /**
      * @brief Replaces the message presenter used for the Clear confirmation.
@@ -50,6 +62,9 @@ signals:
      * @brief Emitted for status messages to display in the status bar.
      */
     void statusMessage(const QString &message, int timeout = 0);
+
+    /// Emitted when the list is folded away or opened again, by the user or by playback.
+    void collapsedChanged(bool collapsed);
 
 private slots:
     void onPlaylistChanged();
@@ -90,6 +105,7 @@ private:
     void setupConnections();
     void updatePlaylistDisplay();
     void updateControlsState();
+    void updateHeaderText();
     /// Transport buttons are icon-only; the file actions keep their text beside the icon.
     void showTextBesideIcon(QAction *action);
     void updateShuffleButton();
@@ -104,13 +120,15 @@ private:
     IMessagePresenter *presenter_ = &defaultPresenter_;
 
     // UI Components
-    QLabel *headerLabel_ = nullptr;
+    QToolButton *headerButton_ = nullptr;
+    QWidget *durationRow_ = nullptr;
     QToolBar *controlBar_ = nullptr;
     QTreeWidget *treeWidget_ = nullptr;
     QSpinBox *durationSpinBox_ = nullptr;
     QLabel *elapsedTimeLabel_ = nullptr;
     QTimer *elapsedTimer_ = nullptr;
     int elapsedSeconds_ = 0;
+    bool collapsed_ = false;
 
     // Control actions
     QAction *playPauseAction_ = nullptr;

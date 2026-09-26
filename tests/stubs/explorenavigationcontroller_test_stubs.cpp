@@ -103,6 +103,7 @@ Qt::ItemFlags RemoteFileModel::flags(const QModelIndex & /*index*/) const
 {
     return Qt::NoItemFlags;
 }
+void RemoteFileModel::sort(int /*column*/, Qt::SortOrder /*order*/) {}
 
 // MOC-required private slots
 void RemoteFileModel::onListingReady(const QString & /*path*/, const QList<FtpEntry> & /*entries*/)

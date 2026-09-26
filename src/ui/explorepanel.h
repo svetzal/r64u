@@ -71,6 +71,8 @@ private slots:
     void onDoubleClicked(const QModelIndex &index);
     void onContextMenu(const QPoint &pos);
     void onParentFolder();
+    /// Hands the playlist's space to the details screen, or gives it back.
+    void onPlaylistCollapsedChanged(bool collapsed);
 
 protected:
     void showEvent(QShowEvent *event) override;
@@ -110,6 +112,9 @@ private:
     QAction *refreshAction_ = nullptr;
     QAction *toggleFavoriteAction_ = nullptr;
     QMenu *favoritesMenu_ = nullptr;
+
+    /// The playlist's height before it was folded away, restored when it reopens
+    int expandedPlaylistHeight_ = 150;
 };
 
 #endif  // EXPLOREPANEL_H

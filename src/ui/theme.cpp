@@ -15,6 +15,15 @@ QColor blend(const QColor &a, const QColor &b, double amount)
                             a.blueF() * keep + b.blueF() * amount);
 }
 
+/// `colour` at 50% alpha as a QSS rgba() literal.
+QString halfAlpha(const QColor &colour)
+{
+    return QStringLiteral("rgba(%1, %2, %3, 128)")
+        .arg(colour.red())
+        .arg(colour.green())
+        .arg(colour.blue());
+}
+
 /// Hard-edged five-stripe C64 rainbow as a horizontal QSS gradient.
 QString rainbowGradient(const themecore::Tokens &t)
 {
@@ -168,6 +177,23 @@ QToolButton:disabled {
     color: %textMuted%;
 }
 
+/* Guarded actions (Reboot, Power Off): a faint red ring that hardens on approach */
+QToolButton#DangerAction {
+    border: 1px solid %accentRedFaint%;
+}
+QToolButton#DangerAction:hover {
+    border-color: %accentRed%;
+}
+QToolButton#DangerAction:pressed {
+    background-color: %bgInset%;
+    border: 1px solid %accentRed%;
+    padding-top: 5px;
+    padding-bottom: 3px;
+}
+QToolButton#DangerAction:disabled {
+    border-color: %borderSubtle%;
+}
+
 /* min-height is the content box: 18 + 2*4 padding + 2*1 border = 28px */
 QPushButton {
     background-color: %bgPanel%;
@@ -302,6 +328,8 @@ QToolTip {
         {"%textMuted%", t.textMuted.name()},
         {"%textInverted%", t.textInverted.name()},
         {"%accentBlue%", t.accentBlue.name()},
+        {"%accentRed%", t.accentRed.name()},
+        {"%accentRedFaint%", halfAlpha(t.accentRed)},
         {"%rainbow%", rainbowGradient(t)},
     };
     for (const auto &[placeholder, value] : substitutions) {
