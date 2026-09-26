@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The remote view refreshed mid-transfer, and stopped auto-refreshing after a cancel
 - Batch progress went backwards after a failed file
 - The transfer queue view was not notified when cancelled rows were removed
+- Quitting while a video stream or recording was active crashed on exit
 - Every failed transfer, preview or remote listing was shown to the user twice
 - A failed config file download left the load hanging; a failed song length lookup leaked its pending entry
 - Windows CI builds failed to install Qt 6.11
