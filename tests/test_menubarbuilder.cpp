@@ -5,6 +5,7 @@
  * Tests verify:
  * - build() returns a non-null refresh QAction
  * - Menu bar contains File, View, Machine, and Help menus
+ * - Mode actions stop driving the tab widget once it is destroyed
  */
 
 #include "mocks/mockrestclient.h"
@@ -13,6 +14,7 @@
 #include "ui/systemcommandcontroller.h"
 
 #include <QMainWindow>
+#include <QMenu>
 #include <QMenuBar>
 #include <QTabWidget>
 #include <QtTest>
@@ -126,6 +128,49 @@ private slots:
             }
         }
         QVERIFY(found);
+    }
+
+    void testModeActions_afterTabWidgetDestroyed_dropTheirTabConnections()
+    {
+        // MainWindow destroys its central widget (holding the tab widget) before
+        // the menu bar; the mode actions must not keep pointing at it.
+        QMainWindow window;
+        auto *tabs = new QTabWidget();
+        MockRestClient rest;
+        StatusMessageService status;
+        SystemCommandController sysCtrl(&rest, &status);
+        menubar::Builder::build(&window, &sysCtrl, tabs);
+        QList<QAction *> modeActions;
+        QList<int> receiversBefore;
+        for (QAction *action : window.findChildren<QAction *>()) {
+            if (action->text().contains(QStringLiteral("Mode"))) {
+                modeActions.append(action);
+                receiversBefore.append(triggeredReceiverCount(action));
+            }
+        }
+        QCOMPARE(modeActions.size(), 4);
+
+        delete tabs;
+
+        for (qsizetype i = 0; i < modeActions.size(); ++i) {
+            QVERIFY2(triggeredReceiverCount(modeActions[i]) == receiversBefore[i] - 1,
+                     qPrintable(modeActions[i]->text()));
+        }
+    }
+
+private:
+    /// QObject::receivers() is protected; reach it through a pointer to member.
+    struct ReceiverCount : QObject
+    {
+        static int of(const QObject *object, const char *signal)
+        {
+            return (object->*&ReceiverCount::receivers)(signal);
+        }
+    };
+
+    static int triggeredReceiverCount(const QAction *action)
+    {
+        return ReceiverCount::of(action, SIGNAL(triggered(bool)));
     }
 };
 

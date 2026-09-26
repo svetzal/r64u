@@ -38,6 +38,11 @@ public:
     enum class Mode { ExploreRun, Transfer, View, Config };
 
     explicit MainWindow(QWidget *parent = nullptr);
+
+    /**
+     * @brief Saves settings, then destroys the panels, toolbar and coordinators
+     * before the shared services they point at.
+     */
     ~MainWindow() override;
 
 protected:
@@ -73,10 +78,12 @@ private:
     void updateWindowTitle();
     void loadSettings();
     void saveSettings();
+    void destroyServiceUsersThenServices();
 
     Mode currentMode_ = Mode::ExploreRun;
 
-    // Services (owned by MainWindow, shared with panels)
+    // Services (owned by services_, shared with panels)
+    ServiceFactory *services_ = nullptr;
     DeviceConnectionManager *deviceConnection_ = nullptr;
     RemoteFileModel *remoteFileModel_ = nullptr;
     TransferQueue *transferQueue_ = nullptr;

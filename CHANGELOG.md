@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch progress went backwards after a failed file
 - The transfer queue view was not notified when cancelled rows were removed
 - Quitting while a video stream or recording was active crashed on exit
+- Quitting destroyed the shared services before the panels, toolbar and window code that use them, which could crash on exit
 - Quitting while streaming left the device streaming; it is now told to stop before the app exits (waiting at most 1.5 s), without error dialogs if it cannot be reached
 - Every failed transfer, preview or remote listing was shown to the user twice
 - A failed config file download left the load hanging; a failed song length lookup leaked its pending entry

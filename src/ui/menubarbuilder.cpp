@@ -40,22 +40,22 @@ QAction *menubar::Builder::build(QMainWindow *window, SystemCommandController *s
 
     auto *exploreAction = viewMenu->addAction(QObject::tr("&Explore/Run Mode"));
     exploreAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_1));
-    QObject::connect(exploreAction, &QAction::triggered, window,
+    QObject::connect(exploreAction, &QAction::triggered, modeTabWidget,
                      [modeTabWidget]() { modeTabWidget->setCurrentIndex(0); });
 
     auto *transferAction = viewMenu->addAction(QObject::tr("&Transfer Mode"));
     transferAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_2));
-    QObject::connect(transferAction, &QAction::triggered, window,
+    QObject::connect(transferAction, &QAction::triggered, modeTabWidget,
                      [modeTabWidget]() { modeTabWidget->setCurrentIndex(1); });
 
     auto *viewModeAction = viewMenu->addAction(QObject::tr("&View Mode"));
     viewModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_3));
-    QObject::connect(viewModeAction, &QAction::triggered, window,
+    QObject::connect(viewModeAction, &QAction::triggered, modeTabWidget,
                      [modeTabWidget]() { modeTabWidget->setCurrentIndex(2); });
 
     auto *configModeAction = viewMenu->addAction(QObject::tr("&Config Mode"));
     configModeAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_4));
-    QObject::connect(configModeAction, &QAction::triggered, window,
+    QObject::connect(configModeAction, &QAction::triggered, modeTabWidget,
                      [modeTabWidget]() { modeTabWidget->setCurrentIndex(3); });
 
     viewMenu->addSeparator();

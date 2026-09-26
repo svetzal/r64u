@@ -47,27 +47,27 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-    auto *services = new ServiceFactory(this);
-    services->setErrorPresenter(new DialogErrorPresenter(this));
+    services_ = new ServiceFactory(this);
+    services_->setErrorPresenter(new DialogErrorPresenter(this));
 
-    deviceConnection_ = services->deviceConnection();
-    remoteFileModel_ = services->remoteFileModel();
-    transferQueue_ = services->transferQueue();
-    configFileLoader_ = services->configFileLoader();
-    filePreviewService_ = services->filePreviewService();
-    transferService_ = services->transferService();
-    errorHandler_ = services->errorHandler();
-    statusMessageService_ = services->statusMessageService();
-    favoritesService_ = services->favoritesService();
-    playlistService_ = services->playlistService();
-    metadataBundle_ = services->metadataBundle();
-    systemCommandController_ = services->systemCommandController();
+    deviceConnection_ = services_->deviceConnection();
+    remoteFileModel_ = services_->remoteFileModel();
+    transferQueue_ = services_->transferQueue();
+    configFileLoader_ = services_->configFileLoader();
+    filePreviewService_ = services_->filePreviewService();
+    transferService_ = services_->transferService();
+    errorHandler_ = services_->errorHandler();
+    statusMessageService_ = services_->statusMessageService();
+    favoritesService_ = services_->favoritesService();
+    playlistService_ = services_->playlistService();
+    metadataBundle_ = services_->metadataBundle();
+    systemCommandController_ = services_->systemCommandController();
 
     setupUi();
     setupMenuBar();
     setupSystemToolBar();
     setupStatusBar();
-    setupPanels(services);
+    setupPanels(services_);
     setupConnections();
 
     switchToMode(Mode::ExploreRun);
@@ -82,6 +82,28 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 MainWindow::~MainWindow()
 {
     saveSettings();
+    destroyServiceUsersThenServices();
+}
+
+void MainWindow::destroyServiceUsersThenServices()
+{
+    // ServiceFactory is this window's first child, so ~QWidget would destroy
+    // the services before the panels, toolbar and coordinators that point at
+    // them. Tear down in dependency order instead, while this window is whole.
+
+    // Stop reacting to the services first: this window's slots reach into the
+    // panels, which are about to go, and a service may notify on its way out.
+    disconnect(services_, nullptr, this, nullptr);
+    for (QObject *service : services_->findChildren<QObject *>()) {
+        disconnect(service, nullptr, this, nullptr);
+    }
+
+    delete panelCoordinator_;        // panels and services
+    delete connectionUiController_;  // device connection, status widget, toolbar and menu actions
+    delete preferencesDialog_;       // metadata services
+    delete takeCentralWidget();      // the panels, and the streaming services ViewPanel owns
+    delete systemToolBar_;           // connection status widget
+    delete services_;
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
