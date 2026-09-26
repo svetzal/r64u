@@ -1,5 +1,7 @@
 #include "drivestatuswidget.h"
 
+#include "pixelicons.h"
+
 #include "core/themecore.h"
 
 #include <QFontMetrics>
@@ -31,7 +33,9 @@ DriveStatusWidget::DriveStatusWidget(const QString &driveName, QWidget *parent) 
     layout->addWidget(indicator_);
 
     ejectButton_ = new QToolButton();
-    ejectButton_->setText(tr("⏏"));  // Eject symbol
+    ejectButton_->setIcon(pixelicons::icon(pixeliconcore::Icon::Eject));
+    ejectButton_->setIconSize(QSize(16, 16));
+    ejectButton_->setToolButtonStyle(Qt::ToolButtonIconOnly);
     ejectButton_->setToolTip(tr("Eject"));
     ejectButton_->setAutoRaise(true);
     connect(ejectButton_, &QToolButton::clicked, this, &DriveStatusWidget::ejectClicked);

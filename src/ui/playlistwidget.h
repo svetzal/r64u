@@ -90,6 +90,8 @@ private:
     void setupConnections();
     void updatePlaylistDisplay();
     void updateControlsState();
+    /// Transport buttons are icon-only; the file actions keep their text beside the icon.
+    void showTextBesideIcon(QAction *action);
     void updateShuffleButton();
     void updateRepeatButton();
     void highlightCurrentItem();

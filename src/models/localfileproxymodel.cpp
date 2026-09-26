@@ -1,6 +1,7 @@
 #include "localfileproxymodel.h"
 
 #include "core/filetypecore.h"
+#include "ui/pixelicons.h"
 
 LocalFileProxyModel::LocalFileProxyModel(QObject *parent) : QSortFilterProxyModel(parent) {}
 
@@ -13,6 +14,14 @@ QVariant LocalFileProxyModel::data(const QModelIndex &index, int role) const
 
     QModelIndex sourceIdx = mapToSource(index);
     QModelIndex nameIdx = sourceIdx.sibling(sourceIdx.row(), 0);
+
+    // Column 0: pixel icon for the entry's C64 file type
+    if (index.column() == 0 && role == Qt::DecorationRole) {
+        if (fsModel->isDir(nameIdx)) {
+            return pixelicons::fileTypeIcon(filetype::FileType::Directory);
+        }
+        return pixelicons::fileTypeIcon(detectFileType(fsModel->fileName(nameIdx)));
+    }
 
     // Column 1: Size - show bytes instead of human-readable format
     if (index.column() == 1 && role == Qt::DisplayRole) {

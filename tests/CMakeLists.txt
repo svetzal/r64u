@@ -4135,6 +4135,53 @@ if(BUILD_COVERAGE)
 endif()
 
 # ============================================================================
+# Pixel icon data (pure, header-only)
+# ============================================================================
+add_executable(test_pixeliconcore
+    test_pixeliconcore.cpp
+)
+
+target_include_directories(test_pixeliconcore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_pixeliconcore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME PixelIconCoreTest COMMAND test_pixeliconcore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(pixeliconcore test_pixeliconcore)
+    add_dependencies(coverage coverage_pixeliconcore)
+endif()
+
+# ============================================================================
+# Pixel icon rendering (QIcon, header-only)
+# ============================================================================
+add_executable(test_pixelicons
+    test_pixelicons.cpp
+)
+
+target_include_directories(test_pixelicons PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_pixelicons PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Test
+)
+
+add_test(NAME PixelIconsTest COMMAND test_pixelicons)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(pixelicons test_pixelicons)
+    add_dependencies(coverage coverage_pixelicons)
+endif()
+
+# ============================================================================
 # Theme application (palette + stylesheet)
 # ============================================================================
 add_executable(test_theme

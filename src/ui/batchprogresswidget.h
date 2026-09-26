@@ -1,11 +1,12 @@
 #ifndef BATCHPROGRESSWIDGET_H
 #define BATCHPROGRESSWIDGET_H
 
+#include "core/pixeliconcore.h"
 #include "models/transferqueue.h"
 
 #include <QLabel>
 #include <QProgressBar>
-#include <QPushButton>
+#include <QToolButton>
 #include <QWidget>
 
 /**
@@ -77,7 +78,8 @@ signals:
 private:
     void setupUi();
     void updateStateAppearance();
-    QString operationIcon(OperationType type) const;
+    void showOperationIcon(OperationType type);
+    static pixeliconcore::Icon operationIcon(OperationType type);
 
     int batchId_;
     State state_ = State::Queued;
@@ -88,7 +90,7 @@ private:
     QLabel *iconLabel_ = nullptr;
     QLabel *statusLabel_ = nullptr;
     QProgressBar *progressBar_ = nullptr;
-    QPushButton *cancelButton_ = nullptr;
+    QToolButton *cancelButton_ = nullptr;
 };
 
 #endif  // BATCHPROGRESSWIDGET_H

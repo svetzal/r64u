@@ -1,5 +1,6 @@
 #include "viewpanel.h"
 
+#include "pixelicons.h"
 #include "streamingdiagnosticswidget.h"
 #include "videodisplaywidget.h"
 
@@ -68,34 +69,39 @@ void ViewPanel::setupUi()
     toolBar_ = new QToolBar();
     toolBar_->setMovable(false);
     toolBar_->setIconSize(QSize(16, 16));
+    toolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
-    startStreamAction_ = toolBar_->addAction(tr("Start Stream"));
+    using pixeliconcore::Icon;
+    startStreamAction_ =
+        toolBar_->addAction(pixelicons::icon(Icon::StartStream), tr("Start Stream"));
     startStreamAction_->setToolTip(tr("Start video and audio streaming"));
     connect(startStreamAction_, &QAction::triggered, this, &ViewPanel::onStartStreaming);
 
-    stopStreamAction_ = toolBar_->addAction(tr("Stop Stream"));
+    stopStreamAction_ = toolBar_->addAction(pixelicons::icon(Icon::StopStream), tr("Stop Stream"));
     stopStreamAction_->setToolTip(tr("Stop streaming"));
     stopStreamAction_->setEnabled(false);
     connect(stopStreamAction_, &QAction::triggered, this, &ViewPanel::onStopStreaming);
 
     toolBar_->addSeparator();
 
-    captureScreenshotAction_ = toolBar_->addAction(tr("Screenshot"));
+    captureScreenshotAction_ =
+        toolBar_->addAction(pixelicons::icon(Icon::Screenshot), tr("Screenshot"));
     captureScreenshotAction_->setToolTip(tr("Capture screenshot (saves to Pictures folder)"));
     captureScreenshotAction_->setEnabled(false);
     connect(captureScreenshotAction_, &QAction::triggered, this, &ViewPanel::onCaptureScreenshot);
 
-    startRecordingAction_ = toolBar_->addAction(tr("Record"));
+    startRecordingAction_ = toolBar_->addAction(pixelicons::icon(Icon::Record), tr("Record"));
     startRecordingAction_->setToolTip(tr("Start recording video"));
     startRecordingAction_->setEnabled(false);
     connect(startRecordingAction_, &QAction::triggered, this, &ViewPanel::onStartRecording);
 
-    stopRecordingAction_ = toolBar_->addAction(tr("Stop Recording"));
+    stopRecordingAction_ =
+        toolBar_->addAction(pixelicons::icon(Icon::StopRecording), tr("Stop Recording"));
     stopRecordingAction_->setToolTip(tr("Stop recording video"));
     stopRecordingAction_->setEnabled(false);
     connect(stopRecordingAction_, &QAction::triggered, this, &ViewPanel::onStopRecording);
 
-    statsAction_ = toolBar_->addAction(tr("Stats"));
+    statsAction_ = toolBar_->addAction(pixelicons::icon(Icon::Stats), tr("Stats"));
     statsAction_->setToolTip(tr("Toggle streaming statistics display"));
     statsAction_->setCheckable(true);
     statsAction_->setEnabled(false);
@@ -219,6 +225,7 @@ void ViewPanel::setFullScreenAction(QAction *action)
     if (!action || !toolBar_) {
         return;
     }
+    action->setIcon(pixelicons::icon(pixeliconcore::Icon::FullScreen));
     toolBar_->insertAction(statusSeparator_, action);
 }
 

@@ -75,6 +75,16 @@ private slots:
         auto result = buildResult();
         QVERIFY(result.connectAction->text().contains("Connect", Qt::CaseInsensitive));
     }
+
+    void testBuild_everyActionHasAnIcon()
+    {
+        auto result = buildResult();
+        for (QAction *action :
+             {result.connectAction, result.resetAction, result.rebootAction, result.pauseAction,
+              result.resumeAction, result.menuAction, result.powerOffAction, result.prefsAction}) {
+            QVERIFY2(!action->icon().isNull(), qPrintable(action->text()));
+        }
+    }
 };
 
 QTEST_MAIN(TestSystemToolBarBuilder)

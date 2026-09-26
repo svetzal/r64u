@@ -2,10 +2,8 @@
 
 #include "core/filetypecore.h"
 #include "core/remotefiletreecore.h"
+#include "ui/pixelicons.h"
 #include "utils/logging.h"
-
-#include <QApplication>
-#include <QStyle>
 
 #include <functional>
 #include <utility>
@@ -412,8 +410,7 @@ filetype::FileType RemoteFileModel::detectFileType(const QString &filename)
 
 QIcon RemoteFileModel::iconForFileType(filetype::FileType type)
 {
-    QStyle *style = QApplication::style();
-    return style->standardIcon(remotefiletree::standardPixmapFor(type));
+    return pixelicons::fileTypeIcon(type);
 }
 
 QString RemoteFileModel::fileTypeString(filetype::FileType type)

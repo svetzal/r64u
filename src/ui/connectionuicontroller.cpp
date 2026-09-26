@@ -2,6 +2,7 @@
 
 #include "services/deviceconnectionmanager.h"
 #include "ui/iconnectionstatusview.h"
+#include "ui/pixelicons.h"
 #include "utils/logging.h"
 
 #include <QAction>
@@ -89,15 +90,19 @@ void ConnectionUIController::updateActions()
         switch (state) {
         case DeviceConnectionManager::ConnectionState::Disconnected:
             connectAction_->setText(tr("Connect"));
+            connectAction_->setIcon(pixelicons::icon(pixeliconcore::Icon::Connect));
             break;
         case DeviceConnectionManager::ConnectionState::Connecting:
             connectAction_->setText(tr("Cancel"));
+            connectAction_->setIcon(pixelicons::icon(pixeliconcore::Icon::Cancel));
             break;
         case DeviceConnectionManager::ConnectionState::Connected:
             connectAction_->setText(tr("Disconnect"));
+            connectAction_->setIcon(pixelicons::icon(pixeliconcore::Icon::Disconnect));
             break;
         case DeviceConnectionManager::ConnectionState::Reconnecting:
             connectAction_->setText(tr("Cancel"));
+            connectAction_->setIcon(pixelicons::icon(pixeliconcore::Icon::Cancel));
             break;
         }
     }

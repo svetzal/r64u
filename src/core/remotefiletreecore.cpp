@@ -58,29 +58,4 @@ QString childPath(const QString &parentFullPath, const QString &name)
     return parentFullPath + '/' + name;
 }
 
-QStyle::StandardPixmap standardPixmapFor(filetype::FileType type)
-{
-    switch (type) {
-    case filetype::FileType::Directory:
-        return QStyle::SP_DirIcon;
-    case filetype::FileType::SidMusic:
-    case filetype::FileType::ModMusic:
-        return QStyle::SP_MediaVolume;
-    case filetype::FileType::Program:
-        return QStyle::SP_FileIcon;
-    case filetype::FileType::Cartridge:
-        return QStyle::SP_DriveHDIcon;
-    case filetype::FileType::DiskImage:
-        return QStyle::SP_DriveFDIcon;
-    case filetype::FileType::TapeImage:
-        return QStyle::SP_DriveCDIcon;
-    case filetype::FileType::Rom:
-        return QStyle::SP_FileDialogDetailedView;
-    case filetype::FileType::Config:
-        return QStyle::SP_FileDialogInfoView;
-    default:
-        return QStyle::SP_FileIcon;
-    }
-}
-
 }  // namespace remotefiletree

@@ -3,6 +3,7 @@
 #include "mocks/mockrestclient.h"
 #include "services/deviceconnectionmanager.h"
 #include "ui/connectionuicontroller.h"
+#include "ui/pixelicons.h"
 
 #include <QAction>
 #include <QSignalSpy>
@@ -104,6 +105,41 @@ private slots:
         ctrl_->updateAll();
 
         QCOMPARE(connectAction.text(), QString("Connect"));
+        QCOMPARE(connectAction.icon().cacheKey(),
+                 pixelicons::icon(pixeliconcore::Icon::Connect).cacheKey());
+    }
+
+    void testUpdateAll_ConnectActionIconAndText_WhenConnected()
+    {
+        QAction connectAction;
+        ctrl_->setManagedActions({}, &connectAction, nullptr);
+        dc_->setHost("test-device");
+        dc_->connectToDevice();
+        DeviceInfo info;
+        emit dc_->restClient()->infoReceived(info);
+        emit dc_->ftpClient()->connected();
+        QCOMPARE(dc_->state(), DeviceConnectionManager::ConnectionState::Connected);
+
+        ctrl_->updateAll();
+
+        QCOMPARE(connectAction.text(), QString("Disconnect"));
+        QCOMPARE(connectAction.icon().cacheKey(),
+                 pixelicons::icon(pixeliconcore::Icon::Disconnect).cacheKey());
+    }
+
+    void testUpdateAll_ConnectActionIconAndText_WhileConnecting()
+    {
+        QAction connectAction;
+        ctrl_->setManagedActions({}, &connectAction, nullptr);
+        dc_->setHost("test-device");
+        dc_->connectToDevice();
+        QCOMPARE(dc_->state(), DeviceConnectionManager::ConnectionState::Connecting);
+
+        ctrl_->updateAll();
+
+        QCOMPARE(connectAction.text(), QString("Cancel"));
+        QCOMPARE(connectAction.icon().cacheKey(),
+                 pixelicons::icon(pixeliconcore::Icon::Cancel).cacheKey());
     }
 
     // =========================================================================

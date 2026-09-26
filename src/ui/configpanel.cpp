@@ -1,6 +1,7 @@
 #include "configpanel.h"
 
 #include "configitemspanel.h"
+#include "pixelicons.h"
 
 #include "core/themecore.h"
 #include "models/configurationmodel.h"
@@ -33,22 +34,27 @@ void ConfigPanel::setupUi()
     toolBar_ = new QToolBar();
     toolBar_->setMovable(false);
     toolBar_->setIconSize(QSize(16, 16));
+    toolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
-    saveToFlashAction_ = toolBar_->addAction(tr("Save to Flash"));
+    using pixeliconcore::Icon;
+    saveToFlashAction_ =
+        toolBar_->addAction(pixelicons::icon(Icon::SaveToFlash), tr("Save to Flash"));
     saveToFlashAction_->setToolTip(tr("Persist current settings to non-volatile storage"));
     connect(saveToFlashAction_, &QAction::triggered, this, &ConfigPanel::onSaveToFlash);
 
-    loadFromFlashAction_ = toolBar_->addAction(tr("Load from Flash"));
+    loadFromFlashAction_ =
+        toolBar_->addAction(pixelicons::icon(Icon::LoadFromFlash), tr("Load from Flash"));
     loadFromFlashAction_->setToolTip(tr("Revert to last saved settings"));
     connect(loadFromFlashAction_, &QAction::triggered, this, &ConfigPanel::onLoadFromFlash);
 
-    resetToDefaultsAction_ = toolBar_->addAction(tr("Reset to Defaults"));
+    resetToDefaultsAction_ =
+        toolBar_->addAction(pixelicons::icon(Icon::ResetDefaults), tr("Reset to Defaults"));
     resetToDefaultsAction_->setToolTip(tr("Reset all settings to factory defaults"));
     connect(resetToDefaultsAction_, &QAction::triggered, this, &ConfigPanel::onResetToDefaults);
 
     toolBar_->addSeparator();
 
-    refreshAction_ = toolBar_->addAction(tr("Refresh"));
+    refreshAction_ = toolBar_->addAction(pixelicons::icon(Icon::Refresh), tr("Refresh"));
     refreshAction_->setToolTip(tr("Reload all configuration from device"));
     connect(refreshAction_, &QAction::triggered, this, &ConfigPanel::onRefresh);
 

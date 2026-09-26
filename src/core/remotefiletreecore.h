@@ -7,7 +7,6 @@
 #include <QDateTime>
 #include <QList>
 #include <QString>
-#include <QStyle>
 
 /**
  * @namespace remotefiletree
@@ -97,18 +96,6 @@ void markStale(bool &fetched, QDateTime &fetchedAt);
  * @return Full path of the child (e.g. "/SD/Games/myfile.prg").
  */
 [[nodiscard]] QString childPath(const QString &parentFullPath, const QString &name);
-
-// ---------------------------------------------------------------------------
-// Icon mapping
-// ---------------------------------------------------------------------------
-
-/**
- * @brief Maps a file type to the standard Qt pixmap used as a tree-view icon.
- *
- * @param type The file type to map.
- * @return The corresponding QStyle::StandardPixmap.
- */
-[[nodiscard]] QStyle::StandardPixmap standardPixmapFor(filetype::FileType type);
 
 }  // namespace remotefiletree
 

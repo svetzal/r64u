@@ -9,6 +9,7 @@
 #include "filedetailspanel.h"
 #include "navigationviewadapter.h"
 #include "pathnavigationwidget.h"
+#include "pixelicons.h"
 #include "playlistwidget.h"
 #include "previewcoordinator.h"
 
@@ -102,30 +103,32 @@ void ExplorePanel::setupUi()
     toolBar_->setIconSize(QSize(16, 16));
     toolBar_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
-    playAction_ = toolBar_->addAction(tr("Play"));
+    using pixeliconcore::Icon;
+    playAction_ = toolBar_->addAction(pixelicons::icon(Icon::Play), tr("Play"));
     playAction_->setToolTip(tr("Play selected SID/MOD file"));
     connect(playAction_, &QAction::triggered, actionController_,
             &FileActionController::playSelection);
 
-    runAction_ = toolBar_->addAction(tr("Run"));
+    runAction_ = toolBar_->addAction(pixelicons::icon(Icon::Run), tr("Run"));
     runAction_->setToolTip(tr("Run selected PRG/CRT file"));
     connect(runAction_, &QAction::triggered, actionController_,
             &FileActionController::runSelection);
 
-    mountAction_ = toolBar_->addAction(tr("Mount"));
+    mountAction_ = toolBar_->addAction(pixelicons::icon(Icon::Mount), tr("Mount"));
     mountAction_->setToolTip(tr("Mount selected disk image"));
     connect(mountAction_, &QAction::triggered, this,
             [this]() { actionController_->mountToDriveSelection("a"); });
 
     toolBar_->addSeparator();
 
-    refreshAction_ = toolBar_->addAction(tr("Refresh"));
+    refreshAction_ = toolBar_->addAction(pixelicons::icon(Icon::Refresh), tr("Refresh"));
     refreshAction_->setToolTip(tr("Refresh file listing"));
     connect(refreshAction_, &QAction::triggered, this, [this]() { refresh(); });
 
     toolBar_->addSeparator();
 
-    toggleFavoriteAction_ = toolBar_->addAction(QString::fromUtf8("☆"));
+    toggleFavoriteAction_ =
+        toolBar_->addAction(pixelicons::icon(Icon::StarOutline), tr("Favorite"));
     toggleFavoriteAction_->setToolTip(tr("Add/remove current path from favorites"));
     toggleFavoriteAction_->setCheckable(true);
     toggleFavoriteAction_->setEnabled(true);
@@ -136,7 +139,8 @@ void ExplorePanel::setupUi()
     });
 
     favoritesMenu_ = new QMenu(tr("Favorites"), this);
-    auto *favoritesMenuAction = toolBar_->addAction(tr("Favorites"));
+    auto *favoritesMenuAction =
+        toolBar_->addAction(pixelicons::icon(Icon::Favorites), tr("Favorites"));
     favoritesMenuAction->setToolTip(tr("Quick access to favorite locations"));
     favoritesMenuAction->setMenu(favoritesMenu_);
     if (auto *button =

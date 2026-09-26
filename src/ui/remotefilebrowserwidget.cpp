@@ -1,6 +1,7 @@
 #include "remotefilebrowserwidget.h"
 
 #include "pathnavigationwidget.h"
+#include "pixelicons.h"
 #include "refreshpolicymanager.h"
 #include "remotefilebrowsercontroller.h"
 
@@ -47,25 +48,26 @@ void RemoteFileBrowserWidget::setupUi()
     navWidget_->setStyleBlue();
 
     // Add remote-specific actions to toolbar
-    downloadAction_ = toolBar_->addAction(tr("Download"));
+    using pixeliconcore::Icon;
+    downloadAction_ = toolBar_->addAction(pixelicons::icon(Icon::Download), tr("Download"));
     downloadAction_->setToolTip(tr("Download selected files from C64U"));
     connect(downloadAction_, &QAction::triggered, this, &RemoteFileBrowserWidget::onDownload);
 
-    newFolderAction_ = toolBar_->addAction(tr("New Folder"));
+    newFolderAction_ = toolBar_->addAction(pixelicons::icon(Icon::NewFolder), tr("New Folder"));
     newFolderAction_->setToolTip(tr("Create new folder on C64U"));
     connect(newFolderAction_, &QAction::triggered, this, &RemoteFileBrowserWidget::onNewFolder);
 
-    renameAction_ = toolBar_->addAction(tr("Rename"));
+    renameAction_ = toolBar_->addAction(pixelicons::icon(Icon::Rename), tr("Rename"));
     renameAction_->setToolTip(tr("Rename selected file or folder on C64U"));
     connect(renameAction_, &QAction::triggered, this, &RemoteFileBrowserWidget::onRename);
 
-    deleteAction_ = toolBar_->addAction(tr("Delete"));
+    deleteAction_ = toolBar_->addAction(pixelicons::icon(Icon::Delete), tr("Delete"));
     deleteAction_->setToolTip(tr("Delete selected file or folder on C64U"));
     connect(deleteAction_, &QAction::triggered, this, &RemoteFileBrowserWidget::onDelete);
 
     toolBar_->addSeparator();
 
-    refreshAction_ = toolBar_->addAction(tr("Refresh"));
+    refreshAction_ = toolBar_->addAction(pixelicons::icon(Icon::Refresh), tr("Refresh"));
     refreshAction_->setToolTip(tr("Refresh file listing"));
     connect(refreshAction_, &QAction::triggered, this, &RemoteFileBrowserWidget::onRefresh);
 
@@ -99,13 +101,17 @@ void RemoteFileBrowserWidget::setupContextMenu()
     });
 
     // Add remote-specific menu items
+    using pixeliconcore::Icon;
     contextMenu_->addSeparator();
-    contextMenu_->addAction(tr("Download to Local Directory"), this,
-                            &RemoteFileBrowserWidget::onDownload);
-    contextMenu_->addAction(tr("Delete"), this, &RemoteFileBrowserWidget::onDelete);
+    contextMenu_->addAction(pixelicons::icon(Icon::Download), tr("Download to Local Directory"),
+                            this, &RemoteFileBrowserWidget::onDownload);
+    contextMenu_->addAction(pixelicons::icon(Icon::Delete), tr("Delete"), this,
+                            &RemoteFileBrowserWidget::onDelete);
     contextMenu_->addSeparator();
-    contextMenu_->addAction(tr("New Folder"), this, &RemoteFileBrowserWidget::onNewFolder);
-    contextMenu_->addAction(tr("Refresh"), this, &RemoteFileBrowserWidget::onRefresh);
+    contextMenu_->addAction(pixelicons::icon(Icon::NewFolder), tr("New Folder"), this,
+                            &RemoteFileBrowserWidget::onNewFolder);
+    contextMenu_->addAction(pixelicons::icon(Icon::Refresh), tr("Refresh"), this,
+                            &RemoteFileBrowserWidget::onRefresh);
 }
 
 void RemoteFileBrowserWidget::setupConnections()

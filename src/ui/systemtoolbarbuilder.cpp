@@ -2,10 +2,12 @@
 
 #include "connectionstatuswidget.h"
 #include "connectionuicontroller.h"
+#include "pixelicons.h"
 #include "systemcommandcontroller.h"
 
 #include <QAction>
 #include <QMainWindow>
+#include <QSize>
 #include <QSizePolicy>
 #include <QToolBar>
 #include <QWidget>
@@ -15,46 +17,55 @@ SystemToolBarResult SystemToolBarBuilder::build(QMainWindow *window, QToolBar *t
                                                 SystemCommandController *sysCtrl,
                                                 QAction *refreshAction)
 {
+    using pixeliconcore::Icon;
     SystemToolBarResult result;
+    toolBar->setIconSize(QSize(16, 16));
 
     // Connect action (placeholder — caller wires the trigger to private slots)
-    result.connectAction = toolBar->addAction(QMainWindow::tr("Connect"));
+    result.connectAction =
+        toolBar->addAction(pixelicons::icon(Icon::Connect), QMainWindow::tr("Connect"));
     result.connectAction->setToolTip(QMainWindow::tr("Connect to C64U device"));
 
     toolBar->addSeparator();
 
     // Machine control actions
-    result.resetAction = toolBar->addAction(QMainWindow::tr("Reset"));
+    result.resetAction =
+        toolBar->addAction(pixelicons::icon(Icon::Reset), QMainWindow::tr("Reset"));
     result.resetAction->setToolTip(QMainWindow::tr("Reset the C64"));
     QObject::connect(result.resetAction, &QAction::triggered, sysCtrl,
                      &SystemCommandController::onReset);
 
-    result.rebootAction = toolBar->addAction(QMainWindow::tr("Reboot"));
+    result.rebootAction =
+        toolBar->addAction(pixelicons::icon(Icon::Reboot), QMainWindow::tr("Reboot"));
     result.rebootAction->setToolTip(QMainWindow::tr("Reboot the Ultimate device"));
     QObject::connect(result.rebootAction, &QAction::triggered, sysCtrl,
                      &SystemCommandController::onReboot);
 
-    result.pauseAction = toolBar->addAction(QMainWindow::tr("Pause"));
+    result.pauseAction =
+        toolBar->addAction(pixelicons::icon(Icon::Pause), QMainWindow::tr("Pause"));
     result.pauseAction->setToolTip(QMainWindow::tr("Pause C64 execution"));
     QObject::connect(result.pauseAction, &QAction::triggered, sysCtrl,
                      &SystemCommandController::onPause);
 
-    result.resumeAction = toolBar->addAction(QMainWindow::tr("Resume"));
+    result.resumeAction =
+        toolBar->addAction(pixelicons::icon(Icon::Resume), QMainWindow::tr("Resume"));
     result.resumeAction->setToolTip(QMainWindow::tr("Resume C64 execution"));
     QObject::connect(result.resumeAction, &QAction::triggered, sysCtrl,
                      &SystemCommandController::onResume);
 
-    result.menuAction = toolBar->addAction(QMainWindow::tr("Menu"));
+    result.menuAction = toolBar->addAction(pixelicons::icon(Icon::Menu), QMainWindow::tr("Menu"));
     result.menuAction->setToolTip(QMainWindow::tr("Press Ultimate menu button"));
     QObject::connect(result.menuAction, &QAction::triggered, sysCtrl,
                      &SystemCommandController::onMenuButton);
 
-    result.powerOffAction = toolBar->addAction(QMainWindow::tr("Power Off"));
+    result.powerOffAction =
+        toolBar->addAction(pixelicons::icon(Icon::PowerOff), QMainWindow::tr("Power Off"));
     result.powerOffAction->setToolTip(QMainWindow::tr("Power off the Ultimate device"));
 
     toolBar->addSeparator();
 
-    result.prefsAction = toolBar->addAction(QMainWindow::tr("Preferences"));
+    result.prefsAction =
+        toolBar->addAction(pixelicons::icon(Icon::Preferences), QMainWindow::tr("Preferences"));
     result.prefsAction->setToolTip(QMainWindow::tr("Open preferences dialog"));
 
     // Spacer to push connection status to the right

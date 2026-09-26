@@ -1,4 +1,5 @@
 #include "models/localfileproxymodel.h"
+#include "ui/pixelicons.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -67,6 +68,34 @@ private slots:
     }
 
     void testSetSourceModel() { QCOMPARE(proxyModel_->sourceModel(), fsModel_); }
+
+    // ========== data() for the icon column ==========
+
+    void testDataDecorationRole_UsesPixelIconForFileTypeAndFolder()
+    {
+        QFile file(tempDir_->filePath("game.prg"));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("x");
+        file.close();
+        QVERIFY(QDir(tempDir_->path()).mkdir("subdir"));
+
+        QModelIndex rootIdx = fsModel_->index(tempDir_->path());
+        const int fileRow = waitForEntry(rootIdx, "game.prg");
+        QVERIFY(fileRow >= 0);
+        const int dirRow = waitForEntry(rootIdx, "subdir");
+        QVERIFY(dirRow >= 0);
+
+        const QModelIndex fileIdx =
+            proxyModel_->mapFromSource(fsModel_->index(fileRow, 0, rootIdx));
+        const QIcon fileIcon = proxyModel_->data(fileIdx, Qt::DecorationRole).value<QIcon>();
+        QCOMPARE(fileIcon.cacheKey(),
+                 pixelicons::fileTypeIcon(filetype::FileType::Program).cacheKey());
+
+        const QModelIndex dirIdx = proxyModel_->mapFromSource(fsModel_->index(dirRow, 0, rootIdx));
+        const QIcon dirIcon = proxyModel_->data(dirIdx, Qt::DecorationRole).value<QIcon>();
+        QCOMPARE(dirIcon.cacheKey(),
+                 pixelicons::fileTypeIcon(filetype::FileType::Directory).cacheKey());
+    }
 
     // ========== data() for file size column ==========
 

@@ -1,5 +1,6 @@
 #include "mocks/mockftpclient.h"
 #include "models/remotefilemodel.h"
+#include "ui/pixelicons.h"
 
 #include <QSet>
 #include <QSignalSpy>
@@ -1225,6 +1226,18 @@ private slots:
 
         // And should not be stale (not fetched)
         QVERIFY(!model->isStale(QModelIndex()));
+    }
+
+    // =========================================================================
+    // iconForFileType — the pixel icon set stands in for QStyle pixmaps
+    // =========================================================================
+
+    void testIconForFileType_UsesPixelFileTypeIcons()
+    {
+        QCOMPARE(RemoteFileModel::iconForFileType(filetype::FileType::DiskImage).cacheKey(),
+                 pixelicons::fileTypeIcon(filetype::FileType::DiskImage).cacheKey());
+        QCOMPARE(RemoteFileModel::iconForFileType(filetype::FileType::Directory).cacheKey(),
+                 pixelicons::icon(pixeliconcore::Icon::Folder).cacheKey());
     }
 };
 

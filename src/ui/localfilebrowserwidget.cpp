@@ -1,6 +1,7 @@
 #include "localfilebrowserwidget.h"
 
 #include "pathnavigationwidget.h"
+#include "pixelicons.h"
 
 #include "models/localfileproxymodel.h"
 #include "services/errorhandler.h"
@@ -36,19 +37,20 @@ void LocalFileBrowserWidget::setupUi()
     navWidget_->setStyleGreen();
 
     // Add local-specific actions to toolbar
-    uploadAction_ = toolBar_->addAction(tr("Upload"));
+    using pixeliconcore::Icon;
+    uploadAction_ = toolBar_->addAction(pixelicons::icon(Icon::Upload), tr("Upload"));
     uploadAction_->setToolTip(tr("Upload selected files to C64U"));
     connect(uploadAction_, &QAction::triggered, this, &LocalFileBrowserWidget::onUpload);
 
-    newFolderAction_ = toolBar_->addAction(tr("New Folder"));
+    newFolderAction_ = toolBar_->addAction(pixelicons::icon(Icon::NewFolder), tr("New Folder"));
     newFolderAction_->setToolTip(tr("Create new folder in local directory"));
     connect(newFolderAction_, &QAction::triggered, this, &LocalFileBrowserWidget::onNewFolder);
 
-    renameAction_ = toolBar_->addAction(tr("Rename"));
+    renameAction_ = toolBar_->addAction(pixelicons::icon(Icon::Rename), tr("Rename"));
     renameAction_->setToolTip(tr("Rename selected local file or folder"));
     connect(renameAction_, &QAction::triggered, this, &LocalFileBrowserWidget::onRename);
 
-    deleteAction_ = toolBar_->addAction(tr("Delete"));
+    deleteAction_ = toolBar_->addAction(pixelicons::icon(Icon::Delete), tr("Delete"));
     deleteAction_->setToolTip(tr("Move selected local file to trash"));
     connect(deleteAction_, &QAction::triggered, this, &LocalFileBrowserWidget::onDelete);
 
@@ -99,12 +101,17 @@ void LocalFileBrowserWidget::setupContextMenu()
     });
 
     // Add local-specific menu items
+    using pixeliconcore::Icon;
     contextMenu_->addSeparator();
-    contextMenu_->addAction(tr("Upload to C64U"), this, &LocalFileBrowserWidget::onUpload);
+    contextMenu_->addAction(pixelicons::icon(Icon::Upload), tr("Upload to C64U"), this,
+                            &LocalFileBrowserWidget::onUpload);
     contextMenu_->addSeparator();
-    contextMenu_->addAction(tr("New Folder"), this, &LocalFileBrowserWidget::onNewFolder);
-    contextMenu_->addAction(tr("Rename"), this, &LocalFileBrowserWidget::onRename);
-    contextMenu_->addAction(tr("Delete"), this, &LocalFileBrowserWidget::onDelete);
+    contextMenu_->addAction(pixelicons::icon(Icon::NewFolder), tr("New Folder"), this,
+                            &LocalFileBrowserWidget::onNewFolder);
+    contextMenu_->addAction(pixelicons::icon(Icon::Rename), tr("Rename"), this,
+                            &LocalFileBrowserWidget::onRename);
+    contextMenu_->addAction(pixelicons::icon(Icon::Delete), tr("Delete"), this,
+                            &LocalFileBrowserWidget::onDelete);
 }
 
 void LocalFileBrowserWidget::setupConnections()

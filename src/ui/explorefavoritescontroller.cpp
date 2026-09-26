@@ -2,6 +2,7 @@
 
 #include "core/favoritesuicore.h"
 #include "services/favoritesservice.h"
+#include "ui/pixelicons.h"
 #include "utils/logging.h"
 
 #include <QAction>
@@ -35,9 +36,15 @@ void ExploreFavoritesController::updateForPath(const QString &path)
         qCWarning(LogUi) << "updateForPath: toggleFavoriteAction_ or favoritesService_ is null";
         return;
     }
-    bool fav = favoritesService_->isFavorite(path);
-    toggleFavoriteAction_->setChecked(fav);
-    toggleFavoriteAction_->setText(fav ? QString::fromUtf8("⭐") : QString::fromUtf8("☆"));
+    showFavoriteState(toggleFavoriteAction_, favoritesService_->isFavorite(path));
+}
+
+void ExploreFavoritesController::showFavoriteState(QAction *action, bool isFavorite)
+{
+    action->setChecked(isFavorite);
+    action->setText(tr("Favorite"));
+    action->setIcon(pixelicons::icon(isFavorite ? pixeliconcore::Icon::StarFilled
+                                                : pixeliconcore::Icon::StarOutline));
 }
 
 bool ExploreFavoritesController::isFavorite(const QString &path) const
@@ -64,9 +71,7 @@ void ExploreFavoritesController::onToggleFavorite(const QString &path)
     }
 
     if (toggleFavoriteAction_) {
-        toggleFavoriteAction_->setChecked(isNowFavorite);
-        toggleFavoriteAction_->setText(isNowFavorite ? QString::fromUtf8("⭐")
-                                                     : QString::fromUtf8("☆"));
+        showFavoriteState(toggleFavoriteAction_, isNowFavorite);
     }
 }
 

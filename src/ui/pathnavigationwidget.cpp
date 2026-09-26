@@ -1,5 +1,7 @@
 #include "pathnavigationwidget.h"
 
+#include "pixelicons.h"
+
 #include "core/themecore.h"
 
 #include <QHBoxLayout>
@@ -13,7 +15,8 @@ PathNavigationWidget::PathNavigationWidget(QString prefix, QWidget *parent)
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(8);
 
-    upButton_ = new QPushButton(tr("↑ Up"));
+    upButton_ = new QPushButton(pixelicons::icon(pixeliconcore::Icon::Up), tr("Up"));
+    upButton_->setIconSize(QSize(16, 16));
     upButton_->setToolTip(tr("Go to parent folder"));
     connect(upButton_, &QPushButton::clicked, this, &PathNavigationWidget::upClicked);
     layout->addWidget(upButton_);

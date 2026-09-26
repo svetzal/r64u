@@ -32,6 +32,9 @@ signals:
     void statusMessage(const QString &message, int timeout = 0);
 
 private:
+    /// Shows @p isFavorite on the toggle action: checked state, "Favorite" text and star icon.
+    static void showFavoriteState(QAction *action, bool isFavorite);
+
     FavoritesService *favoritesService_ = nullptr;
     QAction *toggleFavoriteAction_ = nullptr;
     QMenu *favoritesMenu_ = nullptr;

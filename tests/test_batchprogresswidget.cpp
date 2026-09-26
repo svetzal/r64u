@@ -20,8 +20,8 @@
 #include <QLabel>
 #include <QLocale>
 #include <QProgressBar>
-#include <QPushButton>
 #include <QSignalSpy>
+#include <QToolButton>
 #include <QtTest>
 
 namespace {
@@ -329,7 +329,7 @@ private slots:
         BatchProgressWidget widget(42);
         QSignalSpy spy(&widget, &BatchProgressWidget::cancelRequested);
 
-        auto *cancelButton = widget.findChild<QPushButton *>();
+        auto *cancelButton = widget.findChild<QToolButton *>();
         QVERIFY(cancelButton != nullptr);
         cancelButton->click();
 

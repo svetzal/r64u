@@ -1,5 +1,7 @@
 #include "batchprogresswidget.h"
 
+#include "pixelicons.h"
+
 #include "core/themecore.h"
 
 #include <QHBoxLayout>
@@ -46,12 +48,15 @@ void BatchProgressWidget::setupUi()
     progressBar_->setTextVisible(false);
     layout->addWidget(progressBar_, 1);
 
-    cancelButton_ = new QPushButton(tr("X"));
-    cancelButton_->setMaximumWidth(30);
+    cancelButton_ = new QToolButton();
+    cancelButton_->setIcon(pixelicons::icon(pixeliconcore::Icon::Cancel));
+    cancelButton_->setIconSize(QSize(16, 16));
+    cancelButton_->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    cancelButton_->setAutoRaise(true);
     cancelButton_->setToolTip(tr("Cancel this operation"));
     layout->addWidget(cancelButton_);
 
-    connect(cancelButton_, &QPushButton::clicked, this,
+    connect(cancelButton_, &QToolButton::clicked, this,
             [this]() { emit cancelRequested(batchId_); });
 
     updateStateAppearance();
@@ -135,7 +140,7 @@ void BatchProgressWidget::updateProgress(const BatchProgress &progress)
     }
 
     // Update icon based on operation type
-    iconLabel_->setText(operationIcon(operationType_));
+    showOperationIcon(operationType_);
 }
 
 void BatchProgressWidget::setState(State state)
@@ -164,7 +169,12 @@ void BatchProgressWidget::setActive(bool active)
 void BatchProgressWidget::setOperationType(OperationType type)
 {
     operationType_ = type;
-    iconLabel_->setText(operationIcon(type));
+    showOperationIcon(type);
+}
+
+void BatchProgressWidget::showOperationIcon(OperationType type)
+{
+    iconLabel_->setPixmap(pixelicons::icon(operationIcon(type)).pixmap(QSize(16, 16)));
 }
 
 void BatchProgressWidget::updateStateAppearance()
@@ -209,16 +219,15 @@ void BatchProgressWidget::updateStateAppearance()
     }
 }
 
-QString BatchProgressWidget::operationIcon(OperationType type) const
+pixeliconcore::Icon BatchProgressWidget::operationIcon(OperationType type)
 {
-    // Use simple text icons - could be replaced with actual icons later
     switch (type) {
     case OperationType::Upload:
-        return QString::fromUtf8("\u2191");  // Up arrow
+        return pixeliconcore::Icon::Upload;
     case OperationType::Download:
-        return QString::fromUtf8("\u2193");  // Down arrow
+        return pixeliconcore::Icon::Download;
     case OperationType::Delete:
-        return QString::fromUtf8("\u2717");  // X mark
+        return pixeliconcore::Icon::Delete;
     }
-    return QString();
+    return pixeliconcore::Icon::Download;
 }

@@ -1,6 +1,7 @@
 #include "explorecontextmenucontroller.h"
 
 #include "explorepanelcore.h"
+#include "pixelicons.h"
 
 #include "core/filetypecore.h"
 
@@ -10,9 +11,10 @@
 
 ExploreContextMenuController::ExploreContextMenuController(QObject *parent) : QObject(parent)
 {
+    using pixeliconcore::Icon;
     contextMenu_ = new QMenu();
 
-    contextPlayAction_ = contextMenu_->addAction(tr("Play"));
+    contextPlayAction_ = contextMenu_->addAction(pixelicons::icon(Icon::Play), tr("Play"));
     connect(contextPlayAction_, &QAction::triggered, this,
             &ExploreContextMenuController::playRequested);
 
@@ -20,39 +22,45 @@ ExploreContextMenuController::ExploreContextMenuController(QObject *parent) : QO
     connect(contextAddToPlaylistAction_, &QAction::triggered, this,
             &ExploreContextMenuController::addToPlaylistRequested);
 
-    contextRunAction_ = contextMenu_->addAction(tr("Run"));
+    contextRunAction_ = contextMenu_->addAction(pixelicons::icon(Icon::Run), tr("Run"));
     connect(contextRunAction_, &QAction::triggered, this,
             &ExploreContextMenuController::runRequested);
 
-    contextLoadConfigAction_ = contextMenu_->addAction(tr("Load Config"));
+    contextLoadConfigAction_ =
+        contextMenu_->addAction(pixelicons::icon(Icon::Config), tr("Load Config"));
     connect(contextLoadConfigAction_, &QAction::triggered, this,
             &ExploreContextMenuController::loadConfigRequested);
 
     contextMenu_->addSeparator();
 
-    contextMountAAction_ = contextMenu_->addAction(tr("Mount to Drive A"));
+    contextMountAAction_ =
+        contextMenu_->addAction(pixelicons::icon(Icon::Mount), tr("Mount to Drive A"));
     connect(contextMountAAction_, &QAction::triggered, this,
             &ExploreContextMenuController::mountARequested);
 
-    contextMountBAction_ = contextMenu_->addAction(tr("Mount to Drive B"));
+    contextMountBAction_ =
+        contextMenu_->addAction(pixelicons::icon(Icon::Mount), tr("Mount to Drive B"));
     connect(contextMountBAction_, &QAction::triggered, this,
             &ExploreContextMenuController::mountBRequested);
 
     contextMenu_->addSeparator();
 
-    contextDownloadAction_ = contextMenu_->addAction(tr("Download"));
+    contextDownloadAction_ =
+        contextMenu_->addAction(pixelicons::icon(Icon::Download), tr("Download"));
     connect(contextDownloadAction_, &QAction::triggered, this,
             &ExploreContextMenuController::downloadRequested);
 
     contextMenu_->addSeparator();
 
-    contextToggleFavoriteAction_ = contextMenu_->addAction(tr("Toggle Favorite"));
+    contextToggleFavoriteAction_ =
+        contextMenu_->addAction(pixelicons::icon(Icon::StarOutline), tr("Toggle Favorite"));
     connect(contextToggleFavoriteAction_, &QAction::triggered, this,
             &ExploreContextMenuController::toggleFavoriteRequested);
 
     contextMenu_->addSeparator();
 
-    QAction *refreshAction = contextMenu_->addAction(tr("Refresh"));
+    QAction *refreshAction =
+        contextMenu_->addAction(pixelicons::icon(Icon::Refresh), tr("Refresh"));
     connect(refreshAction, &QAction::triggered, this,
             &ExploreContextMenuController::refreshRequested);
 }
@@ -69,6 +77,8 @@ void ExploreContextMenuController::prepareMenu(const explorepanel::ActionEnablem
     contextDownloadAction_->setEnabled(enablement.canDownload);
     contextToggleFavoriteAction_->setText(isFavorite ? tr("Remove from Favorites")
                                                      : tr("Add to Favorites"));
+    contextToggleFavoriteAction_->setIcon(pixelicons::icon(
+        isFavorite ? pixeliconcore::Icon::StarFilled : pixeliconcore::Icon::StarOutline));
 }
 
 void ExploreContextMenuController::showForSelection(

@@ -10,6 +10,7 @@
 
 #include "services/favoritesservice.h"
 #include "ui/explorefavoritescontroller.h"
+#include "ui/pixelicons.h"
 
 #include <QAction>
 #include <QMenu>
@@ -231,7 +232,9 @@ private slots:
         controller_->updateForPath("/SD/Music/unknown.sid");
 
         QVERIFY(!toggleAction.isChecked());
-        QCOMPARE(toggleAction.text(), QString::fromUtf8("☆"));
+        QCOMPARE(toggleAction.text(), QString("Favorite"));
+        QCOMPARE(toggleAction.icon().cacheKey(),
+                 pixelicons::icon(pixeliconcore::Icon::StarOutline).cacheKey());
     }
 
     // -----------------------------------------------------------------------
@@ -249,7 +252,9 @@ private slots:
         controller_->updateForPath("/SD/Music/song.sid");
 
         QVERIFY(toggleAction.isChecked());
-        QCOMPARE(toggleAction.text(), QString::fromUtf8("⭐"));
+        QCOMPARE(toggleAction.text(), QString("Favorite"));
+        QCOMPARE(toggleAction.icon().cacheKey(),
+                 pixelicons::icon(pixeliconcore::Icon::StarFilled).cacheKey());
     }
 
     // -----------------------------------------------------------------------

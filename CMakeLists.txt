@@ -226,6 +226,8 @@ set(HEADERS
     src/ui/playlistwidget.h
     src/ui/theme.h
     src/core/themecore.h
+    src/core/pixeliconcore.h
+    src/ui/pixelicons.h
     src/core/c64screenstyle.h
     src/core/c64screencore.h
     src/ui/c64screenwidget.h

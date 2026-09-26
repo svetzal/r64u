@@ -5,6 +5,8 @@
 
 #include "playlistwidget.h"
 
+#include "pixelicons.h"
+
 #include "core/playlistcore.h"
 #include "services/playlistservice.h"
 
@@ -60,21 +62,22 @@ void PlaylistWidget::setupUi()
     // Control toolbar
     controlBar_ = new QToolBar();
     controlBar_->setIconSize(QSize(16, 16));
-    controlBar_->setToolButtonStyle(Qt::ToolButtonTextOnly);
+    controlBar_->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
-    playPauseAction_ = controlBar_->addAction(QString::fromUtf8("\u25B6"));  // Play triangle
+    using pixeliconcore::Icon;
+    playPauseAction_ = controlBar_->addAction(pixelicons::icon(Icon::PlaylistPlay), tr("Play"));
     playPauseAction_->setToolTip(tr("Play"));
     connect(playPauseAction_, &QAction::triggered, this, &PlaylistWidget::onPlayPause);
 
-    stopAction_ = controlBar_->addAction(QString::fromUtf8("\u25A0"));  // Stop square
+    stopAction_ = controlBar_->addAction(pixelicons::icon(Icon::PlaylistStop), tr("Stop"));
     stopAction_->setToolTip(tr("Stop (resets C64)"));
     connect(stopAction_, &QAction::triggered, this, &PlaylistWidget::onStop);
 
-    prevAction_ = controlBar_->addAction(QString::fromUtf8("\u23EE"));  // Previous
+    prevAction_ = controlBar_->addAction(pixelicons::icon(Icon::Previous), tr("Previous"));
     prevAction_->setToolTip(tr("Previous track"));
     connect(prevAction_, &QAction::triggered, this, &PlaylistWidget::onPrevious);
 
-    nextAction_ = controlBar_->addAction(QString::fromUtf8("\u23ED"));  // Next
+    nextAction_ = controlBar_->addAction(pixelicons::icon(Icon::Next), tr("Next"));
     nextAction_->setToolTip(tr("Next track"));
     connect(nextAction_, &QAction::triggered, this, &PlaylistWidget::onNext);
 
@@ -87,30 +90,33 @@ void PlaylistWidget::setupUi()
 
     controlBar_->addSeparator();
 
-    shuffleAction_ = controlBar_->addAction(QString::fromUtf8("\U0001F500"));  // Shuffle
+    shuffleAction_ = controlBar_->addAction(pixelicons::icon(Icon::Shuffle), tr("Shuffle"));
     shuffleAction_->setToolTip(tr("Toggle shuffle"));
     shuffleAction_->setCheckable(true);
     shuffleAction_->setChecked(manager_->shuffle());
     connect(shuffleAction_, &QAction::triggered, this, &PlaylistWidget::onShuffleToggle);
 
-    repeatAction_ = controlBar_->addAction(QString::fromUtf8("\U0001F501"));  // Repeat
+    repeatAction_ = controlBar_->addAction(pixelicons::icon(Icon::Repeat), tr("Repeat"));
     repeatAction_->setToolTip(tr("Cycle repeat mode (Off -> All -> One)"));
     connect(repeatAction_, &QAction::triggered, this, &PlaylistWidget::onRepeatCycle);
     updateRepeatButton();
 
     controlBar_->addSeparator();
 
-    saveAction_ = controlBar_->addAction(tr("Save"));
+    saveAction_ = controlBar_->addAction(pixelicons::icon(Icon::Save), tr("Save"));
+    showTextBesideIcon(saveAction_);
     saveAction_->setToolTip(tr("Save playlist to file"));
     connect(saveAction_, &QAction::triggered, this, &PlaylistWidget::onSavePlaylist);
 
-    loadAction_ = controlBar_->addAction(tr("Load"));
+    loadAction_ = controlBar_->addAction(pixelicons::icon(Icon::Load), tr("Load"));
+    showTextBesideIcon(loadAction_);
     loadAction_->setToolTip(tr("Load playlist from file"));
     connect(loadAction_, &QAction::triggered, this, &PlaylistWidget::onLoadPlaylist);
 
     controlBar_->addSeparator();
 
-    clearAction_ = controlBar_->addAction(tr("Clear"));
+    clearAction_ = controlBar_->addAction(pixelicons::icon(Icon::Clear), tr("Clear"));
+    showTextBesideIcon(clearAction_);
     clearAction_->setToolTip(tr("Clear playlist"));
     connect(clearAction_, &QAction::triggered, this, &PlaylistWidget::onClear);
 
@@ -123,6 +129,7 @@ void PlaylistWidget::setupUi()
     treeWidget_->setSelectionMode(QAbstractItemView::SingleSelection);
     treeWidget_->setRootIsDecorated(false);
     treeWidget_->setHeaderLabels({QString(), tr("#"), tr("Title"), tr("Length")});
+    treeWidget_->setIconSize(QSize(16, 16));
     treeWidget_->setColumnWidth(0, 24);  // Play marker
     treeWidget_->setColumnWidth(1, 30);  // Track number
     treeWidget_->setColumnWidth(3, 50);  // Length
@@ -432,6 +439,13 @@ void PlaylistWidget::updateControlsState()
     saveAction_->setEnabled(hasItems);
 }
 
+void PlaylistWidget::showTextBesideIcon(QAction *action)
+{
+    if (auto *button = qobject_cast<QToolButton *>(controlBar_->widgetForAction(action))) {
+        button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    }
+}
+
 void PlaylistWidget::updateShuffleButton()
 {
     if (manager_->shuffle()) {
@@ -445,15 +459,15 @@ void PlaylistWidget::updateRepeatButton()
 {
     switch (manager_->repeatMode()) {
     case PlaylistService::RepeatMode::Off:
-        repeatAction_->setText(QString::fromUtf8("\U0001F501"));  // Normal repeat icon
+        repeatAction_->setIcon(pixelicons::icon(pixeliconcore::Icon::Repeat));
         repeatAction_->setToolTip(tr("Repeat: OFF"));
         break;
     case PlaylistService::RepeatMode::All:
-        repeatAction_->setText(QString::fromUtf8("\U0001F501"));  // Repeat icon
+        repeatAction_->setIcon(pixelicons::icon(pixeliconcore::Icon::Repeat));
         repeatAction_->setToolTip(tr("Repeat: ALL"));
         break;
     case PlaylistService::RepeatMode::One:
-        repeatAction_->setText(QString::fromUtf8("\U0001F502"));  // Repeat one icon
+        repeatAction_->setIcon(pixelicons::icon(pixeliconcore::Icon::RepeatOne));
         repeatAction_->setToolTip(tr("Repeat: ONE"));
         break;
     }
@@ -471,10 +485,11 @@ void PlaylistWidget::highlightCurrentItem()
         if (i == currentIndex) {
             font.setBold(true);
             // Show play indicator in first column
-            item->setText(0, isPlaying ? QString::fromUtf8("\u25B6") : QString());
+            item->setIcon(0, isPlaying ? pixelicons::icon(pixeliconcore::Icon::PlaylistPlay)
+                                       : QIcon());
         } else {
             font.setBold(false);
-            item->setText(0, QString());
+            item->setIcon(0, QIcon());
         }
 
         // Apply font to all columns

@@ -6,7 +6,6 @@
  *  - isStale(): TTL-disabled, invalid timestamp, age-below-TTL, age-at/over-TTL
  *  - sortEntries(): directories-first ordering, case-insensitive alphabetical sort
  *  - childPath(): path separator handling
- *  - standardPixmapFor(): file-type to standard-pixmap mapping
  */
 
 #include "core/remotefiletreecore.h"
@@ -148,70 +147,6 @@ private slots:
     {
         // Degenerate case — empty parent gets a leading slash injected
         QCOMPARE(remotefiletree::childPath("", "file.prg"), QString("/file.prg"));
-    }
-
-    // =========================================================================
-    // standardPixmapFor() — file-type to QStyle::StandardPixmap
-    // =========================================================================
-
-    void standardPixmapFor_Directory_ReturnsDirIcon()
-    {
-        QCOMPARE(remotefiletree::standardPixmapFor(filetype::FileType::Directory),
-                 QStyle::SP_DirIcon);
-    }
-
-    void standardPixmapFor_SidMusic_ReturnsMediaVolume()
-    {
-        QCOMPARE(remotefiletree::standardPixmapFor(filetype::FileType::SidMusic),
-                 QStyle::SP_MediaVolume);
-    }
-
-    void standardPixmapFor_ModMusic_ReturnsMediaVolume()
-    {
-        QCOMPARE(remotefiletree::standardPixmapFor(filetype::FileType::ModMusic),
-                 QStyle::SP_MediaVolume);
-    }
-
-    void standardPixmapFor_Program_ReturnsFileIcon()
-    {
-        QCOMPARE(remotefiletree::standardPixmapFor(filetype::FileType::Program),
-                 QStyle::SP_FileIcon);
-    }
-
-    void standardPixmapFor_Cartridge_ReturnsDriveHDIcon()
-    {
-        QCOMPARE(remotefiletree::standardPixmapFor(filetype::FileType::Cartridge),
-                 QStyle::SP_DriveHDIcon);
-    }
-
-    void standardPixmapFor_DiskImage_ReturnsDriveFDIcon()
-    {
-        QCOMPARE(remotefiletree::standardPixmapFor(filetype::FileType::DiskImage),
-                 QStyle::SP_DriveFDIcon);
-    }
-
-    void standardPixmapFor_TapeImage_ReturnsDriveCDIcon()
-    {
-        QCOMPARE(remotefiletree::standardPixmapFor(filetype::FileType::TapeImage),
-                 QStyle::SP_DriveCDIcon);
-    }
-
-    void standardPixmapFor_Rom_ReturnsDetailedViewIcon()
-    {
-        QCOMPARE(remotefiletree::standardPixmapFor(filetype::FileType::Rom),
-                 QStyle::SP_FileDialogDetailedView);
-    }
-
-    void standardPixmapFor_Config_ReturnsInfoViewIcon()
-    {
-        QCOMPARE(remotefiletree::standardPixmapFor(filetype::FileType::Config),
-                 QStyle::SP_FileDialogInfoView);
-    }
-
-    void standardPixmapFor_Unknown_ReturnsFileIcon()
-    {
-        QCOMPARE(remotefiletree::standardPixmapFor(filetype::FileType::Unknown),
-                 QStyle::SP_FileIcon);
     }
 };
 
