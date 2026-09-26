@@ -47,6 +47,7 @@ public:
     static constexpr int BytesPerFrame = 4;
 
     explicit AudioPlaybackService(QObject *parent = nullptr);
+    /// Stops playback without emitting playbackStateChanged.
     ~AudioPlaybackService() override;
 
     bool start() override;
@@ -93,6 +94,8 @@ private slots:
     void onStateChanged(QAudio::State state);
 
 private:
+    /// Stops and releases the audio sink. Emits nothing.
+    void releaseSink();
     void createAudioSink();
 
     std::unique_ptr<QAudioSink> audioSink_;

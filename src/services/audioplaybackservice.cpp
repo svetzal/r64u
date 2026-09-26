@@ -20,7 +20,13 @@ AudioPlaybackService::AudioPlaybackService(QObject *parent) : IAudioPlaybackServ
 
 AudioPlaybackService::~AudioPlaybackService()
 {
-    stop();
+    // Release the sink but notify no one: observers may be part-way through
+    // their own destruction when this runs. Stopping the sink reports its state
+    // change back to onStateChanged(), so detach from it first.
+    if (audioSink_) {
+        audioSink_->disconnect(this);
+    }
+    releaseSink();
 }
 
 bool AudioPlaybackService::start()
@@ -61,13 +67,18 @@ void AudioPlaybackService::stop()
         return;
     }
 
+    releaseSink();
+    emit playbackStateChanged(false);
+}
+
+void AudioPlaybackService::releaseSink()
+{
     if (audioSink_) {
         audioSink_->stop();
         audioSink_.reset();
     }
     audioDevice_ = nullptr;
     isPlaying_ = false;
-    emit playbackStateChanged(false);
 }
 
 void AudioPlaybackService::setSampleRate(int rate)

@@ -187,6 +187,22 @@ private slots:
         QVERIFY(true);  // no crash
     }
 
+    void testDestructor_WhilePlaying_StopsWithoutNotifying()
+    {
+        if (!hasAudioDevice()) {
+            QSKIP("No audio output device available");
+        }
+
+        auto *playback = new AudioPlaybackService();
+        QVERIFY(playback->start());
+        QSignalSpy stateSpy(playback, &AudioPlaybackService::playbackStateChanged);
+
+        delete playback;
+
+        // Observers may be mid-destruction themselves when the owner tears down
+        QCOMPARE(stateSpy.count(), 0);
+    }
+
 private:
     AudioPlaybackService *service_ = nullptr;
 };
