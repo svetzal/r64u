@@ -20,6 +20,7 @@
 #include <QImage>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <QtEndian>
 #include <QtTest>
 
 class TestVideoRecordingService : public QObject
@@ -291,6 +292,32 @@ private slots:
         QByteArray first12 = file.read(12);
         // Bytes 8..11 should be "AVI " (RIFF type)
         QCOMPARE(first12.mid(8, 4), QByteArray("AVI "));
+    }
+
+    // =========================================================
+    // Destruction while recording
+    // =========================================================
+
+    void testDestructor_WhileRecording_FinalizesFileWithoutNotifying()
+    {
+        QTemporaryDir dir;
+        const QString path = dir.filePath("quit.avi");
+        auto *service = new VideoRecordingService();
+        QVERIFY(service->startRecording(path));
+        service->addFrame(makeTestFrame());
+        QSignalSpy stoppedSpy(service, &VideoRecordingService::recordingStopped);
+
+        delete service;
+
+        // Observers may be mid-destruction themselves (the owning ViewPanel is)
+        QCOMPARE(stoppedSpy.count(), 0);
+
+        // The recording is still finalized: the RIFF size field covers the whole file
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const QByteArray header = file.read(8);
+        const auto riffSize = qFromLittleEndian<quint32>(header.constData() + 4);
+        QCOMPARE(static_cast<qint64>(riffSize), file.size() - 8);
     }
 
 private:

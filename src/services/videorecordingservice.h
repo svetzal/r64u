@@ -36,6 +36,7 @@ class VideoRecordingService : public IErrorEmitter
 
 public:
     explicit VideoRecordingService(QObject *parent = nullptr);
+    /// Finalizes an in-progress recording without emitting recordingStopped.
     ~VideoRecordingService() override;
 
     /**
@@ -123,6 +124,8 @@ private slots:
                          IVideoStreamReceiverService::VideoFormat format);
 
 private:
+    /// Finalizes and closes the file; returns its path. Emits nothing. Caller holds mutex_.
+    QString finishRecording();
     void writeAviHeader();
     void finalizeAvi();
     void writeChunk(const QByteArray &fourCC, const QByteArray &data);

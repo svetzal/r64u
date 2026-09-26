@@ -63,8 +63,11 @@ void VideoRecordingService::onRawFrameReady(const QByteArray &frameData, quint16
 
 VideoRecordingService::~VideoRecordingService()
 {
+    // Finalize the file but notify no one: observers such as the owning
+    // ViewPanel may be part-way through their own destruction when this runs.
+    QMutexLocker locker(&mutex_);
     if (recording_) {
-        stopRecording();
+        finishRecording();
     }
 }
 
@@ -115,18 +118,24 @@ bool VideoRecordingService::stopRecording()
         return false;
     }
 
+    const int count = frameCount_;
+    const QString path = finishRecording();
+
+    emit recordingStopped(path, count);
+    return true;
+}
+
+QString VideoRecordingService::finishRecording()
+{
     recording_ = false;
 
     // Finalize the AVI file
     finalizeAvi();
     file_.close();
 
-    int count = frameCount_;
     QString path = recordingPath_;
     recordingPath_.clear();
-
-    emit recordingStopped(path, count);
-    return true;
+    return path;
 }
 
 void VideoRecordingService::addFrame(const QImage &frame)
