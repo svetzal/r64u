@@ -47,6 +47,7 @@ qrc_*.cpp
 
 # Stride authentication (contains secrets)
 .stride_auth.md
+.stride/
 
 # Clangd cache
 .cache/
