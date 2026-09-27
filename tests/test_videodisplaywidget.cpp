@@ -17,7 +17,9 @@
 
 #include "ui/videodisplaywidget.h"
 
+#include <QLineEdit>
 #include <QSignalSpy>
+#include <QVBoxLayout>
 #include <QtTest>
 
 class TestVideoDisplayWidget : public QObject
@@ -158,6 +160,38 @@ private slots:
         QCOMPARE(spy.count(), 2);
         QCOMPARE(spy.at(0).at(0).toBool(), true);
         QCOMPARE(spy.at(1).at(0).toBool(), false);
+    }
+
+    void testMouseClick_givesFocusAndEmitsKeyboardFocusChanged()
+    {
+        // Another widget owns focus first, so the click has to take it.
+        QWidget host;
+        auto *layout = new QVBoxLayout(&host);
+        auto *other = new QLineEdit(&host);
+        auto *video = new VideoDisplayWidget(&host);
+        layout->addWidget(other);
+        layout->addWidget(video);
+        host.resize(400, 320);
+        host.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&host));
+        host.activateWindow();
+        other->setFocus();
+        QCoreApplication::processEvents();
+        QVERIFY(other->hasFocus());
+        QVERIFY(!video->hasFocus());
+
+        QSignalSpy spy(video, &VideoDisplayWidget::keyboardFocusChanged);
+        QTest::mouseClick(video, Qt::LeftButton, Qt::NoModifier, video->rect().center());
+        QCoreApplication::processEvents();
+
+        QVERIFY(video->hasFocus());
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toBool(), true);
+
+        // A second click on the already focused widget is idempotent
+        QTest::mouseClick(video, Qt::LeftButton, Qt::NoModifier, video->rect().center());
+        QCoreApplication::processEvents();
+        QCOMPARE(spy.count(), 1);
     }
 
     void testKeyPress_escapeIsNotAcceptedAndNotForwarded()

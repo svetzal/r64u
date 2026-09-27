@@ -44,6 +44,12 @@ ViewPanel::~ViewPanel()
     // before that starts: a slot run from their teardown would act on a
     // half-destroyed panel.
     disconnectFromServices();
+
+    // A focused video widget emits keyboardFocusChanged(false) while ~QWidget
+    // destroys it, by which time this panel's own part is gone.
+    if (videoDisplayWidget_) {
+        disconnect(videoDisplayWidget_, nullptr, this, nullptr);
+    }
 }
 
 void ViewPanel::disconnectFromServices()

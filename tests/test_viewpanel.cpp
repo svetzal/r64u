@@ -443,6 +443,57 @@ private slots:
         QCOMPARE(status->text(), QStringLiteral("Not streaming"));
     }
 
+    void testMouseClickOnVideo_appendsKeysToC64ToStreamStatus()
+    {
+        ViewPanel panel(connection_, makeErrorHandler());
+        panel.resize(900, 700);
+        panel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&panel));
+        panel.activateWindow();
+        auto *video = panel.findChild<VideoDisplayWidget *>();
+        auto *toolBar = panel.findChild<QToolBar *>();
+        QVERIFY(video != nullptr);
+        QVERIFY(toolBar != nullptr);
+        QLabel *status = nullptr;
+        for (QLabel *label : toolBar->findChildren<QLabel *>()) {
+            if (label->text().contains(QStringLiteral("Not streaming"))) {
+                status = label;
+            }
+        }
+        QVERIFY(status != nullptr);
+
+        // Focus starts elsewhere in the panel, so the click has to take it.
+        toolBar->setFocus();
+        video->clearFocus();
+        QCoreApplication::processEvents();
+        QVERIFY(!video->hasFocus());
+        QCOMPARE(status->text(), QStringLiteral("Not streaming"));
+
+        QTest::mouseClick(video, Qt::LeftButton, Qt::NoModifier, video->rect().center());
+        QCoreApplication::processEvents();
+
+        QVERIFY(video->hasFocus());
+        QVERIFY(status->text().endsWith(QStringLiteral("keys to C64")));
+    }
+
+    void testDestroyWhileVideoHasFocus_doesNotActOnTheDestroyedPanel()
+    {
+        // The focused video widget loses focus while ~QWidget destroys it; the
+        // panel's slot must not run on the half-destroyed panel.
+        auto *panel = new ViewPanel(connection_, makeErrorHandler());
+        panel->resize(900, 700);
+        panel->show();
+        QVERIFY(QTest::qWaitForWindowExposed(panel));
+        panel->activateWindow();
+        auto *video = panel->findChild<VideoDisplayWidget *>();
+        QVERIFY(video != nullptr);
+        video->setFocus();
+        QCoreApplication::processEvents();
+        QVERIFY(video->hasFocus());
+
+        delete panel;  // must not assert or crash
+    }
+
     // =========================================================================
     // IPanel contract — statusMessage signal required for PanelCoordinator routing
     // =========================================================================
