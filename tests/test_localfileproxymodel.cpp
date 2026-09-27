@@ -3,6 +3,7 @@
 #include "ui/pixelicons.h"
 
 #include <QCoreApplication>
+#include <QDeadlineTimer>
 #include <QDir>
 #include <QFile>
 #include <QFileSystemModel>
@@ -35,6 +36,39 @@ private:
                 if (fsModel_->fileName(nameIdx) == name) {
                     return i;
                 }
+            }
+        }
+        return -1;
+    }
+
+    // Block until the spied model reports that it finished listing `path`, or the timeout
+    // elapses. Listings of other directories may complete in between, so every
+    // emission is checked rather than only the first.
+    static bool waitForDirectoryLoaded(QSignalSpy &loadedSpy, const QString &path,
+                                       int timeoutMs = 5000)
+    {
+        QDeadlineTimer deadline(timeoutMs);
+        int checked = 0;
+        for (;;) {
+            for (; checked < loadedSpy.count(); ++checked) {
+                if (loadedSpy.at(checked).at(0).toString() == path) {
+                    return true;
+                }
+            }
+            if (deadline.hasExpired() ||
+                !loadedSpy.wait(static_cast<int>(deadline.remainingTime()))) {
+                return false;
+            }
+        }
+    }
+
+    // Row of the named entry under rootIdx in `model`, or -1 when absent. Unlike
+    // waitForEntry this does not wait: the caller has already synchronised.
+    static int rowOf(const QFileSystemModel &model, const QModelIndex &rootIdx, const QString &name)
+    {
+        for (int i = 0; i < model.rowCount(rootIdx); i++) {
+            if (model.fileName(model.index(i, 0, rootIdx)) == name) {
+                return i;
             }
         }
         return -1;
@@ -77,26 +111,42 @@ private slots:
 
     void testDataDecorationRole_UsesPixelIconForFileTypeAndFolder()
     {
-        QFile file(tempDir_->filePath("game.prg"));
+        // This test owns a model rooted at a directory whose entries already
+        // exist, so the root listing itself delivers them and directoryLoaded
+        // marks when it is done. Reusing fsModel_ would race: init() started
+        // listing the temp dir before the entries existed, and additions
+        // noticed afterwards depend on the file watcher, which is what made
+        // this test flaky under a loaded machine.
+        QDir dataDir(tempDir_->path());
+        QVERIFY(dataDir.mkdir("data"));
+        QVERIFY(dataDir.cd("data"));
+        QFile file(dataDir.filePath("game.prg"));
         QVERIFY(file.open(QIODevice::WriteOnly));
         file.write("x");
         file.close();
-        QVERIFY(QDir(tempDir_->path()).mkdir("subdir"));
+        QVERIFY(dataDir.mkdir("subdir"));
 
-        QModelIndex rootIdx = fsModel_->index(tempDir_->path());
-        const int fileRow = waitForEntry(rootIdx, "game.prg");
+        QFileSystemModel model;
+        LocalFileProxyModel proxy;
+        proxy.setSourceModel(&model);
+        QSignalSpy loadedSpy(&model, &QFileSystemModel::directoryLoaded);
+        const QModelIndex rootIdx = model.setRootPath(dataDir.path());
+        QVERIFY(rootIdx.isValid());
+        QVERIFY(waitForDirectoryLoaded(loadedSpy, model.filePath(rootIdx)));
+
+        QCOMPARE(model.rowCount(rootIdx), 2);
+        const int fileRow = rowOf(model, rootIdx, "game.prg");
         QVERIFY(fileRow >= 0);
-        const int dirRow = waitForEntry(rootIdx, "subdir");
+        const int dirRow = rowOf(model, rootIdx, "subdir");
         QVERIFY(dirRow >= 0);
 
-        const QModelIndex fileIdx =
-            proxyModel_->mapFromSource(fsModel_->index(fileRow, 0, rootIdx));
-        const QIcon fileIcon = proxyModel_->data(fileIdx, Qt::DecorationRole).value<QIcon>();
+        const QModelIndex fileIdx = proxy.mapFromSource(model.index(fileRow, 0, rootIdx));
+        const QIcon fileIcon = proxy.data(fileIdx, Qt::DecorationRole).value<QIcon>();
         QCOMPARE(fileIcon.cacheKey(),
                  pixelicons::fileTypeIcon(filetype::FileType::Program).cacheKey());
 
-        const QModelIndex dirIdx = proxyModel_->mapFromSource(fsModel_->index(dirRow, 0, rootIdx));
-        const QIcon dirIcon = proxyModel_->data(dirIdx, Qt::DecorationRole).value<QIcon>();
+        const QModelIndex dirIdx = proxy.mapFromSource(model.index(dirRow, 0, rootIdx));
+        const QIcon dirIcon = proxy.data(dirIdx, Qt::DecorationRole).value<QIcon>();
         QCOMPARE(dirIcon.cacheKey(),
                  pixelicons::fileTypeIcon(filetype::FileType::Directory).cacheKey());
     }
