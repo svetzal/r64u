@@ -5,7 +5,36 @@
 
 #include "configfiltercore.h"
 
+#include <algorithm>
+#include <array>
+#include <utility>
+
 namespace configfiltercore {
+
+namespace {
+
+// The dropdown pairs offered for string values that read as booleans
+const std::array<std::pair<const char *, const char *>, 4> kBooleanPairs = {{
+    {"Yes", "No"},
+    {"Enabled", "Disabled"},
+    {"On", "Off"},
+    {"True", "False"},
+}};
+
+bool hasOwnEditor(const QVariant &value)
+{
+    switch (value.typeId()) {
+    case QMetaType::Bool:
+    case QMetaType::Int:
+    case QMetaType::LongLong:
+    case QMetaType::Double:
+        return true;
+    default:
+        return false;
+    }
+}
+
+}  // namespace
 
 QString normalizeFilter(const QString &text)
 {
@@ -17,14 +46,40 @@ bool isFilterActive(const QString &text)
     return !normalizeFilter(text).isEmpty();
 }
 
-bool matches(const QString &category, const QString &item, const QString &filter)
+bool matches(const QString &category, const QString &item, const QStringList &choices,
+             const QString &filter)
 {
     const QString needle = normalizeFilter(filter);
     if (needle.isEmpty()) {
         return true;
     }
-    return item.contains(needle, Qt::CaseInsensitive) ||
-           category.contains(needle, Qt::CaseInsensitive);
+    if (item.contains(needle, Qt::CaseInsensitive) ||
+        category.contains(needle, Qt::CaseInsensitive)) {
+        return true;
+    }
+    return std::any_of(choices.cbegin(), choices.cend(), [&needle](const QString &choice) {
+        return choice.contains(needle, Qt::CaseInsensitive);
+    });
+}
+
+QStringList editorChoices(const QVariant &value, const QStringList &options)
+{
+    if (!options.isEmpty()) {
+        return options;
+    }
+    if (hasOwnEditor(value)) {
+        return {};
+    }
+    const QString text = value.toString();
+    for (const auto &[first, second] : kBooleanPairs) {
+        const QString on = QString::fromLatin1(first);
+        const QString off = QString::fromLatin1(second);
+        if (text.compare(on, Qt::CaseInsensitive) == 0 ||
+            text.compare(off, Qt::CaseInsensitive) == 0) {
+            return {on, off};
+        }
+    }
+    return {};
 }
 
 QList<CategoryItems> filterSnapshot(const QList<CategoryItems> &snapshot, const QString &filter)
@@ -35,8 +90,12 @@ QList<CategoryItems> filterSnapshot(const QList<CategoryItems> &snapshot, const 
         CategoryItems kept;
         kept.category = group.category;
         for (const QString &item : group.items) {
-            if (matches(group.category, item, filter)) {
+            const QStringList choices = group.choices.value(item);
+            if (matches(group.category, item, choices, filter)) {
                 kept.items.append(item);
+                if (!choices.isEmpty()) {
+                    kept.choices.insert(item, choices);
+                }
             }
         }
         if (active && kept.items.isEmpty()) {
@@ -69,6 +128,17 @@ int columnCountForWidth(int width, int threshold)
         return 1;
     }
     return 2;
+}
+
+int scrollValueToReveal(int value, int viewportHeight, int top, int bottom)
+{
+    if (bottom - top > viewportHeight || top < value) {
+        return top;
+    }
+    if (bottom > value + viewportHeight) {
+        return bottom - viewportHeight;
+    }
+    return value;
 }
 
 QString itemKey(const QString &category, const QString &item)

@@ -23,6 +23,10 @@
  *   stretch across a wide column, while a combo never clips its longest option
  * - Every editor sits directly beside its right-aligned label, one grid spacing
  *   away, in both the one- and two-column layouts, and keeps its capped width
+ * - The filter also matches the choices a dropdown offers, never current values
+ * - setCategory() under a filter spanning categories scrolls that category's
+ *   group fully into view (header at the top when the group is taller than the
+ *   viewport), and leaves the scroll position alone otherwise
  */
 
 #include "models/configurationmodel.h"
@@ -34,6 +38,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QSignalSpy>
 #include <QSpinBox>
 #include <QtTest>
@@ -196,6 +201,78 @@ private:
         QVERIFY2(gap > 0 && gap <= kMaxLabelEditorGap,
                  qPrintable(
                      QStringLiteral("gap %1 px, expected 1..%2").arg(gap).arg(kMaxLabelEditorGap)));
+    }
+
+    // Categories whose "Setting N" spin boxes all match "setting", so a filter on it spans
+    // them: Alpha..Golf hold three each, Hotel twelve (taller than a short viewport), and
+    // India holds only an item the filter does not match.
+    ConfigurationModel *makeModelForScrolling()
+    {
+        auto *model = new ConfigurationModel(this);
+        const QStringList shortGroups = {"Alpha", "Bravo",   "Charlie", "Delta",
+                                         "Echo",  "Foxtrot", "Golf"};
+        QStringList categories = shortGroups;
+        categories.insert(3, QStringLiteral("Hotel"));
+        categories.append(QStringLiteral("India"));
+        model->setCategories(categories);
+        for (const QString &category : shortGroups) {
+            model->setCategoryItems(category, numberedSettings(kShortGroupSize));
+        }
+        model->setCategoryItems("Hotel", numberedSettings(kTallGroupSize));
+        model->setCategoryItems("India", {{QStringLiteral("Unrelated"), 1}});
+        return model;
+    }
+
+    static constexpr int kShortGroupSize = 3;
+    static constexpr int kTallGroupSize = 12;
+    static constexpr int kShortPanelWidth = 600;
+    static constexpr int kShortPanelHeight = 200;
+
+    static QHash<QString, QVariant> numberedSettings(int count)
+    {
+        QHash<QString, QVariant> items;
+        for (int i = 1; i <= count; ++i) {
+            items.insert(QStringLiteral("Setting %1").arg(i, 2, 10, QLatin1Char('0')), i);
+        }
+        return items;
+    }
+
+    static QScrollArea *scrollAreaOf(const QWidget &panel)
+    {
+        return panel.findChild<QScrollArea *>();
+    }
+
+    static QLabel *headerFor(const QWidget &panel, const QString &category)
+    {
+        const auto headers = panel.findChildren<QLabel *>(QStringLiteral("categoryHeader"));
+        for (QLabel *header : headers) {
+            if (header->text() == category) {
+                return header;
+            }
+        }
+        return nullptr;
+    }
+
+    // A widget's geometry in the scroll area's viewport coordinates
+    static QRect inViewport(const QScrollArea &area, const QWidget &widget)
+    {
+        return {widget.mapTo(area.viewport(), QPoint(0, 0)), widget.size()};
+    }
+
+    // Header through last editor of a category's group lie inside the viewport
+    static bool groupFullyVisible(const QWidget &panel, const QString &category,
+                                  const QString &lastItem)
+    {
+        auto *area = scrollAreaOf(panel);
+        auto *header = headerFor(panel, category);
+        auto *lastEditor =
+            panel.findChild<QWidget *>(category + QLatin1Char('/') + lastItem + ":editor");
+        if (area == nullptr || header == nullptr || lastEditor == nullptr) {
+            return false;
+        }
+        const QRect viewport = area->viewport()->rect();
+        return viewport.contains(inViewport(*area, *header)) &&
+               viewport.contains(inViewport(*area, *lastEditor));
     }
 
     static void showAtWidth(ConfigItemsPanel &panel, int width)
@@ -760,6 +837,142 @@ private slots:
         model->setCategoryItems("Audio", audioItems);
 
         QCOMPARE(panel.visibleItems(), QStringList({"Audio/VolumeLeft", "Audio/VolumeRight"}));
+    }
+
+    // =========================================================================
+    // setFilter() — matches the choices a dropdown offers, never current values
+    // =========================================================================
+
+    void testSetFilter_TermOnlyInAComboOption_ShowsThatItem()
+    {
+        auto *model = makeModelWithEveryEditorKind();
+        ConfigItemsPanel panel(model);
+        panel.setCategory("Network");
+
+        // NTSC is an option of System Mode, not its current value (PAL)
+        panel.setFilter("ntsc");
+
+        QCOMPARE(panel.visibleItems(), QStringList({"Video/System Mode"}));
+    }
+
+    void testSetFilter_TermOnlyInTheBooleanPair_ShowsThatItem()
+    {
+        auto *model = makeModelWithEveryEditorKind();
+        ConfigItemsPanel panel(model);
+        panel.setCategory("Network");
+
+        // Scanlines is "Enabled"; its dropdown also offers "Disabled"
+        panel.setFilter("DISABLED");
+
+        QCOMPARE(panel.visibleItems(), QStringList({"Video/Scanlines"}));
+    }
+
+    void testSetFilter_CurrentValuesOfOtherEditors_NeverMatch()
+    {
+        auto *model = makeModelWithEveryEditorKind();
+        ConfigItemsPanel panel(model);
+        panel.setCategory("Network");
+
+        panel.setFilter("device.local");  // the Hostname line edit's text
+        QVERIFY(panel.visibleItems().isEmpty());
+
+        panel.setFilter("21");  // the Port spin box's number
+        QVERIFY(panel.visibleItems().isEmpty());
+    }
+
+    // =========================================================================
+    // setCategory() under a filter — scrolls the category's group into view
+    // =========================================================================
+
+    void testSetCategory_UnderFilter_ScrollsGroupNearBottomIntoView()
+    {
+        auto *model = makeModelForScrolling();
+        ConfigItemsPanel panel(model);
+        panel.resize(kShortPanelWidth, kShortPanelHeight);
+        panel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&panel));
+        panel.setFilter("setting");
+        QVERIFY(panel.headerCategories().contains("Golf"));
+        auto *vbar = scrollAreaOf(panel)->verticalScrollBar();
+        QTRY_VERIFY(vbar->maximum() > 0);  // the filtered items have been laid out
+        QCOMPARE(vbar->value(), 0);
+        QVERIFY(!groupFullyVisible(panel, "Golf", "Setting 03"));
+
+        panel.setCategory("Golf");
+
+        QVERIFY(vbar->value() > 0);
+        QVERIFY(groupFullyVisible(panel, "Golf", "Setting 03"));
+    }
+
+    void testSetCategory_UnderFilter_TallGroupPutsHeaderAtTop()
+    {
+        auto *model = makeModelForScrolling();
+        ConfigItemsPanel panel(model);
+        panel.resize(kShortPanelWidth, kShortPanelHeight);
+        panel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&panel));
+        panel.setFilter("setting");
+
+        panel.setCategory("Hotel");
+
+        auto *area = scrollAreaOf(panel);
+        auto *header = headerFor(panel, "Hotel");
+        QVERIFY(header != nullptr);
+        QVERIFY(area->verticalScrollBar()->value() > 0);
+        QCOMPARE(inViewport(*area, *header).top(), 0);
+    }
+
+    void testSetCategory_UnderFilter_CategoryNotInResults_KeepsScrollPosition()
+    {
+        auto *model = makeModelForScrolling();
+        ConfigItemsPanel panel(model);
+        panel.resize(kShortPanelWidth, kShortPanelHeight);
+        panel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&panel));
+        panel.setFilter("setting");
+        panel.setCategory("Echo");
+        auto *vbar = scrollAreaOf(panel)->verticalScrollBar();
+        const int before = vbar->value();
+        QVERIFY(before > 0);
+
+        panel.setCategory("India");  // loaded, but nothing in it matches
+        QCOMPARE(vbar->value(), before);
+
+        panel.setCategory("Nowhere");  // not a category at all
+        QCOMPARE(vbar->value(), before);
+        QCOMPARE(panel.currentCategory(), QString("Nowhere"));
+    }
+
+    void testSetCategory_UnderFilter_SingleGroup_KeepsScrollPosition()
+    {
+        auto *model = makeModelForScrolling();
+        ConfigItemsPanel panel(model);
+        panel.resize(kShortPanelWidth, kShortPanelHeight);
+        panel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&panel));
+        panel.setFilter("unrelated");
+        QVERIFY(panel.headerCategories().isEmpty());
+
+        panel.setCategory("India");
+
+        QCOMPARE(scrollAreaOf(panel)->verticalScrollBar()->value(), 0);
+        QCOMPARE(panel.visibleItems(), QStringList({"India/Unrelated"}));
+    }
+
+    void testSetCategory_WithoutFilter_ShowsOnlyThatCategory()
+    {
+        auto *model = makeModelForScrolling();
+        ConfigItemsPanel panel(model);
+        panel.resize(kShortPanelWidth, kShortPanelHeight);
+        panel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&panel));
+
+        panel.setCategory("Golf");
+
+        QVERIFY(panel.headerCategories().isEmpty());
+        QCOMPARE(panel.visibleItems(),
+                 QStringList({"Golf/Setting 01", "Golf/Setting 02", "Golf/Setting 03"}));
+        QCOMPARE(scrollAreaOf(panel)->verticalScrollBar()->value(), 0);
     }
 
     void testSetCategory_UnderFilter_KeepsFilteredView()

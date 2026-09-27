@@ -28,7 +28,8 @@ class QResizeEvent;
  *
  * Creates appropriate edit widgets based on item value type:
  * - Boolean -> QCheckBox
- * - Enumerated options -> QComboBox
+ * - Enumerated options, or a string that reads as a boolean -> QComboBox
+ *   offering configfiltercore::editorChoices()
  * - Integer -> QSpinBox
  * - String -> QLineEdit
  *
@@ -50,11 +51,24 @@ public:
      * @brief Sets the category to display.
      *
      * The category is remembered while a filter is active, but the filtered
-     * view is kept until the filter is cleared.
+     * view is kept until the filter is cleared; instead the category's group
+     * is scrolled into view (see revealCategory()).
      *
      * @param category Category name, or empty to clear.
      */
     void setCategory(const QString &category);
+
+    /**
+     * @brief Scrolls a category's group of filter results fully into view.
+     *
+     * Applies only while a filter's matches span more than one category and
+     * the category has a group among them; otherwise the scroll position is
+     * left alone. A group taller than the viewport is scrolled so its header
+     * sits at the top. Changes nothing but the scroll position.
+     *
+     * @param category Category name.
+     */
+    void revealCategory(const QString &category);
 
     /**
      * @brief Returns the currently selected category.
@@ -112,6 +126,12 @@ public:
      */
     void refresh();
 
+    /**
+     * @brief Every category in the model with its loaded item names and the
+     *        choices each item's editor offers, as the filter rules expect.
+     */
+    [[nodiscard]] QList<configfiltercore::CategoryItems> modelSnapshot() const;
+
 signals:
     /**
      * @brief Emitted when a config item value is changed by the user.
@@ -153,7 +173,6 @@ private:
     void populateFiltered();
     void showEmptyState(const QString &message);
     void showItems();
-    [[nodiscard]] QList<configfiltercore::CategoryItems> modelSnapshot() const;
     [[nodiscard]] Entry createEntry(const QString &category, const QString &item);
     [[nodiscard]] QLabel *createHeader(const QString &category);
     QWidget *createEditorWidget(const QString &category, const QString &itemName,
@@ -161,6 +180,7 @@ private:
                                 const QVariant &minValue = QVariant(),
                                 const QVariant &maxValue = QVariant());
     void relayout();
+    void fitContentToLayout();
     void updateLabelStyle(const QString &key, bool isDirty);
 
     ConfigurationModel *model_ = nullptr;

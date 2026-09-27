@@ -62,6 +62,7 @@ private slots:
     void onResetComplete();
     void onDirtyStateChanged(bool isDirty);
     void onCategorySelected(QListWidgetItem *current, QListWidgetItem *previous);
+    void onCategoryClicked(QListWidgetItem *item);
     void onItemEdited(const QString &category, const QString &item, const QVariant &value);
     void onItemSetResult(const QString &category, const QString &item);
     void onFilterTextChanged(const QString &text);

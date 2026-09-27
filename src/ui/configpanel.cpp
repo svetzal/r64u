@@ -98,6 +98,8 @@ void ConfigPanel::setupUi()
     categoryList_->setStyleSheet("QListWidget::item { padding: 4px 8px; }");
     connect(categoryList_, &QListWidget::currentItemChanged, this,
             &ConfigPanel::onCategorySelected);
+    // Clicking the current row again fires no currentItemChanged; still reveal its group
+    connect(categoryList_, &QListWidget::itemClicked, this, &ConfigPanel::onCategoryClicked);
     paneLayout->addWidget(categoryList_, 1);
 
     splitter_->addWidget(categoryPane_);
@@ -165,15 +167,13 @@ void ConfigPanel::onFilterTextChanged(const QString &text)
 
 void ConfigPanel::applyCategoryFilter()
 {
-    if (!categoryList_ || !configModel_ || !filterEdit_) {
+    if (!categoryList_ || !itemsPanel_ || !filterEdit_) {
         return;
     }
 
-    QList<configfiltercore::CategoryItems> snapshot;
-    for (const QString &category : configModel_->categories()) {
-        snapshot.append({category, configModel_->itemNames(category)});
-    }
-    const QStringList visible = configfiltercore::visibleCategories(snapshot, filterEdit_->text());
+    // The items panel's snapshot, so both panes match item names and choices alike
+    const QStringList visible =
+        configfiltercore::visibleCategories(itemsPanel_->modelSnapshot(), filterEdit_->text());
 
     // Rows are hidden rather than removed so the selection and focus survive
     for (int row = 0; row < categoryList_->count(); ++row) {
@@ -388,6 +388,13 @@ void ConfigPanel::onCategorySelected(QListWidgetItem *current, QListWidgetItem *
     if (configModel_ && configModel_->itemCount(category) == 0 && configService_ &&
         configService_->canPerformOperations()) {
         configService_->getConfigCategoryItems(category);
+    }
+}
+
+void ConfigPanel::onCategoryClicked(QListWidgetItem *item)
+{
+    if (item != nullptr && itemsPanel_ != nullptr) {
+        itemsPanel_->revealCategory(item->text());
     }
 }
 

@@ -8,8 +8,11 @@
 #include "ui/configitemspanel.h"
 #include "ui/configpanel.h"
 
+#include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QSplitter>
@@ -118,6 +121,84 @@ private:
             items[name] = meta;
         }
         emit restClient->configCategoryItemsReceived(category, items);
+    }
+
+    /**
+     * @brief Emits one item whose dropdown offers the given options through the REST client.
+     */
+    static void emitItemWithOptions(TrackingRestClient *restClient, const QString &category,
+                                    const QString &name, const QString &current,
+                                    const QStringList &options)
+    {
+        ConfigItemMetadata meta;
+        meta.current = current;
+        meta.defaultValue = current;
+        meta.values = options;
+        meta.hasRange = false;
+        emit restClient->configCategoryItemsReceived(category, {{name, meta}});
+    }
+
+    /**
+     * @brief Loads Alpha..Golf, each with three items that all match "setting".
+     */
+    static void emitScrollingCategories(TrackingRestClient *restClient)
+    {
+        const QStringList categories = {"Alpha", "Bravo",   "Charlie", "Delta",
+                                        "Echo",  "Foxtrot", "Golf"};
+        emit restClient->configCategoriesReceived(categories);
+        for (const QString &category : categories) {
+            emitItems(restClient, category, {"Setting 1", "Setting 2", "Setting 3"});
+        }
+    }
+
+    /**
+     * @brief Clicks a category row the way a user would, scrolling the list to it first.
+     */
+    static void clickCategoryRow(const ConfigPanel &panel, const QString &category)
+    {
+        auto *list = panel.findChild<QListWidget *>();
+        QVERIFY(list != nullptr);
+        const auto found = list->findItems(category, Qt::MatchExactly);
+        QVERIFY(found.size() == 1);
+        list->scrollToItem(found.first());
+        QTest::mouseClick(list->viewport(), Qt::LeftButton, Qt::NoModifier,
+                          list->visualItemRect(found.first()).center());
+    }
+
+    /**
+     * @brief Whether a category's group, header through last editor, lies in the items viewport.
+     */
+    static bool groupFullyVisible(const ConfigPanel &panel, const QString &category,
+                                  const QString &lastItem)
+    {
+        auto *items = panel.findChild<ConfigItemsPanel *>();
+        auto *area = items != nullptr ? items->findChild<QScrollArea *>() : nullptr;
+        if (area == nullptr) {
+            return false;
+        }
+        QLabel *header = nullptr;
+        for (QLabel *label : items->findChildren<QLabel *>(QStringLiteral("categoryHeader"))) {
+            if (label->text() == category) {
+                header = label;
+            }
+        }
+        auto *lastEditor =
+            items->findChild<QWidget *>(category + QLatin1Char('/') + lastItem + ":editor");
+        if (header == nullptr || lastEditor == nullptr) {
+            return false;
+        }
+        const QRect viewport = area->viewport()->rect();
+        const QRect headerRect(header->mapTo(area->viewport(), QPoint(0, 0)), header->size());
+        const QRect editorRect(lastEditor->mapTo(area->viewport(), QPoint(0, 0)),
+                               lastEditor->size());
+        return viewport.contains(headerRect) && viewport.contains(editorRect);
+    }
+
+    static QScrollBar *itemsScrollBar(const ConfigPanel &panel)
+    {
+        auto *items = panel.findChild<ConfigItemsPanel *>();
+        auto *area = items != nullptr ? items->findChild<QScrollArea *>() : nullptr;
+        return area != nullptr ? area->verticalScrollBar() : nullptr;
     }
 
     /**
@@ -609,6 +690,105 @@ private slots:
         emitItems(restClient, "Audio", {"Volume", "Mute"});
 
         QCOMPARE(visibleCategoryRows(panel), QStringList({"Audio"}));
+    }
+
+    // ==========================================================================
+    // Filter box — also matches the choices a setting's dropdown offers
+    // ==========================================================================
+
+    void testFilter_TermOnlyInAComboOption_ShowsItemAndItsCategory()
+    {
+        TrackingRestClient *restClient = nullptr;
+        auto *service = makeConnectedService(&restClient);
+        ConfigPanel panel(service, makeErrorHandler());
+        emit restClient->configCategoriesReceived({"Network", "Video", "Audio"});
+        emitItems(restClient, "Network", {"Hostname", "Port"});
+        emitItemWithOptions(restClient, "Video", "Mode", "PAL", {"PAL", "NTSC"});
+        emitItems(restClient, "Audio", {"Volume", "Mute"});
+
+        auto *edit = filterEdit(panel);
+        auto *items = panel.findChild<ConfigItemsPanel *>();
+        QVERIFY(edit != nullptr);
+        QVERIFY(items != nullptr);
+        edit->setText("ntsc");
+
+        QCOMPARE(visibleCategoryRows(panel), QStringList({"Video"}));
+        QCOMPARE(items->visibleItems(), QStringList({"Video/Mode"}));
+    }
+
+    // ==========================================================================
+    // Category rows under a filter — clicking scrolls the items to that group
+    // ==========================================================================
+
+    void testFilter_ClickingCategoryRow_ScrollsItemsToItsGroup()
+    {
+        TrackingRestClient *restClient = nullptr;
+        auto *service = makeConnectedService(&restClient);
+        ConfigPanel panel(service, makeErrorHandler());
+        panel.resize(800, 300);
+        panel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&panel));
+        emitScrollingCategories(restClient);
+        auto *edit = filterEdit(panel);
+        QVERIFY(edit != nullptr);
+        edit->setText("setting");
+        auto *vbar = itemsScrollBar(panel);
+        QVERIFY(vbar != nullptr);
+        QTRY_VERIFY(vbar->maximum() > 0);  // the filtered items have been laid out
+        QVERIFY(!groupFullyVisible(panel, "Golf", "Setting 3"));
+
+        clickCategoryRow(panel, "Golf");
+
+        QVERIFY(vbar->value() > 0);
+        QVERIFY(groupFullyVisible(panel, "Golf", "Setting 3"));
+    }
+
+    void testFilter_ReclickingCurrentCategoryRow_ScrollsBackToItsGroup()
+    {
+        TrackingRestClient *restClient = nullptr;
+        auto *service = makeConnectedService(&restClient);
+        ConfigPanel panel(service, makeErrorHandler());
+        panel.resize(800, 300);
+        panel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&panel));
+        emitScrollingCategories(restClient);
+        auto *edit = filterEdit(panel);
+        QVERIFY(edit != nullptr);
+        edit->setText("setting");
+        clickCategoryRow(panel, "Golf");
+        QVERIFY(groupFullyVisible(panel, "Golf", "Setting 3"));
+        const int itemsCalls = restClient->getConfigCategoryItemsCalls;
+
+        // The user scrolls the items back to the top, away from Golf
+        auto *vbar = itemsScrollBar(panel);
+        QVERIFY(vbar != nullptr);
+        vbar->setValue(0);
+        QVERIFY(!groupFullyVisible(panel, "Golf", "Setting 3"));
+
+        clickCategoryRow(panel, "Golf");
+
+        QVERIFY(vbar->value() > 0);
+        QVERIFY(groupFullyVisible(panel, "Golf", "Setting 3"));
+        QCOMPARE(restClient->getConfigCategoryItemsCalls, itemsCalls);
+    }
+
+    void testReclickingUnloadedCategoryRow_DoesNotRequestItemsAgain()
+    {
+        TrackingRestClient *restClient = nullptr;
+        auto *service = makeConnectedService(&restClient);
+        ConfigPanel panel(service, makeErrorHandler());
+        panel.resize(800, 300);
+        panel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&panel));
+        emit restClient->configCategoriesReceived({"Network", "Empty"});
+        emitItems(restClient, "Network", {"Hostname", "Port"});
+        const int itemsCalls = restClient->getConfigCategoryItemsCalls;
+
+        clickCategoryRow(panel, "Empty");
+        QCOMPARE(restClient->getConfigCategoryItemsCalls, itemsCalls + 1);
+
+        clickCategoryRow(panel, "Empty");
+        QCOMPARE(restClient->getConfigCategoryItemsCalls, itemsCalls + 1);
     }
 };
 

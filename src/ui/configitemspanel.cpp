@@ -5,11 +5,14 @@
 
 #include <QCheckBox>
 #include <QComboBox>
+#include <QCoreApplication>
+#include <QEvent>
 #include <QGridLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QResizeEvent>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QSpinBox>
 #include <QVBoxLayout>
 
@@ -40,6 +43,14 @@ void capComboWidth(QComboBox *combo)
     combo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
     combo->ensurePolished();  // measure with the stylesheet's padding and border applied
     combo->setMaximumWidth(std::max(editorMaxWidth(combo), combo->sizeHint().width()));
+}
+
+// Show a new child now rather than through the queued show a layout schedules for
+// children of a visible widget, so the grid can place it at once (revealCategory()
+// needs current geometry). A hidden parent still keeps it hidden.
+void showNow(QWidget *widget)
+{
+    widget->setVisible(true);
 }
 }  // namespace
 
@@ -85,9 +96,46 @@ void ConfigItemsPanel::setupUi()
 void ConfigItemsPanel::setCategory(const QString &category)
 {
     currentCategory_ = category;
-    if (!isFilterActive()) {
+    if (isFilterActive()) {
+        revealCategory(category);
+    } else {
         refresh();
     }
+}
+
+void ConfigItemsPanel::revealCategory(const QString &category)
+{
+    if (!isFilterActive() || sections_.size() < 2 || !scrollArea_->isVisible()) {
+        return;
+    }
+    const auto section =
+        std::find_if(sections_.cbegin(), sections_.cend(), [&category](const Section &candidate) {
+            return candidate.category == category;
+        });
+    if (section == sections_.cend() || section->header == nullptr) {
+        return;
+    }
+
+    fitContentToLayout();
+
+    const int top = section->header->geometry().top();
+    int bottom = section->header->geometry().bottom() + 1;
+    for (const Entry &entry : section->entries) {
+        bottom = std::max(
+            {bottom, entry.label->geometry().bottom() + 1, entry.editor->geometry().bottom() + 1});
+    }
+    QScrollBar *vbar = scrollArea_->verticalScrollBar();
+    vbar->setValue(configfiltercore::scrollValueToReveal(
+        vbar->value(), scrollArea_->viewport()->height(), top, bottom));
+}
+
+void ConfigItemsPanel::fitContentToLayout()
+{
+    // A freshly rebuilt grid is only laid out, and the scroll area only resizes the
+    // content to it, once posted events run. Do both now so geometry is current.
+    grid_->activate();
+    QEvent layoutRequest(QEvent::LayoutRequest);
+    QCoreApplication::sendEvent(scrollArea_, &layoutRequest);
 }
 
 void ConfigItemsPanel::setFilter(const QString &text)
@@ -216,7 +264,17 @@ QList<configfiltercore::CategoryItems> ConfigItemsPanel::modelSnapshot() const
 {
     QList<configfiltercore::CategoryItems> snapshot;
     for (const QString &category : model_->categories()) {
-        snapshot.append({category, model_->itemNames(category)});
+        configfiltercore::CategoryItems group;
+        group.category = category;
+        group.items = model_->itemNames(category);
+        for (const QString &item : group.items) {
+            const ConfigItemInfo info = model_->itemInfo(category, item);
+            const QStringList choices = configfiltercore::editorChoices(info.value, info.options);
+            if (!choices.isEmpty()) {
+                group.choices.insert(item, choices);
+            }
+        }
+        snapshot.append(group);
     }
     return snapshot;
 }
@@ -241,6 +299,8 @@ ConfigItemsPanel::Entry ConfigItemsPanel::createEntry(const QString &category, c
         createEditorWidget(category, item, info.value, info.options, info.minValue, info.maxValue);
     entry.editor->setObjectName(key + QStringLiteral(":editor"));
     entry.editor->setParent(scrollContent_);
+    showNow(entry.label);
+    showNow(entry.editor);
     return entry;
 }
 
@@ -252,6 +312,7 @@ QLabel *ConfigItemsPanel::createHeader(const QString &category)
         QStringLiteral("QLabel { font-weight: bold; color: %1; padding-top: %2px; }")
             .arg(themecore::currentTokens().textSecondary.name())
             .arg(kHeaderPaddingTop));
+    showNow(header);
     return header;
 }
 
@@ -305,13 +366,17 @@ QWidget *ConfigItemsPanel::createEditorWidget(const QString &category, const QSt
                                               const QVariant &value, const QStringList &options,
                                               const QVariant &minValue, const QVariant &maxValue)
 {
-    // If options are provided, use combo box
-    if (!options.isEmpty()) {
+    // A dropdown when the device offers options or the value reads as a boolean
+    const QStringList choices = configfiltercore::editorChoices(value, options);
+    if (!choices.isEmpty()) {
         auto *combo = new QComboBox();
-        combo->addItems(options);
-        int index = options.indexOf(value.toString());
+        combo->addItems(choices);
+        // Device options must match exactly; the built boolean pair matches in any case
+        const Qt::CaseSensitivity sensitivity =
+            options.isEmpty() ? Qt::CaseInsensitive : Qt::CaseSensitive;
+        const auto index = choices.indexOf(value.toString(), 0, sensitivity);
         if (index >= 0) {
-            combo->setCurrentIndex(index);
+            combo->setCurrentIndex(static_cast<int>(index));
         }
         capComboWidth(combo);
         connect(combo, &QComboBox::currentTextChanged, this,
@@ -370,33 +435,6 @@ QWidget *ConfigItemsPanel::createEditorWidget(const QString &category, const QSt
                     }
                 });
         return lineEdit;
-    }
-
-    // Check for string that looks like boolean
-    QString strVal = value.toString().toLower();
-    if (strVal == "yes" || strVal == "no" || strVal == "enabled" || strVal == "disabled" ||
-        strVal == "on" || strVal == "off" || strVal == "true" || strVal == "false") {
-        auto *combo = new QComboBox();
-        if (strVal == "yes" || strVal == "no") {
-            combo->addItems({"Yes", "No"});
-            combo->setCurrentText(strVal == "yes" ? "Yes" : "No");
-        } else if (strVal == "enabled" || strVal == "disabled") {
-            combo->addItems({"Enabled", "Disabled"});
-            combo->setCurrentText(strVal == "enabled" ? "Enabled" : "Disabled");
-        } else if (strVal == "on" || strVal == "off") {
-            combo->addItems({"On", "Off"});
-            combo->setCurrentText(strVal == "on" ? "On" : "Off");
-        } else {
-            combo->addItems({"True", "False"});
-            combo->setCurrentText(strVal == "true" ? "True" : "False");
-        }
-        capComboWidth(combo);
-        connect(combo, &QComboBox::currentTextChanged, this,
-                [this, category, itemName](const QString &text) {
-                    emit itemChanged(category, itemName, text);
-                    model_->setValue(category, itemName, text);
-                });
-        return combo;
     }
 
     // Default: string line edit
