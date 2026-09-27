@@ -45,9 +45,11 @@ qrc_*.cpp
 *.swp
 *.swo
 
-# Stride authentication (contains secrets)
+# Stride authentication (contains secrets) and the stride plugin's working files
 .stride_auth.md
 .stride/
+.stride-dirty-baseline
+.stride-env-cache
 
 # Clangd cache
 .cache/
