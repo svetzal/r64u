@@ -19,6 +19,8 @@
  * - Dirty labels stay bold under a filter and across a relayout
  * - resizeEvent() toggles between one and two columns at the width threshold
  *   without recreating editors
+ * - Combo, spin box and line edit editors are capped in width so they do not
+ *   stretch across a wide column, while a combo never clips its longest option
  */
 
 #include "models/configurationmodel.h"
@@ -27,6 +29,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QLabel>
+#include <QLineEdit>
 #include <QScrollArea>
 #include <QSignalSpy>
 #include <QSpinBox>
@@ -53,6 +56,57 @@ private:
         model->setCategoryItems("Audio", audioItems);
 
         return model;
+    }
+
+    static constexpr int kEditorWidthChars = 21;
+    static constexpr int kEditorWidthPadding = 14;
+    static constexpr int kWideTwoColumnWidth = ConfigItemsPanel::twoColumnMinWidth() + 200;
+
+    // An option longer than the editor cap, so the combo has to widen for it
+    static QString longOption()
+    {
+        return QStringLiteral("Extended Palette With Very Long Name 40c");
+    }
+
+    // Same formula the panel uses for line edits, measured from the editor's own font
+    static int expectedEditorCap(const QWidget *editor)
+    {
+        return (editor->fontMetrics().averageCharWidth() * kEditorWidthChars) + kEditorWidthPadding;
+    }
+
+    // A "Video" category whose items produce combo editors
+    ConfigurationModel *makeModelWithComboEditors()
+    {
+        auto *model = new ConfigurationModel(this);
+        model->setCategories({"Video"});
+
+        QHash<QString, ConfigItemInfo> items;
+
+        ConfigItemInfo modeInfo;
+        modeInfo.value = QString("PAL");
+        modeInfo.options = {"PAL", "NTSC"};
+        items["System Mode"] = modeInfo;
+
+        ConfigItemInfo paletteInfo;
+        paletteInfo.value = QString("Default");
+        paletteInfo.options = {"Default", longOption()};
+        items["Palette"] = paletteInfo;
+
+        // A plain string that looks boolean becomes a combo without options
+        ConfigItemInfo scanlinesInfo;
+        scanlinesInfo.value = QString("Enabled");
+        items["Scanlines"] = scanlinesInfo;
+
+        model->setCategoryItemsWithInfo("Video", items);
+        return model;
+    }
+
+    static void showAtWidth(ConfigItemsPanel &panel, int width)
+    {
+        panel.resize(width, 400);
+        panel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&panel));
+        QCoreApplication::processEvents();
     }
 
 private slots:
@@ -282,6 +336,105 @@ private slots:
         QCoreApplication::processEvents();
         QCOMPARE(panel.columnCount(), 2);
         QVERIFY(panel.findChild<QLabel *>("Network/Port")->styleSheet().contains("bold"));
+    }
+
+    // =========================================================================
+    // Editor width — editors are capped instead of filling a wide column
+    // =========================================================================
+
+    void testEditorWidth_ShortOptionCombo_CappedLikeLineEdit()
+    {
+        auto *model = makeModelWithComboEditors();
+        ConfigItemsPanel panel(model);
+        panel.setCategory("Video");
+        showAtWidth(panel, kWideTwoColumnWidth);
+        QCOMPARE(panel.columnCount(), 2);
+
+        auto *combo = panel.findChild<QComboBox *>("Video/System Mode:editor");
+        QVERIFY(combo != nullptr);
+        const int cap = expectedEditorCap(combo);
+        QVERIFY(combo->maximumWidth() < QWIDGETSIZE_MAX);
+        QVERIFY(combo->maximumWidth() <= cap);
+        QVERIFY(combo->width() <= cap);
+    }
+
+    void testEditorWidth_BooleanStringCombo_CappedLikeLineEdit()
+    {
+        auto *model = makeModelWithComboEditors();
+        ConfigItemsPanel panel(model);
+        panel.setCategory("Video");
+        showAtWidth(panel, kWideTwoColumnWidth);
+
+        auto *combo = panel.findChild<QComboBox *>("Video/Scanlines:editor");
+        QVERIFY(combo != nullptr);
+        QCOMPARE(combo->currentText(), QString("Enabled"));
+        const int cap = expectedEditorCap(combo);
+        QVERIFY(combo->maximumWidth() <= cap);
+        QVERIFY(combo->width() <= cap);
+    }
+
+    void testEditorWidth_SpinBox_CappedLikeLineEdit()
+    {
+        auto *model = makeModelWithData();
+        ConfigItemsPanel panel(model);
+        panel.setCategory("Network");
+        showAtWidth(panel, kWideTwoColumnWidth);
+        QCOMPARE(panel.columnCount(), 2);
+
+        auto *spinBox = panel.findChild<QSpinBox *>("Network/Port:editor");
+        QVERIFY(spinBox != nullptr);
+        const int cap = expectedEditorCap(spinBox);
+        QVERIFY(spinBox->maximumWidth() <= cap);
+        QVERIFY(spinBox->width() <= cap);
+    }
+
+    void testEditorWidth_LongOptionCombo_WidensToFitWithoutStretching()
+    {
+        auto *model = makeModelWithComboEditors();
+        ConfigItemsPanel panel(model);
+        panel.setCategory("Video");
+        showAtWidth(panel, kWideTwoColumnWidth);
+
+        auto *combo = panel.findChild<QComboBox *>("Video/Palette:editor");
+        QVERIFY(combo != nullptr);
+        QVERIFY(combo->sizeHint().width() > expectedEditorCap(combo));
+        QVERIFY(combo->maximumWidth() >= combo->sizeHint().width());
+        QVERIFY(combo->maximumWidth() < QWIDGETSIZE_MAX);
+    }
+
+    void testEditorWidth_Relayout_KeepsEditorCap()
+    {
+        auto *model = makeModelWithComboEditors();
+        ConfigItemsPanel panel(model);
+        panel.setCategory("Video");
+        showAtWidth(panel, kWideTwoColumnWidth);
+
+        auto *combo = panel.findChild<QComboBox *>("Video/System Mode:editor");
+        QVERIFY(combo != nullptr);
+        const int capBefore = combo->maximumWidth();
+        QVERIFY(capBefore < QWIDGETSIZE_MAX);
+
+        panel.resize(ConfigItemsPanel::twoColumnMinWidth() - 80, 400);
+        QCoreApplication::processEvents();
+        QCOMPARE(panel.columnCount(), 1);
+        panel.resize(kWideTwoColumnWidth, 400);
+        QCoreApplication::processEvents();
+        QCOMPARE(panel.columnCount(), 2);
+
+        QCOMPARE(panel.findChild<QComboBox *>("Video/System Mode:editor"), combo);
+        QCOMPARE(combo->maximumWidth(), capBefore);
+    }
+
+    void testEditorWidth_LineEdit_KeepsExistingCap()
+    {
+        auto *model = makeModelWithData();
+        ConfigItemsPanel panel(model);
+        panel.setCategory("Network");
+        showAtWidth(panel, kWideTwoColumnWidth);
+
+        auto *lineEdit = panel.findChild<QLineEdit *>("Network/Hostname:editor");
+        QVERIFY(lineEdit != nullptr);
+        QCOMPARE(lineEdit->maximumWidth(), expectedEditorCap(lineEdit));
     }
 
     // =========================================================================

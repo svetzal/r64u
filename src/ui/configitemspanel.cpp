@@ -13,6 +13,8 @@
 #include <QSpinBox>
 #include <QVBoxLayout>
 
+#include <algorithm>
+
 using configfiltercore::itemKey;
 
 namespace {
@@ -24,6 +26,21 @@ constexpr int kEditorWidthPadding = 14;
 constexpr int kDefaultSpinMin = -999999;
 constexpr int kDefaultSpinMax = 999999;
 const char *const kBoldLabelStyle = "QLabel { font-weight: bold; }";
+
+// Widest an editor may grow, so editors do not stretch across a wide grid column
+int editorMaxWidth(const QWidget *editor)
+{
+    return (editor->fontMetrics().averageCharWidth() * kEditorWidthChars) + kEditorWidthPadding;
+}
+
+// Cap a combo like other editors, but never below the width its longest option needs.
+// Call after the items are added.
+void capComboWidth(QComboBox *combo)
+{
+    combo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+    combo->ensurePolished();  // measure with the stylesheet's padding and border applied
+    combo->setMaximumWidth(std::max(editorMaxWidth(combo), combo->sizeHint().width()));
+}
 }  // namespace
 
 ConfigItemsPanel::ConfigItemsPanel(ConfigurationModel *model, QWidget *parent)
@@ -296,6 +313,7 @@ QWidget *ConfigItemsPanel::createEditorWidget(const QString &category, const QSt
         if (index >= 0) {
             combo->setCurrentIndex(index);
         }
+        capComboWidth(combo);
         connect(combo, &QComboBox::currentTextChanged, this,
                 [this, category, itemName](const QString &text) {
                     emit itemChanged(category, itemName, text);
@@ -326,6 +344,7 @@ QWidget *ConfigItemsPanel::createEditorWidget(const QString &category, const QSt
             spinBox->setRange(kDefaultSpinMin, kDefaultSpinMax);
         }
         spinBox->setValue(value.toInt());
+        spinBox->setMaximumWidth(editorMaxWidth(spinBox));
         connect(spinBox, &QSpinBox::valueChanged, this, [this, category, itemName](int val) {
             emit itemChanged(category, itemName, val);
             model_->setValue(category, itemName, val);
@@ -336,8 +355,7 @@ QWidget *ConfigItemsPanel::createEditorWidget(const QString &category, const QSt
     if (type == QMetaType::Double) {
         auto *lineEdit = new QLineEdit();
         lineEdit->setText(value.toString());
-        lineEdit->setMaximumWidth((lineEdit->fontMetrics().averageCharWidth() * kEditorWidthChars) +
-                                  kEditorWidthPadding);
+        lineEdit->setMaximumWidth(editorMaxWidth(lineEdit));
         connect(lineEdit, &QLineEdit::editingFinished, this,
                 [this, category, itemName, lineEdit]() {
                     QString text = lineEdit->text();
@@ -372,6 +390,7 @@ QWidget *ConfigItemsPanel::createEditorWidget(const QString &category, const QSt
             combo->addItems({"True", "False"});
             combo->setCurrentText(strVal == "true" ? "True" : "False");
         }
+        capComboWidth(combo);
         connect(combo, &QComboBox::currentTextChanged, this,
                 [this, category, itemName](const QString &text) {
                     emit itemChanged(category, itemName, text);
@@ -383,8 +402,7 @@ QWidget *ConfigItemsPanel::createEditorWidget(const QString &category, const QSt
     // Default: string line edit
     auto *lineEdit = new QLineEdit();
     lineEdit->setText(value.toString());
-    lineEdit->setMaximumWidth((lineEdit->fontMetrics().averageCharWidth() * kEditorWidthChars) +
-                              kEditorWidthPadding);
+    lineEdit->setMaximumWidth(editorMaxWidth(lineEdit));
     connect(lineEdit, &QLineEdit::editingFinished, this, [this, category, itemName, lineEdit]() {
         emit itemChanged(category, itemName, lineEdit->text());
         model_->setValue(category, itemName, lineEdit->text());
