@@ -21,6 +21,8 @@
  *   without recreating editors
  * - Combo, spin box and line edit editors are capped in width so they do not
  *   stretch across a wide column, while a combo never clips its longest option
+ * - Every editor sits directly beside its right-aligned label, one grid spacing
+ *   away, in both the one- and two-column layouts, and keeps its capped width
  */
 
 #include "models/configurationmodel.h"
@@ -28,12 +30,15 @@
 
 #include <QCheckBox>
 #include <QComboBox>
+#include <QGridLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QScrollArea>
 #include <QSignalSpy>
 #include <QSpinBox>
 #include <QtTest>
+
+#include <algorithm>
 
 class TestConfigItemsPanel : public QObject
 {
@@ -44,7 +49,13 @@ private:
     {
         auto *model = new ConfigurationModel(this);
         model->setCategories({"Network", "Audio"});
+        addNetworkAndAudioItems(model);
+        return model;
+    }
 
+    // Network: a line edit and a spin box; Audio: a spin box and a checkbox
+    static void addNetworkAndAudioItems(ConfigurationModel *model)
+    {
         QHash<QString, QVariant> networkItems;
         networkItems["Hostname"] = QString("device.local");
         networkItems["Port"] = 21;
@@ -54,12 +65,15 @@ private:
         audioItems["Volume"] = 80;
         audioItems["Mute"] = false;
         model->setCategoryItems("Audio", audioItems);
-
-        return model;
     }
 
     static constexpr int kEditorWidthChars = 21;
     static constexpr int kEditorWidthPadding = 14;
+    static constexpr int kGridSpacing = 8;
+    // QRect::right() is inclusive, so adjacent cells one spacing apart differ by spacing + 1.
+    // The native macOS style's layout margins can make it a few pixels less, never more.
+    static constexpr int kMaxLabelEditorGap = kGridSpacing + 1;
+    static constexpr int kNarrowOneColumnWidth = ConfigItemsPanel::twoColumnMinWidth() - 80;
     static constexpr int kWideTwoColumnWidth = ConfigItemsPanel::twoColumnMinWidth() + 200;
 
     // An option longer than the editor cap, so the combo has to widen for it
@@ -79,7 +93,13 @@ private:
     {
         auto *model = new ConfigurationModel(this);
         model->setCategories({"Video"});
+        addVideoComboItems(model);
+        return model;
+    }
 
+    // Video: a short-option combo, a long-option combo and a boolean-string combo
+    static void addVideoComboItems(ConfigurationModel *model)
+    {
         QHash<QString, ConfigItemInfo> items;
 
         ConfigItemInfo modeInfo;
@@ -98,7 +118,84 @@ private:
         items["Scanlines"] = scanlinesInfo;
 
         model->setCategoryItemsWithInfo("Video", items);
+    }
+
+    // Every editor kind, spread over three categories
+    ConfigurationModel *makeModelWithEveryEditorKind()
+    {
+        auto *model = new ConfigurationModel(this);
+        model->setCategories({"Network", "Audio", "Video"});
+        addNetworkAndAudioItems(model);
+        addVideoComboItems(model);
         return model;
+    }
+
+    // Grid column an editor occupies, or -1 when it is not in the panel's grid
+    static int gridColumnOf(const ConfigItemsPanel &panel, const QString &key)
+    {
+        auto *editor = panel.findChild<QWidget *>(key + QStringLiteral(":editor"));
+        auto *grid = editor != nullptr
+                         ? qobject_cast<QGridLayout *>(editor->parentWidget()->layout())
+                         : nullptr;
+        const int index = grid != nullptr ? grid->indexOf(editor) : -1;
+        if (index < 0) {
+            return -1;
+        }
+        int row = 0;
+        int column = 0;
+        int rowSpan = 0;
+        int columnSpan = 0;
+        grid->getItemPosition(index, &row, &column, &rowSpan, &columnSpan);
+        return column;
+    }
+
+    // Builds the model whose category holds the item under test
+    ConfigurationModel *makeModelForCategory(const QString &category)
+    {
+        return category == QStringLiteral("Video") ? makeModelWithComboEditors()
+                                                   : makeModelWithData();
+    }
+
+    // Horizontal distance from the label's right edge to its editor's left edge.
+    // Labels and editors share a parent, so their geometries are in one coordinate space.
+    static int labelToEditorGap(const ConfigItemsPanel &panel, const QString &key)
+    {
+        auto *label = panel.findChild<QLabel *>(key);
+        auto *editor = panel.findChild<QWidget *>(key + QStringLiteral(":editor"));
+        if (label == nullptr || editor == nullptr ||
+            label->parentWidget() != editor->parentWidget()) {
+            return -1;
+        }
+        return editor->x() - label->geometry().right();
+    }
+
+    static void addEditorKindRows()
+    {
+        QTest::addColumn<QString>("category");
+        QTest::addColumn<QString>("key");
+        QTest::newRow("line edit") << "Network" << "Network/Hostname";
+        QTest::newRow("spin box") << "Network" << "Network/Port";
+        QTest::newRow("checkbox") << "Audio" << "Audio/Mute";
+        QTest::newRow("short-option combo") << "Video" << "Video/System Mode";
+        QTest::newRow("long-option combo") << "Video" << "Video/Palette";
+        QTest::newRow("boolean-string combo") << "Video" << "Video/Scanlines";
+    }
+
+    void verifyEditorBesideLabel(int panelWidth, int expectedColumns)
+    {
+        QFETCH(QString, category);
+        QFETCH(QString, key);
+
+        auto *model = makeModelForCategory(category);
+        ConfigItemsPanel panel(model);
+        panel.setCategory(category);
+        showAtWidth(panel, panelWidth);
+        QCOMPARE(panel.columnCount(), expectedColumns);
+
+        const int gap = labelToEditorGap(panel, key);
+        QVERIFY2(gap > 0 && gap <= kMaxLabelEditorGap,
+                 qPrintable(
+                     QStringLiteral("gap %1 px, expected 1..%2").arg(gap).arg(kMaxLabelEditorGap)));
     }
 
     static void showAtWidth(ConfigItemsPanel &panel, int width)
@@ -435,6 +532,106 @@ private slots:
         auto *lineEdit = panel.findChild<QLineEdit *>("Network/Hostname:editor");
         QVERIFY(lineEdit != nullptr);
         QCOMPARE(lineEdit->maximumWidth(), expectedEditorCap(lineEdit));
+    }
+
+    // =========================================================================
+    // Editor placement — each editor sits beside its right-aligned label
+    // =========================================================================
+
+    void testEditorPlacement_TwoColumns_EditorBesideLabel_data() { addEditorKindRows(); }
+
+    void testEditorPlacement_TwoColumns_EditorBesideLabel()
+    {
+        verifyEditorBesideLabel(kWideTwoColumnWidth, 2);
+    }
+
+    void testEditorPlacement_OneColumn_EditorBesideLabel_data() { addEditorKindRows(); }
+
+    void testEditorPlacement_OneColumn_EditorBesideLabel()
+    {
+        verifyEditorBesideLabel(kNarrowOneColumnWidth, 1);
+    }
+
+    void testEditorPlacement_FilteredAcrossCategories_EditorBesideLabel_data()
+    {
+        QTest::addColumn<int>("panelWidth");
+        QTest::addColumn<int>("expectedColumns");
+        QTest::newRow("two columns") << kWideTwoColumnWidth << 2;
+        QTest::newRow("one column") << kNarrowOneColumnWidth << 1;
+    }
+
+    void testEditorPlacement_FilteredAcrossCategories_EditorBesideLabel()
+    {
+        QFETCH(int, panelWidth);
+        QFETCH(int, expectedColumns);
+
+        auto *model = makeModelWithEveryEditorKind();
+        ConfigItemsPanel panel(model);
+        panel.setCategory("Network");
+        // "e" is in the Network and Video names and in Audio's Mute and Volume
+        panel.setFilter("e");
+        showAtWidth(panel, panelWidth);
+        QCOMPARE(panel.columnCount(), expectedColumns);
+        QCOMPARE(panel.headerCategories(), QStringList({"Network", "Audio", "Video"}));
+
+        // Palette and System Mode are the first and third Video items, so they share
+        // the first editor column: the short combo sits under the wider long-option one
+        const int paletteColumn = gridColumnOf(panel, "Video/Palette");
+        QVERIFY(paletteColumn >= 0);
+        QCOMPARE(gridColumnOf(panel, "Video/System Mode"), paletteColumn);
+
+        const QStringList keys = panel.visibleItems();
+        QCOMPARE(keys.size(), 7);
+        for (const QString &key : keys) {
+            const int gap = labelToEditorGap(panel, key);
+            QVERIFY2(gap > 0 && gap <= kMaxLabelEditorGap,
+                     qPrintable(QStringLiteral("%1: gap %2 px, expected 1..%3")
+                                    .arg(key)
+                                    .arg(gap)
+                                    .arg(kMaxLabelEditorGap)));
+        }
+    }
+
+    void testEditorPlacement_TwoColumns_EditorsKeepCappedWidth()
+    {
+        auto *networkModel = makeModelWithData();
+        ConfigItemsPanel networkPanel(networkModel);
+        networkPanel.setCategory("Network");
+        showAtWidth(networkPanel, kWideTwoColumnWidth);
+
+        auto *lineEdit = networkPanel.findChild<QLineEdit *>("Network/Hostname:editor");
+        auto *spinBox = networkPanel.findChild<QSpinBox *>("Network/Port:editor");
+        QVERIFY(lineEdit != nullptr);
+        QVERIFY(spinBox != nullptr);
+        QCOMPARE(lineEdit->width(), expectedEditorCap(lineEdit));
+        QCOMPARE(spinBox->width(), expectedEditorCap(spinBox));
+
+        auto *comboModel = makeModelWithComboEditors();
+        ConfigItemsPanel comboPanel(comboModel);
+        comboPanel.setCategory("Video");
+        showAtWidth(comboPanel, kWideTwoColumnWidth);
+
+        for (const char *name :
+             {"Video/System Mode:editor", "Video/Palette:editor", "Video/Scanlines:editor"}) {
+            auto *combo = comboPanel.findChild<QComboBox *>(QString::fromLatin1(name));
+            QVERIFY2(combo != nullptr, name);
+            const int intended = std::max(expectedEditorCap(combo), combo->sizeHint().width());
+            QCOMPARE(combo->maximumWidth(), intended);
+            QCOMPARE(combo->width(), intended);
+        }
+    }
+
+    void testEditorPlacement_Checkbox_KeepsAtLeastItsSizeHint()
+    {
+        auto *model = makeModelWithData();
+        ConfigItemsPanel panel(model);
+        panel.setCategory("Audio");
+        showAtWidth(panel, kWideTwoColumnWidth);
+
+        auto *checkBox = panel.findChild<QCheckBox *>("Audio/Mute:editor");
+        QVERIFY(checkBox != nullptr);
+        QVERIFY(checkBox->width() >= checkBox->sizeHint().width());
+        QVERIFY(checkBox->height() >= checkBox->sizeHint().height());
     }
 
     // =========================================================================
