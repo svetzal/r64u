@@ -120,34 +120,19 @@ cd build_tsan && ctest --output-on-failure
 
 ## Stride Workflow
 
-```bash
-# Get next available task
-curl -H "Authorization: Bearer $STRIDE_API_TOKEN" \
-  https://www.stridelikeaboss.com/api/tasks/next
+Task management runs through the `stride` Claude Code plugin
+(`/plugin marketplace add cheezy/stride-marketplace` then
+`/plugin install stride@stride-marketplace`). Its skills own the API contract:
+use `stride-workflow` to claim, work and complete a task, and
+`/stride:create-tasks` or `/stride:create-goals` to file new work. Do not
+hand-write the claim or complete requests; the required fields change with the
+plugin version, and the plugin executes the `.stride.md` hooks itself around
+each API call. The onboarding document at
+`https://www.stridelikeaboss.com/api/agent/onboarding` is the reference when the
+plugin is unavailable. The token lives in the gitignored `.stride_auth.md`.
 
-# Claim a task (requires before_doing hook result)
-curl -X POST -H "Authorization: Bearer $STRIDE_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"before_doing_result": {"exit_code": 0, "output": "Ready", "duration_ms": 100}}' \
-  https://www.stridelikeaboss.com/api/tasks/claim
-
-# Complete a task (requires after_doing and before_review hook results)
-curl -X PATCH -H "Authorization: Bearer $STRIDE_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"after_doing_result": {...}, "before_review_result": {...}}' \
-  https://www.stridelikeaboss.com/api/tasks/:id/complete
-```
-
-## Lifecycle Hooks
-
-Hooks are defined in `.stride.md` and must be executed before API calls:
-
-| Hook | When | Timeout |
-|------|------|---------|
-| before_doing | Before starting work | 60s |
-| after_doing | After completing work | 120s |
-| before_review | When entering review | 60s |
-| after_review | After review approval | 60s |
+Because the hooks run unattended, every command in `.stride.md` must obey the
+build rules above: a job cap of four and no pull requests.
 
 ## Landing the Plane (Session Completion)
 
