@@ -50,6 +50,8 @@ qrc_*.cpp
 .stride/
 .stride-dirty-baseline
 .stride-env-cache
+.stride-changed-files.json
+.stride-diff-upload-state
 
 # Clangd cache
 .cache/
