@@ -218,20 +218,20 @@ namespace detail {
 // System toolbar
 // ---------------------------------------------------------------------------
 
-/// A plug seated in its socket bar.
+/// A wall socket with a plug seated in it, its prongs showing in the holes.
 inline constexpr Rows kConnect{
-    "................", ".kkkkkkkkkkkkkk.", ".kdddkddddkdddk.", ".kkkkkkkkkkkkkk.",
-    "....kmk..kmk....", "....kmk..kmk....", "..kkkkkkkkkkkk..", "..kwwwwwwwwwwk..",
-    "..kwLLLLLLLLLk..", "..kLLLLLLLLLLk..", "..kLLLLLLLLLLk..", "...kkkkkkkkkk...",
-    "......kddk......", "......kddk......", ".......kk.......", "................",
+    "................", "..kkkkkkkkkkkk..", ".kLLLLLLLLLLLLk.", ".kLLmmLLLLmmLLk.",
+    ".kLLmmLLLLmmLLk.", "..kkkkkkkkkkkk..", "...kkkkkkkkkkk..", "...kwwwwwwwwwk..",
+    "...kwLLLLLLLwk..", "...kLLLLLLLLLk..", "....kkkkkkkkk...", "......kddk......",
+    "......kddk......", ".......kk.......", "................", "................",
 };
 
-/// The same plug pulled a pixel clear of its socket.
+/// The same socket with the plug pulled out, prongs and empty holes showing.
 inline constexpr Rows kDisconnect{
-    "................", ".kkkkkkkkkkkkkk.", ".kdddkddddkdddk.", ".kkkkkkkkkkkkkk.",
-    "................", "....kmk..kmk....", "....kmk..kmk....", "..kkkkkkkkkkkk..",
-    "..kwwwwwwwwwwk..", "..kwLLLLLLLLLk..", "..kLLLLLLLLLLk..", "..kLLLLLLLLLLk..",
-    "...kkkkkkkkkk...", "......kddk......", ".......kk.......", "................",
+    "................", "..kkkkkkkkkkkk..", ".kLLLLLLLLLLLLk.", ".kLLkkLLLLkkLLk.",
+    ".kLLkkLLLLkkLLk.", "..kkkkkkkkkkkk..", "................", "....kmk..kmk....",
+    "....kmk..kmk....", "...kkkkkkkkkkk..", "...kwwwwwwwwwk..", "...kwLLLLLLLwk..",
+    "...kLLLLLLLLLk..", "....kkkkkkkkk...", "......kddk......", "................",
 };
 
 /// One clockwise circular arrow.
@@ -317,12 +317,12 @@ inline constexpr Rows kPlay{
     ".kgggggkkggggk..", "..kkkkk..kkkkk..", "................", "................",
 };
 
-/// A BASIC prompt: a bold chevron and a cursor block.
+/// A BASIC prompt: a bold chevron with a cursor block.
 inline constexpr Rows kRun{
-    "................", "..kk............", "..klkk..........", "..klllkk........",
-    "...kllllkk......", "....kllllkk.....", ".....kllllk.....", "....kllllkk.....",
-    "...kllllkk......", "..klllkk........", "..klkk..........", "..kk............",
-    "........kkkkkk..", "........kbbbbk..", "........kkkkkk..", "................",
+    "................", "..kk............", "..kllk..........", "..klllk.........",
+    "...kwllk........", "....kwllk.......", ".....kwllk......", "......kwllk.....",
+    ".....kwllk......", "....kwllk.......", "...kwllk........", "..klllk.........",
+    "..kllk..........", "..kk....kkkkkk..", "........kbbbbk..", "........kkkkkk..",
 };
 
 /// A 5.25" disk sliding into a drive slot.
@@ -525,12 +525,12 @@ inline constexpr Rows kNext{
     "..kk.......kkk..", "................", "................", "................",
 };
 
-/// Two crossing arrows.
+/// Two paths that cross and swap sides, each ending in an arrowhead.
 inline constexpr Rows kShuffle{
-    "................", "................", ".kk........kkkk.", ".kck.......kcck.",
-    "..kck.....kkcck.", "...kck...kckkk..", "....kck.kck.....", ".....kckck......",
-    "......kck.......", ".....kckck......", "....kck.kck.....", "...kck...kckkk..",
-    "..kck.....kkcck.", ".kck.......kcck.", ".kk........kkkk.", "................",
+    "................", "............kk..", ".kkkkk......kck.", ".kccckk.....kcck",
+    ".kkkkcck....kcck", ".....kcck..kkck.", "......kcckkck...", ".......kcckk....",
+    ".......kcckk....", "......kcckkck...", ".....kcck..kkck.", ".kkkkcck....kcck",
+    ".kccckk.....kcck", ".kkkkk......kck.", "............kk..", "................",
 };
 
 /// A loop with an arrowhead at each end.
@@ -541,11 +541,11 @@ inline constexpr Rows kRepeat{
     "....kk..........", "................", "................", "................",
 };
 
-/// The loop with a "1" inside.
+/// The loop with a bold outlined "1" inside.
 inline constexpr Rows kRepeatOne{
     "................", "................", "..........kk....", ".kkkkkkkkkkck...",
-    ".kcccccccccccck.", ".kckkkkkkkkccck.", ".kck..oo..kkck..", ".kck...o...kck..",
-    ".kck..ooo..kck..", ".kccckkkkkkkck..", ".kccccccccccck..", "...kckkkkkkkkkk.",
+    ".kcccccccccccck.", ".kckkkkkkkkccck.", ".kck.kwwwk.kkck.", ".kck..kwwk..kck.",
+    ".kck.kwwwwk.kck.", ".kccckkkkkkkck..", ".kccccccccccck..", "...kckkkkkkkkkk.",
     "....kk..........", "................", "................", "................",
 };
 

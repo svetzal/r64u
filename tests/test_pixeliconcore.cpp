@@ -87,6 +87,32 @@ private slots:
         }
     }
 
+    void testRows_connectAndDisconnect_shareTheSocketAndPlug()
+    {
+        // The pair differs only in whether the plug is seated: the socket rows
+        // and the plug body are the same art.
+        const pixeliconcore::Rows &on = pixeliconcore::rows(Icon::Connect);
+        const pixeliconcore::Rows &off = pixeliconcore::rows(Icon::Disconnect);
+        for (int y : {1, 2, 5}) {
+            QCOMPARE(QByteArray(off[y]), QByteArray(on[y]));
+        }
+        QCOMPARE(QByteArray(off[10]), QByteArray(on[7]));  // plug top
+        QCOMPARE(QByteArray(off[12]), QByteArray(on[9]));  // plug body
+    }
+
+    void testRows_repeatAndRepeatOne_shareTheLoop()
+    {
+        // Only the digit inside the loop differs.
+        const pixeliconcore::Rows &loop = pixeliconcore::rows(Icon::Repeat);
+        const pixeliconcore::Rows &one = pixeliconcore::rows(Icon::RepeatOne);
+        for (int y = 0; y < Size; ++y) {
+            if (y >= 6 && y <= 8) {
+                continue;
+            }
+            QCOMPARE(QByteArray(one[y]), QByteArray(loop[y]));
+        }
+    }
+
     void testAllIcons_listsEachIconOnce()
     {
         std::set<int> seen;
