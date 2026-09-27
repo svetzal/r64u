@@ -197,6 +197,29 @@ private slots:
 
         QVERIFY(mock_.pathHistory.isEmpty());
     }
+
+    // ======================================================================
+    // Disconnected refreshes and re-applied paths leave the directory alone;
+    // only navigation moves it (W115 guard). The controller has no input for
+    // a failed listing; that case lives in test_mainwindow.cpp.
+    // ======================================================================
+
+    void testCurrentDirectory_isOnlyChangedByNavigation()
+    {
+        ctrl_->setCurrentDirectory("/USB0/MUSIC");
+
+        ctrl_->refresh();
+        QCOMPARE(ctrl_->currentDirectory(), QString("/USB0/MUSIC"));
+
+        ctrl_->refreshIfStale();
+        QCOMPARE(ctrl_->currentDirectory(), QString("/USB0/MUSIC"));
+
+        ctrl_->setCurrentDirectory("/USB0/MUSIC");  // re-applying the same folder
+        QCOMPARE(ctrl_->currentDirectory(), QString("/USB0/MUSIC"));
+
+        ctrl_->navigateToParent();
+        QCOMPARE(ctrl_->currentDirectory(), QString("/USB0"));
+    }
 };
 
 QTEST_MAIN(TestExploreNavigationController)

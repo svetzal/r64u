@@ -483,6 +483,58 @@ private slots:
         QCOMPARE(tree->header()->sortIndicatorOrder(), Qt::DescendingOrder);
     }
 
+    void testExploreDirectory_roundTripsThroughSettings()
+    {
+        {
+            MainWindow first;
+            auto *explore = first.findChild<ExplorePanel *>();
+            QVERIFY(explore != nullptr);
+            explore->setCurrentDirectory("/USB0/MUSIC");
+            QCOMPARE(explore->currentDirectory(), QString("/USB0/MUSIC"));
+        }  // saves the folder on destruction
+
+        QSettings settings;
+        QCOMPARE(settings.value("directories/exploreRemote").toString(), QString("/USB0/MUSIC"));
+
+        MainWindow second;
+        auto *explore = second.findChild<ExplorePanel *>();
+        QVERIFY(explore != nullptr);
+        QCOMPARE(explore->currentDirectory(), QString("/USB0/MUSIC"));
+    }
+
+    void testExploreDirectory_defaultsToRootWhenUnset()
+    {
+        QSettings settings;
+        QVERIFY(!settings.contains("directories/exploreRemote"));
+
+        MainWindow window;
+        auto *explore = window.findChild<ExplorePanel *>();
+        QVERIFY(explore != nullptr);
+        QCOMPARE(explore->currentDirectory(), QString("/"));
+    }
+
+    void testFailedListing_leavesCurrentDirectoryUnchanged()
+    {
+        MainWindow window;
+        auto *explore = window.findChild<ExplorePanel *>();
+        auto *remoteFileModel = window.findChild<RemoteFileModel *>();
+        QVERIFY(explore != nullptr);
+        QVERIFY(remoteFileModel != nullptr);
+        explore->setCurrentDirectory("/USB0/MUSIC");
+
+        // The listing of the restored folder fails, as it would when the device
+        // still holds a previous session's FTP connection. The error reaches the
+        // status bar; the folder must stay where it was.
+        QSignalSpy errorSpy(remoteFileModel, &RemoteFileModel::errorOccurred);
+        QVERIFY(QMetaObject::invokeMethod(remoteFileModel, "onListingFailed",
+                                          Q_ARG(QString, QStringLiteral("/USB0/MUSIC")),
+                                          Q_ARG(QString, QStringLiteral("530 Login incorrect"))));
+        QCoreApplication::processEvents();
+
+        QCOMPARE(errorSpy.count(), 1);
+        QCOMPARE(explore->currentDirectory(), QString("/USB0/MUSIC"));
+    }
+
     // =========================================================================
     // Teardown — everything using the shared services dies before them
     // =========================================================================

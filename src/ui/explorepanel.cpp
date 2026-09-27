@@ -322,6 +322,9 @@ void ExplorePanel::loadSettings()
 {
     QSettings settings;
     QString savedDir = settings.value("directories/exploreRemote", "/").toString();
+    // Logged at info level so a launch that lands somewhere else can be traced
+    // back to what was actually restored (W115).
+    qCInfo(LogUi) << "Restoring Explore folder" << savedDir;
     navController_->setCurrentDirectory(savedDir);
 
     const QByteArray splitterState = settings.value("layout/exploreSplitter").toByteArray();
