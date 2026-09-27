@@ -7,16 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- **Config mode filter** - a filter box above the category list narrows the categories and the settings shown to those whose name (or category) contains the text; matches from several categories are grouped under category headers
-- The Config filter also matches the choices a setting's dropdown offers (e.g. "NTSC" finds the video mode setting), and clicking a category while results span several categories scrolls that category's group into view
-- Config mode lays out settings in two columns when the pane is wide enough, and one column when it is narrow
+## [0.12.0] - 2026-09-27
 
-## [0.11.1] - 2026-09-26
+### Added
+- **Breadbin theme** - a warm beige-plastic look in light mode and a desk-mat look in dark mode across the whole app, with every colour drawn from theme tokens so dark mode works everywhere
+- **C64 screen** - file details, text files, disk directories and SID information are shown on a 40x25 VIC-II style screen in C64 Pro Mono, and View mode shows the same screen when no video is streaming
+- **Pixel icon set** - every toolbar action, menu entry, file type and playlist control has a hand-drawn 16 px icon in the VIC-II palette, with Retina versions
+- **Drag and drop** - drag files from the local pane or Finder onto the remote pane to upload, drag remote rows onto the local pane to download, drag Explore rows onto the playlist to add SID files, and drag playlist rows to reorder them; drops always copy, never move
+- **View mode as a monitor** - a "KEYS TO C64" badge and focus frame show when keystrokes go to the C64, streaming statistics float over the video, and a Full Screen action hides everything but the picture
+- **Config filter** - a filter box above the category list narrows the categories and settings to those whose name, category or dropdown choices contain the text (for example "NTSC" finds the video mode setting); matches from several categories are grouped under category headers, and clicking a category scrolls its group into view
+- Config mode lays out settings in two columns when the pane is wide enough and one column when it is narrow, anchored to the left of each half with controls sized to their content
+- Remote files can be renamed from the context menu, right-clicking empty space offers New Folder, and double-clicking a file in Transfer starts its transfer
+- Overwrite prompts offer Skip All
+- Window splitter positions and column headers in Explore, Transfer and Config are remembered between launches
+
+### Changed
+- Explore gives the file list more width, and the playlist collapses to a header row until needed
+- The system toolbar groups the machine controls and outlines Reboot and Power Off in red; destructive confirmations default to Cancel, and clearing the playlist asks first
+- The connection light sits to the left of its label and shows a Connecting state
+- New icons for Connect/Disconnect (a plug in a socket), Run, Shuffle and Repeat One
+- Drives are labelled "Drive A (8)" and "Drive B (9)", the window title shows just the app and host, and About shows the real version
+- Finished transfer batches stay visible for four seconds with a summary; sizes are formatted the same way everywhere and sort numerically
+- On macOS, Preferences lives only in the application menu
 
 ### Fixed
 - The System toolbar was squeezed to the right of the window, with most buttons in its overflow menu, under Qt 6.11 with a previously saved window layout
 - With no device connected (or a folder the device refuses), the remote file browser retried the failed listing on every layout pass, repeating the error in the status bar; it now tries once and retries only on refresh or reconnect
+- Closing the View panel while the video had keyboard focus could act on the already-destroyed panel
+- The file details screen now clears when the folder changes, and the status bar shows the folder and item count instead of a stale "Loading" message
+- Navigating no longer floods the status bar with destination messages
 
 ## [0.11.0] - 2026-09-25
 
@@ -328,7 +347,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - macOS code signing and notarization
 - Multi-platform builds (macOS, Linux, Windows)
 
-[Unreleased]: https://github.com/svetzal/r64u/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/svetzal/r64u/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/svetzal/r64u/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/svetzal/r64u/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/svetzal/r64u/compare/v0.9.1...v0.10.0
 [0.9.0]: https://github.com/svetzal/r64u/compare/v0.8.1...v0.9.0
