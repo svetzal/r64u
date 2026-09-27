@@ -143,6 +143,7 @@ signals:
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private slots:
     void onCategoryItemsChanged(const QString &category);
@@ -180,6 +181,7 @@ private:
                                 const QVariant &minValue = QVariant(),
                                 const QVariant &maxValue = QVariant());
     void relayout();
+    void updatePairWidths();
     void fitContentToLayout();
     void updateLabelStyle(const QString &key, bool isDirty);
 

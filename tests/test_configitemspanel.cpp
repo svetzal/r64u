@@ -23,6 +23,10 @@
  *   stretch across a wide column, while a combo never clips its longest option
  * - Every editor sits directly beside its right-aligned label, one grid spacing
  *   away, in both the one- and two-column layouts, and keeps its capped width
+ * - Each label/editor pair is anchored at the left of its half of the grid: the
+ *   widest label starts at the left margin, the second pair starts at the middle
+ *   of the grid in every category, and a checkbox is capped like other editors
+ * - Category headers span the whole grid in the filtered view
  * - The filter also matches the choices a dropdown offers, never current values
  * - setCategory() under a filter spanning categories scrolls that category's
  *   group fully into view (header at the top when the group is taller than the
@@ -44,6 +48,7 @@
 #include <QtTest>
 
 #include <algorithm>
+#include <cstdlib>
 
 class TestConfigItemsPanel : public QObject
 {
@@ -74,7 +79,11 @@ private:
 
     static constexpr int kEditorWidthChars = 21;
     static constexpr int kEditorWidthPadding = 14;
+    static constexpr int kGridMargin = 8;
     static constexpr int kGridSpacing = 8;
+    // Pixels a measured edge may be off by, for rounding when spare width is shared out
+    static constexpr int kLayoutSlack = 1;
+    static constexpr int kWiderTwoColumnWidth = 1200;
     // QRect::right() is inclusive, so adjacent cells one spacing apart differ by spacing + 1.
     // The native macOS style's layout margins can make it a few pixels less, never more.
     static constexpr int kMaxLabelEditorGap = kGridSpacing + 1;
@@ -273,6 +282,87 @@ private:
         const QRect viewport = area->viewport()->rect();
         return viewport.contains(inViewport(*area, *header)) &&
                viewport.contains(inViewport(*area, *lastEditor));
+    }
+
+    static QWidget *contentOf(const QWidget &panel) { return scrollAreaOf(panel)->widget(); }
+
+    // Left edge of each label/editor pair in use: where the grid's widest label would start
+    // in that pair. Items fill pairs afresh in each category's group. Labels are
+    // right-aligned, so a pair's labels share a right edge; fails the test when one does
+    // not. (Editors are left out: native styles offset each kind within its cell.)
+    static void measurePairStarts(const ConfigItemsPanel &panel, QList<int> &starts)
+    {
+        const QStringList keys = panel.visibleItems();
+        const int pairs = panel.columnCount();
+        QList<int> labelRight;
+        int widestLabel = 0;
+        int indexInGroup = 0;
+        QString group;
+        for (const QString &key : keys) {
+            auto *label = panel.findChild<QLabel *>(key);
+            QVERIFY2(label != nullptr, qPrintable(key));
+            const QString category = key.section(QLatin1Char('/'), 0, 0);
+            indexInGroup = category == group ? indexInGroup + 1 : 0;
+            group = category;
+            const auto pair = indexInGroup % pairs;
+            if (pair < labelRight.size()) {
+                QVERIFY2(label->geometry().right() == labelRight.at(pair),
+                         qPrintable(QStringLiteral("%1 label ends at x %2, its pair's at %3")
+                                        .arg(key)
+                                        .arg(label->geometry().right())
+                                        .arg(labelRight.at(pair))));
+            } else {
+                labelRight.append(label->geometry().right());
+            }
+            widestLabel = std::max(widestLabel, label->width());
+        }
+        starts.clear();
+        for (const int right : labelRight) {
+            starts.append(right + 1 - widestLabel);
+        }
+    }
+
+    // Every editor kind, plus a category holding a single item and one whose labels are all
+    // short. None of the extra names contain an "e", so filtering on "e" is unchanged.
+    ConfigurationModel *makeModelForPairLayout()
+    {
+        auto *model = new ConfigurationModel(this);
+        model->setCategories({"Network", "Audio", "Video", "Solo", "Tiny"});
+        addNetworkAndAudioItems(model);
+        addVideoComboItems(model);
+        model->setCategoryItems("Solo", {{QStringLiteral("Zoom"), 2}});
+        model->setCategoryItems("Tiny", {{QStringLiteral("X"), QStringLiteral("abc")},
+                                         {QStringLiteral("Y"), 3},
+                                         {QStringLiteral("Z"), true}});
+        return model;
+    }
+
+    // The scroll area never needs to scroll sideways and every editor lies inside it
+    static void verifyNoHorizontalOverflow(const ConfigItemsPanel &panel)
+    {
+        auto *area = scrollAreaOf(panel);
+        const int viewportWidth = area->viewport()->width();
+        QVERIFY2(contentOf(panel)->width() <= viewportWidth,
+                 qPrintable(QStringLiteral("content %1 px wide, viewport %2 px")
+                                .arg(contentOf(panel)->width())
+                                .arg(viewportWidth)));
+        QVERIFY(!area->horizontalScrollBar()->isVisible());
+        for (const QString &key : panel.visibleItems()) {
+            auto *editor = panel.findChild<QWidget *>(key + QStringLiteral(":editor"));
+            QVERIFY2(inViewport(*area, *editor).right() < viewportWidth,
+                     qPrintable(QStringLiteral("%1 ends at x %2, viewport %3 px wide")
+                                    .arg(key)
+                                    .arg(inViewport(*area, *editor).right())
+                                    .arg(viewportWidth)));
+        }
+    }
+
+    static void addLayoutCategoryRows()
+    {
+        QTest::addColumn<QString>("category");
+        QTest::newRow("line edit and spin box") << "Network";
+        QTest::newRow("combos") << "Video";
+        QTest::newRow("checkbox and spin box") << "Audio";
     }
 
     static void showAtWidth(ConfigItemsPanel &panel, int width)
@@ -709,6 +799,222 @@ private slots:
         QVERIFY(checkBox != nullptr);
         QVERIFY(checkBox->width() >= checkBox->sizeHint().width());
         QVERIFY(checkBox->height() >= checkBox->sizeHint().height());
+    }
+
+    // =========================================================================
+    // Pair layout — each label/editor pair is anchored at the left of its half
+    // =========================================================================
+
+    void testPairLayout_OneColumn_WidestLabelStartsAtLeftMargin_data() { addLayoutCategoryRows(); }
+
+    void testPairLayout_OneColumn_WidestLabelStartsAtLeftMargin()
+    {
+        QFETCH(QString, category);
+
+        auto *model = makeModelWithEveryEditorKind();
+        ConfigItemsPanel panel(model);
+        panel.setCategory(category);
+        showAtWidth(panel, kNarrowOneColumnWidth);
+        QCOMPARE(panel.columnCount(), 1);
+
+        int leftmostLabel = QWIDGETSIZE_MAX;
+        for (const QString &key : panel.visibleItems()) {
+            leftmostLabel = std::min(leftmostLabel, panel.findChild<QLabel *>(key)->x());
+        }
+        QVERIFY2(std::abs(leftmostLabel - kGridMargin) <= kLayoutSlack,
+                 qPrintable(QStringLiteral("leftmost label at x %1, left margin at %2")
+                                .arg(leftmostLabel)
+                                .arg(kGridMargin)));
+    }
+
+    void testPairLayout_TwoColumns_PairsStartAtLeftOfEachHalf_data()
+    {
+        QTest::addColumn<QString>("category");
+        QTest::addColumn<int>("panelWidth");
+        for (const int width : {kWideTwoColumnWidth, kWiderTwoColumnWidth}) {
+            for (const char *category : {"Network", "Video", "Audio"}) {
+                QTest::addRow("%s at %d", category, width)
+                    << QString::fromLatin1(category) << width;
+            }
+        }
+    }
+
+    void testPairLayout_TwoColumns_PairsStartAtLeftOfEachHalf()
+    {
+        QFETCH(QString, category);
+        QFETCH(int, panelWidth);
+
+        auto *model = makeModelWithEveryEditorKind();
+        ConfigItemsPanel panel(model);
+        panel.setCategory(category);
+        showAtWidth(panel, panelWidth);
+        QCOMPARE(panel.columnCount(), 2);
+
+        QList<int> starts;
+        measurePairStarts(panel, starts);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        QVERIFY2(std::abs(starts.at(0) - kGridMargin) <= kLayoutSlack,
+                 qPrintable(QStringLiteral("first pair starts at x %1, left margin at %2")
+                                .arg(starts.at(0))
+                                .arg(kGridMargin)));
+
+        // The second pair starts at the middle of the grid, or at most one spacing after it
+        const int middle = contentOf(panel)->width() / 2;
+        QVERIFY2(starts.at(1) >= middle - kLayoutSlack &&
+                     starts.at(1) <= middle + kGridSpacing + kLayoutSlack,
+                 qPrintable(QStringLiteral("second pair starts at x %1, middle at %2")
+                                .arg(starts.at(1))
+                                .arg(middle)));
+    }
+
+    void testPairLayout_TwoColumns_SecondPairStartsAtSameXInEveryCategory_data()
+    {
+        QTest::addColumn<int>("panelWidth");
+        QTest::addRow("%d", kWideTwoColumnWidth) << kWideTwoColumnWidth;
+        QTest::addRow("%d", kWiderTwoColumnWidth) << kWiderTwoColumnWidth;
+    }
+
+    void testPairLayout_TwoColumns_SecondPairStartsAtSameXInEveryCategory()
+    {
+        QFETCH(int, panelWidth);
+
+        auto *model = makeModelWithEveryEditorKind();
+        ConfigItemsPanel panel(model);
+        panel.setCategory("Network");
+        showAtWidth(panel, panelWidth);
+        QList<int> networkStarts;
+        measurePairStarts(panel, networkStarts);
+
+        // Video's labels and editors are both wider than Network's
+        for (const char *category : {"Video", "Audio"}) {
+            panel.setCategory(QString::fromLatin1(category));
+            QCoreApplication::processEvents();
+            QCOMPARE(panel.columnCount(), 2);
+            QList<int> starts;
+            measurePairStarts(panel, starts);
+            if (QTest::currentTestFailed()) {
+                return;
+            }
+            QVERIFY2(starts.at(1) == networkStarts.at(1),
+                     qPrintable(QStringLiteral("%1's second pair starts at x %2, Network's at %3")
+                                    .arg(QString::fromLatin1(category))
+                                    .arg(starts.at(1))
+                                    .arg(networkStarts.at(1))));
+        }
+    }
+
+    void testPairLayout_NarrowTwoColumns_NoOverflowAndPairsAnchored_data()
+    {
+        QTest::addColumn<QString>("category");
+        QTest::addColumn<QString>("filter");
+        QTest::addColumn<int>("panelWidth");
+        const int threshold = ConfigItemsPanel::twoColumnMinWidth();
+        for (const int width : {threshold, threshold + 40}) {
+            QTest::addRow("long-option combos at %d", width) << "Video" << "" << width;
+            QTest::addRow("filtered across categories at %d", width) << "Network" << "e" << width;
+            QTest::addRow("single item at %d", width) << "Solo" << "" << width;
+            QTest::addRow("short labels at %d", width) << "Tiny" << "" << width;
+        }
+    }
+
+    void testPairLayout_NarrowTwoColumns_NoOverflowAndPairsAnchored()
+    {
+        QFETCH(QString, category);
+        QFETCH(QString, filter);
+        QFETCH(int, panelWidth);
+
+        auto *model = makeModelForPairLayout();
+        ConfigItemsPanel panel(model);
+        panel.setCategory(category);
+        panel.setFilter(filter);
+        showAtWidth(panel, panelWidth);
+        QCOMPARE(panel.columnCount(), 2);
+
+        verifyNoHorizontalOverflow(panel);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        QList<int> starts;
+        measurePairStarts(panel, starts);
+        if (QTest::currentTestFailed()) {
+            return;
+        }
+        QVERIFY2(std::abs(starts.at(0) - kGridMargin) <= kLayoutSlack,
+                 qPrintable(QStringLiteral("first pair starts at x %1, left margin at %2")
+                                .arg(starts.at(0))
+                                .arg(kGridMargin)));
+        if (starts.size() > 1) {
+            const int middle = contentOf(panel)->width() / 2;
+            QVERIFY2(starts.at(1) >= middle - kLayoutSlack &&
+                         starts.at(1) <= middle + kGridSpacing + kLayoutSlack,
+                     qPrintable(QStringLiteral("second pair starts at x %1, middle at %2")
+                                    .arg(starts.at(1))
+                                    .arg(middle)));
+        }
+    }
+
+    void testPairLayout_NarrowedWithinTwoColumns_NoOverflow()
+    {
+        auto *model = makeModelForPairLayout();
+        ConfigItemsPanel panel(model);
+        showAtWidth(panel, kWideTwoColumnWidth);
+        panel.setCategory("Video");  // picked in the shown pane, laid out for its width
+        QCoreApplication::processEvents();
+
+        // Stays in two columns, so the items are not laid out afresh
+        panel.resize(ConfigItemsPanel::twoColumnMinWidth() + 20, 400);
+        QCoreApplication::processEvents();
+        QCOMPARE(panel.columnCount(), 2);
+
+        verifyNoHorizontalOverflow(panel);
+    }
+
+    void testPairLayout_Checkbox_CappedLikeOtherEditors()
+    {
+        auto *model = makeModelWithData();
+        ConfigItemsPanel panel(model);
+        panel.setCategory("Audio");
+        showAtWidth(panel, kWideTwoColumnWidth);
+
+        auto *checkBox = panel.findChild<QCheckBox *>("Audio/Mute:editor");
+        QVERIFY(checkBox != nullptr);
+        QVERIFY2(checkBox->width() <= expectedEditorCap(checkBox),
+                 qPrintable(QStringLiteral("checkbox %1 px wide, cap %2")
+                                .arg(checkBox->width())
+                                .arg(expectedEditorCap(checkBox))));
+        QVERIFY(checkBox->width() >= checkBox->sizeHint().width());
+    }
+
+    void testPairLayout_FilteredAcrossCategories_HeadersSpanTheGrid_data()
+    {
+        QTest::addColumn<int>("panelWidth");
+        QTest::newRow("two columns") << kWideTwoColumnWidth;
+        QTest::newRow("one column") << kNarrowOneColumnWidth;
+    }
+
+    void testPairLayout_FilteredAcrossCategories_HeadersSpanTheGrid()
+    {
+        QFETCH(int, panelWidth);
+
+        auto *model = makeModelWithEveryEditorKind();
+        ConfigItemsPanel panel(model);
+        panel.setFilter("e");
+        showAtWidth(panel, panelWidth);
+        QCOMPARE(panel.headerCategories(), QStringList({"Network", "Audio", "Video"}));
+
+        const int gridWidth = contentOf(panel)->width() - (2 * kGridMargin);
+        for (const QString &category : panel.headerCategories()) {
+            auto *header = headerFor(panel, category);
+            QVERIFY(header != nullptr);
+            QCOMPARE(header->x(), kGridMargin);
+            QVERIFY2(std::abs(header->width() - gridWidth) <= kLayoutSlack,
+                     qPrintable(QStringLiteral("%1 header %2 px wide, grid %3 px")
+                                    .arg(category)
+                                    .arg(header->width())
+                                    .arg(gridWidth)));
+        }
     }
 
     // =========================================================================
