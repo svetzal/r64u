@@ -1647,6 +1647,28 @@ if(BUILD_COVERAGE)
     add_dependencies(coverage coverage_favoritescore)
 endif()
 
+# ConfigFilterCore tests - pure Config mode filter and layout rules, no I/O dependencies
+add_executable(test_configfiltercore
+    test_configfiltercore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/configfiltercore.cpp
+)
+
+target_include_directories(test_configfiltercore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(test_configfiltercore PRIVATE
+    Qt6::Core
+    Qt6::Test
+)
+
+add_test(NAME ConfigFilterCoreTest COMMAND test_configfiltercore)
+
+if(BUILD_COVERAGE)
+    add_coverage_target(configfiltercore test_configfiltercore)
+    add_dependencies(coverage coverage_configfiltercore)
+endif()
+
 # FileActionCore tests - pure preview type detection and routing, no I/O dependencies
 add_executable(test_fileactioncore
     test_fileactioncore.cpp
@@ -2869,6 +2891,7 @@ add_executable(test_configpanel
     ${CMAKE_SOURCE_DIR}/src/services/statusmessageservice.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/configpanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/configitemspanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/configfiltercore.cpp
 )
 
 target_include_directories(test_configpanel PRIVATE
@@ -3459,6 +3482,7 @@ add_executable(test_configitemspanel
     ${CMAKE_SOURCE_DIR}/src/utils/logging.cpp
     ${CMAKE_SOURCE_DIR}/src/models/configurationmodel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/configitemspanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/configfiltercore.cpp
 )
 
 target_include_directories(test_configitemspanel PRIVATE
@@ -3990,6 +4014,7 @@ add_executable(test_mainwindow
     ${CMAKE_SOURCE_DIR}/src/core/sidfileparser.cpp
     ${CMAKE_SOURCE_DIR}/src/services/favoritesservice.cpp
     ${CMAKE_SOURCE_DIR}/src/core/favoritescore.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/configfiltercore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/favoritesuicore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/filebrowsercore.cpp
     ${CMAKE_SOURCE_DIR}/src/core/fileactioncore.cpp

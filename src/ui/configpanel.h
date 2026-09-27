@@ -7,6 +7,7 @@
 #include "ui/qmessageboxpresenter.h"
 
 #include <QLabel>
+#include <QLineEdit>
 #include <QListWidget>
 #include <QSplitter>
 #include <QToolBar>
@@ -63,6 +64,8 @@ private slots:
     void onCategorySelected(QListWidgetItem *current, QListWidgetItem *previous);
     void onItemEdited(const QString &category, const QString &item, const QVariant &value);
     void onItemSetResult(const QString &category, const QString &item);
+    void onFilterTextChanged(const QString &text);
+    void applyCategoryFilter();
 
 private:
     void setupUi();
@@ -88,6 +91,8 @@ private:
     QAction *refreshAction_ = nullptr;
     QLabel *unsavedIndicator_ = nullptr;
     QSplitter *splitter_ = nullptr;
+    QWidget *categoryPane_ = nullptr;
+    QLineEdit *filterEdit_ = nullptr;
     QListWidget *categoryList_ = nullptr;
     ConfigItemsPanel *itemsPanel_ = nullptr;
 };

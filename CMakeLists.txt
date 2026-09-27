@@ -114,6 +114,7 @@ set(SOURCES
     src/core/sidfileparser.cpp
     src/services/favoritesservice.cpp
     src/core/favoritescore.cpp
+    src/core/configfiltercore.cpp
     src/core/favoritesuicore.cpp
     src/core/filebrowsercore.cpp
     src/core/dropcore.cpp
@@ -267,6 +268,7 @@ set(HEADERS
     src/core/sidfileparser.h
     src/services/favoritesservice.h
     src/core/favoritescore.h
+    src/core/configfiltercore.h
     src/core/favoritesuicore.h
     src/core/filebrowsercore.h
     src/core/fileactioncore.h

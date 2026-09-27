@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Config mode filter** - a filter box above the category list narrows the categories and the settings shown to those whose name (or category) contains the text; matches from several categories are grouped under category headers
+- Config mode lays out settings in two columns when the pane is wide enough, and one column when it is narrow
+
 ## [0.11.1] - 2026-09-26
 
 ### Fixed

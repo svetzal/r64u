@@ -5,8 +5,10 @@
 #include "services/deviceconnectionmanager.h"
 #include "services/devicetypes.h"
 #include "services/errorhandler.h"
+#include "ui/configitemspanel.h"
 #include "ui/configpanel.h"
 
+#include <QLineEdit>
 #include <QListWidget>
 #include <QSettings>
 #include <QSignalSpy>
@@ -99,6 +101,46 @@ private:
             *ftpClientOut = ftpClient;
         }
         return service;
+    }
+
+    /**
+     * @brief Emits a category's items through the REST client with placeholder values.
+     */
+    static void emitItems(TrackingRestClient *restClient, const QString &category,
+                          const QStringList &names)
+    {
+        QHash<QString, ConfigItemMetadata> items;
+        for (const QString &name : names) {
+            ConfigItemMetadata meta;
+            meta.current = QStringLiteral("value");
+            meta.defaultValue = QStringLiteral("value");
+            meta.hasRange = false;
+            items[name] = meta;
+        }
+        emit restClient->configCategoryItemsReceived(category, items);
+    }
+
+    /**
+     * @brief Returns the texts of the category rows that are not hidden, in order.
+     */
+    static QStringList visibleCategoryRows(const ConfigPanel &panel)
+    {
+        auto *list = panel.findChild<QListWidget *>();
+        QStringList rows;
+        if (list == nullptr) {
+            return rows;
+        }
+        for (int i = 0; i < list->count(); ++i) {
+            if (!list->item(i)->isHidden()) {
+                rows.append(list->item(i)->text());
+            }
+        }
+        return rows;
+    }
+
+    static QLineEdit *filterEdit(const ConfigPanel &panel)
+    {
+        return panel.findChild<QLineEdit *>(QStringLiteral("configFilterEdit"));
     }
 
 private slots:
@@ -441,6 +483,132 @@ private slots:
 
         QCOMPARE(mock.confirmCalls.size(), 0);
         QCOMPARE(restClient->resetConfigToDefaultsCalls, 0);
+    }
+
+    // ==========================================================================
+    // Filter box — narrows the category list without touching the device
+    // ==========================================================================
+
+    void testFilter_MatchingText_NarrowsCategoryList()
+    {
+        TrackingRestClient *restClient = nullptr;
+        auto *service = makeConnectedService(&restClient);
+        ConfigPanel panel(service, makeErrorHandler());
+        emit restClient->configCategoriesReceived({"Network", "Video", "Audio"});
+        emitItems(restClient, "Network", {"Hostname", "Port"});
+        emitItems(restClient, "Video", {"Mode"});
+        emitItems(restClient, "Audio", {"Volume", "Mute"});
+
+        auto *edit = filterEdit(panel);
+        auto *items = panel.findChild<ConfigItemsPanel *>();
+        QVERIFY(edit != nullptr);
+        QVERIFY(items != nullptr);
+        edit->setText("vol");
+
+        QCOMPARE(visibleCategoryRows(panel), QStringList({"Audio"}));
+        QVERIFY(items->isFilterActive());
+        QCOMPARE(items->visibleItems(), QStringList({"Audio/Volume"}));
+    }
+
+    void testFilter_ClearedText_RestoresFullCategoryList()
+    {
+        TrackingRestClient *restClient = nullptr;
+        auto *service = makeConnectedService(&restClient);
+        ConfigPanel panel(service, makeErrorHandler());
+        emit restClient->configCategoriesReceived({"Network", "Video", "Audio"});
+        emitItems(restClient, "Network", {"Hostname", "Port"});
+        emitItems(restClient, "Video", {"Mode"});
+        emitItems(restClient, "Audio", {"Volume", "Mute"});
+        auto *list = panel.findChild<QListWidget *>();
+        QVERIFY(list != nullptr);
+        const int rowBefore = list->currentRow();
+
+        auto *edit = filterEdit(panel);
+        auto *items = panel.findChild<ConfigItemsPanel *>();
+        QVERIFY(edit != nullptr);
+        QVERIFY(items != nullptr);
+        edit->setText("vol");
+        QCOMPARE(visibleCategoryRows(panel), QStringList({"Audio"}));
+        QCOMPARE(items->visibleItems(), QStringList({"Audio/Volume"}));
+        edit->clear();
+
+        QCOMPARE(visibleCategoryRows(panel), QStringList({"Network", "Video", "Audio"}));
+        QCOMPARE(list->currentRow(), rowBefore);
+        QVERIFY(!items->isFilterActive());
+        // Back to the selected category's full item list (row 0 is Network)
+        QCOMPARE(items->visibleItems(), QStringList({"Network/Hostname", "Network/Port"}));
+    }
+
+    void testFilter_RebuildKeepsFocusInFilterBox()
+    {
+        TrackingRestClient *restClient = nullptr;
+        auto *service = makeConnectedService(&restClient);
+        ConfigPanel panel(service, makeErrorHandler());
+        panel.resize(1000, 600);
+        panel.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&panel));
+        emit restClient->configCategoriesReceived({"Network", "Video", "Audio"});
+        emitItems(restClient, "Network", {"Hostname", "Port"});
+        emitItems(restClient, "Video", {"Mode"});
+        emitItems(restClient, "Audio", {"Volume", "Mute"});
+
+        auto *edit = filterEdit(panel);
+        QVERIFY(edit != nullptr);
+        edit->setFocus();
+        QTest::keyClicks(edit, "vol");
+        QCOMPARE(visibleCategoryRows(panel), QStringList({"Audio"}));
+
+        // A refresh rebuilds the category list and every items panel
+        emit restClient->configCategoriesReceived({"Network", "Video", "Audio"});
+        emitItems(restClient, "Network", {"Hostname", "Port"});
+        emitItems(restClient, "Video", {"Mode"});
+        emitItems(restClient, "Audio", {"Volume", "Mute"});
+
+        QCOMPARE(panel.focusWidget(), edit);
+        QCOMPARE(edit->text(), QString("vol"));
+        QCOMPARE(visibleCategoryRows(panel), QStringList({"Audio"}));
+    }
+
+    void testFilter_TypingIssuesNoRestRequests()
+    {
+        TrackingRestClient *restClient = nullptr;
+        auto *service = makeConnectedService(&restClient);
+        ConfigPanel panel(service, makeErrorHandler());
+        emit restClient->configCategoriesReceived({"Network", "Audio"});
+        emitItems(restClient, "Network", {"Hostname", "Port"});
+        emitItems(restClient, "Audio", {"Volume", "Mute"});
+        const int categoriesCalls = restClient->getConfigCategoriesCalls;
+        const int itemsCalls = restClient->getConfigCategoryItemsCalls;
+        const int setCalls = restClient->setConfigItemCalls;
+
+        auto *edit = filterEdit(panel);
+        QVERIFY(edit != nullptr);
+        edit->setText("v");
+        edit->setText("vo");
+        edit->setText("vol");
+        edit->clear();
+
+        QCOMPARE(restClient->getConfigCategoriesCalls, categoriesCalls);
+        QCOMPARE(restClient->getConfigCategoryItemsCalls, itemsCalls);
+        QCOMPARE(restClient->setConfigItemCalls, setCalls);
+    }
+
+    void testFilter_LateItems_RevealCategory()
+    {
+        TrackingRestClient *restClient = nullptr;
+        auto *service = makeConnectedService(&restClient);
+        ConfigPanel panel(service, makeErrorHandler());
+        emit restClient->configCategoriesReceived({"Network", "Audio"});
+        emitItems(restClient, "Network", {"Hostname", "Port"});
+
+        auto *edit = filterEdit(panel);
+        QVERIFY(edit != nullptr);
+        edit->setText("vol");
+        QVERIFY(visibleCategoryRows(panel).isEmpty());
+
+        emitItems(restClient, "Audio", {"Volume", "Mute"});
+
+        QCOMPARE(visibleCategoryRows(panel), QStringList({"Audio"}));
     }
 };
 

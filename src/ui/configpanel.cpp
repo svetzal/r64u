@@ -3,6 +3,7 @@
 #include "configitemspanel.h"
 #include "pixelicons.h"
 
+#include "core/configfiltercore.h"
 #include "core/themecore.h"
 #include "models/configurationmodel.h"
 #include "services/configurationservice.h"
@@ -67,20 +68,39 @@ void ConfigPanel::setupUi()
 
     layout->addWidget(toolBar_);
 
-    // Create splitter with category list on left, items panel on right
+    // Create splitter with filter box and category list on left, items panel on right
     splitter_ = new QSplitter(Qt::Horizontal);
+
+    constexpr int kCategoryPaneMinWidth = 150;
+    constexpr int kCategoryPaneMaxWidth = 320;
+
+    categoryPane_ = new QWidget();
+    categoryPane_->setMinimumWidth(kCategoryPaneMinWidth);
+    categoryPane_->setMaximumWidth(kCategoryPaneMaxWidth);
+    auto *paneLayout = new QVBoxLayout(categoryPane_);
+    paneLayout->setContentsMargins(0, 0, 0, 0);
+    paneLayout->setSpacing(4);
+
+    // Filter box: narrows the category list and the items panel, never the device
+    filterEdit_ = new QLineEdit();
+    filterEdit_->setObjectName(QStringLiteral("configFilterEdit"));
+    filterEdit_->setPlaceholderText(tr("Filter settings"));
+    filterEdit_->setClearButtonEnabled(true);
+    paneLayout->addWidget(filterEdit_);
 
     // Category list
     categoryList_ = new QListWidget();
-    categoryList_->setMinimumWidth(150);
-    categoryList_->setMaximumWidth(320);
+    categoryList_->setMinimumWidth(kCategoryPaneMinWidth);
+    categoryList_->setMaximumWidth(kCategoryPaneMaxWidth);
     categoryList_->setAlternatingRowColors(true);
     categoryList_->setSpacing(2);
     // Match the styling of tree views with slightly more padding
     categoryList_->setStyleSheet("QListWidget::item { padding: 4px 8px; }");
     connect(categoryList_, &QListWidget::currentItemChanged, this,
             &ConfigPanel::onCategorySelected);
-    splitter_->addWidget(categoryList_);
+    paneLayout->addWidget(categoryList_, 1);
+
+    splitter_->addWidget(categoryPane_);
 
     // Config items panel
     itemsPanel_ = new ConfigItemsPanel(configModel_);
@@ -108,10 +128,15 @@ void ConfigPanel::setupConnections()
     connect(configService_, &ConfigurationService::configItemSet, this,
             &ConfigPanel::onItemSetResult);
 
+    // Filter box narrows both panes locally; no device request is made
+    connect(filterEdit_, &QLineEdit::textChanged, this, &ConfigPanel::onFilterTextChanged);
+
     // Connect model signals
     if (configModel_) {
         connect(configModel_, &ConfigurationModel::dirtyStateChanged, this,
                 &ConfigPanel::onDirtyStateChanged);
+        connect(configModel_, &ConfigurationModel::categoryItemsChanged, this,
+                &ConfigPanel::applyCategoryFilter);
         connect(configModel_, &ConfigurationModel::categoriesChanged, this, [this]() {
             // Update category list when categories change
             if (!categoryList_ || !configModel_) {
@@ -127,7 +152,33 @@ void ConfigPanel::setupConnections()
             if (categoryList_->count() > 0) {
                 categoryList_->setCurrentRow(0);
             }
+            applyCategoryFilter();
         });
+    }
+}
+
+void ConfigPanel::onFilterTextChanged(const QString &text)
+{
+    itemsPanel_->setFilter(text);
+    applyCategoryFilter();
+}
+
+void ConfigPanel::applyCategoryFilter()
+{
+    if (!categoryList_ || !configModel_ || !filterEdit_) {
+        return;
+    }
+
+    QList<configfiltercore::CategoryItems> snapshot;
+    for (const QString &category : configModel_->categories()) {
+        snapshot.append({category, configModel_->itemNames(category)});
+    }
+    const QStringList visible = configfiltercore::visibleCategories(snapshot, filterEdit_->text());
+
+    // Rows are hidden rather than removed so the selection and focus survive
+    for (int row = 0; row < categoryList_->count(); ++row) {
+        QListWidgetItem *item = categoryList_->item(row);
+        item->setHidden(!visible.contains(item->text()));
     }
 }
 
